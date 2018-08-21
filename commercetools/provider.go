@@ -47,11 +47,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	auth := credentials.NewClientCredentialsProvider(
 		d.Get("client_id").(string),
 		d.Get("client_secret").(string),
-		fmt.Sprintf("manage_project:%s", projectKey))
+		fmt.Sprintf("manage_project:%s", projectKey),
+		"https://auth.sphere.io/")
 
 	client, err := commercetools.NewClient(&commercetools.Config{
 		ProjectKey:   projectKey,
-		Region:       "https://api.sphere.io",
+		ApiURL:       "https://api.sphere.io",
 		AuthProvider: auth,
 	})
 

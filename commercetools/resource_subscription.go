@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/commercetools/customize"
+	"github.com/labd/commercetools-go-sdk/service/subscriptions"
 )
 
 func resourceSubscription() *schema.Resource {
@@ -98,7 +98,7 @@ func resourceSubscription() *schema.Resource {
 
 func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	svc := getCustomizeService(m)
-	var subscription *customize.Subscription
+	var subscription *subscriptions.Subscription
 
 	messageInput := d.Get("message").([]interface{})
 	messages := resourceSubscriptionMapMessages(messageInput)
@@ -109,7 +109,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	draft := &customize.SubscriptionDraft{
+	draft := &subscriptions.SubscriptionDraft{
 		Key:         d.Get("key").(string),
 		Destination: destination,
 		Messages:    messages,
@@ -118,7 +118,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		subscription, err = svc.SubscriptionCreate(draft)
+		subscription, err = svc.Create(draft)
 		if err != nil {
 			return resource.RetryableError(err)
 		}
@@ -142,7 +142,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 	svc := getCustomizeService(m)
 
-	subscription, err := svc.SubscriptionGetByID(d.Id())
+	subscription, err := svc.GetByID(d.Id())
 
 	if err != nil {
 		log.Fatalf("Error retrieving subscription: %s", err)
@@ -165,7 +165,7 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 	svc := getCustomizeService(m)
 
-	input := &customize.SubscriptionUpdateInput{
+	input := &subscriptions.UpdateInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
 		Actions: commercetools.UpdateActions{},
@@ -177,7 +177,7 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 
 		input.Actions = append(
 			input.Actions,
-			&customize.SubscriptionSetMessages{Messages: messages})
+			&subscriptions.SetMessages{Messages: messages})
 	}
 
 	if d.HasChange("changes") {
@@ -186,10 +186,10 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 
 		input.Actions = append(
 			input.Actions,
-			&customize.SubscriptionSetChanges{Changes: changes})
+			&subscriptions.SetChanges{Changes: changes})
 	}
 
-	_, err := svc.SubscriptionUpdate(input)
+	_, err := svc.Update(input)
 	if err != nil {
 		return err
 	}
@@ -200,48 +200,39 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
 	svc := getCustomizeService(m)
 	version := d.Get("version").(int)
-	svc.SubscriptionDeleteByID(d.Id(), version)
+	svc.DeleteByID(d.Id(), version)
 
 	return nil
 }
 
-func getCustomizeService(m interface{}) *customize.Service {
+func getCustomizeService(m interface{}) *subscriptions.Service {
 	client := m.(*commercetools.Client)
-	svc := customize.New(client)
+	svc := subscriptions.New(client)
 	return svc
 }
 
-func resourceSubscriptionCreateDestination(input map[string]interface{}) (customize.SubscriptionDestination, error) {
+func resourceSubscriptionCreateDestination(input map[string]interface{}) (subscriptions.Destination, error) {
 	switch input["type"] {
 	case "SQS":
-		return customize.SubscriptionAWSSQSDestination{
+		return subscriptions.DestinationAWSSQS{
 			QueueURL:     input["queue_url"].(string),
 			AccessKey:    input["access_key"].(string),
 			AccessSecret: input["access_secret"].(string),
-			Region:       "eu-west-1",
 		}, nil
 	default:
 		return nil, fmt.Errorf("Destination type %s not implemented", input["type"])
 	}
 }
 
-func expandStringArray(input []interface{}) []string {
-	s := make([]string, len(input))
-	for i, v := range input {
-		s[i] = fmt.Sprint(v)
-	}
-	return s
-}
-
-func resourceSubscriptionMapChanges(input []interface{}) []customize.ChangeSubscription {
-	var result []customize.ChangeSubscription
+func resourceSubscriptionMapChanges(input []interface{}) []subscriptions.ChangeSubscription {
+	var result []subscriptions.ChangeSubscription
 
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
 		rawTypeIds := expandStringArray(i["resource_type_ids"].([]interface{}))
 
 		for _, item := range rawTypeIds {
-			result = append(result, customize.ChangeSubscription{
+			result = append(result, subscriptions.ChangeSubscription{
 				ResourceTypeID: item,
 			})
 		}
@@ -250,11 +241,11 @@ func resourceSubscriptionMapChanges(input []interface{}) []customize.ChangeSubsc
 	return result
 }
 
-func resourceSubscriptionMapMessages(input []interface{}) []customize.MessageSubscription {
-	var messageObjects []customize.MessageSubscription
+func resourceSubscriptionMapMessages(input []interface{}) []subscriptions.MessageSubscription {
+	var messageObjects []subscriptions.MessageSubscription
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
-		messageObjects = append(messageObjects, customize.MessageSubscription{
+		messageObjects = append(messageObjects, subscriptions.MessageSubscription{
 			ResourceTypeID: i["resource_type_id"].(string),
 			Types:          expandStringArray(i["types"].([]interface{})),
 		})
