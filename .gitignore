@@ -8,3 +8,6 @@ terraform.*
 
 // Editor files
 .vscode
+
+// Other testing files
+testenv.sh

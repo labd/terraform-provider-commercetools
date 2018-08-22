@@ -77,3 +77,28 @@ resource "commercetools_subscription" "subscribe" {
   }
 }
 ```
+
+# Testing
+
+## Running an Acceptance Test
+
+Acceptance tests can be run using the `testacc` target in the
+`Makefile`. Prior to running the tests provider configuration details such as
+access keys must be made available as environment variables.
+
+For example, to run an acceptance test against the CommerceTools API
+provider, the following environment variables must be set:
+
+```sh
+export COMMERCETOOLS_CLIENT_ID=...
+export COMMERCETOOLS_CLIENT_SECRET=...
+export COMMERCETOOLS_PROJECT_KEY=...
+```
+
+For convenience, place a `testenv.sh` in your project root (which is included in .gitignore) where you can store these environment variables
+
+Tests can then be run by running
+
+```sh
+  $ make testacc
+```

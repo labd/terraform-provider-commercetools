@@ -4,11 +4,13 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/labd/commercetools-go-sdk/commercetools"
 	"github.com/labd/commercetools-go-sdk/commercetools/credentials"
 )
 
-func Provider() *schema.Provider {
+// Provider returns a terraform.ResourceProvider.
+func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"client_id": &schema.Schema{
@@ -28,8 +30,11 @@ func Provider() *schema.Provider {
 				Description: "CommercesTools Client Secret",
 			},
 			"project_key": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"COMMERCETOOLS_PROJECT_KEY",
+				}, nil),
 				Description: "CommercesTools Project key",
 			},
 		},
