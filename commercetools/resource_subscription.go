@@ -218,6 +218,7 @@ func resourceSubscriptionCreateDestination(input map[string]interface{}) (subscr
 			QueueURL:     input["queue_url"].(string),
 			AccessKey:    input["access_key"].(string),
 			AccessSecret: input["access_secret"].(string),
+			Region:       input["region"].(string),
 		}, nil
 	default:
 		return nil, fmt.Errorf("Destination type %s not implemented", input["type"])
