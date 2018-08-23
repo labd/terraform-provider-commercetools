@@ -9,5 +9,6 @@ terraform.*
 // Editor files
 .vscode
 
-// Other testing files
-testenv.sh
+// Local files
+/local/*
+!/local/*.example

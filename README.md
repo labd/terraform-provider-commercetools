@@ -1,13 +1,15 @@
-# terraform-provider-commercetools
+# commercetools Terraform Provider
 
 [![Travis Build Status](https://travis-ci.org/labd/terraform-provider-commercetools.svg?branch=master)](https://travis-ci.org/labd/terraform-provider-commercetools)
 [![codecov](https://codecov.io/gh/LabD/terraform-provider-commercetools/branch/master/graph/badge.svg)](https://codecov.io/gh/LabD/terraform-provider-commercetools)
 
 Note: This is currently **NOT** ready for production usage
 
-## Using the SDK
+## Requirements
 
-## Example
+## Using the provider
+
+### Example
 
 ```hcl
 provider "aws" {
@@ -78,27 +80,60 @@ resource "commercetools_subscription" "subscribe" {
 }
 ```
 
-# Testing
+# Contributing
 
-## Running an Acceptance Test
+## Building the provider
 
-Acceptance tests can be run using the `testacc` target in the
-`Makefile`. Prior to running the tests provider configuration details such as
+Clone repository to: `$GOPATH/src/github.com/labd/terraform-provider-commercetools`
+
+```sh
+$ mkdir -p $GOPATH/src/github.com/labd; cd $GOPATH/src/github.com/labd
+$ git clone git@github.com:labd/terraform-provider-commercetools
+```
+
+Enter the provider directory and build the provider
+
+```sh
+$ cd $GOPATH/src/github.com/labd/terraform-provider-commercetools
+$ make build
+```
+
+## Testing
+
+### Running the unit tests
+
+```sh
+$ make test
+```
+
+### Running an Acceptance Test
+
+In order to run the full suite of Acceptance tests, run `make testacc`.
+
+**NOTE:** Acceptance tests create real resources, and often cost money to run.
+
+Prior to running the tests provider configuration details such as
 access keys must be made available as environment variables.
 
-For example, to run an acceptance test against the CommerceTools API
-provider, the following environment variables must be set:
+Since we need to be able to create both commercetools as AWS resources, we need API credentials for both of the services.
+So in order for the acceptance tests to run correctly please provide all of the following:
 
 ```sh
 export COMMERCETOOLS_CLIENT_ID=...
 export COMMERCETOOLS_CLIENT_SECRET=...
 export COMMERCETOOLS_PROJECT_KEY=...
+
+export AWS_PROFILE=...
+// or:
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
 ```
 
-For convenience, place a `testenv.sh` in your project root (which is included in .gitignore) where you can store these environment variables
+For convenience, place a `testenv.sh` in your `local` folder (which is included in .gitignore) where you can store these environment variables.
+The test script will automatically load the variables from this file when it exists.
 
-Tests can then be run by running
+Tests can then be started by running
 
 ```sh
-  $ make testacc
+$ make testacc
 ```
