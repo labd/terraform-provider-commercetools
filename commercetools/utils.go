@@ -1,6 +1,9 @@
 package commercetools
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 func expandStringArray(input []interface{}) []string {
 	s := make([]string, len(input))
@@ -8,4 +11,12 @@ func expandStringArray(input []interface{}) []string {
 		s[i] = fmt.Sprint(v)
 	}
 	return s
+}
+
+func stringFormatObject(object interface{}) string {
+	data, err := json.MarshalIndent(object, "", "    ")
+	if err != nil {
+		return fmt.Sprintf("%+v", object)
+	}
+	return string(append(data, '\n'))
 }

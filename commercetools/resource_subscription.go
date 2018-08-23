@@ -140,6 +140,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
+	log.Print("[DEBUG] Reading subscriptions from commercetools")
 	svc := getCustomizeService(m)
 
 	subscription, err := svc.GetByID(d.Id())
@@ -150,9 +151,11 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if subscription == nil {
+		log.Print("[DEBUG] No subscriptions found")
 		d.SetId("")
 	} else {
-		log.Println(subscription)
+		log.Print("[DEBUG] Found following subscriptions:")
+		log.Print(stringFormatObject(subscription))
 
 		d.Set("version", subscription.Version)
 		d.Set("key", subscription.Key)
