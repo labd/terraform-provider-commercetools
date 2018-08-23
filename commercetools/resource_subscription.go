@@ -102,6 +102,8 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 
 	messageInput := d.Get("message").([]interface{})
 	messages := resourceSubscriptionMapMessages(messageInput)
+	changeInput := d.Get("changes").([]interface{})
+	changes := resourceSubscriptionMapChanges(changeInput)
 
 	destinationInput := d.Get("destination").(map[string]interface{})
 	destination, err := resourceSubscriptionCreateDestination(destinationInput)
@@ -113,6 +115,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 		Key:         d.Get("key").(string),
 		Destination: destination,
 		Messages:    messages,
+		Changes:     changes,
 	}
 
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -161,6 +164,7 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("key", subscription.Key)
 		d.Set("destination", subscription.Destination)
 		d.Set("message", subscription.Messages)
+		d.Set("changes", subscription.Changes)
 	}
 	return nil
 }
