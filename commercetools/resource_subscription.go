@@ -97,7 +97,7 @@ func resourceSubscription() *schema.Resource {
 }
 
 func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
-	svc := getCustomizeService(m)
+	svc := getSubscriptionService(m)
 	var subscription *subscriptions.Subscription
 
 	messageInput := d.Get("message").([]interface{})
@@ -144,7 +144,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading subscriptions from commercetools")
-	svc := getCustomizeService(m)
+	svc := getSubscriptionService(m)
 
 	subscription, err := svc.GetByID(d.Id())
 
@@ -170,7 +170,7 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
-	svc := getCustomizeService(m)
+	svc := getSubscriptionService(m)
 
 	input := &subscriptions.UpdateInput{
 		ID:      d.Id(),
@@ -205,14 +205,14 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
-	svc := getCustomizeService(m)
+	svc := getSubscriptionService(m)
 	version := d.Get("version").(int)
 	svc.DeleteByID(d.Id(), version)
 
 	return nil
 }
 
-func getCustomizeService(m interface{}) *subscriptions.Service {
+func getSubscriptionService(m interface{}) *subscriptions.Service {
 	client := m.(*commercetools.Client)
 	svc := subscriptions.New(client)
 	return svc
