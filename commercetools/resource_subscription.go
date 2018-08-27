@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/cterrors"
 	"github.com/labd/commercetools-go-sdk/service/subscriptions"
 )
 
@@ -33,27 +34,22 @@ func resourceSubscription() *schema.Resource {
 						"type": {
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 						},
 						"queue_url": {
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 						},
 						"access_key": {
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 						},
 						"access_secret": {
 							Type:     schema.TypeString,
 							Optional: false,
-							ForceNew: true,
 						},
 						"region": {
 							Type:     schema.TypeString,
 							Optional: false,
-							ForceNew: true,
 						},
 					},
 				},
@@ -100,13 +96,9 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	svc := getSubscriptionService(m)
 	var subscription *subscriptions.Subscription
 
-	messageInput := d.Get("message").([]interface{})
-	messages := resourceSubscriptionMapMessages(messageInput)
-	changeInput := d.Get("changes").([]interface{})
-	changes := resourceSubscriptionMapChanges(changeInput)
-
-	destinationInput := d.Get("destination").(map[string]interface{})
-	destination, err := resourceSubscriptionCreateDestination(destinationInput)
+	messages := resourceSubscriptionGetMessages(d)
+	changes := resourceSubscriptionGetChanges(d)
+	destination, err := resourceSubscriptionGetDestination(d)
 	if err != nil {
 		return err
 	}
@@ -149,6 +141,13 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 	subscription, err := svc.GetByID(d.Id())
 
 	if err != nil {
+		if reqerr, ok := err.(cterrors.RequestError); ok {
+			log.Printf("[DEBUG] Received RequestError %s", reqerr)
+			if reqerr.StatusCode() == 404 {
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
@@ -177,19 +176,22 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 		Actions: commercetools.UpdateActions{},
 	}
 
-	if d.HasChange("message") {
-		messageInput := d.Get("message").([]interface{})
-		messages := resourceSubscriptionMapMessages(messageInput)
+	if d.HasChange("key") {
+		newKey := d.Get("key").(string)
+		input.Actions = append(
+			input.Actions,
+			&subscriptions.SetKey{Key: newKey})
+	}
 
+	if d.HasChange("message") {
+		messages := resourceSubscriptionGetMessages(d)
 		input.Actions = append(
 			input.Actions,
 			&subscriptions.SetMessages{Messages: messages})
 	}
 
 	if d.HasChange("changes") {
-		changeInput := d.Get("changes").([]interface{})
-		changes := resourceSubscriptionMapChanges(changeInput)
-
+		changes := resourceSubscriptionGetChanges(d)
 		input.Actions = append(
 			input.Actions,
 			&subscriptions.SetChanges{Changes: changes})
@@ -206,7 +208,10 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
 	svc := getSubscriptionService(m)
 	version := d.Get("version").(int)
-	svc.DeleteByID(d.Id(), version)
+	_, err := svc.DeleteByID(d.Id(), version)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -217,7 +222,9 @@ func getSubscriptionService(m interface{}) *subscriptions.Service {
 	return svc
 }
 
-func resourceSubscriptionCreateDestination(input map[string]interface{}) (subscriptions.Destination, error) {
+func resourceSubscriptionGetDestination(d *schema.ResourceData) (subscriptions.Destination, error) {
+	input := d.Get("destination").(map[string]interface{})
+
 	switch input["type"] {
 	case "SQS":
 		return subscriptions.DestinationAWSSQS{
@@ -231,7 +238,8 @@ func resourceSubscriptionCreateDestination(input map[string]interface{}) (subscr
 	}
 }
 
-func resourceSubscriptionMapChanges(input []interface{}) []subscriptions.ChangeSubscription {
+func resourceSubscriptionGetChanges(d *schema.ResourceData) []subscriptions.ChangeSubscription {
+	input := d.Get("changes").([]interface{})
 	var result []subscriptions.ChangeSubscription
 
 	for _, raw := range input {
@@ -248,7 +256,8 @@ func resourceSubscriptionMapChanges(input []interface{}) []subscriptions.ChangeS
 	return result
 }
 
-func resourceSubscriptionMapMessages(input []interface{}) []subscriptions.MessageSubscription {
+func resourceSubscriptionGetMessages(d *schema.ResourceData) []subscriptions.MessageSubscription {
+	input := d.Get("message").([]interface{})
 	var messageObjects []subscriptions.MessageSubscription
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
