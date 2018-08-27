@@ -110,21 +110,18 @@ $ make test
 
 In order to run the full suite of Acceptance tests, run `make testacc`.
 
-**NOTE:** Acceptance tests create real resources, and often cost money to run.
+**NOTE:** Acceptance tests create real resources.
 
 Prior to running the tests provider configuration details such as
 access keys must be made available as environment variables.
 
-Since we need to be able to create both commercetools as AWS resources, we need API credentials for both of the services.
+Since we need to be able to create commercetools resources, we need the commercetools API credentials.
 So in order for the acceptance tests to run correctly please provide all of the following:
 
 ```sh
 export COMMERCETOOLS_CLIENT_ID=...
 export COMMERCETOOLS_CLIENT_SECRET=...
 export COMMERCETOOLS_PROJECT_KEY=...
-
-export AWS_ACCESS_KEY_ID=...
-export AWS_SECRET_ACCESS_KEY=...
 ```
 
 For convenience, place a `testenv.sh` in your `local` folder (which is included in .gitignore) where you can store these environment variables.

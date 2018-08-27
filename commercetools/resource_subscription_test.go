@@ -19,34 +19,19 @@ func TestAccSubscription_basic(t *testing.T) {
 		CheckDestroy: testAccCheckSubscriptionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccSubscriptionConfig(rName, false),
+				Config:      testAccSubscriptionConfig(rName),
 				ExpectError: regexp.MustCompile("A test message could not be delivered to this destination: SQS.*"),
-			},
-			{
-				Config: testAccSubscriptionConfig(rName, true),
-				Check: resource.ComposeTestCheckFunc(
-					testAccSubscriptionPresence,
-				),
 			},
 		},
 	})
 }
 
-func testAccSubscriptionConfig(rName string, withAWSResources bool) string {
-	var config string
-
+func testAccSubscriptionConfig(rName string) string {
 	queueURL := "https://sqs.eu-west-1.amazonaws.com/0000000000/some-queue"
 	accessKey := "some-access-key"
 	secretKey := "some-secret-key"
 
-	if withAWSResources {
-		config += testAccSQSConfig(rName)
-		queueURL = "${aws_sqs_queue.ct_queue.id}"
-		accessKey = "${aws_iam_access_key.ct.id}"
-		secretKey = "${aws_iam_access_key.ct.secret}"
-	}
-
-	config += fmt.Sprintf(`
+	return fmt.Sprintf(`
 resource "commercetools_subscription" "subscription_%[1]s" {
 	key = "commercetools-acc-%[1]s"
 	
@@ -69,12 +54,6 @@ resource "commercetools_subscription" "subscription_%[1]s" {
 	}
 }
 `, rName, queueURL, accessKey, secretKey)
-	return config
-}
-
-func testAccSubscriptionPresence(s *terraform.State) error {
-	// TODO: Implement
-	return nil
 }
 
 func testAccCheckSubscriptionDestroy(s *terraform.State) error {
