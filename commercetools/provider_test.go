@@ -10,10 +10,10 @@ import (
 
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProviderFactories func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory
-var testAccProvider terraform.ResourceProvider
+var testAccProvider *schema.Provider
 
 func init() {
-	testAccProvider = Provider()
+	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"commercetools": testAccProvider,
 	}
