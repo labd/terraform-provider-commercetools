@@ -191,7 +191,6 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
-		log.Printf("Updating key to %q", newKey)
 		input.Actions = append(
 			input.Actions,
 			&extensions.SetKey{Key: newKey})
