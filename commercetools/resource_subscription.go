@@ -149,8 +149,7 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 	subscription, err := svc.GetByID(d.Id())
 
 	if err != nil {
-		log.Fatalf("Error retrieving subscription: %s", err)
-		return nil
+		return err
 	}
 
 	if subscription == nil {
