@@ -7,14 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExtensionCreateAuthentication(t *testing.T) {
+func TestAPIExtensionGetAuthentication(t *testing.T) {
 	var input map[string]interface{}
 	input = map[string]interface{}{
 		"authorization_header": "12345",
 		"azure_authentication": "AzureKey",
 	}
 
-	auth, err := resourceExtensionCreateAuthentication(input)
+	auth, err := resourceAPIExtensionGetAuthentication(input)
 	assert.Nil(t, auth)
 	assert.NotNil(t, err)
 
@@ -22,9 +22,9 @@ func TestExtensionCreateAuthentication(t *testing.T) {
 		"authorization_header": "12345",
 	}
 
-	auth, err = resourceExtensionCreateAuthentication(input)
-	httpAuth := auth.(*extensions.DestinationAuthenticationAuth)
-	assert.Equal(t, "AuthorizationHeader", httpAuth.Type())
+	auth, err = resourceAPIExtensionGetAuthentication(input)
+	httpAuth, ok := auth.(*extensions.DestinationAuthenticationAuth)
+	assert.True(t, ok)
 	assert.Equal(t, "12345", httpAuth.HeaderValue)
 	assert.NotNil(t, auth)
 	assert.Nil(t, err)
