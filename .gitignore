@@ -6,6 +6,7 @@ terraform-provider-commercetools
 *.tf
 .terraform/
 terraform.*
+crash.log
 
 // Editor files
 .vscode

@@ -13,6 +13,14 @@ func expandStringArray(input []interface{}) []string {
 	return s
 }
 
+func expandStringMap(input map[string]interface{}) map[string]string {
+	s := make(map[string]string)
+	for k, v := range input {
+		s[k] = fmt.Sprint(v)
+	}
+	return s
+}
+
 func stringFormatObject(object interface{}) string {
 	data, err := json.MarshalIndent(object, "", "    ")
 	if err != nil {
