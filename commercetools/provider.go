@@ -68,6 +68,7 @@ func Provider() terraform.ResourceProvider {
 			"commercetools_api_extension":    resourceAPIExtension(),
 			"commercetools_subscription":     resourceSubscription(),
 			"commercetools_project_settings": resourceProjectSettings(),
+			"commercetools_type":             resourceType(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
