@@ -8,3 +8,7 @@ terraform.*
 
 // Editor files
 .vscode
+
+// Local files
+/local/*
+!/local/*.example
