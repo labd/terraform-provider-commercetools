@@ -65,6 +65,7 @@ func resourceType() *schema.Resource {
 						"input_hint": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  commercetools.SingleLineTextInputHint,
 						},
 					},
 				},
@@ -72,6 +73,21 @@ func resourceType() *schema.Resource {
 			"version": &schema.Schema{
 				Type:     schema.TypeInt,
 				Computed: true,
+			},
+		},
+	}
+}
+
+func localizedValueElement() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"key": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"label": {
+				Type:     schema.TypeMap,
+				Required: true,
 			},
 		},
 	}
@@ -129,18 +145,7 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 		"localized_value": {
 			Type:     schema.TypeSet,
 			Optional: true,
-			Elem: &schema.Resource{
-				Schema: map[string]*schema.Schema{
-					"key": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
-					"label": {
-						Type:     schema.TypeMap,
-						Required: true,
-					},
-				},
-			},
+			Elem:     localizedValueElement(),
 		},
 		"reference_type_id": {
 			Type:     schema.TypeString,
@@ -240,11 +245,92 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 		log.Print("[DEBUG] Found following type:")
 		log.Print(stringFormatObject(ctType))
 
-		// TODO: Implement Read method
+		fields := make([]map[string]interface{}, len(ctType.FieldDefinitions))
+		for i, fieldDef := range ctType.FieldDefinitions {
+			fieldData := make(map[string]interface{})
+			fieldType, err := resourceTypeReadFieldType(fieldDef.Type, true)
+			if err != nil {
+				return err
+			}
+			fieldData["type"] = fieldType
+			fieldData["name"] = fieldDef.Name
+			fieldData["label"] = fieldDef.Label
+			fieldData["required"] = fieldDef.Required
+			fieldData["input_hint"] = fieldDef.InputHint
+
+			fields[i] = fieldData
+		}
 
 		d.Set("version", ctType.Version)
+		d.Set("key", ctType.Key)
+		d.Set("name", ctType.Name)
+		d.Set("description", ctType.Description)
+		d.Set("resource_type_ids", ctType.ResourceTypeIds)
+		d.Set("field", fields)
 	}
 	return nil
+}
+
+func resourceTypeReadFieldType(fieldType types.FieldType, setsAllowed bool) (*schema.Set, error) {
+	typeSchema := schema.HashResource(fieldTypeElement(setsAllowed))
+	typeData := make(map[string]interface{})
+
+	if _, ok := fieldType.(types.BooleanType); ok {
+		typeData["name"] = "Boolean"
+	} else if _, ok := fieldType.(types.StringType); ok {
+		typeData["name"] = "String"
+	} else if _, ok := fieldType.(types.LocalizedStringType); ok {
+		typeData["name"] = "LocalizedString"
+	} else if f, ok := fieldType.(types.EnumType); ok {
+		enumValues := make(map[string]interface{}, len(f.Values))
+		for _, value := range f.Values {
+			enumValues[value.Key] = value.Label
+		}
+		typeData["name"] = "Enum"
+		typeData["values"] = enumValues
+	} else if f, ok := fieldType.(types.LocalizedEnumType); ok {
+		typeData["name"] = "LocalizedEnum"
+		typeData["localized_value"] = resourceTypeReadLocalizedEnum(f.Values)
+	} else if _, ok := fieldType.(types.NumberType); ok {
+		typeData["name"] = "Number"
+	} else if _, ok := fieldType.(types.MoneyType); ok {
+		typeData["name"] = "Money"
+	} else if _, ok := fieldType.(types.DateType); ok {
+		typeData["name"] = "Date"
+	} else if _, ok := fieldType.(types.TimeType); ok {
+		typeData["name"] = "Time"
+	} else if _, ok := fieldType.(types.DateTimeType); ok {
+		typeData["name"] = "DateTime"
+	} else if f, ok := fieldType.(types.ReferenceType); ok {
+		typeData["name"] = "Reference"
+		typeData["reference_type_id"] = f.ReferenceTypeID
+	} else if f, ok := fieldType.(types.SetType); ok {
+		typeData["name"] = "Set"
+		elemType, err := resourceTypeReadFieldType(f.ElementType, false)
+		if err != nil {
+			return nil, err
+		}
+		if setsAllowed {
+			typeData["element_type"] = elemType
+		}
+	} else {
+		return nil, fmt.Errorf("Unkown resource Type %T", fieldType)
+	}
+
+	return schema.NewSet(typeSchema, []interface{}{typeData}), nil
+}
+
+func resourceTypeReadLocalizedEnum(values []commercetools.LocalizedEnumValue) *schema.Set {
+	typeSchema := schema.HashResource(localizedValueElement())
+
+	enumValues := make([]interface{}, len(values))
+	for i, value := range values {
+		enumValues[i] = map[string]interface{}{
+			"key":   value.Key,
+			"label": localizedStringToMap(value.Label),
+		}
+	}
+	return schema.NewSet(typeSchema, enumValues)
 }
 
 func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {

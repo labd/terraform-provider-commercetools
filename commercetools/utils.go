@@ -3,6 +3,8 @@ package commercetools
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/labd/commercetools-go-sdk/commercetools"
 )
 
 func expandStringArray(input []interface{}) []string {
@@ -19,6 +21,14 @@ func expandStringMap(input map[string]interface{}) map[string]string {
 		s[k] = fmt.Sprint(v)
 	}
 	return s
+}
+
+func localizedStringToMap(input commercetools.LocalizedString) map[string]interface{} {
+	result := make(map[string]interface{}, len(input))
+	for k, v := range input {
+		result[k] = v
+	}
+	return result
 }
 
 func stringFormatObject(object interface{}) string {
