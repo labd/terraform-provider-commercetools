@@ -2,8 +2,8 @@ terraform-provider-commercetools
 *.backup
 
 // Terraform files
+*.tf
 .terraform/
-main.tf
 terraform.*
 
 // Editor files
