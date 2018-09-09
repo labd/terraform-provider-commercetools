@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/cterrors"
 	"github.com/labd/commercetools-go-sdk/service/types"
 )
 
@@ -194,10 +193,9 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 
 		ctType, err = svc.Create(draft)
 		if err != nil {
-			if reqerr, ok := err.(cterrors.RequestError); ok {
-				log.Printf("[DEBUG] Received RequestError %s", reqerr)
-				if reqerr.StatusCode() == 400 {
-					return resource.NonRetryableError(reqerr)
+			if ctErr, ok := err.(commercetools.Error); ok {
+				if ctErr.Code() == commercetools.ErrInvalidJSONInput {
+					return resource.NonRetryableError(ctErr)
 				}
 			} else {
 				log.Printf("[DEBUG] Received error: %s", err)
@@ -228,9 +226,8 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 	ctType, err := svc.GetByID(d.Id())
 
 	if err != nil {
-		if reqerr, ok := err.(cterrors.RequestError); ok {
-			log.Printf("[DEBUG] Received RequestError %s", reqerr)
-			if reqerr.StatusCode() == 404 {
+		if ctErr, ok := err.(commercetools.Error); ok {
+			if ctErr.Code() == commercetools.ErrResourceNotFound {
 				d.SetId("")
 				return nil
 			}
