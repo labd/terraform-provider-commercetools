@@ -1,12 +1,13 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/commercetools/credentials"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -49,17 +50,19 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	projectKey := d.Get("project_key").(string)
 
-	auth := credentials.NewClientCredentialsProvider(
-		d.Get("client_id").(string),
-		d.Get("client_secret").(string),
-		fmt.Sprintf("manage_project:%s", projectKey),
-		"https://auth.sphere.io/")
+	oauth2Config := &clientcredentials.Config{
+		ClientID:     d.Get("client_id").(string),
+		ClientSecret: d.Get("client_secret").(string),
+		Scopes:       []string{fmt.Sprintf("manage_project:%s", projectKey)},
+		TokenURL:     "https://auth.sphere.io/oauth/token",
+	}
+	httpClient := oauth2Config.Client(context.TODO())
 
-	client, err := commercetools.NewClient(&commercetools.Config{
-		ProjectKey:   projectKey,
-		ApiURL:       "https://api.sphere.io",
-		AuthProvider: auth,
+	client := commercetools.New(&commercetools.Config{
+		ProjectKey: projectKey,
+		URL:        "https://api.sphere.io",
+		HTTPClient: httpClient,
 	})
 
-	return client, err
+	return client, nil
 }

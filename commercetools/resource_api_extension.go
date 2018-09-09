@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/cterrors"
 	"github.com/labd/commercetools-go-sdk/service/extensions"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -155,9 +154,8 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 	extension, err := svc.GetByID(d.Id())
 
 	if err != nil {
-		if reqerr, ok := err.(cterrors.RequestError); ok {
-			log.Printf("[DEBUG] Received RequestError %s", reqerr)
-			if reqerr.StatusCode() == 404 {
+		if ctErr, ok := err.(commercetools.Error); ok {
+			if ctErr.Code() == commercetools.ErrResourceNotFound {
 				d.SetId("")
 				return nil
 			}
