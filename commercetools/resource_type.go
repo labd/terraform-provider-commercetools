@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/customdiff"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
@@ -36,6 +37,7 @@ func resourceType() *schema.Resource {
 			"resource_type_ids": {
 				Type:     schema.TypeList,
 				Required: true,
+				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"field": {
@@ -74,6 +76,33 @@ func resourceType() *schema.Resource {
 				Computed: true,
 			},
 		},
+		CustomizeDiff: customdiff.All(
+			customdiff.ValidateChange("field", func(old, new, meta interface{}) error {
+				oldLookup := resourceTypeCreateFieldLookup(old.([]interface{}))
+				newV := new.([]interface{})
+
+				for _, field := range newV {
+					newF := field.(map[string]interface{})
+					name := newF["name"].(string)
+					oldF, ok := oldLookup[name].(map[string]interface{})
+					if !ok {
+						// It means this is a new field, that's ok.
+						continue
+					}
+
+					log.Printf("[DEBUG] Checking %s", oldF["name"])
+					oldType := oldF["type"].(*schema.Set).List()[0].(map[string]interface{})
+					newType := newF["type"].(*schema.Set).List()[0].(map[string]interface{})
+
+					if oldType["name"] != newType["name"] {
+						return fmt.Errorf(
+							"Field '%s' type changed from %s to %s. Changing types is not supported; please remove the field first and re-define it later",
+							name, oldType["name"], newType["name"])
+					}
+				}
+				return nil
+			}),
+		),
 	}
 }
 
@@ -339,14 +368,116 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		Actions: commercetools.UpdateActions{},
 	}
 
-	// TODO: Implement UpdateActions
+	if d.HasChange("key") {
+		newKey := d.Get("key").(string)
+		input.Actions = append(
+			input.Actions,
+			&types.ChangeKey{Key: newKey})
+	}
+
+	if d.HasChange("name") {
+		newName := commercetools.LocalizedString(
+			expandStringMap(d.Get("name").(map[string]interface{})))
+		input.Actions = append(
+			input.Actions,
+			&types.ChangeName{Name: newName})
+	}
+
+	if d.HasChange("description") {
+		newDescr := commercetools.LocalizedString(
+			expandStringMap(d.Get("description").(map[string]interface{})))
+		input.Actions = append(
+			input.Actions,
+			&types.SetDescription{Description: newDescr})
+	}
+
+	if d.HasChange("field") {
+		old, new := d.GetChange("field")
+		fieldChangeActions, err := resourceTypeFieldChangeActions(old.([]interface{}), new.([]interface{}))
+		if err != nil {
+			return err
+		}
+
+		input.Actions = append(input.Actions, fieldChangeActions...)
+	}
+
+	log.Printf(
+		"[DEBUG] Will perform update operation with the following actions:\n%s",
+		stringFormatActions(input.Actions))
 
 	_, err := svc.Update(input)
 	if err != nil {
+		if ctErr, ok := err.(commercetools.Error); ok {
+			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
+		}
 		return err
 	}
 
 	return resourceTypeRead(d, m)
+}
+
+func resourceTypeCreateFieldLookup(fields []interface{}) map[string]interface{} {
+	lookup := make(map[string]interface{})
+	for _, field := range fields {
+		f := field.(map[string]interface{})
+		lookup[f["name"].(string)] = field
+	}
+	return lookup
+}
+
+func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interface{}) ([]commercetools.UpdateAction, error) {
+	oldLookup := resourceTypeCreateFieldLookup(oldValues)
+	newLookup := resourceTypeCreateFieldLookup(newValues)
+	actions := []commercetools.UpdateAction{}
+
+	log.Printf("[DEBUG] Construction Field change actions")
+
+	// Action: removeFieldDefinition
+	for name := range oldLookup {
+		if _, ok := newLookup[name]; !ok {
+			log.Printf("[DEBUG] Field deleted: %s", name)
+			actions = append(actions, types.RemoveFieldDefinition{FieldName: name})
+		}
+	}
+
+	for name, value := range newLookup {
+		oldValue, existingField := oldLookup[name]
+		value := value.(map[string]interface{})
+		oldValue = oldValue.(map[string]interface{})
+
+		fieldDef, err := resourceTypeGetFieldDefinition(value)
+		if err != nil {
+			return nil, err
+		}
+
+		if !existingField {
+			log.Printf("[DEBUG] Field added: %s", name)
+			actions = append(
+				actions,
+				types.AddFieldDefinition{FieldDefinition: *fieldDef})
+			continue
+		}
+
+	}
+
+	// Action: changeLabel
+	// TODO: Change FieldDefinition Label: https://docs.commercetools.com/http-api-projects-types.html#change-fielddefinition-label
+
+	// Action: addEnumValue
+	// TODO: Add EnumValue to FieldDefinition: https://docs.commercetools.com/http-api-projects-types.html#add-enumvalue-to-fielddefinition
+
+	// Action: addLocalizedEnumValue
+	// TODO: Add LocalizedEnumValue to FieldDefinition: https://docs.commercetools.com/http-api-projects-types.html#add-localizedenumvalue-to-fielddefinition
+
+	// Action: changeFieldDefinitionOrder
+	// TODO: Change the order of FieldDefinitions: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-fielddefinitions
+
+	// Action: changeEnumValueOrder
+	// TODO: Change the order of EnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-fielddefinitions
+
+	// Action: changeLocalizedEnumValueOrder
+	// TODO: Change the order of LocalizedEnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-localizedenumvalues
+	return actions, nil
 }
 
 func resourceTypeDelete(d *schema.ResourceData, m interface{}) error {
@@ -371,33 +502,42 @@ func resourceTypeGetFieldDefinitions(d *schema.ResourceData) ([]types.FieldDefin
 	var result []types.FieldDefinition
 
 	for _, raw := range input {
-		i := raw.(map[string]interface{})
-		fieldTypes, ok := i["type"].(*schema.Set)
+		fieldDef, err := resourceTypeGetFieldDefinition(raw.(map[string]interface{}))
 
-		if !ok {
-			return nil, fmt.Errorf("No type defined for field definition")
-		}
-		if fieldTypes.Len() > 1 {
-			return nil, fmt.Errorf("More then 1 type definition detected. Please remove the redundant ones")
-		}
-		fieldType, err := getFieldType(fieldTypes.List()[0].(map[string]interface{}))
 		if err != nil {
 			return nil, err
 		}
 
-		label := commercetools.LocalizedString(
-			expandStringMap(i["label"].(map[string]interface{})))
-
-		result = append(result, types.FieldDefinition{
-			Type:      fieldType,
-			Name:      i["name"].(string),
-			Label:     label,
-			Required:  i["required"].(bool),
-			InputHint: commercetools.TextInputHint(i["input_hint"].(string)),
-		})
+		result = append(result, *fieldDef)
 	}
 
 	return result, nil
+}
+
+func resourceTypeGetFieldDefinition(input map[string]interface{}) (*types.FieldDefinition, error) {
+	fieldTypes, ok := input["type"].(*schema.Set)
+
+	if !ok {
+		return nil, fmt.Errorf("No type defined for field definition")
+	}
+	if fieldTypes.Len() > 1 {
+		return nil, fmt.Errorf("More then 1 type definition detected. Please remove the redundant ones")
+	}
+	fieldType, err := getFieldType(fieldTypes.List()[0].(map[string]interface{}))
+	if err != nil {
+		return nil, err
+	}
+
+	label := commercetools.LocalizedString(
+		expandStringMap(input["label"].(map[string]interface{})))
+
+	return &types.FieldDefinition{
+		Type:      fieldType,
+		Name:      input["name"].(string),
+		Label:     label,
+		Required:  input["required"].(bool),
+		InputHint: commercetools.TextInputHint(input["input_hint"].(string)),
+	}, nil
 }
 
 func getFieldType(config map[string]interface{}) (types.FieldType, error) {
