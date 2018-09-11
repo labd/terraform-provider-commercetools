@@ -3,6 +3,7 @@ package commercetools
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/customdiff"
@@ -78,6 +79,7 @@ func resourceType() *schema.Resource {
 		},
 		CustomizeDiff: customdiff.All(
 			customdiff.ValidateChange("field", func(old, new, meta interface{}) error {
+				log.Printf("[DEBUG] Start field validation")
 				oldLookup := resourceTypeCreateFieldLookup(old.([]interface{}))
 				newV := new.([]interface{})
 
@@ -87,6 +89,7 @@ func resourceType() *schema.Resource {
 					oldF, ok := oldLookup[name].(map[string]interface{})
 					if !ok {
 						// It means this is a new field, that's ok.
+						log.Printf("[DEBUG] Found new field: %s", name)
 						continue
 					}
 
@@ -95,6 +98,9 @@ func resourceType() *schema.Resource {
 					newType := newF["type"].(*schema.Set).List()[0].(map[string]interface{})
 
 					if oldType["name"] != newType["name"] {
+						if oldType["name"] != "" || newType["name"] == "" {
+							continue
+						}
 						return fmt.Errorf(
 							"Field '%s' type changed from %s to %s. Changing types is not supported; please remove the field first and re-define it later",
 							name, oldType["name"], newType["name"])
@@ -432,7 +438,6 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 
 	log.Printf("[DEBUG] Construction Field change actions")
 
-	// Action: removeFieldDefinition
 	for name := range oldLookup {
 		if _, ok := newLookup[name]; !ok {
 			log.Printf("[DEBUG] Field deleted: %s", name)
@@ -442,10 +447,10 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 
 	for name, value := range newLookup {
 		oldValue, existingField := oldLookup[name]
-		value := value.(map[string]interface{})
-		oldValue = oldValue.(map[string]interface{})
+		newV := value.(map[string]interface{})
+		oldV := oldValue.(map[string]interface{})
 
-		fieldDef, err := resourceTypeGetFieldDefinition(value)
+		fieldDef, err := resourceTypeGetFieldDefinition(newV)
 		if err != nil {
 			return nil, err
 		}
@@ -458,16 +463,57 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			continue
 		}
 
+		if !reflect.DeepEqual(oldV["label"], newV["label"]) {
+			newLabel := commercetools.LocalizedString(
+				expandStringMap(newV["label"].(map[string]interface{})))
+			actions = append(
+				actions,
+				types.ChangeLabel{FieldName: name, Label: newLabel})
+		}
+
+		// TODO: The following can result in some unexpected behaviour;
+		// when a field type attribute changes, their hashes change and
+		// terraform will concider this a resource being removed and a new one
+		// being added.
+		// Therefore it is quite tricky to compare changes.
+		// This issue is further discussed here: https://github.com/hashicorp/terraform/issues/15420
+		//
+		// It might be better to define "type" as a `TypeList` instead of a `TypeSet`
+		// with `MaxItems=1`.
+
+		// newFieldType := fieldDef.Type
+		// oldFieldType := oldV["type"].(*schema.Set).List()[0].(map[string]interface{})
+
+		// if enumType, ok := newFieldType.(types.EnumType); ok {
+		// 	oldEnumV := oldFieldType["values"].(map[string]interface{})
+
+		// 	for _, enumValue := range enumType.Values {
+		// 		if _, ok := oldEnumV[enumValue.Key]; !ok {
+		// 			// Key does not appear in old enum values, so we'll add it
+		// 			actions = append(
+		// 				actions,
+		// 				types.AddEnumValue{
+		// 					FieldName: name,
+		// 					Value:     enumValue,
+		// 				})
+		// 		}
+		// 	}
+		// } else if enumType, ok := newFieldType.(types.LocalizedEnumType); ok {
+		// 	oldEnumV := oldFieldType["values"].(map[string]interface{})
+
+		// 	for _, enumValue := range enumType.Values {
+		// 		if _, ok := oldEnumV[enumValue.Key]; !ok {
+		// 			// Key does not appear in old enum values, so we'll add it
+		// 			actions = append(
+		// 				actions,
+		// 				types.AddLocalizedEnumValue{
+		// 					FieldName: name,
+		// 					Value:     enumValue,
+		// 				})
+		// 		}
+		// 	}
+		// }
 	}
-
-	// Action: changeLabel
-	// TODO: Change FieldDefinition Label: https://docs.commercetools.com/http-api-projects-types.html#change-fielddefinition-label
-
-	// Action: addEnumValue
-	// TODO: Add EnumValue to FieldDefinition: https://docs.commercetools.com/http-api-projects-types.html#add-enumvalue-to-fielddefinition
-
-	// Action: addLocalizedEnumValue
-	// TODO: Add LocalizedEnumValue to FieldDefinition: https://docs.commercetools.com/http-api-projects-types.html#add-localizedenumvalue-to-fielddefinition
 
 	// Action: changeFieldDefinitionOrder
 	// TODO: Change the order of FieldDefinitions: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-fielddefinitions
@@ -515,15 +561,27 @@ func resourceTypeGetFieldDefinitions(d *schema.ResourceData) ([]types.FieldDefin
 }
 
 func resourceTypeGetFieldDefinition(input map[string]interface{}) (*types.FieldDefinition, error) {
-	fieldTypes, ok := input["type"].(*schema.Set)
+	t, ok := input["type"].(*schema.Set)
+	fieldTypes := []map[string]interface{}{}
+	for _, ft := range t.List() {
+		fieldType := ft.(map[string]interface{})
+		// Field definitions gets reshuffled when one gets removed
+		// or an attribute of the Field changes.
+		// This results in having two types defined, one being empty (removed)
+		// and one being an existing one (but moved to a 'new' field definition).
+		if fieldType["name"] != "" {
+			fieldTypes = append(fieldTypes, fieldType)
+		}
+	}
 
 	if !ok {
 		return nil, fmt.Errorf("No type defined for field definition")
 	}
-	if fieldTypes.Len() > 1 {
+	if len(fieldTypes) > 1 {
+		log.Printf("[DEBUG] %+v", fieldTypes)
 		return nil, fmt.Errorf("More then 1 type definition detected. Please remove the redundant ones")
 	}
-	fieldType, err := getFieldType(fieldTypes.List()[0].(map[string]interface{}))
+	fieldType, err := getFieldType(fieldTypes[0])
 	if err != nil {
 		return nil, err
 	}
