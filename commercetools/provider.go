@@ -3,6 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -54,6 +55,14 @@ func Provider() terraform.ResourceProvider {
 				}, "https://api.sphere.io"),
 				Description: "CommercesTools API URL",
 			},
+			"scopes": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"CTP_SCOPES",
+				}, nil),
+				Description: "CommercesTools Scopes",
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"commercetools_api_extension": resourceAPIExtension(),
@@ -66,10 +75,18 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	projectKey := d.Get("project_key").(string)
 
+	scopesRaw := d.Get("scopes").(string)
+	var scopes []string
+	if scopesRaw == ""{
+		scopes = []string{fmt.Sprintf("manage_project:%s", projectKey)}
+	} else {
+		scopes = strings.Split(scopesRaw, " ")
+	}
+
 	oauth2Config := &clientcredentials.Config{
 		ClientID:     d.Get("client_id").(string),
 		ClientSecret: d.Get("client_secret").(string),
-		Scopes:       []string{fmt.Sprintf("manage_project:%s", projectKey)},
+		Scopes:       scopes,
 		TokenURL:     d.Get("token_url").(string),
 	}
 	httpClient := oauth2Config.Client(context.TODO())
