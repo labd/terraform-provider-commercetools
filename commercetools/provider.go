@@ -38,6 +38,22 @@ func Provider() terraform.ResourceProvider {
 				}, nil),
 				Description: "CommercesTools Project key",
 			},
+			"token_url": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"CTP_TOKEN_URL",
+				}, "https://auth.sphere.io/oauth/token"),
+				Description: "CommercesTools Token URL",
+			},
+			"api_url": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"CTP_API_URL",
+				}, "https://api.sphere.io"),
+				Description: "CommercesTools API URL",
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"commercetools_api_extension": resourceAPIExtension(),
@@ -54,13 +70,13 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		ClientID:     d.Get("client_id").(string),
 		ClientSecret: d.Get("client_secret").(string),
 		Scopes:       []string{fmt.Sprintf("manage_project:%s", projectKey)},
-		TokenURL:     "https://auth.sphere.io/oauth/token",
+		TokenURL:     d.Get("token_url").(string),
 	}
 	httpClient := oauth2Config.Client(context.TODO())
 
 	client := commercetools.New(&commercetools.Config{
 		ProjectKey: projectKey,
-		URL:        "https://api.sphere.io",
+		URL:        d.Get("api_url").(string),
 		HTTPClient: httpClient,
 	})
 
