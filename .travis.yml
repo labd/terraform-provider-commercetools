@@ -14,7 +14,7 @@ env:
     - secure: Ni9mZBdS104XW9lyNwbODFgMtgIT3874/HbMOExikoS6UPXKFSeJsryQ2AN3xbBC5ZnEWgV6GXECi15b/1S37Db2pBbfM1j3PJhI/gA448OAP+6KWVbDxUH1POCHBb9DRwCQ/YGYdax/QZBxsZlMrSDZUsr9xq/s/E8q1amwpaNY8nOKR28WshXZTEYG8grPj0Fu97iyVglMBi9YLaRUpQLO7ZMRa08AdqBZqrRw2KdQXB5rzNiYME6ENF3BeXKfbWxKLHt1KP6U1x6zQl4WPSHTLpjBAesfTIDOMsPh0aTKTLKqx2MOctfYi3jeCkQl/Ez7PAxYaCWyN61DGSC0YbbalWdYDVgvpa92hG2SyBqWDb2IPFBSar78GUadlO3hP4KWoXc80/YWxqyhkbZBmoUFS3+jSzn+KMOesULO6uGIT2I6T9D0FvH7r4Mx+d+JQYWi2YdwkKJcXUwOPKOJ1XyPfmVigSxdRY+5uYK/Zx64/flkKgecfzLmAvrXt8I5bw8K6A/MK0f/6SuYpXOQH9nRw8pEVwyWU3qND/jQjlTpZnmGAZm2PQs+lxZjXUD6YLwTbIPHpXOHAKAtkMJC9EUUPyEaXtY6XiBMPkj/d/MouS1evOcwm3P5FMoeOj33+Axazw8WSW1MnxmR7FPXGbdlteuUORqKA6QP4jeplnc=
 
 script:
-  - env GO111MODULE=on go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...
+  - env GO111MODULE=on go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... -v ./...
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
