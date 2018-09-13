@@ -34,6 +34,8 @@ func resourceSubscription() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+
+						// AWS SQS
 						"queue_url": {
 							Type:     schema.TypeString,
 							Optional: true,
@@ -47,6 +49,22 @@ func resourceSubscription() *schema.Resource {
 							Optional: false,
 						},
 						"region": {
+							Type:     schema.TypeString,
+							Optional: false,
+						},
+
+						// Azure Service Bus
+						"connection_string": {
+							Type:     schema.TypeString,
+							Optional: false,
+						},
+
+						// Google Pub Sub
+						"project_id": {
+							Type:     schema.TypeString,
+							Optional: false,
+						},
+						"topic": {
 							Type:     schema.TypeString,
 							Optional: false,
 						},
