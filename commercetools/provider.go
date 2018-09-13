@@ -87,7 +87,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		ClientID:     d.Get("client_id").(string),
 		ClientSecret: d.Get("client_secret").(string),
 		Scopes:       scopes,
-		TokenURL:     d.Get("token_url").(string),
+		TokenURL:     fmt.Sprintf("%s/oauth/token", d.Get("token_url").(string)),
 	}
 	httpClient := oauth2Config.Client(context.TODO())
 
