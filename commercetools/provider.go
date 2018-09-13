@@ -42,7 +42,7 @@ func Provider() terraform.ResourceProvider {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"CTP_TOKEN_URL",
+					"CTP_AUTH_URL",
 				}, "https://auth.sphere.io/oauth/token"),
 				Description: "CommercesTools Token URL",
 			},
