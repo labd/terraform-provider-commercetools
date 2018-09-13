@@ -11,6 +11,52 @@ import (
 	"github.com/labd/commercetools-go-sdk/service/subscriptions"
 )
 
+var destinationFields = map[string][]string{
+	"SQS": {
+		"queue_url",
+		"access_key",
+		"access_secret",
+		"region",
+	},
+	"azure_servicebus": {
+		"connection_string",
+	},
+	"google_pubsub": {
+		"project_id",
+		"topic",
+	},
+}
+
+func validateDestination(val interface{}, key string) (warns []string, errs []error) {
+	valueAsMap := val.(map[string]interface{})
+
+	destinationType, ok := valueAsMap["type"]
+
+	if ok {
+		destinationTypeAsString, ok := destinationType.(string)
+		if ok {
+			fields, ok := destinationFields[destinationTypeAsString]
+			if !ok {
+				errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", destinationTypeAsString))
+			} else {
+				for _, field := range fields {
+					value, ok := valueAsMap[field].(string)
+					if !ok {
+						errs = append(errs, fmt.Errorf("Required property '%v' missing", field))
+					} else if len(value) == 0 {
+						errs = append(errs, fmt.Errorf("Required property '%v' is empty", field))
+					}
+				}
+			}
+		} else {
+			errs = append(errs, fmt.Errorf("Property 'type' has wrong type"))
+		}
+	} else {
+		errs = append(errs, fmt.Errorf("Property 'type' missing"))
+	}
+	return
+}
+
 func resourceSubscription() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceSubscriptionCreate,
@@ -26,13 +72,14 @@ func resourceSubscription() *schema.Resource {
 				Optional: true,
 			},
 			"destination": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:         schema.TypeMap,
+				Optional:     true,
+				ValidateFunc: validateDestination,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 						},
 
 						// AWS SQS
@@ -46,27 +93,27 @@ func resourceSubscription() *schema.Resource {
 						},
 						"access_secret": {
 							Type:     schema.TypeString,
-							Optional: false,
+							Optional: true,
 						},
 						"region": {
 							Type:     schema.TypeString,
-							Optional: false,
+							Optional: true,
 						},
 
 						// Azure Service Bus
 						"connection_string": {
 							Type:     schema.TypeString,
-							Optional: false,
+							Optional: true,
 						},
 
 						// Google Pub Sub
 						"project_id": {
 							Type:     schema.TypeString,
-							Optional: false,
+							Optional: true,
 						},
 						"topic": {
 							Type:     schema.TypeString,
-							Optional: false,
+							Optional: true,
 						},
 					},
 				},
