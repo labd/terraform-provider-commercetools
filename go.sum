@@ -78,6 +78,10 @@ github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348 h1:MtvEpTB6LX3v
 github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348/go.mod h1:B69LEHPfb2qLo0BaaOLcbitczOKLWTsrBG9LczfCD4k=
 github.com/labd/commercetools-go-sdk v0.0.0-20180909074036-f9e68ad0e296 h1:7wTawP2Bx9pT1EaR7B078kx7YMtHVVm9ApvKyBAM3qo=
 github.com/labd/commercetools-go-sdk v0.0.0-20180909074036-f9e68ad0e296/go.mod h1:ulqkGi4LV4sZZP4H/hkLyLDrjHxVw+3wpQ9ElglOsPw=
+github.com/labd/commercetools-go-sdk v0.0.0-20180913093541-58f102b9f2ee h1:tSFdVgCvYJgaCopWwhonJ/yK0OocPoyjry+N/4bJZ1s=
+github.com/labd/commercetools-go-sdk v0.0.0-20180913093541-58f102b9f2ee/go.mod h1:ulqkGi4LV4sZZP4H/hkLyLDrjHxVw+3wpQ9ElglOsPw=
+github.com/labd/commercetools-go-sdk v0.0.0-20180913101439-13cd47265400 h1:E9v/aWJkKh6JfeJc/VYOxVl3fSQsV97kln+wcT+XCQI=
+github.com/labd/commercetools-go-sdk v0.0.0-20180913101439-13cd47265400/go.mod h1:ulqkGi4LV4sZZP4H/hkLyLDrjHxVw+3wpQ9ElglOsPw=
 github.com/mattn/go-colorable v0.0.9 h1:UVL0vNpWh04HeJXV0KLcaT7r06gOH2l4OW6ddYRUIY4=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-isatty v0.0.3 h1:ns/ykhmWi7G9O+8a448SecJU3nSMBXJfqQkl0upE1jI=
@@ -127,6 +131,8 @@ golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnf
 golang.org/x/net v0.0.0-20180811021610-c39426892332/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180906233101-161cd47e91fd h1:nTDtHvHSdCn1m6ITfMRqtOd/9+7a3s8RBNOZ3eYZzJA=
 golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/net v0.0.0-20180911220305-26e67e76b6c3 h1:czFLhve3vsQetD6JOJ8NZZvGQIXlnN3/yXxbT6/awxI=
+golang.org/x/net v0.0.0-20180911220305-26e67e76b6c3/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be h1:vEDujvNQGv4jgYKudGeI/+DAX4Jffq6hpD55MmoEvKs=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f h1:wMNYb4v58l5UBM7MYRLPG6ZhfOqbKu7X5eyFl8ZhKvA=

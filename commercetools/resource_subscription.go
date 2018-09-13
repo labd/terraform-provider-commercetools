@@ -231,6 +231,10 @@ func resourceSubscriptionGetDestination(d *schema.ResourceData) (subscriptions.D
 			AccessSecret: input["access_secret"].(string),
 			Region:       input["region"].(string),
 		}, nil
+	case "azure_servicebus":
+		return subscriptions.DestinationAzureServiceBus{
+			ConnectionString: input["connection_string"].(string),
+		}, nil
 	default:
 		return nil, fmt.Errorf("Destination type %s not implemented", input["type"])
 	}

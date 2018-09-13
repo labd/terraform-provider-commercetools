@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/terraform v0.11.8
 	github.com/hashicorp/yamux v0.0.0-20180826203732-cc6d2ea263b2 // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
-	github.com/labd/commercetools-go-sdk v0.0.0-20180909074036-f9e68ad0e296
+	github.com/labd/commercetools-go-sdk v0.0.0-20180913101439-13cd47265400
 	github.com/mitchellh/cli v1.0.0 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.0.0 // indirect
@@ -35,6 +35,7 @@ require (
 	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/zclconf/go-cty v0.0.0-20180907002636-07dee8a1cfd4 // indirect
 	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793 // indirect
+	golang.org/x/net v0.0.0-20180911220305-26e67e76b6c3 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 	google.golang.org/genproto v0.0.0-20180831171423-11092d34479b // indirect
 	google.golang.org/grpc v1.14.0 // indirect
