@@ -30,7 +30,7 @@ resource "aws_sqs_queue" "ct_queue" {
   receive_wait_time_seconds = 10
 }
 
-resource "aws_iam_user" "sqs_user" {
+resource "aws_iam_user" "ct" {
   name = "specific-user"
 }
 
