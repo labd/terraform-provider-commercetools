@@ -235,6 +235,11 @@ func resourceSubscriptionGetDestination(d *schema.ResourceData) (subscriptions.D
 		return subscriptions.DestinationAzureServiceBus{
 			ConnectionString: input["connection_string"].(string),
 		}, nil
+	case "google_pubsub":
+		return subscriptions.DestinationGooglePubSub{
+			ProjectID: input["project_id"].(string),
+			Topic:     input["topic"].(string),
+		}, nil
 	default:
 		return nil, fmt.Errorf("Destination type %s not implemented", input["type"])
 	}
