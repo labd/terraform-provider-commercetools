@@ -21,12 +21,38 @@ func resourceProject() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"key": {
 				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"name": {
+				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"currencies": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"countries": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"languages": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"messages": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+					},
+				},
 			},
 			"version": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -61,12 +87,16 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId(project.Key)
 	d.Set("version", project.Version)
+	d.Set("name", project.Name)
 	d.Set("currencies", project.Currencies)
-	// d.Set("countries", project.Countries)
-	// d.Set("languages", project.Languages)
+	d.Set("countries", project.Countries)
+	d.Set("languages", project.Languages)
 	// d.Set("createdAt", project.CreatedAt)
 	// d.Set("trialUntil", project.TrialUntil)
-	// d.Set("messages", project.Messages)
+	log.Print("[DEBUG] Logging messages enabled")
+	log.Print(stringFormatObject(project.Messages))
+	d.Set("messages", project.Messages)
+	log.Print(stringFormatObject(d))
 	// d.Set("shippingRateInputType", project.ShippingRateInputType)
 
 	return nil
@@ -80,11 +110,42 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 		Actions: commercetools.UpdateActions{},
 	}
 
+	if d.HasChange("name") {
+		input.Actions = append(input.Actions, &project.ChangeName{d.Get("name").(string)})
+	}
+
 	if d.HasChange("currencies") {
-		newCurrencies := resourceProjectGetCurrencies(d)
+		newCurrencies := getStringSlice(d, "currencies")
 		input.Actions = append(
 			input.Actions,
 			&project.ChangeCurrencies{Currencies: newCurrencies})
+	}
+
+	if d.HasChange("countries") {
+		newCountries := getStringSlice(d, "countries")
+		input.Actions = append(
+			input.Actions,
+			&project.ChangeCountries{Countries: newCountries})
+	}
+
+	if d.HasChange("languages") {
+		newLanguages := getStringSlice(d, "languages")
+		input.Actions = append(
+			input.Actions,
+			&project.ChangeLanguages{Languages: newLanguages})
+	}
+
+	if d.HasChange("messages") {
+		messages := d.Get("messages").(map[string]interface{})
+		// ¯\_(ツ)_/¯
+		enabled := false
+		if messages["enabled"] == "1" {
+			enabled = true
+		}
+
+		input.Actions = append(
+			input.Actions,
+			&project.ChangeMessagesEnabled{MessagesEnabled: enabled})
 	}
 
 	_, err := svc.Update(input)
@@ -106,8 +167,8 @@ func getProjectService(m interface{}) *project.Service {
 	return svc
 }
 
-func resourceProjectGetCurrencies(d *schema.ResourceData) []string {
-	input := d.Get("currencies").([]interface{})
+func getStringSlice(d *schema.ResourceData, field string) []string {
+	input := d.Get(field).([]interface{})
 	var currencyObjects []string
 	for _, raw := range input {
 		currencyObjects = append(currencyObjects, raw.(string))
