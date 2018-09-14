@@ -237,6 +237,17 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 		Actions: commercetools.UpdateActions{},
 	}
 
+	if d.HasChange("destination") {
+		destination, err := resourceSubscriptionGetDestination(d)
+		if err != nil {
+			return err
+		}
+
+		input.Actions = append(
+			input.Actions,
+			&subscriptions.ChangeDestination{Destination: destination})
+	}
+
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
