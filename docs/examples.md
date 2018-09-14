@@ -69,7 +69,15 @@ resource "commercetools_subscription" "subscribe" {
 }
 ```
 
+## Google Pubsub Example
+
 ```hcl
+
+provider "google" {
+  project = "${var.project}"
+  credentials = "${file("${var.credentials_file_path}")}"
+}
+
 resource "google_pubsub_topic" "resource-updates" {
   name = "resource-updates"
 }
