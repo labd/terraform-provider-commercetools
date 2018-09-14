@@ -243,10 +243,9 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 			return err
 		}
 
-		newKey := d.Get("destination").(string)
 		input.Actions = append(
 			input.Actions,
-			&subscriptions.ChangeDestination{destination: destination})
+			&subscriptions.ChangeDestination{Destination: destination})
 	}
 
 	if d.HasChange("key") {
