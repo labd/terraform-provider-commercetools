@@ -187,7 +187,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if subscription == nil {
-		log.Fatal("No subscription created?")
+		return fmt.Errorf("Error creating subscription")
 	}
 
 	d.SetId(subscription.ID)
