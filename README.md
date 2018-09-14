@@ -13,6 +13,7 @@ still in early development and it doesn't support the complete commercetools
 API yet but it can be considered 'production' ready for the resource it does support.
 
 # Using the provider
+This is a third-party provider and that means that terraform cannot download it automatically. Packages of the releases are available at https://github.com/labd/terraform-provider-commercetools/releases See the [terraform documentation](https://www.terraform.io/docs/configuration/providers.html#third-party-plugins) for more information about installing third-party providers.
 
 [Read our documentation](https://readthedocs.org/projects/commercetools-terraform-provider) and check out the [examples](https://commercetools-terraform-provider.readthedocs.io/en/latest/examples/).
 
