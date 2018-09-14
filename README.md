@@ -70,7 +70,7 @@ resource "commercetools_subscription" "subscribe" {
   }
 
   changes {
-    resource_type_ids = ["product"]
+    resource_type_id = ["product"]
   }
 
   message {

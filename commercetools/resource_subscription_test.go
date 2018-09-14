@@ -95,7 +95,7 @@ resource "commercetools_subscription" "subscription_%[1]s" {
 	}
 	
 	changes {
-		resource_type_ids = ["customer"]
+		resource_type_id = ["customer"]
 	}
 	
 	message {
