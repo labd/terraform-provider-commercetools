@@ -46,7 +46,9 @@ func TestAccAPIExtension_basic(t *testing.T) {
 			{
 				Config: testAccAPIExtsensionConfig(name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccAPIExtensionExists(name),
+					testAccAPIExtensionExists("ext"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "key", name),
 				),
 			},
 		},
@@ -55,8 +57,8 @@ func TestAccAPIExtension_basic(t *testing.T) {
 
 func testAccAPIExtsensionConfig(name string) string {
 	return fmt.Sprintf(`
-resource "commercetools_api_extension" "%s" {
-	key = "terraform-acctest-extension"
+resource "commercetools_api_extension" "ext" {
+	key = "%s"
 
   destination {
     type                 = "HTTP"

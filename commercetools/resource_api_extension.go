@@ -82,7 +82,7 @@ func resourceAPIExtension() *schema.Resource {
 					},
 				},
 			},
-			"version": &schema.Schema{
+			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
@@ -138,7 +138,7 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if extension == nil {
-		log.Fatal("No extenion created?")
+		return fmt.Errorf("Error creating extension")
 	}
 
 	d.SetId(extension.ID)

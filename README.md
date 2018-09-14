@@ -2,7 +2,10 @@
 
 [![Travis Build Status](https://travis-ci.org/labd/terraform-provider-commercetools.svg?branch=master)](https://travis-ci.org/labd/terraform-provider-commercetools)
 [![codecov](https://codecov.io/gh/LabD/terraform-provider-commercetools/branch/master/graph/badge.svg)](https://codecov.io/gh/LabD/terraform-provider-commercetools)
-
+[![Go Report Card](https://goreportcard.com/badge/github.com/labd/terraform-provider-commercetools)](https://goreportcard.com/report/github.com/labd/terraform-provider-commercetools)
+[![Documentation Status](https://readthedocs.org/projects/commercetools-terraform-provider/badge/?version=latest)](https://commercetools-terraform-provider.readthedocs.io/en/latest/?badge=latest)
+                
+                
 Note: This is currently **NOT** ready for production usage
 
 ## Requirements
@@ -79,6 +82,20 @@ resource "commercetools_subscription" "subscribe" {
   }
 }
 ```
+
+## Using with docker
+
+The included `Dockerfile` bundles the official  [`hashicorp/terraform:light`](https://hub.docker.com/r/hashicorp/terraform/) docker image with 
+our `terraform-provider-commercetools`. 
+
+To build the docker image file locally, use:
+```sh
+docker build . -t terraform-with-provider-commercetools:latest
+```  
+Then you can run a terraform command on files in the current directory with:
+```sh
+docker run -v${pwd}:/config terraform-with-provider-commercetools:latest <CMD>
+```  
 
 # Contributing
 

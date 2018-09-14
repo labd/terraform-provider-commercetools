@@ -10,6 +10,57 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestValidateDestination(t *testing.T) {
+	validDestinations := []map[string]interface{}{
+		{
+			"type":          "SQS",
+			"queue_url":     "<queue_url>",
+			"access_key":    "<access_key>",
+			"access_secret": "<access_secret>",
+			"region":        "<region>",
+		},
+		{
+			"type":              "azure_servicebus",
+			"connection_string": "<connection_string>",
+		},
+		{
+			"type":       "google_pubsub",
+			"project_id": "<project_id>",
+			"topic":      "<topic>",
+		},
+	}
+	for _, validDestination := range validDestinations {
+		_, errs := validateDestination(validDestination, "destination")
+		if len(errs) > 0 {
+			t.Error("Expected no validation errors, but got ", errs)
+		}
+	}
+	invalidDestinations := []map[string]interface{}{
+		{
+			"type": "SQS1",
+		},
+		{
+			"type":          "SQS",
+			"access_key":    "<access_key>",
+			"access_secret": "<access_secret>",
+			"region":        "<region>",
+		},
+		{
+			"type": "azure_servicebus",
+		},
+		{
+			"type":  "google_pubsub",
+			"topic": "<topic>",
+		},
+	}
+	for _, validDestination := range invalidDestinations {
+		_, errs := validateDestination(validDestination, "destination")
+		if len(errs) == 0 {
+			t.Error("Expected validation errors, but none was reported")
+		}
+	}
+}
+
 func TestAccSubscription_basic(t *testing.T) {
 	rName := acctest.RandString(5)
 

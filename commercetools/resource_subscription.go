@@ -11,6 +11,34 @@ import (
 	"github.com/labd/commercetools-go-sdk/service/subscriptions"
 )
 
+const (
+	subSQS             = "SQS"
+	subSNS             = "SNS"
+	subAzureServiceBus = "azure_servicebus"
+	subGooglePubSub    = "google_pubsub"
+)
+
+var destinationFields = map[string][]string{
+	subSQS: {
+		"queue_url",
+		"access_key",
+		"access_secret",
+		"region",
+	},
+	subSNS: {
+		"topic_arn",
+		"access_key",
+		"access_secret",
+	},
+	subAzureServiceBus: {
+		"connection_string",
+	},
+	subGooglePubSub: {
+		"project_id",
+		"topic",
+	},
+}
+
 func resourceSubscription() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceSubscriptionCreate,
@@ -26,47 +54,64 @@ func resourceSubscription() *schema.Resource {
 				Optional: true,
 			},
 			"destination": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:         schema.TypeMap,
+				Optional:     true,
+				ValidateFunc: validateDestination,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
+						},
+
+						// AWS SNS
+						"topic_arn": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSNS),
 						},
 
 						// AWS SQS
 						"queue_url": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"access_key": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"access_secret": {
-							Type:     schema.TypeString,
-							Optional: false,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
 						},
 						"region": {
-							Type:     schema.TypeString,
-							Optional: false,
+							Type:             schema.TypeString,
+							Optional:         false,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
+						},
+
+						// AWS SNS / SQS
+						"access_key": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
+						},
+						"access_secret": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
 						},
 
 						// Azure Service Bus
 						"connection_string": {
-							Type:     schema.TypeString,
-							Optional: false,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subAzureServiceBus),
 						},
 
 						// Google Pub Sub
 						"project_id": {
-							Type:     schema.TypeString,
-							Optional: false,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
 						},
 						"topic": {
-							Type:     schema.TypeString,
-							Optional: false,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
 						},
 					},
 				},
@@ -101,7 +146,7 @@ func resourceSubscription() *schema.Resource {
 					},
 				},
 			},
-			"version": &schema.Schema{
+			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
@@ -142,7 +187,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if subscription == nil {
-		log.Fatal("No subscription created?")
+		return fmt.Errorf("Error creating subscription")
 	}
 
 	d.SetId(subscription.ID)
@@ -190,6 +235,17 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
 		Actions: commercetools.UpdateActions{},
+	}
+
+	if d.HasChange("destination") {
+		destination, err := resourceSubscriptionGetDestination(d)
+		if err != nil {
+			return err
+		}
+
+		input.Actions = append(
+			input.Actions,
+			&subscriptions.ChangeDestination{Destination: destination})
 	}
 
 	if d.HasChange("key") {
@@ -242,18 +298,24 @@ func resourceSubscriptionGetDestination(d *schema.ResourceData) (subscriptions.D
 	input := d.Get("destination").(map[string]interface{})
 
 	switch input["type"] {
-	case "SQS":
+	case subSNS:
+		return subscriptions.DestinationAWSSNS{
+			TopicArn:     input["topic_arn"].(string),
+			AccessKey:    input["access_key"].(string),
+			AccessSecret: input["access_secret"].(string),
+		}, nil
+	case subSQS:
 		return subscriptions.DestinationAWSSQS{
 			QueueURL:     input["queue_url"].(string),
 			AccessKey:    input["access_key"].(string),
 			AccessSecret: input["access_secret"].(string),
 			Region:       input["region"].(string),
 		}, nil
-	case "azure_servicebus":
+	case subAzureServiceBus:
 		return subscriptions.DestinationAzureServiceBus{
 			ConnectionString: input["connection_string"].(string),
 		}, nil
-	case "google_pubsub":
+	case subGooglePubSub:
 		return subscriptions.DestinationGooglePubSub{
 			ProjectID: input["project_id"].(string),
 			Topic:     input["topic"].(string),
@@ -293,4 +355,49 @@ func resourceSubscriptionGetMessages(d *schema.ResourceData) []subscriptions.Mes
 	}
 
 	return messageObjects
+}
+
+func validateDestination(val interface{}, key string) (warns []string, errs []error) {
+	valueAsMap := val.(map[string]interface{})
+
+	destinationType, ok := valueAsMap["type"]
+
+	if !ok {
+		errs = append(errs, fmt.Errorf("Property 'type' missing"))
+		return warns, errs
+	}
+
+	destinationTypeAsString, ok := destinationType.(string)
+	if !ok {
+		errs = append(errs, fmt.Errorf("Property 'type' has wrong type"))
+		return warns, errs
+	}
+	fields, ok := destinationFields[destinationTypeAsString]
+	if !ok {
+		errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", destinationTypeAsString))
+		return warns, errs
+	}
+
+	for _, field := range fields {
+		value, ok := valueAsMap[field].(string)
+		if !ok {
+			errs = append(errs, fmt.Errorf("Required property '%v' missing", field))
+		} else if len(value) == 0 {
+			errs = append(errs, fmt.Errorf("Required property '%v' is empty", field))
+		}
+	}
+
+	return warns, errs
+}
+
+func suppressIfNotDestinationType(t ...string) schema.SchemaDiffSuppressFunc {
+	return func(k string, old string, new string, d *schema.ResourceData) bool {
+		input := d.Get("destination").(map[string]interface{})
+		for _, val := range t {
+			if val == input["type"] {
+				return false
+			}
+		}
+		return true
+	}
 }
