@@ -19,16 +19,21 @@ const (
 )
 
 var destinationFields = map[string][]string{
-	"SQS": {
+	subSQS: {
 		"queue_url",
 		"access_key",
 		"access_secret",
 		"region",
 	},
-	"azure_servicebus": {
+	subSNS: {
+		"topic_arn",
+		"access_key",
+		"access_secret",
+	},
+	subAzureServiceBus: {
 		"connection_string",
 	},
-	"google_pubsub": {
+	subGooglePubSub: {
 		"project_id",
 		"topic",
 	},
@@ -59,12 +64,26 @@ func resourceSubscription() *schema.Resource {
 							Required: true,
 						},
 
+						// AWS SNS
+						"topic_arn": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSNS),
+						},
+
 						// AWS SQS
 						"queue_url": {
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
 						},
+						"region": {
+							Type:             schema.TypeString,
+							Optional:         false,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
+						},
+
+						// AWS SNS / SQS
 						"access_key": {
 							Type:             schema.TypeString,
 							Optional:         true,
@@ -74,11 +93,6 @@ func resourceSubscription() *schema.Resource {
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
-						},
-						"region": {
-							Type:             schema.TypeString,
-							Optional:         false,
-							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
 						},
 
 						// Azure Service Bus
@@ -273,6 +287,12 @@ func resourceSubscriptionGetDestination(d *schema.ResourceData) (subscriptions.D
 	input := d.Get("destination").(map[string]interface{})
 
 	switch input["type"] {
+	case subSNS:
+		return subscriptions.DestinationAWSSNS{
+			TopicArn:     input["topic_arn"].(string),
+			AccessKey:    input["access_key"].(string),
+			AccessSecret: input["access_secret"].(string),
+		}, nil
 	case subSQS:
 		return subscriptions.DestinationAWSSQS{
 			QueueURL:     input["queue_url"].(string),
