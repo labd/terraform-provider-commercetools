@@ -1,6 +1,8 @@
 # API Extension
 
-Provides a commercetools extension
+Provides a commercetools API extension
+
+Also see the [extension HTTP API documentation](https://docs.commercetools.com/http-api-projects-api-extensions).
 
 ## Example Usage
 

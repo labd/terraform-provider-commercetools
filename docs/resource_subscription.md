@@ -1,6 +1,8 @@
-# Subscription [HTTP API](https://docs.commercetools.com/http-api-projects-subscriptions.html)
+# Subscription 
 
-Provides an commercetools subscription
+Provides a commercetools subscription
+
+Also see the [subscription HTTP API documentation](https://docs.commercetools.com/http-api-projects-subscriptions.html).
 
 ## Example Usage
 
