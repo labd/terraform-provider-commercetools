@@ -87,7 +87,6 @@ resource "google_pubsub_topic_iam_member" "ctp-subscription-publisher" {
   topic = "${google_pubsub_topic.resource-updates.name}"
   role = "roles/pubsub.publisher"
   member = "serviceAccount:subscriptions@commercetools-platform.iam.gserviceaccount.com"
-
 }
 
 provider "commercetools" {
