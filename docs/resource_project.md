@@ -1,15 +1,17 @@
-# Project
+# Project Settings
 
-Lets you change a commercetools project.
+Lets you change the settings of a commercetools project.
 
 Note: The project itself needs to be set up already. Before you can apply changes, you need to import the project:
 
 ```$ terraform import commercetools_project.project my-project-key```
 
+Also, the project can not be destroyed with terraform.
+
 ## Example Usage
 
 ```hcl
-resource "commercetools_project" "project" {
+resource "commercetools_project_settings" "project" {
   name = "My project"
   countries = ["NL", "DE", "US", "CA"]
   currencies = ["EUR", "USD", "CAD"]
