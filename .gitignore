@@ -1,5 +1,6 @@
 terraform-provider-commercetools
 *.backup
+/dist/*
 
 // Terraform files
 *.tf
