@@ -10,7 +10,7 @@
 This is the Terraform provider for commercetools. It allows you to configure your
 commercetools project with infrastructure-as-code principles. The project is
 still in early development and it doesn't support the complete commercetools
-API yet, but it 'production' ready.
+API yet but it can be considered 'production' ready for the resource it does support.
 
 # Using the provider
 
