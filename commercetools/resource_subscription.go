@@ -11,6 +11,56 @@ import (
 	"github.com/labd/commercetools-go-sdk/service/subscriptions"
 )
 
+var destinationFields = map[string][]string{
+	"SQS": {
+		"queue_url",
+		"access_key",
+		"access_secret",
+		"region",
+	},
+	"azure_servicebus": {
+		"connection_string",
+	},
+	"google_pubsub": {
+		"project_id",
+		"topic",
+	},
+}
+
+func validateDestination(val interface{}, key string) (warns []string, errs []error) {
+	valueAsMap := val.(map[string]interface{})
+
+	destinationType, ok := valueAsMap["type"]
+
+	if !ok {
+		errs = append(errs, fmt.Errorf("Property 'type' missing"))
+		return warns, errs
+	}
+
+	destinationTypeAsString, ok := destinationType.(string)
+	if !ok {
+		errs = append(errs, fmt.Errorf("Property 'type' has wrong type"))
+		return warns, errs
+	}
+	fields, ok := destinationFields[destinationTypeAsString]
+	if !ok {
+		errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", destinationTypeAsString))
+		return warns, errs
+	}
+
+	for _, field := range fields {
+		value, ok := valueAsMap[field].(string)
+		if !ok {
+			errs = append(errs, fmt.Errorf("Required property '%v' missing", field))
+		} else if len(value) == 0 {
+			errs = append(errs, fmt.Errorf("Required property '%v' is empty", field))
+		}
+	}
+
+	return warns, errs
+
+}
+
 func resourceSubscription() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceSubscriptionCreate,
@@ -26,14 +76,17 @@ func resourceSubscription() *schema.Resource {
 				Optional: true,
 			},
 			"destination": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:         schema.TypeMap,
+				Optional:     true,
+				ValidateFunc: validateDestination,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 						},
+
+						// AWS SQS
 						"queue_url": {
 							Type:     schema.TypeString,
 							Optional: true,
@@ -44,11 +97,27 @@ func resourceSubscription() *schema.Resource {
 						},
 						"access_secret": {
 							Type:     schema.TypeString,
-							Optional: false,
+							Optional: true,
 						},
 						"region": {
 							Type:     schema.TypeString,
-							Optional: false,
+							Optional: true,
+						},
+
+						// Azure Service Bus
+						"connection_string": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						// Google Pub Sub
+						"project_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"topic": {
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -234,6 +303,11 @@ func resourceSubscriptionGetDestination(d *schema.ResourceData) (subscriptions.D
 	case "azure_servicebus":
 		return subscriptions.DestinationAzureServiceBus{
 			ConnectionString: input["connection_string"].(string),
+		}, nil
+	case "google_pubsub":
+		return subscriptions.DestinationGooglePubSub{
+			ProjectID: input["project_id"].(string),
+			Topic:     input["topic"].(string),
 		}, nil
 	default:
 		return nil, fmt.Errorf("Destination type %s not implemented", input["type"])
