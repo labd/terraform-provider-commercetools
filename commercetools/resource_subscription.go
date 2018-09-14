@@ -92,6 +92,7 @@ func resourceSubscription() *schema.Resource {
 						"access_secret": {
 							Type:             schema.TypeString,
 							Optional:         true,
+							ForceNew:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
 						},
 
@@ -99,6 +100,7 @@ func resourceSubscription() *schema.Resource {
 						"connection_string": {
 							Type:             schema.TypeString,
 							Optional:         true,
+							ForceNew:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subAzureServiceBus),
 						},
 
