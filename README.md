@@ -12,6 +12,20 @@ Note: This is currently **NOT** ready for production usage
 
 ## Using the provider
 
+### Setting up the commercetools credentials
+
+The provider reads the environment variables `CTP_PROJECT_KEY`, `CTP_CLIENT_SECRET`, `CTP_CLIENT_ID`, `CTP_AUTH_URL`, `CTP_API_URL` and `CTP_SCOPES`. This is compatible with the "Environment Variables" format you can download in the Merchant Center after creating an API Client.
+
+Alternatively, you can set it up directly in the terraform file:
+
+```hcl
+provider "commercetools" {
+  client_id     = "<your client id>"
+  client_secret = "<your client secret>"
+  project_key   = "<your project key>"
+}
+```
+
 ### Example
 
 ```hcl
@@ -19,11 +33,7 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-provider "commercetools" {
-  client_id     = "<your client id>"
-  client_secret = "<your client secret>"
-  project_key   = "<your project key>"
-}
+provider "commercetools" {}
 
 resource "aws_sqs_queue" "ct_queue" {
   name                      = "terraform-queue-two"
