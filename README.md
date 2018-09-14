@@ -8,7 +8,7 @@
 # Status
 
 This is the Terraform provider for commercetools. It allows you to configure your
-commercetools project with infrastructure-as-code principles. The project is
+[commercetools](https://commercetools.com/) project with infrastructure-as-code principles. The project is
 still in early development and it doesn't support the complete commercetools
 API yet but it can be considered 'production' ready for the resource it does support.
 
