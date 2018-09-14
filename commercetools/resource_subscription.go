@@ -32,29 +32,33 @@ func validateDestination(val interface{}, key string) (warns []string, errs []er
 
 	destinationType, ok := valueAsMap["type"]
 
-	if ok {
-		destinationTypeAsString, ok := destinationType.(string)
-		if ok {
-			fields, ok := destinationFields[destinationTypeAsString]
-			if !ok {
-				errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", destinationTypeAsString))
-			} else {
-				for _, field := range fields {
-					value, ok := valueAsMap[field].(string)
-					if !ok {
-						errs = append(errs, fmt.Errorf("Required property '%v' missing", field))
-					} else if len(value) == 0 {
-						errs = append(errs, fmt.Errorf("Required property '%v' is empty", field))
-					}
-				}
-			}
-		} else {
-			errs = append(errs, fmt.Errorf("Property 'type' has wrong type"))
-		}
-	} else {
+	if !ok {
 		errs = append(errs, fmt.Errorf("Property 'type' missing"))
+		return warns, errs
 	}
-	return
+
+	destinationTypeAsString, ok := destinationType.(string)
+	if !ok {
+		errs = append(errs, fmt.Errorf("Property 'type' has wrong type"))
+		return warns, errs
+	}
+	fields, ok := destinationFields[destinationTypeAsString]
+	if !ok {
+		errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", destinationTypeAsString))
+		return warns, errs
+	}
+
+	for _, field := range fields {
+		value, ok := valueAsMap[field].(string)
+		if !ok {
+			errs = append(errs, fmt.Errorf("Required property '%v' missing", field))
+		} else if len(value) == 0 {
+			errs = append(errs, fmt.Errorf("Required property '%v' is empty", field))
+		}
+	}
+
+	return warns, errs
+
 }
 
 func resourceSubscription() *schema.Resource {
