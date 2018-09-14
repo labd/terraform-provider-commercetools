@@ -15,7 +15,7 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"client_id": &schema.Schema{
+			"client_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
@@ -23,7 +23,7 @@ func Provider() terraform.ResourceProvider {
 				}, nil),
 				Description: "CommercesTools Client ID",
 			},
-			"client_secret": &schema.Schema{
+			"client_secret": {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
@@ -31,7 +31,7 @@ func Provider() terraform.ResourceProvider {
 				}, nil),
 				Description: "CommercesTools Client Secret",
 			},
-			"project_key": &schema.Schema{
+			"project_key": {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
@@ -39,7 +39,7 @@ func Provider() terraform.ResourceProvider {
 				}, nil),
 				Description: "CommercesTools Project key",
 			},
-			"token_url": &schema.Schema{
+			"token_url": {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
@@ -47,7 +47,7 @@ func Provider() terraform.ResourceProvider {
 				}, "https://auth.sphere.io"),
 				Description: "CommercesTools Token URL",
 			},
-			"api_url": &schema.Schema{
+			"api_url": {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
@@ -55,7 +55,7 @@ func Provider() terraform.ResourceProvider {
 				}, "https://api.sphere.io"),
 				Description: "CommercesTools API URL",
 			},
-			"scopes": &schema.Schema{
+			"scopes": {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
@@ -77,7 +77,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	scopesRaw := d.Get("scopes").(string)
 	var scopes []string
-	if scopesRaw == ""{
+	if scopesRaw == "" {
 		scopes = []string{fmt.Sprintf("manage_project:%s", projectKey)}
 	} else {
 		scopes = strings.Split(scopesRaw, " ")
