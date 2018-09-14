@@ -2,6 +2,7 @@
 
 [![Travis Build Status](https://travis-ci.org/labd/terraform-provider-commercetools.svg?branch=master)](https://travis-ci.org/labd/terraform-provider-commercetools)
 [![codecov](https://codecov.io/gh/LabD/terraform-provider-commercetools/branch/master/graph/badge.svg)](https://codecov.io/gh/LabD/terraform-provider-commercetools)
+[![Go Report Card](https://goreportcard.com/badge/github.com/labd/terraform-provider-commercetools)](https://goreportcard.com/report/github.com/labd/terraform-provider-commercetools)
 
 Note: This is currently **NOT** ready for production usage
 
