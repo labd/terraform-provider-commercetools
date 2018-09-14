@@ -27,7 +27,7 @@ resource "commercetools_subscription" "my-sqs-subscription" {
 }
 ```
 
-## Argument Reference 
+## Argument Reference
 
 The following arguments are supported:
 
@@ -60,7 +60,7 @@ differentiated by the type field.
 #### Azure Service Bus Destination
 
 * `type` - `"azure_servicebus"`
-* `connection_String` - The SharedAccessKey for the service bus destination.
+* `connection_string` - The SharedAccessKey for the service bus destination.
 
 #### Google Cloud Pub/Sub Destination
 
