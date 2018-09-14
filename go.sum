@@ -17,6 +17,8 @@ github.com/aws/aws-sdk-go v1.15.30 h1:k8VYT4wfr+F6YD0hXTCxW/pSKqEtmoGdHXQ8h2tVpW
 github.com/aws/aws-sdk-go v1.15.30/go.mod h1:mFuSZ37Z9YOHbQEwBWztmVzqXrEkub65tZoCYDt7FT0=
 github.com/aws/aws-sdk-go v1.15.34 h1:P0dzidrIxx2/XchvjqoQ/CXIzkCHWkGDa9CLPqzKG2o=
 github.com/aws/aws-sdk-go v1.15.34/go.mod h1:mFuSZ37Z9YOHbQEwBWztmVzqXrEkub65tZoCYDt7FT0=
+github.com/aws/aws-sdk-go v1.15.35 h1:roOTR0eOeCgYwrz3NXmrneLFBYdnK8epLedaRMm1kQg=
+github.com/aws/aws-sdk-go v1.15.35/go.mod h1:mFuSZ37Z9YOHbQEwBWztmVzqXrEkub65tZoCYDt7FT0=
 github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d h1:xDfNPAt8lFiC1UJrqV3uuy861HCTo708pDMbjHHdCas=
 github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d/go.mod h1:6QX/PXZ00z/TKoufEY6K/a0k6AhaJrQKdFe6OfVXsa4=
 github.com/bgentry/speakeasy v0.1.0 h1:ByYyxL9InA1OWqxJqqp2A5pYHUrCiAL6K3J+LKSsQkY=
@@ -97,6 +99,8 @@ github.com/labd/commercetools-go-sdk v0.0.0-20180913101439-13cd47265400 h1:E9v/a
 github.com/labd/commercetools-go-sdk v0.0.0-20180913101439-13cd47265400/go.mod h1:ulqkGi4LV4sZZP4H/hkLyLDrjHxVw+3wpQ9ElglOsPw=
 github.com/labd/commercetools-go-sdk v0.0.0-20180914113133-7c775a281218 h1:ZM8W08AfNsX/4fcJEfh+pFz73FrAB5lm7Z5XWnjfOOk=
 github.com/labd/commercetools-go-sdk v0.0.0-20180914113133-7c775a281218/go.mod h1:ulqkGi4LV4sZZP4H/hkLyLDrjHxVw+3wpQ9ElglOsPw=
+github.com/labd/commercetools-go-sdk v0.0.0-20180914143333-1233fab6f6f4 h1:4V6DPGqNChFyf7wI67YhIgHbXpm1tccWKAVRsUQ/XII=
+github.com/labd/commercetools-go-sdk v0.0.0-20180914143333-1233fab6f6f4/go.mod h1:ulqkGi4LV4sZZP4H/hkLyLDrjHxVw+3wpQ9ElglOsPw=
 github.com/mattn/go-colorable v0.0.9 h1:UVL0vNpWh04HeJXV0KLcaT7r06gOH2l4OW6ddYRUIY4=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-isatty v0.0.3 h1:ns/ykhmWi7G9O+8a448SecJU3nSMBXJfqQkl0upE1jI=

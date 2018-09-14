@@ -4,7 +4,7 @@ require (
 	cloud.google.com/go v0.27.0 // indirect
 	github.com/apparentlymart/go-cidr v1.0.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/aws/aws-sdk-go v1.15.34 // indirect
+	github.com/aws/aws-sdk-go v1.15.35 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/go-ini/ini v1.38.2 // indirect
@@ -25,7 +25,7 @@ require (
 	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kr/pty v1.1.2 // indirect
-	github.com/labd/commercetools-go-sdk v0.0.0-20180914113133-7c775a281218
+	github.com/labd/commercetools-go-sdk v0.0.0-20180914143333-1233fab6f6f4
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/cli v1.0.0 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
