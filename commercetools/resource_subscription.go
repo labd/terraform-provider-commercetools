@@ -61,36 +61,43 @@ func resourceSubscription() *schema.Resource {
 
 						// AWS SQS
 						"queue_url": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
 						},
 						"access_key": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
 						},
 						"access_secret": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
 						},
 						"region": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:             schema.TypeString,
+							Optional:         false,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
 						},
 
 						// Azure Service Bus
 						"connection_string": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subAzureServiceBus),
 						},
 
 						// Google Pub Sub
 						"project_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
 						},
 						"topic": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
 						},
 					},
 				},
@@ -350,5 +357,16 @@ func validateDestination(val interface{}, key string) (warns []string, errs []er
 	}
 
 	return warns, errs
+}
 
+func suppressIfNotDestinationType(t ...string) schema.SchemaDiffSuppressFunc {
+	return func(k string, old string, new string, d *schema.ResourceData) bool {
+		input := d.Get("destination").(map[string]interface{})
+		for _, val := range t {
+			if val == input["type"] {
+				return false
+			}
+		}
+		return true
+	}
 }
