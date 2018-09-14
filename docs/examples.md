@@ -68,3 +68,40 @@ resource "commercetools_subscription" "subscribe" {
   }
 }
 ```
+
+````hcl
+resource "google_pubsub_topic" "resource-updates" {
+  name = "resource-updates"
+}
+
+# add ctp subscription service account
+resource "google_pubsub_topic_iam_member" "ctp-subscription-publisher" {
+  topic = "${google_pubsub_topic.resource-updates.name}"
+  role = "roles/pubsub.publisher"
+  member = "serviceAccount:subscriptions@commercetools-platform.iam.gserviceaccount.com"
+
+}
+
+provider "commercetools" {
+}
+
+resource "commercetools_subscription" "subscribe" {
+  key = "my-subscription"
+
+  destination {
+    type = "google_pubsub"
+    project_id = "${var.project}"
+    topic = "${google_pubsub_topic.resource-updates.name}"
+  }
+
+  changes {
+    resource_type_ids = [
+      "category",
+      "product",
+      "product-type",
+      "customer-group"
+    ]
+  }
+  depends_on = [ "google_pubsub_topic_iam_member.ctp-subscription-publisher" ]
+}
+````
