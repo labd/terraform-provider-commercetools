@@ -1,4 +1,4 @@
-# Subscription
+# Subscription [HTTP API](https://docs.commercetools.com/http-api-projects-subscriptions.html)
 
 Provides an commercetools subscription
 
@@ -27,7 +27,7 @@ resource "commercetools_subscription" "my-sqs-subscription" {
 }
 ```
 
-## Argument Reference
+## Argument Reference 
 
 The following arguments are supported:
 
@@ -36,9 +36,34 @@ The following arguments are supported:
 * `changes` - The change notifications subscribed to.
 * `messages` - The messages subscribed to.
 
+### Destination
 
-
-#### Destination
 A destination contains all info necessary for the commercetools platform to
 deliver a message onto your Message Queue. Message Queues can be
 differentiated by the type field.
+
+#### AWS SQS Destination
+
+* `type` - `"SQS"`
+* `queue_url` - The url of the queue.
+* `access_key` - The aws access key.
+* `access_secret` - The aws access secret.
+* `region` - The aws region.
+
+#### AWS SNS Destination
+
+* `type` - `"SNS"`
+* `topic_arn` - The arn of the topic.
+* `access_key` - The aws access key.
+* `access_secret` - The aws access secret.
+
+#### Azure Service Bus Destination
+
+* `type` - `"azure_servicebus"`
+* `connection_String` - The SharedAccessKey for the service bus destination.
+
+#### Google Cloud Pub/Sub Destination
+
+* `type` - `"google_pubsub"`
+* `project_id` - The id of the project that contains the Pub/Sub topic.
+* `topic` - The name of the Pub/Sub topic.
