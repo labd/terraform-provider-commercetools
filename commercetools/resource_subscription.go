@@ -121,7 +121,7 @@ func resourceSubscription() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"resource_type_ids": {
+						"resource_type_id": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
@@ -331,7 +331,7 @@ func resourceSubscriptionGetChanges(d *schema.ResourceData) []subscriptions.Chan
 
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
-		rawTypeIds := expandStringArray(i["resource_type_ids"].([]interface{}))
+		rawTypeIds := expandStringArray(i["resource_type_id"].([]interface{}))
 
 		for _, item := range rawTypeIds {
 			result = append(result, subscriptions.ChangeSubscription{
