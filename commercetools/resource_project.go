@@ -63,7 +63,7 @@ func resourceProject() *schema.Resource {
 }
 
 func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
-	log.Fatal("A project can not be created through terraform")
+	log.Print("A project can not be created through terraform")
 	return fmt.Errorf("A project can not be created through terraform")
 }
 
@@ -157,7 +157,7 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
-	log.Fatal("A project can not be deleted through terraform")
+	log.Print("A project can not be deleted through terraform")
 	return fmt.Errorf("A project can not be deleted through terraform")
 }
 
