@@ -9,7 +9,7 @@ import (
 	"github.com/labd/commercetools-go-sdk/service/project"
 )
 
-func resourceProject() *schema.Resource {
+func resourceProjectSettings() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceProjectCreate,
 		Read:   resourceProjectRead,
