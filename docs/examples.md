@@ -69,7 +69,7 @@ resource "commercetools_subscription" "subscribe" {
 }
 ```
 
-````hcl
+```hcl
 resource "google_pubsub_topic" "resource-updates" {
   name = "resource-updates"
 }
@@ -104,4 +104,4 @@ resource "commercetools_subscription" "subscribe" {
   }
   depends_on = [ "google_pubsub_topic_iam_member.ctp-subscription-publisher" ]
 }
-````
+```
