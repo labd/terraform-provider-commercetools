@@ -1,0 +1,24 @@
+project_name: terraform-provider-commercetools
+
+builds:
+  - binary: terraform-provider-commercetools
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+
+archive:
+  name_template: "terraform-provider-commercetools-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+  files:
+    - none*
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
