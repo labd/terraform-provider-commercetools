@@ -1,13 +1,15 @@
 ---
 
-# commercetools_type
+# Type
 
-Provides an [Type][commercetool-type]
+Provides a commercetools type 
+
+Also see the [type HTTP API documentation][commercetool-type].
 
 ## Example Usage
 
 ```hcl
-resource "commercetools_type" "ctype1" {
+resource "commercetools_type" "my-custom-type" {
   key = "contact_info"
   name = {
     en = "Contact info"
