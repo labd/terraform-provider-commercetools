@@ -47,7 +47,8 @@ func resourceType() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
+							MaxItems: 1,
 							Required: true,
 							Elem:     fieldTypeElement(true),
 						},
@@ -94,8 +95,8 @@ func resourceType() *schema.Resource {
 					}
 
 					log.Printf("[DEBUG] Checking %s", oldF["name"])
-					oldType := oldF["type"].(*schema.Set).List()[0].(map[string]interface{})
-					newType := newF["type"].(*schema.Set).List()[0].(map[string]interface{})
+					oldType := oldF["type"].([]interface{})[0].(map[string]interface{})
+					newType := newF["type"].([]interface{})[0].(map[string]interface{})
 
 					if oldType["name"] != newType["name"] {
 						if oldType["name"] != "" || newType["name"] == "" {
@@ -177,7 +178,7 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 		// 	},
 		// },
 		"localized_value": {
-			Type:     schema.TypeSet,
+			Type:     schema.TypeList,
 			Optional: true,
 			Elem:     localizedValueElement(),
 		},
@@ -189,7 +190,8 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 
 	if setsAllowed {
 		result["element_type"] = &schema.Schema{
-			Type:     schema.TypeSet,
+			Type:     schema.TypeList,
+			MaxItems: 1,
 			Optional: true,
 			Elem:     fieldTypeElement(false),
 		}
@@ -303,8 +305,7 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceTypeReadFieldType(fieldType types.FieldType, setsAllowed bool) (*schema.Set, error) {
-	typeSchema := schema.HashResource(fieldTypeElement(setsAllowed))
+func resourceTypeReadFieldType(fieldType types.FieldType, setsAllowed bool) ([]interface{}, error) {
 	typeData := make(map[string]interface{})
 
 	if _, ok := fieldType.(types.BooleanType); ok {
@@ -338,23 +339,21 @@ func resourceTypeReadFieldType(fieldType types.FieldType, setsAllowed bool) (*sc
 		typeData["reference_type_id"] = f.ReferenceTypeID
 	} else if f, ok := fieldType.(types.SetType); ok {
 		typeData["name"] = "Set"
-		elemType, err := resourceTypeReadFieldType(f.ElementType, false)
-		if err != nil {
-			return nil, err
-		}
 		if setsAllowed {
+			elemType, err := resourceTypeReadFieldType(f.ElementType, false)
+			if err != nil {
+				return nil, err
+			}
 			typeData["element_type"] = elemType
 		}
 	} else {
 		return nil, fmt.Errorf("Unkown resource Type %T", fieldType)
 	}
 
-	return schema.NewSet(typeSchema, []interface{}{typeData}), nil
+	return []interface{}{typeData}, nil
 }
 
-func resourceTypeReadLocalizedEnum(values []commercetools.LocalizedEnumValue) *schema.Set {
-	typeSchema := schema.HashResource(localizedValueElement())
-
+func resourceTypeReadLocalizedEnum(values []commercetools.LocalizedEnumValue) []interface{} {
 	enumValues := make([]interface{}, len(values))
 	for i, value := range values {
 		enumValues[i] = map[string]interface{}{
@@ -362,7 +361,7 @@ func resourceTypeReadLocalizedEnum(values []commercetools.LocalizedEnumValue) *s
 			"label": localizedStringToMap(value.Label),
 		}
 	}
-	return schema.NewSet(typeSchema, enumValues)
+	return enumValues
 }
 
 func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
@@ -448,7 +447,6 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 	for name, value := range newLookup {
 		oldValue, existingField := oldLookup[name]
 		newV := value.(map[string]interface{})
-		oldV := oldValue.(map[string]interface{})
 
 		fieldDef, err := resourceTypeGetFieldDefinition(newV)
 		if err != nil {
@@ -463,6 +461,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			continue
 		}
 
+		oldV := oldValue.(map[string]interface{})
 		if !reflect.DeepEqual(oldV["label"], newV["label"]) {
 			newLabel := commercetools.LocalizedString(
 				expandStringMap(newV["label"].(map[string]interface{})))
@@ -471,58 +470,73 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 				types.ChangeLabel{FieldName: name, Label: newLabel})
 		}
 
-		// TODO: The following can result in some unexpected behaviour;
-		// when a field type attribute changes, their hashes change and
-		// terraform will concider this a resource being removed and a new one
-		// being added.
-		// Therefore it is quite tricky to compare changes.
-		// This issue is further discussed here: https://github.com/hashicorp/terraform/issues/15420
-		//
-		// It might be better to define "type" as a `TypeList` instead of a `TypeSet`
-		// with `MaxItems=1`.
+		newFieldType := fieldDef.Type
+		oldFieldType := oldV["type"].([]interface{})[0].(map[string]interface{})
 
-		// newFieldType := fieldDef.Type
-		// oldFieldType := oldV["type"].(*schema.Set).List()[0].(map[string]interface{})
+		if enumType, ok := newFieldType.(types.EnumType); ok {
+			oldEnumV := oldFieldType["values"].(map[string]interface{})
 
-		// if enumType, ok := newFieldType.(types.EnumType); ok {
-		// 	oldEnumV := oldFieldType["values"].(map[string]interface{})
+			for _, enumValue := range enumType.Values {
+				if _, ok := oldEnumV[enumValue.Key]; !ok {
+					// Key does not appear in old enum values, so we'll add it
+					actions = append(
+						actions,
+						types.AddEnumValue{
+							FieldName: name,
+							Value:     enumValue,
+						})
+				}
+			}
 
-		// 	for _, enumValue := range enumType.Values {
-		// 		if _, ok := oldEnumV[enumValue.Key]; !ok {
-		// 			// Key does not appear in old enum values, so we'll add it
-		// 			actions = append(
-		// 				actions,
-		// 				types.AddEnumValue{
-		// 					FieldName: name,
-		// 					Value:     enumValue,
-		// 				})
-		// 		}
-		// 	}
-		// } else if enumType, ok := newFieldType.(types.LocalizedEnumType); ok {
-		// 	oldEnumV := oldFieldType["values"].(map[string]interface{})
+			// Action: changeEnumValueOrder
+			// TODO: Change the order of EnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-fielddefinitions
 
-		// 	for _, enumValue := range enumType.Values {
-		// 		if _, ok := oldEnumV[enumValue.Key]; !ok {
-		// 			// Key does not appear in old enum values, so we'll add it
-		// 			actions = append(
-		// 				actions,
-		// 				types.AddLocalizedEnumValue{
-		// 					FieldName: name,
-		// 					Value:     enumValue,
-		// 				})
-		// 		}
-		// 	}
-		// }
+		} else if enumType, ok := newFieldType.(types.LocalizedEnumType); ok {
+			oldEnumV := oldFieldType["localized_value"].([]interface{})
+			oldEnumKeys := make(map[string]map[string]interface{}, len(oldEnumV))
+
+			for _, value := range oldEnumV {
+				v := value.(map[string]interface{})
+				oldEnumKeys[v["key"].(string)] = v
+			}
+
+			for _, enumValue := range enumType.Values {
+				if _, ok := oldEnumKeys[enumValue.Key]; !ok {
+					// Key does not appear in old enum values, so we'll add it
+					actions = append(
+						actions,
+						types.AddLocalizedEnumValue{
+							FieldName: name,
+							Value:     enumValue,
+						})
+				}
+			}
+
+			// Action: changeLocalizedEnumValueOrder
+			// TODO: Change the order of LocalizedEnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-localizedenumvalues
+		}
 	}
 
-	// Action: changeFieldDefinitionOrder
-	// TODO: Change the order of FieldDefinitions: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-fielddefinitions
+	oldNames := make([]string, len(oldValues))
+	newNames := make([]string, len(newValues))
 
-	// Action: changeEnumValueOrder
-	// TODO: Change the order of EnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-fielddefinitions
+	for i, value := range oldValues {
+		v := value.(map[string]interface{})
+		oldNames[i] = v["name"].(string)
+	}
+	for i, value := range newValues {
+		v := value.(map[string]interface{})
+		newNames[i] = v["name"].(string)
+	}
 
-	// Action: changeLocalizedEnumValueOrder
-	// TODO: Change the order of LocalizedEnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-localizedenumvalues
+	if !reflect.DeepEqual(oldNames, newNames) {
+		actions = append(
+			actions,
+			types.ChangeFieldDefinitionsOrder{
+				FieldNames: newNames,
+			})
+	}
+
 	return actions, nil
 }
 
@@ -561,26 +575,7 @@ func resourceTypeGetFieldDefinitions(d *schema.ResourceData) ([]types.FieldDefin
 }
 
 func resourceTypeGetFieldDefinition(input map[string]interface{}) (*types.FieldDefinition, error) {
-	t, ok := input["type"].(*schema.Set)
-	fieldTypes := []map[string]interface{}{}
-	for _, ft := range t.List() {
-		fieldType := ft.(map[string]interface{})
-		// Field definitions gets reshuffled when one gets removed
-		// or an attribute of the Field changes.
-		// This results in having two types defined, one being empty (removed)
-		// and one being an existing one (but moved to a 'new' field definition).
-		if fieldType["name"] != "" {
-			fieldTypes = append(fieldTypes, fieldType)
-		}
-	}
-
-	if !ok {
-		return nil, fmt.Errorf("No type defined for field definition")
-	}
-	if len(fieldTypes) > 1 {
-		log.Printf("[DEBUG] %+v", fieldTypes)
-		return nil, fmt.Errorf("More then 1 type definition detected. Please remove the redundant ones")
-	}
+	fieldTypes := input["type"].([]interface{})
 	fieldType, err := getFieldType(fieldTypes[0])
 	if err != nil {
 		return nil, err
@@ -598,7 +593,8 @@ func resourceTypeGetFieldDefinition(input map[string]interface{}) (*types.FieldD
 	}, nil
 }
 
-func getFieldType(config map[string]interface{}) (types.FieldType, error) {
+func getFieldType(input interface{}) (types.FieldType, error) {
+	config := input.(map[string]interface{})
 	typeName, ok := config["name"].(string)
 
 	if !ok {
@@ -626,12 +622,12 @@ func getFieldType(config map[string]interface{}) (types.FieldType, error) {
 		}
 		return types.EnumType{Values: values}, nil
 	case "LocalizedEnum":
-		valuesInput, valuesOk := config["localized_value"].(*schema.Set)
+		valuesInput, valuesOk := config["localized_value"]
 		if !valuesOk {
 			return nil, fmt.Errorf("No localized_value elements specified for LocalizedEnum type")
 		}
 		var values []commercetools.LocalizedEnumValue
-		for _, value := range valuesInput.List() {
+		for _, value := range valuesInput.([]interface{}) {
 			v := value.(map[string]interface{})
 			labels := expandStringMap(
 				v["label"].(map[string]interface{}))
@@ -660,14 +656,16 @@ func getFieldType(config map[string]interface{}) (types.FieldType, error) {
 			ReferenceTypeID: refTypeID,
 		}, nil
 	case "Set":
-		elementTypes, elementTypesOk := config["element_type"].(*schema.Set)
-		if !elementTypesOk || elementTypes.Len() == 0 {
+		elementTypes, elementTypesOk := config["element_type"]
+		if !elementTypesOk {
 			return nil, fmt.Errorf("No element_type specified for Set type")
-		} else if elementTypes.Len() > 1 {
-			return nil, fmt.Errorf("Too many occurences of element_type for Set type. Only need 1")
+		}
+		elementTypeList := elementTypes.([]interface{})
+		if len(elementTypeList) == 0 {
+			return nil, fmt.Errorf("No element_type specified for Set type")
 		}
 
-		setFieldType, err := getFieldType(elementTypes.List()[0].(map[string]interface{}))
+		setFieldType, err := getFieldType(elementTypeList[0])
 		if err != nil {
 			return nil, err
 		}
