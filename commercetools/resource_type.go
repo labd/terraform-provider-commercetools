@@ -600,8 +600,6 @@ func resourceTypeGetFieldDefinition(input map[string]interface{}) (*types.FieldD
 
 func getFieldType(config map[string]interface{}) (types.FieldType, error) {
 	typeName, ok := config["name"].(string)
-	refTypeID, refTypeIDOk := config["reference_type_id"].(string)
-	elementTypes, _ := config["element_type"].(*schema.Set)
 
 	if !ok {
 		return nil, fmt.Errorf("No 'name' for type object given")
@@ -654,6 +652,7 @@ func getFieldType(config map[string]interface{}) (types.FieldType, error) {
 	case "DateTime":
 		return types.DateTimeType{}, nil
 	case "Reference":
+		refTypeID, refTypeIDOk := config["reference_type_id"].(string)
 		if !refTypeIDOk {
 			return nil, fmt.Errorf("No reference_type_id specified for Reference type")
 		}
@@ -661,7 +660,8 @@ func getFieldType(config map[string]interface{}) (types.FieldType, error) {
 			ReferenceTypeID: refTypeID,
 		}, nil
 	case "Set":
-		if elementTypes.Len() == 0 {
+		elementTypes, elementTypesOk := config["element_type"].(*schema.Set)
+		if !elementTypesOk || elementTypes.Len() == 0 {
 			return nil, fmt.Errorf("No element_type specified for Set type")
 		} else if elementTypes.Len() > 1 {
 			return nil, fmt.Errorf("Too many occurences of element_type for Set type. Only need 1")
