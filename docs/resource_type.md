@@ -1,8 +1,23 @@
----
+# Custom Types
+
+Types define custom fields that are used to enhance resources as you need.
+Since there is no model that fits all use-cases, we give you the possibility
+to customize some resources, so that they fit your data model as close as
+possible.
+
+Use Types to model your own CustomFields on resources, like Category and
+Customer.
+
+In case you want to customize products, please use product types instead that
+serve a similar purpose, but tailored to products.
+
+ - product types are specialized to customize products.
+ - types are used to customize other resources.
+
 
 # Type
 
-Provides a commercetools type 
+Provides a commercetools type
 
 Also see the [type HTTP API documentation][commercetool-type].
 
@@ -21,7 +36,7 @@ resource "commercetools_type" "my-custom-type" {
   }
 
   resource_type_ids = ["customer"]
-  
+
   field {
     name = "skype_name"
     label = {
@@ -133,12 +148,12 @@ These can have the following arguments:
     - Reference
     - Set
 * `values` - (**Enum** type only) The enum values, defined as an object:
-    ```hcl
-    values = {
-        dog = "Dog"
-        cat = "Cat"
-    }
-    ```
+
+        values = {
+            dog = "Dog"
+            cat = "Cat"
+        }
+
 * `localized_value` - (**LocalizedEnum** type only) One or more Localized Value objects.
 * `reference_type_id` - (**Reference** type only) The name of the resource type that the value should reference. Supported values are:
     - product
