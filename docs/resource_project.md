@@ -2,9 +2,11 @@
 
 Lets you change the settings of a commercetools project.
 
-Note: The project itself needs to be set up already. Before you can apply changes, you need to import the project:
+!!! note
+    The project itself needs to be set up already. Before you can apply
+    changes, you need to import the project:
 
-```$ terraform import commercetools_project.project my-project-key```
+    ```$ terraform import commercetools_project.project my-project-key```
 
 Also, the project can not be destroyed with terraform.
 
