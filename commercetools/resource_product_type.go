@@ -13,6 +13,13 @@ import (
 	"github.com/labd/commercetools-go-sdk/service/producttypes"
 )
 
+var constraintMap = map[string]producttypes.AttributeConstraint{
+	"Unique":            producttypes.UniqueAttributeConstraint,
+	"CombinationUnique": producttypes.CombinationUniqueAttributeConstraint,
+	"SameForAll":        producttypes.SameForAllAttributeConstraint,
+	"None":              producttypes.NoneAttributeConstraint,
+}
+
 func resourceProductType() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceProductTypeCreate,
@@ -63,6 +70,19 @@ func resourceProductType() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  producttypes.NoneAttributeConstraint,
+							ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+								v := val.(string)
+
+								if _, ok := constraintMap[v]; !ok {
+									allowedConstraints := []string{}
+									for key := range constraintMap {
+										allowedConstraints = append(allowedConstraints, key)
+									}
+									errs = append(errs, fmt.Errorf(
+										"Unkown attribute constraint '%v'. Possible values are %v", v, allowedConstraints))
+								}
+								return
+							},
 						},
 						"input_tip": {
 							Type:     TypeLocalizedString,
@@ -381,11 +401,13 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 	newLookup := createLookup(newValues, "name")
 	newAttrDefinitions := []producttypes.AttributeDefinition{}
 	actions := []commercetools.UpdateAction{}
+	checkAttributeOrder := true
 
 	for name := range oldLookup {
 		if _, ok := newLookup[name]; !ok {
 			log.Printf("[DEBUG] Attribute deleted: %s", name)
 			actions = append(actions, producttypes.RemoveAttributeDefinition{Name: name})
+			checkAttributeOrder = false
 		}
 	}
 
@@ -533,7 +555,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		newNames[i] = v["name"].(string)
 	}
 
-	if !reflect.DeepEqual(oldNames, newNames) {
+	if checkAttributeOrder && !reflect.DeepEqual(oldNames, newNames) {
 		actions = append(
 			actions,
 			producttypes.ChangeAttributeDefinitionsOrder{
@@ -580,19 +602,9 @@ func resourceProductTypeGetAttributeDefinition(input map[string]interface{}, dra
 	}
 
 	constraint := producttypes.NoneAttributeConstraint
-	switch input["constraint"].(string) {
-	case "Unique":
-		constraint = producttypes.UniqueAttributeConstraint
-	case "CombinationUnique":
-		constraint = producttypes.CombinationUniqueAttributeConstraint
-	case "SameForAll":
-		constraint = producttypes.SameForAllAttributeConstraint
-	case "None":
+	constraint, ok := constraintMap[input["constraint"].(string)]
+	if !ok {
 		constraint = producttypes.NoneAttributeConstraint
-	default:
-		return nil, fmt.Errorf(
-			"Unkown attribute constraint '%v'. Possible values are 'Unique', 'CombinationUnique', 'SameForAll' or 'None'",
-			input["constraint"].(string))
 	}
 
 	if draft {
