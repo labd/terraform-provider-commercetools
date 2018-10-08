@@ -82,3 +82,12 @@ func readLocalizedEnum(values []commercetools.LocalizedEnumValue) []interface{} 
 	}
 	return enumValues
 }
+
+func createLookup(objects []interface{}, key string) map[string]interface{} {
+	lookup := make(map[string]interface{})
+	for _, field := range objects {
+		f := field.(map[string]interface{})
+		lookup[f[key].(string)] = field
+	}
+	return lookup
+}

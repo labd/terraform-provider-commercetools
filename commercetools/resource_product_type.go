@@ -332,15 +332,6 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 	return resourceProductTypeRead(d, m)
 }
 
-func resourceProductTypeCreateAttributeLookup(fields []interface{}) map[string]interface{} {
-	lookup := make(map[string]interface{})
-	for _, field := range fields {
-		f := field.(map[string]interface{})
-		lookup[f["name"].(string)] = field
-	}
-	return lookup
-}
-
 func resourceProductTypeDelete(d *schema.ResourceData, m interface{}) error {
 	svc := getProductTypeService(m)
 	version := d.Get("version").(int)
@@ -353,8 +344,8 @@ func resourceProductTypeDelete(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValues []interface{}) ([]commercetools.UpdateAction, error) {
-	oldLookup := resourceProductTypeCreateAttributeLookup(oldValues)
-	newLookup := resourceProductTypeCreateAttributeLookup(newValues)
+	oldLookup := createLookup(oldValues, "name")
+	newLookup := createLookup(newValues, "name")
 	newAttrDefinitions := []producttypes.AttributeDefinition{}
 	actions := []commercetools.UpdateAction{}
 

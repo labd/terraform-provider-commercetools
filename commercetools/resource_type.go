@@ -28,11 +28,11 @@ func resourceType() *schema.Resource {
 				Required: true,
 			},
 			"name": {
-				Type:     schema.TypeMap,
+				Type:     TypeLocalizedString,
 				Required: true,
 			},
 			"description": {
-				Type:     schema.TypeMap,
+				Type:     TypeLocalizedString,
 				Optional: true,
 			},
 			"resource_type_ids": {
@@ -57,7 +57,7 @@ func resourceType() *schema.Resource {
 							Required: true,
 						},
 						"label": {
-							Type:     schema.TypeMap,
+							Type:     TypeLocalizedString,
 							Required: true,
 						},
 						"required": {
@@ -81,7 +81,7 @@ func resourceType() *schema.Resource {
 		CustomizeDiff: customdiff.All(
 			customdiff.ValidateChange("field", func(old, new, meta interface{}) error {
 				log.Printf("[DEBUG] Start field validation")
-				oldLookup := resourceTypeCreateFieldLookup(old.([]interface{}))
+				oldLookup := createLookup(old.([]interface{}), "name")
 				newV := new.([]interface{})
 
 				for _, field := range newV {
@@ -121,7 +121,7 @@ func localizedValueElement() *schema.Resource {
 				Required: true,
 			},
 			"label": {
-				Type:     schema.TypeMap,
+				Type:     TypeLocalizedString,
 				Required: true,
 			},
 		},
@@ -323,7 +323,7 @@ func resourceTypeReadFieldType(fieldType types.FieldType, setsAllowed bool) ([]i
 		typeData["values"] = enumValues
 	} else if f, ok := fieldType.(types.LocalizedEnumType); ok {
 		typeData["name"] = "LocalizedEnum"
-		typeData["localized_value"] = resourceTypeReadLocalizedEnum(f.Values)
+		typeData["localized_value"] = readLocalizedEnum(f.Values)
 	} else if _, ok := fieldType.(types.NumberType); ok {
 		typeData["name"] = "Number"
 	} else if _, ok := fieldType.(types.MoneyType); ok {
@@ -351,17 +351,6 @@ func resourceTypeReadFieldType(fieldType types.FieldType, setsAllowed bool) ([]i
 	}
 
 	return []interface{}{typeData}, nil
-}
-
-func resourceTypeReadLocalizedEnum(values []commercetools.LocalizedEnumValue) []interface{} {
-	enumValues := make([]interface{}, len(values))
-	for i, value := range values {
-		enumValues[i] = map[string]interface{}{
-			"key":   value.Key,
-			"label": localizedStringToMap(value.Label),
-		}
-	}
-	return enumValues
 }
 
 func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
@@ -421,18 +410,9 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 	return resourceTypeRead(d, m)
 }
 
-func resourceTypeCreateFieldLookup(fields []interface{}) map[string]interface{} {
-	lookup := make(map[string]interface{})
-	for _, field := range fields {
-		f := field.(map[string]interface{})
-		lookup[f["name"].(string)] = field
-	}
-	return lookup
-}
-
 func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interface{}) ([]commercetools.UpdateAction, error) {
-	oldLookup := resourceTypeCreateFieldLookup(oldValues)
-	newLookup := resourceTypeCreateFieldLookup(newValues)
+	oldLookup := createLookup(oldValues, "name")
+	newLookup := createLookup(newValues, "name")
 	actions := []commercetools.UpdateAction{}
 
 	log.Printf("[DEBUG] Construction Field change actions")
