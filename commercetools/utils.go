@@ -5,8 +5,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
 )
+
+// TypeLocalizedString defined merely for documentation,
+// it basically is just a normal TypeMap but clearifies in the code that
+// it should be used to store a LocalizedString
+const TypeLocalizedString = schema.TypeMap
 
 func expandStringArray(input []interface{}) []string {
 	s := make([]string, len(input))
@@ -64,4 +70,15 @@ func stringFormatActions(actions commercetools.UpdateActions) string {
 		lines[i] = fmt.Sprintf("%d: %s", i, stringFormatObject(action))
 	}
 	return strings.Join(lines, "\n")
+}
+
+func readLocalizedEnum(values []commercetools.LocalizedEnumValue) []interface{} {
+	enumValues := make([]interface{}, len(values))
+	for i, value := range values {
+		enumValues[i] = map[string]interface{}{
+			"key":   value.Key,
+			"label": localizedStringToMap(value.Label),
+		}
+	}
+	return enumValues
 }
