@@ -85,8 +85,8 @@ func resourceProductType() *schema.Resource {
 				Computed: true,
 			},
 		},
-	}
-}
+					}
+				}
 
 func attributeTypeElement(setsAllowed bool) *schema.Resource {
 	result := map[string]*schema.Schema{
@@ -360,18 +360,27 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		oldValue, existingField := oldLookup[name]
 		newV := value.(map[string]interface{})
 
-		attrDef, err := resourceProductTypeGetAttributeDefinition(newV)
-		if err != nil {
+		var attrDef producttypes.AttributeDefinition
+		if output, err := resourceProductTypeGetAttributeDefinition(newV, false); err == nil {
+			attrDef = output.(producttypes.AttributeDefinition)
+		} else {
 			return nil, err
 		}
 
-		newAttrDefinitions = append(newAttrDefinitions, *attrDef)
+		var attrDefDraft producttypes.AttributeDefinitionDraft
+		if output, err := resourceProductTypeGetAttributeDefinition(newV, true); err == nil {
+			attrDefDraft = output.(producttypes.AttributeDefinitionDraft)
+		} else {
+			return nil, err
+		}
+
+		newAttrDefinitions = append(newAttrDefinitions, attrDef)
 
 		if !existingField {
 			log.Printf("[DEBUG] Attribute added: %s", name)
 			actions = append(
 				actions,
-				producttypes.AddAttributeDefinition{Attribute: *attrDef})
+				producttypes.AddAttributeDefinition{Attribute: attrDefDraft})
 			continue
 		}
 
@@ -504,24 +513,24 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 	return actions, nil
 }
 
-func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]producttypes.AttributeDefinition, error) {
+func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]producttypes.AttributeDefinitionDraft, error) {
 	input := d.Get("attribute").([]interface{})
-	var result []producttypes.AttributeDefinition
+	var result []producttypes.AttributeDefinitionDraft
 
 	for _, raw := range input {
-		fieldDef, err := resourceProductTypeGetAttributeDefinition(raw.(map[string]interface{}))
+		fieldDef, err := resourceProductTypeGetAttributeDefinition(raw.(map[string]interface{}), true)
 
 		if err != nil {
 			return nil, err
 		}
 
-		result = append(result, *fieldDef)
+		result = append(result, fieldDef.(producttypes.AttributeDefinitionDraft))
 	}
 
 	return result, nil
 }
 
-func resourceProductTypeGetAttributeDefinition(input map[string]interface{}) (*producttypes.AttributeDefinition, error) {
+func resourceProductTypeGetAttributeDefinition(input map[string]interface{}, draft bool) (interface{}, error) {
 	attrTypes := input["type"].([]interface{})
 	attrType, err := getAttributeType(attrTypes[0])
 	if err != nil {
@@ -553,7 +562,19 @@ func resourceProductTypeGetAttributeDefinition(input map[string]interface{}) (*p
 			input["constraint"].(string))
 	}
 
-	return &producttypes.AttributeDefinition{
+	if draft {
+		return producttypes.AttributeDefinitionDraft{
+			Type:                attrType,
+			Name:                input["name"].(string),
+			Label:               label,
+			AttributeConstraint: constraint,
+			IsRequired:          input["required"].(bool),
+			IsSearchable:        input["searchable"].(bool),
+			InputHint:           commercetools.TextInputHint(input["input_hint"].(string)),
+			InputTip:            inputTip,
+		}, nil
+	}
+	return producttypes.AttributeDefinition{
 		Type:                attrType,
 		Name:                input["name"].(string),
 		Label:               label,
