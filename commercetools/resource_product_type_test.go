@@ -33,26 +33,6 @@ func TestAttributeTypeElement(t *testing.T) {
 	}
 }
 
-func TestResourceProductTypeCreateAttributeLookup(t *testing.T) {
-	input := []interface{}{
-		map[string]interface{}{
-			"name":  "name1",
-			"value": "Value 1",
-		},
-		map[string]interface{}{
-			"name":  "name2",
-			"value": "Value 2",
-		},
-	}
-	result := resourceProductTypeCreateAttributeLookup(input)
-	if _, ok := result["name1"]; !ok {
-		t.Error("Could not lookup name1")
-	}
-	if _, ok := result["name2"]; !ok {
-		t.Error("Could not lookup name1")
-	}
-}
-
 func TestGetAttributeType(t *testing.T) {
 	// Test Boolean
 	input := map[string]interface{}{

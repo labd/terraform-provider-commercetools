@@ -14,11 +14,6 @@ serve a similar purpose, but tailored to products.
  - product types are specialized to customize products.
  - types are used to customize other resources.
 
-
-# Type
-
-Provides a commercetools type
-
 Also see the [type HTTP API documentation][commercetool-type].
 
 ## Example Usage
@@ -122,7 +117,7 @@ This can be any of the following:
 
 These can have the following arguments:
 
-* `type` - The type of the field as Field [Type](#field-type)
+* `type` - The type of the field as [Field Type](#field-type)
 * `name` - The name of the field.<br>
     The name must be between two and 36 characters long and can contain the ASCII letters A to Z in lowercase or uppercase, digits, underscores (_) and the hyphen-minus (-).
 * `label` - A human-readable label for the field as [localized string](#localized-string).
