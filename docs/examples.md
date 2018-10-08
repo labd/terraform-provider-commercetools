@@ -139,6 +139,7 @@ resource "commercetools_type" "ctype1" {
     type {
       name = "String"
     }
+  }
 
   field {
     name = "contact_time"
@@ -163,14 +164,14 @@ resource "commercetools_type" "ctype1" {
     }
     type {
       name = "LocalizedEnum"
-      value {
+      localized_value {
         key = "phone"
         label {
           en = "Phone"
           nl = "Telefoon"
         }
       }
-      value {
+      localized_value {
         key = "skype"
         label {
           en = "Skype"
