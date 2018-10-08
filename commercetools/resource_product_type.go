@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/customdiff"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
@@ -85,8 +86,40 @@ func resourceProductType() *schema.Resource {
 				Computed: true,
 			},
 		},
+		CustomizeDiff: customdiff.All(
+			customdiff.ValidateChange("attribute", func(old, new, meta interface{}) error {
+				log.Printf("[DEBUG] Start attribute validation")
+				oldLookup := createLookup(old.([]interface{}), "name")
+				newV := new.([]interface{})
+
+				for _, field := range newV {
+					newF := field.(map[string]interface{})
+					name := newF["name"].(string)
+					oldF, ok := oldLookup[name].(map[string]interface{})
+					if !ok {
+						// It means this is a new field, that's ok.
+						log.Printf("[DEBUG] Found new attribute: %s", name)
+						continue
+					}
+
+					log.Printf("[DEBUG] Checking %s", oldF["name"])
+					oldType := oldF["type"].([]interface{})[0].(map[string]interface{})
+					newType := newF["type"].([]interface{})[0].(map[string]interface{})
+
+					if oldType["name"] != newType["name"] {
+						if oldType["name"] != "" || newType["name"] == "" {
+							continue
+						}
+						return fmt.Errorf(
+							"Field '%s' type changed from %s to %s. Changing types is not supported; please remove the attribute first and re-define it later",
+							name, oldType["name"], newType["name"])
 					}
 				}
+				return nil
+			}),
+		),
+	}
+}
 
 func attributeTypeElement(setsAllowed bool) *schema.Resource {
 	result := map[string]*schema.Schema{
