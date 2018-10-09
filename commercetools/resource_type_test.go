@@ -66,7 +66,7 @@ func TestGetFieldType(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	}
 	if field, ok := result.(types.EnumType); ok {
-		assert.EqualValues(t, field.Values, []commercetools.EnumValue{
+		assert.ElementsMatch(t, field.Values, []commercetools.EnumValue{
 			commercetools.EnumValue{Key: "value1", Label: "Value 1"},
 			commercetools.EnumValue{Key: "value2", Label: "Value 2"},
 		})
