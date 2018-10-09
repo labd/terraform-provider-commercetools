@@ -1,8 +1,5 @@
 # Custom Types
 
-!!! note
-    Will be introduced in 0.2.0
-
 Types define custom fields that are used to enhance resources as you need.
 Since there is no model that fits all use-cases, we give you the possibility
 to customize some resources, so that they fit your data model as close as
