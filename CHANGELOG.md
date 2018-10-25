@@ -1,4 +1,4 @@
-0.1.2 (Unreleased)
+0.1.2 (2018-10-25)
 ==================
  - **New resource:** `commercetools_product_type`
 
