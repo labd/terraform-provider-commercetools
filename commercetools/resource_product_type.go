@@ -44,7 +44,7 @@ func resourceProductType() *schema.Resource {
 			},
 			"attribute": {
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
@@ -133,6 +133,12 @@ func resourceProductType() *schema.Resource {
 						return fmt.Errorf(
 							"Field '%s' type changed from %s to %s. Changing types is not supported; please remove the attribute first and re-define it later",
 							name, oldType["name"], newType["name"])
+					}
+
+					if oldF["required"] != newF["required"] {
+						return fmt.Errorf(
+							"Error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it.",
+							name)
 					}
 				}
 				return nil

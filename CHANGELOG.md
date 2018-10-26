@@ -1,4 +1,10 @@
-0.1.2 (2018-10-25)
+0.2.1 (Unreleased)
+==================
+ - Resource product type: made `attribute` elements optional
+ - Resource product type: Validate/protect `required` element on Product type attribute
+
+
+0.2.0 (2018-10-25)
 ==================
  - **New resource:** `commercetools_product_type`
 
