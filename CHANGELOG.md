@@ -1,3 +1,8 @@
+0.2.1 (Unreleased)
+==================
+ - Resource product type: made `attribute` elements optional
+
+
 0.2.0 (2018-10-25)
 ==================
  - **New resource:** `commercetools_product_type`

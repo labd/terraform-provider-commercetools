@@ -44,7 +44,7 @@ func resourceProductType() *schema.Resource {
 			},
 			"attribute": {
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
