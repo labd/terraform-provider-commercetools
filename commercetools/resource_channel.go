@@ -76,7 +76,6 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 	svc := getChannelService(m)
 
 	channel, err := svc.GetByID(d.Id())
-	fmt.Println(channel)
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.Error); ok {
