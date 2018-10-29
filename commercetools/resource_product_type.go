@@ -442,6 +442,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 			actions = append(
 				actions,
 				producttypes.AddAttributeDefinition{Attribute: attrDefDraft})
+			checkAttributeOrder = false
 			continue
 		}
 
