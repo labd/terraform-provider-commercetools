@@ -2,6 +2,7 @@
 ==================
  - Resource product type: made `attribute` elements optional
  - Resource product type: Validate/protect `required` element on Product type attribute
+ - Resource product type: Avoid `changeAttributeOrder` update action when new attribute gets added
 
 
 0.2.0 (2018-10-25)
