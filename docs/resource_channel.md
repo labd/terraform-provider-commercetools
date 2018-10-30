@@ -5,7 +5,7 @@ Lets you manage channels within a commercetools project.
 ## Example Usage
 
 ```hcl
-resource "commercetools_project_settings" "project" {
+resource "commercetools_channel" "project" {
   key = "My project"
   roles = ["ProductDistribution"]
   name = {
