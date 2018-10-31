@@ -23,7 +23,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20180826203732-cc6d2ea263b2 // indirect
 	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
-	github.com/labd/commercetools-go-sdk v0.0.0-20181008135412-812360007530
+	github.com/labd/commercetools-go-sdk v0.0.0-20181029133914-c37323051cd4
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/cli v1.0.0 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
