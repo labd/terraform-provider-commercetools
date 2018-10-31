@@ -173,6 +173,10 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
+		"type_reference_id": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 	}
 
 	if setsAllowed {
@@ -319,6 +323,9 @@ func resourceProductTypeReadAttributeType(attrType producttypes.AttributeType, s
 	} else if f, ok := attrType.(producttypes.ReferenceType); ok {
 		typeData["name"] = "reference"
 		typeData["reference_type_id"] = f.ReferenceTypeID
+	} else if f, ok := attrType.(producttypes.NestedType); ok {
+		typeData["name"] = "nested"
+		typeData["type_reference_id"] = f.TypeReference.ID
 	} else if f, ok := attrType.(producttypes.SetType); ok {
 		typeData["name"] = "set"
 		if setsAllowed {
@@ -699,6 +706,14 @@ func getAttributeType(input interface{}) (producttypes.AttributeType, error) {
 		}
 		return producttypes.ReferenceType{
 			ReferenceTypeID: refTypeID,
+		}, nil
+	case "nested":
+		typeReferenceID, typeReferenceIDOk := config["type_reference_id"].(string)
+		if !typeReferenceIDOk {
+			return nil, fmt.Errorf("No type_reference_id specified for Nested type")
+		}
+		return producttypes.NestedType{
+			TypeReference: producttypes.ProductTypeReference{ID: typeReferenceID},
 		}, nil
 	case "set":
 		elementTypes, elementTypesOk := config["element_type"]

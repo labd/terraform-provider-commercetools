@@ -9,6 +9,23 @@ Also see the [product type HTTP API documentation][commercetool-product-type].
 ## Example Usage
 
 ```hcl
+resource "commercetools_product_type" "some-generic-properties-product-type" {
+    name = "Some generic product properties"
+    description = "All the generic product properties"
+
+    attribute {
+        name = "perishable"
+        label = {
+            en = "Is perishable"
+            nl = "Is perishable"
+        }
+        required = true
+        type {
+            name = "boolean"
+        }
+    }
+}
+
 resource "commercetools_product_type" "my-product-type" {
     name = "Lens specification"
     description = "All the specific info concerning the lens"
@@ -52,6 +69,19 @@ resource "commercetools_product_type" "my-product-type" {
         type = {
             name = "reference"
             reference_type_id = "product"
+        }
+    }
+
+    attribute {
+        name = "product_properties"
+        label = {
+            en = "Product properties"
+            nl = "Product eigenschappen"
+        }
+        required = false
+        type {
+            name =  "nested"
+            type_reference_id = "${commercetools_product_type.some-generic-properties-product-type.id}"
         }
     }
 }
@@ -128,6 +158,7 @@ These can have the following arguments:
     - category
     - review
     - key-value-document
+* `type_reference_id` - (**nested** type only) The id of the custom product type that the value should reference.
 * `element_type` - (**set** type only) Another [Attribute Type](#attribute-type) definition that is used for the set.
 
 ### Localized String
