@@ -11,6 +11,7 @@ crash.log
 
 // Editor files
 .vscode
+.idea
 
 // Local files
 /local/*
