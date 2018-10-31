@@ -81,7 +81,7 @@ resource "commercetools_product_type" "my-product-type" {
         required = false
         type {
             name =  "nested"
-            type_reference_id = "${commercetools_product_type.some-generic-properties-product-type.id}"
+            reference_type_id = "${commercetools_product_type.some-generic-properties-product-type.id}"
         }
     }
 }
@@ -147,7 +147,7 @@ These can have the following arguments:
         }
 
 * `localized_value` - (**lenum** type only) One or more Localized Value objects.
-* `reference_type_id` - (**reference** type only) The name of the resource type that the value should reference. Supported values are:
+* `reference_type_id` - (**reference** or **nested** type only) The name of the resource type that the value should reference. Supported values for **reference** are:
     - product
     - product-type
     - channel
@@ -158,7 +158,8 @@ These can have the following arguments:
     - category
     - review
     - key-value-document
-* `type_reference_id` - (**nested** type only) The id of the custom product type that the value should reference.
+
+For **nested** use the id of the custom product type you want to use.
 * `element_type` - (**set** type only) Another [Attribute Type](#attribute-type) definition that is used for the set.
 
 ### Localized String
