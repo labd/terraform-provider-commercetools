@@ -58,6 +58,22 @@ resource "commercetools_type" "my-custom-type" {
   }
 
   field {
+    name = "emails"
+
+    label = {
+      en = "Emails"
+      nl = "Emails"
+    }
+
+    type = {
+      name = "set"
+      element_type = [{
+        name = "text"
+      }]
+    }
+  }
+
+  field {
     name = "contact_preference"
     label = {
       en = "Contact preference"
