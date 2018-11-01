@@ -353,7 +353,7 @@ func resourceTypeReadFieldType(fieldType types.FieldType, setsAllowed bool) ([]i
 			typeData["element_type"] = elemType
 		}
 	} else {
-		return nil, fmt.Errorf("Unkown resource Type %T", fieldType)
+		return nil, fmt.Errorf("Unknown resource Type %T", fieldType)
 	}
 
 	return []interface{}{typeData}, nil
@@ -661,5 +661,5 @@ func getFieldType(input interface{}) (types.FieldType, error) {
 		}, nil
 	}
 
-	return nil, fmt.Errorf("Unkown FieldType %s", typeName)
+	return nil, fmt.Errorf("Unknown FieldType %s", typeName)
 }
