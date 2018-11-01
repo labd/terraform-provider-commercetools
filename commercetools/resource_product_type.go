@@ -325,14 +325,14 @@ func resourceProductTypeReadAttributeType(attrType producttypes.AttributeType, s
 	} else if f, ok := attrType.(producttypes.SetType); ok {
 		typeData["name"] = "set"
 		if setsAllowed {
-			elemType, err := resourceTypeReadFieldType(f.ElementType, false)
+			elemType, err := resourceProductTypeReadAttributeType(f.ElementType, false)
 			if err != nil {
 				return nil, err
 			}
 			typeData["element_type"] = elemType
 		}
 	} else {
-		return nil, fmt.Errorf("Unkown resource Type %T", attrType)
+		return nil, fmt.Errorf("Unknown resource Type %T", attrType)
 	}
 
 	return []interface{}{typeData}, nil
@@ -731,7 +731,7 @@ func getAttributeType(input interface{}) (producttypes.AttributeType, error) {
 		}, nil
 	}
 
-	return nil, fmt.Errorf("Unkown AttributeType %s", typeName)
+	return nil, fmt.Errorf("Unknown AttributeType %s", typeName)
 }
 
 func getProductTypeService(m interface{}) *producttypes.Service {
