@@ -1,8 +1,6 @@
 package commercetools
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
 	"github.com/labd/commercetools-go-sdk/service/channels"
