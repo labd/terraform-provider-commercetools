@@ -1,5 +1,6 @@
 0.2.1 (Unreleased)
 ==================
+ - **New resource:** `commercetools_channel`
  - Resource product type: made `attribute` elements optional
  - Resource product type: Validate/protect `required` element on Product type attribute
  - Resource product type: Avoid `changeAttributeOrder` update action when new attribute gets added
