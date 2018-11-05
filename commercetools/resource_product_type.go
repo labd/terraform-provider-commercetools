@@ -173,6 +173,10 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
+		"type_reference": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 	}
 
 	if setsAllowed {
@@ -321,7 +325,7 @@ func resourceProductTypeReadAttributeType(attrType producttypes.AttributeType, s
 		typeData["reference_type_id"] = f.ReferenceTypeID
 	} else if f, ok := attrType.(producttypes.NestedType); ok {
 		typeData["name"] = "nested"
-		typeData["reference_type_id"] = f.TypeReference.ID
+		typeData["type_reference"] = f.TypeReference.ID
 	} else if f, ok := attrType.(producttypes.SetType); ok {
 		typeData["name"] = "set"
 		if setsAllowed {
@@ -704,12 +708,12 @@ func getAttributeType(input interface{}) (producttypes.AttributeType, error) {
 			ReferenceTypeID: refTypeID,
 		}, nil
 	case "nested":
-		typeReferenceID, typeReferenceIDOk := config["reference_type_id"].(string)
-		if !typeReferenceIDOk {
-			return nil, fmt.Errorf("No type_reference_id specified for Nested type")
+		typeReference, typeReferenceOk := config["type_reference"].(string)
+		if !typeReferenceOk {
+			return nil, fmt.Errorf("No type_reference specified for Nested type")
 		}
 		return producttypes.NestedType{
-			TypeReference: commercetools.Reference{ID: typeReferenceID, TypeID: "product-type"},
+			TypeReference: commercetools.Reference{ID: typeReference, TypeID: "product-type"},
 		}, nil
 	case "set":
 		elementTypes, elementTypesOk := config["element_type"]
