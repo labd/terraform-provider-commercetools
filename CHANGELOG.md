@@ -5,7 +5,7 @@
  - Resource product type: Validate/protect `required` element on Product type attribute
  - Resource type: Validate/protect `required` element on Type attribute
  - Resource product type: Avoid `changeAttributeOrder` update action when new attribute gets added
- - Resource product type: add `type_reference` for nested type, add examples for nested type
+ - Resource product type: Added support for Nested types
 
 
 0.2.0 (2018-10-25)
