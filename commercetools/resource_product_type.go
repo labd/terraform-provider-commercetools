@@ -137,7 +137,7 @@ func resourceProductType() *schema.Resource {
 
 					if oldF["required"] != newF["required"] {
 						return fmt.Errorf(
-							"Error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it.",
+							"Error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
 							name)
 					}
 				}

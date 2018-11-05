@@ -106,6 +106,12 @@ func resourceType() *schema.Resource {
 							"Field '%s' type changed from %s to %s. Changing types is not supported; please remove the field first and re-define it later",
 							name, oldType["name"], newType["name"])
 					}
+
+					if oldF["required"] != newF["required"] {
+						return fmt.Errorf(
+							"Error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
+							name)
+					}
 				}
 				return nil
 			}),
