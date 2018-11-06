@@ -71,6 +71,7 @@ func Provider() terraform.ResourceProvider {
 			"commercetools_type":             resourceType(),
 			"commercetools_channel":          resourceChannel(),
 			"commercetools_product_type":     resourceProductType(),
+			"commercetools_tax_category":     resourceTaxCategory(),
 		},
 		ConfigureFunc: providerConfigure,
 	}

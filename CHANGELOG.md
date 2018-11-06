@@ -1,6 +1,7 @@
 0.2.1 (Unreleased)
 ==================
  - **New resource:** `commercetools_channel`
+ - **New resource:** `commercetools_tax_category`
  - Resource product type: made `attribute` elements optional
  - Resource product type: Validate/protect `required` element on Product type attribute
  - Resource type: Validate/protect `required` element on Type attribute
