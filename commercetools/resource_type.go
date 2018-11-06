@@ -420,6 +420,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 	oldLookup := createLookup(oldValues, "name")
 	newLookup := createLookup(newValues, "name")
 	actions := []commercetools.UpdateAction{}
+	checkAttributeOrder := true
 
 	log.Printf("[DEBUG] Construction Field change actions")
 
@@ -427,6 +428,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		if _, ok := newLookup[name]; !ok {
 			log.Printf("[DEBUG] Field deleted: %s", name)
 			actions = append(actions, types.RemoveFieldDefinition{FieldName: name})
+			checkAttributeOrder = false
 		}
 	}
 
@@ -444,6 +446,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			actions = append(
 				actions,
 				types.AddFieldDefinition{FieldDefinition: *fieldDef})
+			checkAttributeOrder = false
 			continue
 		}
 
@@ -515,7 +518,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		newNames[i] = v["name"].(string)
 	}
 
-	if !reflect.DeepEqual(oldNames, newNames) {
+	if checkAttributeOrder && !reflect.DeepEqual(oldNames, newNames) {
 		actions = append(
 			actions,
 			types.ChangeFieldDefinitionsOrder{
