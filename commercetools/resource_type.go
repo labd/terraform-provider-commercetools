@@ -432,9 +432,10 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		}
 	}
 
-	for name, value := range newLookup {
-		oldValue, existingField := oldLookup[name]
+	for _, value := range newValues {
 		newV := value.(map[string]interface{})
+		name := newV["name"].(string)
+		oldValue, existingField := oldLookup[name]
 
 		fieldDef, err := resourceTypeGetFieldDefinition(newV)
 		if err != nil {

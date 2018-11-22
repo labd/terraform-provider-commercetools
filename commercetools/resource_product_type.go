@@ -424,9 +424,10 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		}
 	}
 
-	for name, value := range newLookup {
-		oldValue, existingField := oldLookup[name]
+	for _, value := range newValues {
 		newV := value.(map[string]interface{})
+		name := newV["name"].(string)
+		oldValue, existingField := oldLookup[name]
 
 		var attrDef producttypes.AttributeDefinition
 		if output, err := resourceProductTypeGetAttributeDefinition(newV, false); err == nil {
