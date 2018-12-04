@@ -251,6 +251,12 @@ func resourceAPIExtensionGetDestination(d *schema.ResourceData) (extensions.Dest
 			URL:            input["url"].(string),
 			Authentication: auth,
 		}, nil
+	case "awslambda":
+		return extensions.DestinationAWSLambda{
+			ARN:          input["arn"].(string),
+			AccessKey:    input["access_key"].(string),
+			AccessSecret: input["access_secret"].(string),
+		}, nil
 	default:
 		return nil, fmt.Errorf("Extension type %s not implemented", input["type"])
 	}
