@@ -6,11 +6,37 @@ import (
 
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/labd/commercetools-go-sdk/commercetools"
 	"github.com/labd/commercetools-go-sdk/service/extensions"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestAPIExtensionGetDestination(t *testing.T) {
+	resourceDataMap := map[string]interface{}{
+		"id":             "2845b936-e407-4f29-957b-f8deb0fcba97",
+		"version":        1,
+		"createdAt":      "2018-12-03T16:13:03.969Z",
+		"lastModifiedAt": "2018-12-04T09:06:59.491Z",
+		"destination": map[string]interface{}{
+			"type":          "AWSLambda",
+			"arn":           "arn:aws:lambda:eu-west-1:111111111:function:api_extensions",
+			"access_key":    "ABCSDF123123123",
+			"access_secret": "****abc/",
+		},
+		"key": "create-order",
+	}
+
+	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
+	destination, _ := resourceAPIExtensionGetDestination(d)
+	lambdaDestination, ok := destination.(extensions.DestinationAWSLambda)
+
+	assert.True(t, ok)
+	assert.Equal(t, lambdaDestination.ARN, "arn:aws:lambda:eu-west-1:111111111:function:api_extensions")
+	assert.Equal(t, lambdaDestination.AccessKey, "ABCSDF123123123")
+	assert.Equal(t, lambdaDestination.AccessSecret, "****abc/")
+}
 
 func TestAPIExtensionGetAuthentication(t *testing.T) {
 	var input map[string]interface{}
@@ -44,7 +70,7 @@ func TestAccAPIExtension_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAPIExtensionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAPIExtsensionConfig(name),
+				Config: testAccAPIExtensionConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAPIExtensionExists("ext"),
 					resource.TestCheckResourceAttr(
@@ -55,7 +81,7 @@ func TestAccAPIExtension_basic(t *testing.T) {
 	})
 }
 
-func testAccAPIExtsensionConfig(name string) string {
+func testAccAPIExtensionConfig(name string) string {
 	return fmt.Sprintf(`
 resource "commercetools_api_extension" "ext" {
 	key = "%s"
