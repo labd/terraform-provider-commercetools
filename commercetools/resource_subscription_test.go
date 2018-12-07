@@ -71,7 +71,7 @@ func TestAccSubscription_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccSubscriptionConfig(rName),
-				ExpectError: regexp.MustCompile("A test message could not be delivered to this destination: SQS.*"),
+				ExpectError: regexp.MustCompile(".*A test message could not be delivered to this destination: SQS.*"),
 			},
 		},
 	})
@@ -85,7 +85,7 @@ func testAccSubscriptionConfig(rName string) string {
 	return fmt.Sprintf(`
 resource "commercetools_subscription" "subscription_%[1]s" {
 	key = "commercetools-acc-%[1]s"
-	
+
 	destination {
 		type          = "SQS"
 		queue_url     = "%[2]s"
@@ -93,14 +93,14 @@ resource "commercetools_subscription" "subscription_%[1]s" {
 		access_secret = "%[4]s"
 		region        = "eu-west-1"
 	}
-	
+
 	changes {
 		resource_type_ids = ["customer"]
 	}
-	
+
 	message {
 		resource_type_id = "product"
-	
+
 		types = ["ProductPublished", "ProductCreated"]
 	}
 }

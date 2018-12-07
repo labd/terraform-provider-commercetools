@@ -116,6 +116,7 @@ func TestAccTypes_basic(t *testing.T) {
 			{
 				Config: testAccTypeConfig(name),
 				Check: resource.ComposeTestCheckFunc(
+					testAccTypeExists("acctest_type"),
 					resource.TestCheckResourceAttr(
 						"commercetools_type.acctest_type", "key", name),
 				),
@@ -126,7 +127,7 @@ func TestAccTypes_basic(t *testing.T) {
 
 func testAccTypeConfig(name string) string {
 	return fmt.Sprintf(`
-resource "commercetools_type" "acctest_type" {
+resource "commercetools_type" "%s" {
 	key = "%s"
 	name = {
 		en = "Contact info"
@@ -136,21 +137,47 @@ resource "commercetools_type" "acctest_type" {
 		en = "All things related communication"
 		nl = "Alle communicatie-gerelateerde zaken"
 	}
-	
+
 	resource_type_ids = ["customer"]
-	
+
 	field {
 		name = "skype_name"
 		label = {
-		en = "Skype name"
-		nl = "Skype naam"
+			en = "Skype name"
+			nl = "Skype naam"
 		}
 		type {
-		name = "String"
+			name = "String"
 		}
 	}
-}`, name)
+}`, name, name)
 }
+
+func testAccTypeExists(n string) resource.TestCheckFunc {
+	name := fmt.Sprintf("commercetools_type.%s", n)
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Type ID is set")
+		}
+
+		svc := getTypeService(testAccProvider.Meta().(*commercetools.Client))
+		result, err := svc.GetByID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+		if result == nil {
+			return fmt.Errorf("Type not found")
+		}
+
+		return nil
+	}
+}
+
 
 func testAccCheckTypesDestroy(s *terraform.State) error {
 	// TODO: Implement
