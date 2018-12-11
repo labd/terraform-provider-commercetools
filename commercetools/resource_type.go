@@ -72,7 +72,7 @@ func resourceType() *schema.Resource {
 					},
 				},
 			},
-			"version": &schema.Schema{
+			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},

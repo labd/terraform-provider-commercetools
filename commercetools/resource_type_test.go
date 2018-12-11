@@ -66,8 +66,8 @@ func TestGetFieldType(t *testing.T) {
 	}
 	if field, ok := result.(commercetools.CustomFieldEnumType); ok {
 		assert.ElementsMatch(t, field.Values, []commercetools.CustomFieldEnumValue{
-			commercetools.CustomFieldEnumValue{Key: "value1", Label: "Value 1"},
-			commercetools.CustomFieldEnumValue{Key: "value2", Label: "Value 2"},
+			{Key: "value1", Label: "Value 1"},
+			{Key: "value2", Label: "Value 2"},
 		})
 	} else {
 		t.Error("Expected Enum type")

@@ -66,8 +66,8 @@ func TestGetAttributeType(t *testing.T) {
 	}
 	if field, ok := result.(commercetools.AttributeEnumType); ok {
 		assert.ElementsMatch(t, field.Values, []commercetools.AttributePlainEnumValue{
-			commercetools.AttributePlainEnumValue{Key: "value1", Label: "Value 1"},
-			commercetools.AttributePlainEnumValue{Key: "value2", Label: "Value 2"},
+			{Key: "value1", Label: "Value 1"},
+			{Key: "value2", Label: "Value 2"},
 		})
 	} else {
 		t.Error("Expected Enum type")
