@@ -23,7 +23,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20180826203732-cc6d2ea263b2 // indirect
 	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
-	github.com/labd/commercetools-go-sdk v0.0.0-20181204094456-2d8a4a9177ed
+	github.com/labd/commercetools-go-sdk v0.0.0-20181211193046-b3ab8e330bfd
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/cli v1.0.0 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
@@ -33,6 +33,7 @@ require (
 	github.com/mitchellh/hashstructure v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.0.0 // indirect
 	github.com/oklog/run v1.0.0 // indirect
+	github.com/pkg/errors v0.8.0 // indirect
 	github.com/posener/complete v1.1.2 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180820201707-7c9eb446e3cf // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
