@@ -100,7 +100,7 @@ func resourceProductType() *schema.Resource {
 					},
 				},
 			},
-			"version": &schema.Schema{
+			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
