@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/service/producttypes"
 )
 
 func TestAttributeTypeElement(t *testing.T) {
@@ -42,7 +41,7 @@ func TestGetAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if _, ok := result.(producttypes.BooleanType); !ok {
+	if _, ok := result.(commercetools.AttributeBooleanType); !ok {
 		t.Error("Expected Boolean type")
 	}
 
@@ -65,10 +64,10 @@ func TestGetAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(producttypes.EnumType); ok {
-		assert.ElementsMatch(t, field.Values, []commercetools.EnumValue{
-			commercetools.EnumValue{Key: "value1", Label: "Value 1"},
-			commercetools.EnumValue{Key: "value2", Label: "Value 2"},
+	if field, ok := result.(commercetools.AttributeEnumType); ok {
+		assert.ElementsMatch(t, field.Values, []commercetools.AttributePlainEnumValue{
+			commercetools.AttributePlainEnumValue{Key: "value1", Label: "Value 1"},
+			commercetools.AttributePlainEnumValue{Key: "value2", Label: "Value 2"},
 		})
 	} else {
 		t.Error("Expected Enum type")
@@ -90,7 +89,7 @@ func TestGetAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(producttypes.ReferenceType); ok {
+	if field, ok := result.(commercetools.AttributeReferenceType); ok {
 		assert.EqualValues(t, field.ReferenceTypeID, "product")
 	} else {
 		t.Error("Expected Reference type")
@@ -130,7 +129,7 @@ resource "commercetools_product_type" "acctest_product_type" {
 	key = "%s"
 	name = "Shipping info"
 	description = "All things related shipping"
-	
+
 	attribute {
 		name = "location"
 		label = {

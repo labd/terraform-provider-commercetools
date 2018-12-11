@@ -3,7 +3,6 @@ package commercetools
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/service/channels"
 )
 
 func resourceChannel() *schema.Resource {
@@ -47,20 +46,20 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	description := commercetools.LocalizedString(
 		expandStringMap(d.Get("description").(map[string]interface{})))
 
-	roles := []channels.ChannelRole{}
+	roles := []commercetools.ChannelRoleEnum{}
 	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
-		roles = append(roles, channels.ChannelRole(value))
+		roles = append(roles, commercetools.ChannelRoleEnum(value))
 	}
 
-	draft := &channels.ChannelDraft{
+	draft := &commercetools.ChannelDraft{
 		Key:         d.Get("key").(string),
 		Roles:       roles,
-		Name:        name,
-		Description: description,
+		Name:        &name,
+		Description: &description,
 	}
 
-	svc := getChannelService(m)
-	channel, err := svc.Create(draft)
+	client := getClient(m)
+	channel, err := client.Channels.Create(draft)
 	if err != nil {
 		return err
 	}
@@ -71,13 +70,12 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
-	svc := getChannelService(m)
-
-	channel, err := svc.GetByID(d.Id())
+	client := getClient(m)
+	channel, err := client.Channels.GetByID(d.Id())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.Error); ok {
-			if ctErr.Code() == commercetools.ErrResourceNotFound {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
 			}
@@ -94,12 +92,12 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
-	svc := getChannelService(m)
+	client := getClient(m)
 
-	input := &channels.UpdateInput{
+	input := &commercetools.ChannelUpdateInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
-		Actions: commercetools.UpdateActions{},
+		Actions: []commercetools.ChannelUpdateAction{},
 	}
 
 	if d.HasChange("name") {
@@ -107,7 +105,7 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 			expandStringMap(d.Get("name").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&channels.ChangeName{Name: newName})
+			&commercetools.ChannelChangeNameAction{Name: &newName})
 	}
 
 	if d.HasChange("description") {
@@ -115,20 +113,20 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 			expandStringMap(d.Get("description").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&channels.ChangeDescription{Description: newDescription})
+			&commercetools.ChannelChangeDescriptionAction{Description: &newDescription})
 	}
 
 	if d.HasChange("roles") {
-		roles := []channels.ChannelRole{}
+		roles := []commercetools.ChannelRoleEnum{}
 		for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
-			roles = append(roles, channels.ChannelRole(value))
+			roles = append(roles, commercetools.ChannelRoleEnum(value))
 		}
 		input.Actions = append(
 			input.Actions,
-			&channels.SetRoles{Roles: roles})
+			&commercetools.ChannelSetRolesAction{Roles: roles})
 	}
 
-	_, err := svc.Update(input)
+	_, err := client.Channels.Update(input)
 	if err != nil {
 		return err
 	}
@@ -137,18 +135,12 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceChannelDelete(d *schema.ResourceData, m interface{}) error {
-	svc := getChannelService(m)
+	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := svc.Delete(d.Id(), version)
+	_, err := client.Channels.Delete(d.Id(), version)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func getChannelService(m interface{}) *channels.Service {
-	client := m.(*commercetools.Client)
-	svc := channels.New(client)
-	return svc
 }

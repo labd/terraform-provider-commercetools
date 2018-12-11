@@ -14,6 +14,11 @@ import (
 // it should be used to store a LocalizedString
 const TypeLocalizedString = schema.TypeMap
 
+func getClient(m interface{}) *commercetools.Client {
+	client := m.(*commercetools.Client)
+	return client
+}
+
 func expandStringArray(input []interface{}) []string {
 	s := make([]string, len(input))
 	for i, v := range input {
@@ -47,40 +52,34 @@ func stringFormatObject(object interface{}) string {
 	return string(append(data, '\n'))
 }
 
-func stringFormatErrorExtras(err commercetools.Error) string {
+func stringFormatErrorExtras(err commercetools.ErrorResponse) string {
 	switch len(err.Errors) {
 	case 0:
 		return ""
 	case 1:
-		return stringFormatObject(err.Errors[0].Extra())
+		return "temp" // stringFormatObject(err.Errors[0].Error())
 	default:
 		{
 			messages := make([]string, len(err.Errors))
 			for i, item := range err.Errors {
-				messages[i] = fmt.Sprintf(" %d. %s", i+1, stringFormatObject(item.Extra()))
+				messages[i] = fmt.Sprintf("%v", item)
+				//messages[i] = fmt.Sprintf(" %d. %s", i+1, stringFormatObject(item.Extra()))
 			}
 			return strings.Join(messages, "\n")
 		}
 	}
 }
 
-func stringFormatActions(actions commercetools.UpdateActions) string {
-	lines := make([]string, len(actions))
-	for i, action := range actions {
-		lines[i] = fmt.Sprintf("%d: %s", i, stringFormatObject(action))
+func stringFormatActions(actions interface{}) string {
+
+	lines := []string{}
+	for i, action := range actions.([]interface{}) {
+		lines = append(
+			lines,
+			fmt.Sprintf("%d: %s", i, stringFormatObject(action)))
+
 	}
 	return strings.Join(lines, "\n")
-}
-
-func readLocalizedEnum(values []commercetools.LocalizedEnumValue) []interface{} {
-	enumValues := make([]interface{}, len(values))
-	for i, value := range values {
-		enumValues[i] = map[string]interface{}{
-			"key":   value.Key,
-			"label": localizedStringToMap(value.Label),
-		}
-	}
-	return enumValues
 }
 
 func createLookup(objects []interface{}, key string) map[string]interface{} {

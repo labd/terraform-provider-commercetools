@@ -10,14 +10,13 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/service/producttypes"
 )
 
-var constraintMap = map[string]producttypes.AttributeConstraint{
-	"Unique":            producttypes.UniqueAttributeConstraint,
-	"CombinationUnique": producttypes.CombinationUniqueAttributeConstraint,
-	"SameForAll":        producttypes.SameForAllAttributeConstraint,
-	"None":              producttypes.NoneAttributeConstraint,
+var constraintMap = map[string]commercetools.AttributeConstraintEnum{
+	"Unique":            commercetools.AttributeConstraintEnumUnique,
+	"CombinationUnique": commercetools.AttributeConstraintEnumCombinationUnique,
+	"SameForAll":        commercetools.AttributeConstraintEnumSameForAll,
+	"None":              commercetools.AttributeConstraintEnumNone,
 }
 
 func resourceProductType() *schema.Resource {
@@ -69,7 +68,7 @@ func resourceProductType() *schema.Resource {
 						"constraint": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  producttypes.NoneAttributeConstraint,
+							Default:  commercetools.AttributeConstraintEnumNone,
 							ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 								v := val.(string)
 
@@ -91,7 +90,7 @@ func resourceProductType() *schema.Resource {
 						"input_hint": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  commercetools.SingleLineTextInputHint,
+							Default:  commercetools.TextInputHintSingleLine,
 						},
 						"searchable": {
 							Type:     schema.TypeBool,
@@ -192,8 +191,8 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 }
 
 func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
-	svc := getProductTypeService(m)
-	var ctType *producttypes.ProductType
+	client := getClient(m)
+	var ctType *commercetools.ProductType
 
 	attributes, err := resourceProductTypeGetAttributeDefinitions(d)
 
@@ -201,7 +200,7 @@ func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	draft := &producttypes.ProductTypeDraft{
+	draft := &commercetools.ProductTypeDraft{
 		Key:         d.Get("key").(string),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
@@ -211,10 +210,10 @@ func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		ctType, err = svc.Create(draft)
+		ctType, err = client.ProductTypes.Create(draft)
 		if err != nil {
-			if ctErr, ok := err.(commercetools.Error); ok {
-				if ctErr.Code() == commercetools.ErrInvalidJSONInput {
+			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+				if _, ok := ctErr.Errors[0].(commercetools.InvalidJsonInputError); ok {
 					return resource.NonRetryableError(ctErr)
 				}
 			} else {
@@ -241,13 +240,13 @@ func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading product type from commercetools")
-	svc := getProductTypeService(m)
+	client := getClient(m)
 
-	ctType, err := svc.GetByID(d.Id())
+	ctType, err := client.ProductTypes.GetByID(d.Id())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.Error); ok {
-			if ctErr.Code() == commercetools.ErrResourceNotFound {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
 			}
@@ -291,42 +290,42 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceProductTypeReadAttributeType(attrType producttypes.AttributeType, setsAllowed bool) ([]interface{}, error) {
+func resourceProductTypeReadAttributeType(attrType commercetools.AttributeType, setsAllowed bool) ([]interface{}, error) {
 	typeData := make(map[string]interface{})
 
-	if _, ok := attrType.(producttypes.BooleanType); ok {
+	if _, ok := attrType.(commercetools.AttributeBooleanType); ok {
 		typeData["name"] = "boolean"
-	} else if _, ok := attrType.(producttypes.TextType); ok {
+	} else if _, ok := attrType.(commercetools.AttributeTextType); ok {
 		typeData["name"] = "text"
-	} else if _, ok := attrType.(producttypes.LocalizedTextType); ok {
+	} else if _, ok := attrType.(commercetools.AttributeLocalizableTextType); ok {
 		typeData["name"] = "ltext"
-	} else if f, ok := attrType.(producttypes.EnumType); ok {
+	} else if f, ok := attrType.(commercetools.AttributeEnumType); ok {
 		enumValues := make(map[string]interface{}, len(f.Values))
 		for _, value := range f.Values {
 			enumValues[value.Key] = value.Label
 		}
 		typeData["name"] = "enum"
 		typeData["values"] = enumValues
-	} else if f, ok := attrType.(producttypes.LocalizedEnumType); ok {
+	} else if f, ok := attrType.(commercetools.AttributeLocalizedEnumType); ok {
 		typeData["name"] = "lenum"
-		typeData["localized_value"] = readLocalizedEnum(f.Values)
-	} else if _, ok := attrType.(producttypes.NumberType); ok {
+		typeData["localized_value"] = readAttributeLocalizedEnum(f.Values)
+	} else if _, ok := attrType.(commercetools.AttributeNumberType); ok {
 		typeData["name"] = "number"
-	} else if _, ok := attrType.(producttypes.MoneyType); ok {
+	} else if _, ok := attrType.(commercetools.AttributeMoneyType); ok {
 		typeData["name"] = "money"
-	} else if _, ok := attrType.(producttypes.DateType); ok {
+	} else if _, ok := attrType.(commercetools.AttributeDateType); ok {
 		typeData["name"] = "date"
-	} else if _, ok := attrType.(producttypes.TimeType); ok {
+	} else if _, ok := attrType.(commercetools.AttributeTimeType); ok {
 		typeData["name"] = "time"
-	} else if _, ok := attrType.(producttypes.DateTimeType); ok {
+	} else if _, ok := attrType.(commercetools.AttributeDateTimeType); ok {
 		typeData["name"] = "datetime"
-	} else if f, ok := attrType.(producttypes.ReferenceType); ok {
+	} else if f, ok := attrType.(commercetools.AttributeReferenceType); ok {
 		typeData["name"] = "reference"
 		typeData["reference_type_id"] = f.ReferenceTypeID
-	} else if f, ok := attrType.(producttypes.NestedType); ok {
+	} else if f, ok := attrType.(commercetools.AttributeNestedType); ok {
 		typeData["name"] = "nested"
 		typeData["type_reference"] = f.TypeReference.ID
-	} else if f, ok := attrType.(producttypes.SetType); ok {
+	} else if f, ok := attrType.(commercetools.AttributeSetType); ok {
 		typeData["name"] = "set"
 		if setsAllowed {
 			elemType, err := resourceProductTypeReadAttributeType(f.ElementType, false)
@@ -343,33 +342,33 @@ func resourceProductTypeReadAttributeType(attrType producttypes.AttributeType, s
 }
 
 func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
-	svc := getProductTypeService(m)
+	client := getClient(m)
 
-	input := &producttypes.UpdateInput{
+	input := &commercetools.ProductTypeUpdateInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
-		Actions: commercetools.UpdateActions{},
+		Actions: []commercetools.ProductTypeUpdateAction{},
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&producttypes.SetKey{Key: newKey})
+			&commercetools.ProductTypeSetKeyAction{Key: newKey})
 	}
 
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		input.Actions = append(
 			input.Actions,
-			&producttypes.ChangeName{Name: newName})
+			&commercetools.ProductTypeChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
 		newDescr := d.Get("description").(string)
 		input.Actions = append(
 			input.Actions,
-			&producttypes.ChangeDescription{Description: newDescr})
+			&commercetools.ProductTypeChangeDescriptionAction{Description: newDescr})
 	}
 
 	if d.HasChange("attribute") {
@@ -387,9 +386,9 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := svc.Update(input)
+	_, err := client.ProductTypes.Update(input)
 	if err != nil {
-		if ctErr, ok := err.(commercetools.Error); ok {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
 		return err
@@ -399,9 +398,9 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceProductTypeDelete(d *schema.ResourceData, m interface{}) error {
-	svc := getProductTypeService(m)
+	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := svc.DeleteByID(d.Id(), version)
+	_, err := client.ProductTypes.DeleteByID(d.Id(), version)
 	if err != nil {
 		return err
 	}
@@ -409,17 +408,17 @@ func resourceProductTypeDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValues []interface{}) ([]commercetools.UpdateAction, error) {
+func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValues []interface{}) ([]commercetools.ProductTypeUpdateAction, error) {
 	oldLookup := createLookup(oldValues, "name")
 	newLookup := createLookup(newValues, "name")
-	newAttrDefinitions := []producttypes.AttributeDefinition{}
-	actions := []commercetools.UpdateAction{}
+	newAttrDefinitions := []commercetools.AttributeDefinition{}
+	actions := []commercetools.ProductTypeUpdateAction{}
 	checkAttributeOrder := true
 
 	for name := range oldLookup {
 		if _, ok := newLookup[name]; !ok {
 			log.Printf("[DEBUG] Attribute deleted: %s", name)
-			actions = append(actions, producttypes.RemoveAttributeDefinition{Name: name})
+			actions = append(actions, commercetools.ProductTypeRemoveAttributeDefinitionAction{Name: name})
 			checkAttributeOrder = false
 		}
 	}
@@ -429,16 +428,16 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		name := newV["name"].(string)
 		oldValue, existingField := oldLookup[name]
 
-		var attrDef producttypes.AttributeDefinition
+		var attrDef commercetools.AttributeDefinition
 		if output, err := resourceProductTypeGetAttributeDefinition(newV, false); err == nil {
-			attrDef = output.(producttypes.AttributeDefinition)
+			attrDef = output.(commercetools.AttributeDefinition)
 		} else {
 			return nil, err
 		}
 
-		var attrDefDraft producttypes.AttributeDefinitionDraft
+		var attrDefDraft commercetools.AttributeDefinitionDraft
 		if output, err := resourceProductTypeGetAttributeDefinition(newV, true); err == nil {
-			attrDefDraft = output.(producttypes.AttributeDefinitionDraft)
+			attrDefDraft = output.(commercetools.AttributeDefinitionDraft)
 		} else {
 			return nil, err
 		}
@@ -449,7 +448,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 			log.Printf("[DEBUG] Attribute added: %s", name)
 			actions = append(
 				actions,
-				producttypes.AddAttributeDefinition{Attribute: attrDefDraft})
+				commercetools.ProductTypeAddAttributeDefinitionAction{Attribute: &attrDefDraft})
 			checkAttributeOrder = false
 			continue
 		}
@@ -458,38 +457,42 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		if !reflect.DeepEqual(oldV["label"], newV["label"]) {
 			actions = append(
 				actions,
-				producttypes.ChangeAttributeDefinitionLabel{
+				commercetools.ProductTypeChangeLabelAction{
 					AttributeName: name, Label: attrDef.Label})
 		}
 		if oldV["name"] != newV["name"] {
 			actions = append(
 				actions,
-				producttypes.ChangeAttributeDefinitionName{
+				commercetools.ProductTypeChangeAttributeNameAction{
 					AttributeName: name, NewAttributeName: attrDef.Name})
 		}
 		if oldV["searchable"] != newV["searchable"] {
 			actions = append(
 				actions,
-				producttypes.ChangeIsSearchable{
+				commercetools.ProductTypeChangeIsSearchableAction{
 					AttributeName: name, IsSearchable: attrDef.IsSearchable})
 		}
 		if oldV["input_hint"] != newV["input_hint"] {
 			actions = append(
 				actions,
-				producttypes.ChangeInputHint{
+				commercetools.ProductTypeChangeInputHintAction{
 					AttributeName: name, NewValue: attrDef.InputHint})
 		}
 		if !reflect.DeepEqual(oldV["input_tip"], newV["input_tip"]) {
 			actions = append(
 				actions,
-				producttypes.SetAttributeDefinitionInputTip{
-					AttributeName: name, InputTip: attrDef.InputTip})
+				commercetools.ProductTypeSetInputTipAction{
+					AttributeName: name,
+					InputTip:      attrDef.InputTip,
+				})
 		}
 		if oldV["constraint"] != newV["constraint"] {
 			actions = append(
 				actions,
-				producttypes.ChangeAttributeConstraint{
-					AttributeName: name, NewValue: attrDef.AttributeConstraint})
+				commercetools.ProductTypeChangeAttributeConstraintAction{
+					AttributeName: name,
+					NewValue:      commercetools.AttributeConstraintEnumDraft(attrDef.AttributeConstraint),
+				})
 		}
 
 		newFieldType := attrDef.Type
@@ -497,7 +500,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		oldEnumKeys := make(map[string]interface{})
 		newEnumKeys := make(map[string]interface{})
 
-		if enumType, ok := newFieldType.(producttypes.EnumType); ok {
+		if enumType, ok := newFieldType.(commercetools.AttributeEnumType); ok {
 			oldEnumV := oldFieldType["values"].(map[string]interface{})
 
 			for _, enumValue := range enumType.Values {
@@ -506,9 +509,9 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 					// Key does not appear in old enum values, so we'll add it
 					actions = append(
 						actions,
-						producttypes.AddPlainEnumValue{
+						commercetools.ProductTypeAddPlainEnumValueAction{
 							AttributeName: name,
-							Value:         enumValue,
+							Value:         &enumValue,
 						})
 				}
 			}
@@ -516,7 +519,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 			// Action: changePlainEnumValueOrder
 			// TODO: Change the order of EnumValues: https://docs.commercetools.com/http-api-projects-productTypes.html#change-the-order-of-enumvalues
 
-		} else if enumType, ok := newFieldType.(producttypes.LocalizedEnumType); ok {
+		} else if enumType, ok := newFieldType.(commercetools.AttributeLocalizedEnumType); ok {
 			oldEnumV := oldFieldType["localized_value"].([]interface{})
 
 			for _, value := range oldEnumV {
@@ -530,9 +533,9 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 					// Key does not appear in old enum values, so we'll add it
 					actions = append(
 						actions,
-						producttypes.AddLocalizedEnumValue{
+						commercetools.ProductTypeAddLocalizedEnumValueAction{
 							AttributeName: name,
-							Value:         enumValue,
+							Value:         &enumValue,
 						})
 				}
 			}
@@ -550,7 +553,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		if len(removeEnumKeys) > 0 {
 			actions = append(
 				actions,
-				producttypes.RemoveEnumValues{
+				commercetools.ProductTypeRemoveEnumValuesAction{
 					AttributeName: name,
 					Keys:          removeEnumKeys,
 				})
@@ -573,7 +576,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 	if checkAttributeOrder && !reflect.DeepEqual(oldNames, newNames) {
 		actions = append(
 			actions,
-			producttypes.ChangeAttributeDefinitionsOrder{
+			commercetools.ProductTypeChangeAttributeOrderAction{
 				Attributes: newAttrDefinitions,
 			})
 	}
@@ -583,9 +586,9 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 	return actions, nil
 }
 
-func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]producttypes.AttributeDefinitionDraft, error) {
+func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]commercetools.AttributeDefinitionDraft, error) {
 	input := d.Get("attribute").([]interface{})
-	var result []producttypes.AttributeDefinitionDraft
+	var result []commercetools.AttributeDefinitionDraft
 
 	for _, raw := range input {
 		fieldDef, err := resourceProductTypeGetAttributeDefinition(raw.(map[string]interface{}), true)
@@ -594,7 +597,7 @@ func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]produ
 			return nil, err
 		}
 
-		result = append(result, fieldDef.(producttypes.AttributeDefinitionDraft))
+		result = append(result, fieldDef.(commercetools.AttributeDefinitionDraft))
 	}
 
 	return result, nil
@@ -616,37 +619,37 @@ func resourceProductTypeGetAttributeDefinition(input map[string]interface{}, dra
 			expandStringMap(inputTipRaw.(map[string]interface{})))
 	}
 
-	constraint := producttypes.NoneAttributeConstraint
+	constraint := commercetools.AttributeConstraintEnumNone
 	constraint, ok := constraintMap[input["constraint"].(string)]
 	if !ok {
-		constraint = producttypes.NoneAttributeConstraint
+		constraint = commercetools.AttributeConstraintEnumNone
 	}
 
 	if draft {
-		return producttypes.AttributeDefinitionDraft{
+		return commercetools.AttributeDefinitionDraft{
 			Type:                attrType,
 			Name:                input["name"].(string),
-			Label:               label,
+			Label:               &label,
 			AttributeConstraint: constraint,
 			IsRequired:          input["required"].(bool),
 			IsSearchable:        input["searchable"].(bool),
 			InputHint:           commercetools.TextInputHint(input["input_hint"].(string)),
-			InputTip:            inputTip,
+			InputTip:            &inputTip,
 		}, nil
 	}
-	return producttypes.AttributeDefinition{
+	return commercetools.AttributeDefinition{
 		Type:                attrType,
 		Name:                input["name"].(string),
-		Label:               label,
+		Label:               &label,
 		AttributeConstraint: constraint,
 		IsRequired:          input["required"].(bool),
 		IsSearchable:        input["searchable"].(bool),
 		InputHint:           commercetools.TextInputHint(input["input_hint"].(string)),
-		InputTip:            inputTip,
+		InputTip:            &inputTip,
 	}, nil
 }
 
-func getAttributeType(input interface{}) (producttypes.AttributeType, error) {
+func getAttributeType(input interface{}) (commercetools.AttributeType, error) {
 	config := input.(map[string]interface{})
 	typeName, ok := config["name"].(string)
 
@@ -656,65 +659,66 @@ func getAttributeType(input interface{}) (producttypes.AttributeType, error) {
 
 	switch typeName {
 	case "boolean":
-		return producttypes.BooleanType{}, nil
+		return commercetools.AttributeBooleanType{}, nil
 	case "text":
-		return producttypes.TextType{}, nil
+		return commercetools.AttributeTextType{}, nil
 	case "ltext":
-		return producttypes.LocalizedTextType{}, nil
+		return commercetools.AttributeLocalizableTextType{}, nil
 	case "enum":
 		valuesInput, valuesOk := config["values"].(map[string]interface{})
 		if !valuesOk {
 			return nil, fmt.Errorf("No values specified for Enum type: %+v", valuesInput)
 		}
-		var values []commercetools.EnumValue
+		var values []commercetools.AttributePlainEnumValue
 		for k, v := range valuesInput {
-			values = append(values, commercetools.EnumValue{
+			values = append(values, commercetools.AttributePlainEnumValue{
 				Key:   k,
 				Label: v.(string),
 			})
 		}
-		return producttypes.EnumType{Values: values}, nil
+		return commercetools.AttributeEnumType{Values: values}, nil
 	case "lenum":
 		valuesInput, valuesOk := config["localized_value"]
 		if !valuesOk {
 			return nil, fmt.Errorf("No localized_value elements specified for LocalizedEnum type")
 		}
-		var values []commercetools.LocalizedEnumValue
+		var values []commercetools.AttributeLocalizedEnumValue
 		for _, value := range valuesInput.([]interface{}) {
 			v := value.(map[string]interface{})
-			labels := expandStringMap(
-				v["label"].(map[string]interface{}))
-			values = append(values, commercetools.LocalizedEnumValue{
+			labels := commercetools.LocalizedString(
+				expandStringMap(v["label"].(map[string]interface{})))
+
+			values = append(values, commercetools.AttributeLocalizedEnumValue{
 				Key:   v["key"].(string),
-				Label: commercetools.LocalizedString(labels),
+				Label: &labels,
 			})
 		}
-		return producttypes.LocalizedEnumType{Values: values}, nil
+		return commercetools.AttributeLocalizedEnumType{Values: values}, nil
 	case "number":
-		return producttypes.NumberType{}, nil
+		return commercetools.AttributeNumberType{}, nil
 	case "money":
-		return producttypes.MoneyType{}, nil
+		return commercetools.AttributeMoneyType{}, nil
 	case "date":
-		return producttypes.DateType{}, nil
+		return commercetools.AttributeDateType{}, nil
 	case "time":
-		return producttypes.TimeType{}, nil
+		return commercetools.AttributeTimeType{}, nil
 	case "datetime":
-		return producttypes.DateTimeType{}, nil
+		return commercetools.AttributeDateTimeType{}, nil
 	case "reference":
 		refTypeID, refTypeIDOk := config["reference_type_id"].(string)
 		if !refTypeIDOk {
 			return nil, fmt.Errorf("No reference_type_id specified for Reference type")
 		}
-		return producttypes.ReferenceType{
-			ReferenceTypeID: refTypeID,
+		return commercetools.AttributeReferenceType{
+			ReferenceTypeID: commercetools.ReferenceTypeID(refTypeID),
 		}, nil
 	case "nested":
 		typeReference, typeReferenceOk := config["type_reference"].(string)
 		if !typeReferenceOk {
 			return nil, fmt.Errorf("No type_reference specified for Nested type")
 		}
-		return producttypes.NestedType{
-			TypeReference: commercetools.Reference{ID: typeReference, TypeID: "product-type"},
+		return commercetools.AttributeNestedType{
+			TypeReference: &commercetools.ProductTypeReference{ID: typeReference},
 		}, nil
 	case "set":
 		elementTypes, elementTypesOk := config["element_type"]
@@ -731,7 +735,7 @@ func getAttributeType(input interface{}) (producttypes.AttributeType, error) {
 			return nil, err
 		}
 
-		return producttypes.SetType{
+		return commercetools.AttributeSetType{
 			ElementType: setAttrType,
 		}, nil
 	}
@@ -739,8 +743,13 @@ func getAttributeType(input interface{}) (producttypes.AttributeType, error) {
 	return nil, fmt.Errorf("Unknown AttributeType %s", typeName)
 }
 
-func getProductTypeService(m interface{}) *producttypes.Service {
-	client := m.(*commercetools.Client)
-	svc := producttypes.New(client)
-	return svc
+func readAttributeLocalizedEnum(values []commercetools.AttributeLocalizedEnumValue) []interface{} {
+	enumValues := make([]interface{}, len(values))
+	for i, value := range values {
+		enumValues[i] = map[string]interface{}{
+			"key":   value.Key,
+			"label": &value.Label,
+		}
+	}
+	return enumValues
 }
