@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/service/extensions"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,10 +29,10 @@ func TestAPIExtensionGetDestination(t *testing.T) {
 
 	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
 	destination, _ := resourceAPIExtensionGetDestination(d)
-	lambdaDestination, ok := destination.(extensions.DestinationAWSLambda)
+	lambdaDestination, ok := destination.(commercetools.ExtensionAWSLambdaDestination)
 
 	assert.True(t, ok)
-	assert.Equal(t, lambdaDestination.ARN, "arn:aws:lambda:eu-west-1:111111111:function:api_extensions")
+	assert.Equal(t, lambdaDestination.Arn, "arn:aws:lambda:eu-west-1:111111111:function:api_extensions")
 	assert.Equal(t, lambdaDestination.AccessKey, "ABCSDF123123123")
 	assert.Equal(t, lambdaDestination.AccessSecret, "****abc/")
 }
@@ -54,7 +53,7 @@ func TestAPIExtensionGetAuthentication(t *testing.T) {
 	}
 
 	auth, err = resourceAPIExtensionGetAuthentication(input)
-	httpAuth, ok := auth.(*extensions.DestinationAuthenticationAuth)
+	httpAuth, ok := auth.(*commercetools.ExtensionAuthorizationHeaderAuthentication)
 	assert.True(t, ok)
 	assert.Equal(t, "12345", httpAuth.HeaderValue)
 	assert.NotNil(t, auth)
@@ -111,9 +110,8 @@ func testAccAPIExtensionExists(n string) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Extension ID is set")
 		}
-
-		svc := getExtensionService(testAccProvider.Meta().(*commercetools.Client))
-		result, err := svc.GetByID(rs.Primary.ID)
+		client := getClient(testAccProvider.Meta())
+		result, err := client.Extensions.GetByID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}

@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/service/project"
 )
 
 func resourceProjectSettings() *schema.Resource {
@@ -69,13 +68,13 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading projects from commercetools")
-	svc := getProjectService(m)
+	client := getClient(m)
 
-	project, err := svc.Get()
+	project, err := client.Project.Get()
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.Error); ok {
-			if ctErr.Code() == commercetools.ErrResourceNotFound {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+			if ctErr.StatusCode == 404 {
 				return nil
 			}
 		}
@@ -103,36 +102,47 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
-	svc := getProjectService(m)
+	client := getClient(m)
 
-	input := &project.UpdateInput{
+	input := &commercetools.ProjectUpdateInput{
 		Version: d.Get("version").(int),
-		Actions: commercetools.UpdateActions{},
+		Actions: []commercetools.ProjectUpdateAction{},
 	}
 
 	if d.HasChange("name") {
-		input.Actions = append(input.Actions, &project.ChangeName{d.Get("name").(string)})
+		input.Actions = append(input.Actions, &commercetools.ProjectChangeNameAction{d.Get("name").(string)})
 	}
 
 	if d.HasChange("currencies") {
-		newCurrencies := getStringSlice(d, "currencies")
+		newCurrencies := []commercetools.CurrencyCode{}
+		for _, item := range getStringSlice(d, "currencies") {
+			newCurrencies = append(newCurrencies, commercetools.CurrencyCode(item))
+		}
+
 		input.Actions = append(
 			input.Actions,
-			&project.ChangeCurrencies{Currencies: newCurrencies})
+			&commercetools.ProjectChangeCurrenciesAction{Currencies: newCurrencies})
 	}
 
 	if d.HasChange("countries") {
-		newCountries := getStringSlice(d, "countries")
+		newCountries := []commercetools.CountryCode{}
+		for _, item := range getStringSlice(d, "countries") {
+			newCountries = append(newCountries, commercetools.CountryCode(item))
+		}
+
 		input.Actions = append(
 			input.Actions,
-			&project.ChangeCountries{Countries: newCountries})
+			&commercetools.ProjectChangeCountriesAction{Countries: newCountries})
 	}
 
 	if d.HasChange("languages") {
-		newLanguages := getStringSlice(d, "languages")
+		newLanguages := []commercetools.Locale{}
+		for _, item := range getStringSlice(d, "languages") {
+			newLanguages = append(newLanguages, commercetools.Locale(item))
+		}
 		input.Actions = append(
 			input.Actions,
-			&project.ChangeLanguages{Languages: newLanguages})
+			&commercetools.ProjectChangeLanguagesAction{Languages: newLanguages})
 	}
 
 	if d.HasChange("messages") {
@@ -145,10 +155,10 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 
 		input.Actions = append(
 			input.Actions,
-			&project.ChangeMessagesEnabled{MessagesEnabled: enabled})
+			&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: enabled})
 	}
 
-	_, err := svc.Update(input)
+	_, err := client.Project.Update(input)
 	if err != nil {
 		return err
 	}
@@ -159,12 +169,6 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
 	log.Print("A project can not be deleted through terraform")
 	return fmt.Errorf("A project can not be deleted through terraform")
-}
-
-func getProjectService(m interface{}) *project.Service {
-	client := m.(*commercetools.Client)
-	svc := project.New(client)
-	return svc
 }
 
 func getStringSlice(d *schema.ResourceData, field string) []string {

@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/service/types"
 )
 
 func TestFieldTypeElement(t *testing.T) {
@@ -42,7 +41,7 @@ func TestGetFieldType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if _, ok := result.(types.BooleanType); !ok {
+	if _, ok := result.(commercetools.CustomFieldBooleanType); !ok {
 		t.Error("Expected Boolean type")
 	}
 
@@ -65,10 +64,10 @@ func TestGetFieldType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(types.EnumType); ok {
-		assert.ElementsMatch(t, field.Values, []commercetools.EnumValue{
-			commercetools.EnumValue{Key: "value1", Label: "Value 1"},
-			commercetools.EnumValue{Key: "value2", Label: "Value 2"},
+	if field, ok := result.(commercetools.CustomFieldEnumType); ok {
+		assert.ElementsMatch(t, field.Values, []commercetools.CustomFieldEnumValue{
+			commercetools.CustomFieldEnumValue{Key: "value1", Label: "Value 1"},
+			commercetools.CustomFieldEnumValue{Key: "value2", Label: "Value 2"},
 		})
 	} else {
 		t.Error("Expected Enum type")
@@ -90,7 +89,7 @@ func TestGetFieldType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(types.ReferenceType); ok {
+	if field, ok := result.(commercetools.CustomFieldReferenceType); ok {
 		assert.EqualValues(t, field.ReferenceTypeID, "product")
 	} else {
 		t.Error("Expected Reference type")
@@ -165,8 +164,8 @@ func testAccTypeExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No Type ID is set")
 		}
 
-		svc := getTypeService(testAccProvider.Meta().(*commercetools.Client))
-		result, err := svc.GetByID(rs.Primary.ID)
+		client := getClient(testAccProvider.Meta())
+		result, err := client.Types.GetByID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -177,7 +176,6 @@ func testAccTypeExists(n string) resource.TestCheckFunc {
 		return nil
 	}
 }
-
 
 func testAccCheckTypesDestroy(s *terraform.State) error {
 	// TODO: Implement

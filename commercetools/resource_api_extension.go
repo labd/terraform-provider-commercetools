@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/service/extensions"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -106,8 +105,8 @@ func validateDestinationType(val interface{}, key string) (warns []string, errs 
 }
 
 func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
-	svc := getExtensionService(m)
-	var extension *extensions.Extension
+	client := getClient(m)
+	var extension *commercetools.Extension
 
 	triggers := resourceAPIExtensionGetTriggers(d)
 	destination, err := resourceAPIExtensionGetDestination(d)
@@ -115,7 +114,7 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	draft := &extensions.ExtensionDraft{
+	draft := &commercetools.ExtensionDraft{
 		Key:         d.Get("key").(string),
 		Destination: destination,
 		Triggers:    triggers,
@@ -124,7 +123,7 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		extension, err = svc.Create(draft)
+		extension, err = client.Extensions.Create(draft)
 		if err != nil {
 			log.Print("[DEBUG] Error while creating extension, will try again")
 			log.Print(err)
@@ -149,13 +148,13 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading extensions from commercetools")
-	svc := getExtensionService(m)
+	client := getClient(m)
 
-	extension, err := svc.GetByID(d.Id())
+	extension, err := client.Extensions.GetByID(d.Id())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.Error); ok {
-			if ctErr.Code() == commercetools.ErrResourceNotFound {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
 			}
@@ -179,26 +178,26 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
-	svc := getExtensionService(m)
+	client := getClient(m)
 
-	input := &extensions.UpdateInput{
+	input := &commercetools.ExtensionUpdateInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
-		Actions: commercetools.UpdateActions{},
+		Actions: []commercetools.ExtensionUpdateAction{},
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&extensions.SetKey{Key: newKey})
+			&commercetools.ExtensionSetKeyAction{Key: newKey})
 	}
 
 	if d.HasChange("triggers") {
 		triggers := resourceAPIExtensionGetTriggers(d)
 		input.Actions = append(
 			input.Actions,
-			&extensions.ChangeTriggers{Triggers: triggers})
+			&commercetools.ExtensionChangeTriggersAction{Triggers: triggers})
 	}
 
 	if d.HasChange("destination") {
@@ -208,10 +207,10 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 		input.Actions = append(
 			input.Actions,
-			&extensions.ChangeDestination{Destination: destination})
+			&commercetools.ExtensionChangeDestinationAction{Destination: destination})
 	}
 
-	_, err := svc.Update(input)
+	_, err := client.Extensions.Update(input)
 	if err != nil {
 		return err
 	}
@@ -220,9 +219,9 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceAPIExtensionDelete(d *schema.ResourceData, m interface{}) error {
-	svc := getExtensionService(m)
+	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := svc.DeleteByID(d.Id(), version)
+	_, err := client.Extensions.DeleteByID(d.Id(), version)
 	if err != nil {
 		return err
 	}
@@ -232,13 +231,8 @@ func resourceAPIExtensionDelete(d *schema.ResourceData, m interface{}) error {
 //
 // Helper methods
 //
-func getExtensionService(m interface{}) *extensions.Service {
-	client := m.(*commercetools.Client)
-	svc := extensions.New(client)
-	return svc
-}
 
-func resourceAPIExtensionGetDestination(d *schema.ResourceData) (extensions.Destination, error) {
+func resourceAPIExtensionGetDestination(d *schema.ResourceData) (commercetools.Destination, error) {
 	input := d.Get("destination").(map[string]interface{})
 	switch strings.ToLower(input["type"].(string)) {
 	case "http":
@@ -247,13 +241,13 @@ func resourceAPIExtensionGetDestination(d *schema.ResourceData) (extensions.Dest
 			return nil, err
 		}
 
-		return extensions.DestinationHTTP{
+		return commercetools.ExtensionHttpDestination{
 			URL:            input["url"].(string),
 			Authentication: auth,
 		}, nil
 	case "awslambda":
-		return extensions.DestinationAWSLambda{
-			ARN:          input["arn"].(string),
+		return commercetools.ExtensionAWSLambdaDestination{
+			Arn:          input["arn"].(string),
 			AccessKey:    input["access_key"].(string),
 			AccessSecret: input["access_secret"].(string),
 		}, nil
@@ -262,7 +256,7 @@ func resourceAPIExtensionGetDestination(d *schema.ResourceData) (extensions.Dest
 	}
 }
 
-func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (extensions.DestinationAuthentication, error) {
+func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (commercetools.ExtensionHttpDestinationAuthentication, error) {
 	authKeys := [2]string{"authorization_header", "azure_authentication"}
 	count := 0
 	for _, key := range authKeys {
@@ -276,12 +270,12 @@ func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (ex
 	}
 
 	if authVal, ok := destInput["authorization_header"]; ok {
-		return &extensions.DestinationAuthenticationAuth{
+		return &commercetools.ExtensionAuthorizationHeaderAuthentication{
 			HeaderValue: authVal.(string),
 		}, nil
 	}
 	if authVal, ok := destInput["azure_authentication"]; ok {
-		return &extensions.DestinationAuthenticationAzure{
+		return &commercetools.ExtensionAzureFunctionsAuthentication{
 			Key: authVal.(string),
 		}, nil
 	}
@@ -289,16 +283,22 @@ func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (ex
 	return nil, nil
 }
 
-func resourceAPIExtensionGetTriggers(d *schema.ResourceData) []extensions.Trigger {
+func resourceAPIExtensionGetTriggers(d *schema.ResourceData) []commercetools.ExtensionTrigger {
 	input := d.Get("trigger").([]interface{})
-	var result []extensions.Trigger
+	var result []commercetools.ExtensionTrigger
 
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
 		typeID := i["resource_type_id"].(string)
-		result = append(result, extensions.Trigger{
-			ResourceTypeID: typeID,
-			Actions:        expandStringArray(i["actions"].([]interface{})),
+
+		actions := []commercetools.ExtensionAction{}
+		for _, item := range expandStringArray(i["actions"].([]interface{})) {
+			actions = append(actions, commercetools.ExtensionAction(item))
+		}
+
+		result = append(result, commercetools.ExtensionTrigger{
+			ResourceTypeID: commercetools.ExtensionResourceTypeID(typeID),
+			Actions:        actions,
 		})
 	}
 

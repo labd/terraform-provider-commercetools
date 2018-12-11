@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/service/types"
 )
 
 func resourceType() *schema.Resource {
@@ -68,7 +67,7 @@ func resourceType() *schema.Resource {
 						"input_hint": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  commercetools.SingleLineTextInputHint,
+							Default:  commercetools.TextInputHintSingleLine,
 						},
 					},
 				},
@@ -207,26 +206,29 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 }
 
 func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
-	svc := getTypeService(m)
-	var ctType *types.Type
+	client := getClient(m)
+	var ctType *commercetools.Type
 
 	name := commercetools.LocalizedString(
 		expandStringMap(d.Get("name").(map[string]interface{})))
 	description := commercetools.LocalizedString(
 		expandStringMap(d.Get("description").(map[string]interface{})))
 
-	resourceTypeIds := expandStringArray(
-		d.Get("resource_type_ids").([]interface{}))
+	resourceTypeIds := []commercetools.ResourceTypeID{}
+	for _, item := range expandStringArray(d.Get("resource_type_ids").([]interface{})) {
+		resourceTypeIds = append(resourceTypeIds, commercetools.ResourceTypeID(item))
+
+	}
 	fields, err := resourceTypeGetFieldDefinitions(d)
 
 	if err != nil {
 		return err
 	}
 
-	draft := &types.TypeDraft{
+	draft := &commercetools.TypeDraft{
 		Key:              d.Get("key").(string),
-		Name:             name,
-		Description:      description,
+		Name:             &name,
+		Description:      &description,
 		ResourceTypeIds:  resourceTypeIds,
 		FieldDefinitions: fields,
 	}
@@ -234,10 +236,10 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		ctType, err = svc.Create(draft)
+		ctType, err = client.Types.Create(draft)
 		if err != nil {
-			if ctErr, ok := err.(commercetools.Error); ok {
-				if ctErr.Code() == commercetools.ErrInvalidJSONInput {
+			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+				if _, ok := ctErr.Errors[0].(commercetools.InvalidJsonInputError); ok {
 					return resource.NonRetryableError(ctErr)
 				}
 			} else {
@@ -264,13 +266,13 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading type from commercetools")
-	svc := getTypeService(m)
+	client := getClient(m)
 
-	ctType, err := svc.GetByID(d.Id())
+	ctType, err := client.Types.GetByID(d.Id())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.Error); ok {
-			if ctErr.Code() == commercetools.ErrResourceNotFound {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
 			}
@@ -311,39 +313,39 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceTypeReadFieldType(fieldType types.FieldType, setsAllowed bool) ([]interface{}, error) {
+func resourceTypeReadFieldType(fieldType commercetools.FieldType, setsAllowed bool) ([]interface{}, error) {
 	typeData := make(map[string]interface{})
 
-	if _, ok := fieldType.(types.BooleanType); ok {
+	if _, ok := fieldType.(commercetools.CustomFieldBooleanType); ok {
 		typeData["name"] = "Boolean"
-	} else if _, ok := fieldType.(types.StringType); ok {
+	} else if _, ok := fieldType.(commercetools.CustomFieldStringType); ok {
 		typeData["name"] = "String"
-	} else if _, ok := fieldType.(types.LocalizedStringType); ok {
+	} else if _, ok := fieldType.(commercetools.CustomFieldLocalizedStringType); ok {
 		typeData["name"] = "LocalizedString"
-	} else if f, ok := fieldType.(types.EnumType); ok {
+	} else if f, ok := fieldType.(commercetools.CustomFieldEnumType); ok {
 		enumValues := make(map[string]interface{}, len(f.Values))
 		for _, value := range f.Values {
 			enumValues[value.Key] = value.Label
 		}
 		typeData["name"] = "Enum"
 		typeData["values"] = enumValues
-	} else if f, ok := fieldType.(types.LocalizedEnumType); ok {
+	} else if f, ok := fieldType.(commercetools.CustomFieldLocalizedEnumType); ok {
 		typeData["name"] = "LocalizedEnum"
-		typeData["localized_value"] = readLocalizedEnum(f.Values)
-	} else if _, ok := fieldType.(types.NumberType); ok {
+		typeData["localized_value"] = readCustomFieldLocalizedEnum(f.Values)
+	} else if _, ok := fieldType.(commercetools.CustomFieldNumberType); ok {
 		typeData["name"] = "Number"
-	} else if _, ok := fieldType.(types.MoneyType); ok {
+	} else if _, ok := fieldType.(commercetools.CustomFieldNumberType); ok {
 		typeData["name"] = "Money"
-	} else if _, ok := fieldType.(types.DateType); ok {
+	} else if _, ok := fieldType.(commercetools.CustomFieldDateType); ok {
 		typeData["name"] = "Date"
-	} else if _, ok := fieldType.(types.TimeType); ok {
+	} else if _, ok := fieldType.(commercetools.CustomFieldTimeType); ok {
 		typeData["name"] = "Time"
-	} else if _, ok := fieldType.(types.DateTimeType); ok {
+	} else if _, ok := fieldType.(commercetools.CustomFieldDateTimeType); ok {
 		typeData["name"] = "DateTime"
-	} else if f, ok := fieldType.(types.ReferenceType); ok {
+	} else if f, ok := fieldType.(commercetools.CustomFieldReferenceType); ok {
 		typeData["name"] = "Reference"
 		typeData["reference_type_id"] = f.ReferenceTypeID
-	} else if f, ok := fieldType.(types.SetType); ok {
+	} else if f, ok := fieldType.(commercetools.CustomFieldSetType); ok {
 		typeData["name"] = "Set"
 		if setsAllowed {
 			elemType, err := resourceTypeReadFieldType(f.ElementType, false)
@@ -360,19 +362,19 @@ func resourceTypeReadFieldType(fieldType types.FieldType, setsAllowed bool) ([]i
 }
 
 func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
-	svc := getTypeService(m)
+	client := getClient(m)
 
-	input := &types.UpdateInput{
+	input := &commercetools.TypeUpdateInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
-		Actions: commercetools.UpdateActions{},
+		Actions: []commercetools.TypeUpdateAction{},
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&types.ChangeKey{Key: newKey})
+			&commercetools.TypeChangeKeyAction{Key: newKey})
 	}
 
 	if d.HasChange("name") {
@@ -380,16 +382,19 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 			expandStringMap(d.Get("name").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&types.ChangeName{Name: newName})
+			&commercetools.TypeChangeNameAction{Name: &newName})
 	}
 
-	if d.HasChange("description") {
-		newDescr := commercetools.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
-		input.Actions = append(
-			input.Actions,
-			&types.SetDescription{Description: newDescr})
-	}
+	/*
+		TODO
+		if d.HasChange("description") {
+			newDescr := commercetools.LocalizedString(
+				expandStringMap(d.Get("description").(map[string]interface{})))
+			input.Actions = append(
+				input.Actions,
+				&commercetools.SetDescription{Description: &newDescr})
+		}
+	*/
 
 	if d.HasChange("field") {
 		old, new := d.GetChange("field")
@@ -405,9 +410,9 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := svc.Update(input)
+	_, err := client.Types.Update(input)
 	if err != nil {
-		if ctErr, ok := err.(commercetools.Error); ok {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
 		return err
@@ -416,10 +421,10 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 	return resourceTypeRead(d, m)
 }
 
-func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interface{}) ([]commercetools.UpdateAction, error) {
+func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interface{}) ([]commercetools.TypeUpdateAction, error) {
 	oldLookup := createLookup(oldValues, "name")
 	newLookup := createLookup(newValues, "name")
-	actions := []commercetools.UpdateAction{}
+	actions := []commercetools.TypeUpdateAction{}
 	checkAttributeOrder := true
 
 	log.Printf("[DEBUG] Construction Field change actions")
@@ -427,7 +432,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 	for name := range oldLookup {
 		if _, ok := newLookup[name]; !ok {
 			log.Printf("[DEBUG] Field deleted: %s", name)
-			actions = append(actions, types.RemoveFieldDefinition{FieldName: name})
+			actions = append(actions, commercetools.TypeRemoveFieldDefinitionAction{FieldName: name})
 			checkAttributeOrder = false
 		}
 	}
@@ -446,7 +451,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			log.Printf("[DEBUG] Field added: %s", name)
 			actions = append(
 				actions,
-				types.AddFieldDefinition{FieldDefinition: *fieldDef})
+				commercetools.TypeAddFieldDefinitionAction{FieldDefinition: fieldDef})
 			checkAttributeOrder = false
 			continue
 		}
@@ -457,13 +462,13 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 				expandStringMap(newV["label"].(map[string]interface{})))
 			actions = append(
 				actions,
-				types.ChangeLabel{FieldName: name, Label: newLabel})
+				commercetools.TypeChangeLabelAction{FieldName: name, Label: &newLabel})
 		}
 
 		newFieldType := fieldDef.Type
 		oldFieldType := oldV["type"].([]interface{})[0].(map[string]interface{})
 
-		if enumType, ok := newFieldType.(types.EnumType); ok {
+		if enumType, ok := newFieldType.(commercetools.CustomFieldEnumType); ok {
 			oldEnumV := oldFieldType["values"].(map[string]interface{})
 
 			for _, enumValue := range enumType.Values {
@@ -471,9 +476,9 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 					// Key does not appear in old enum values, so we'll add it
 					actions = append(
 						actions,
-						types.AddEnumValue{
+						commercetools.TypeAddEnumValueAction{
 							FieldName: name,
-							Value:     enumValue,
+							Value:     &enumValue,
 						})
 				}
 			}
@@ -481,7 +486,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			// Action: changeEnumValueOrder
 			// TODO: Change the order of EnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-fielddefinitions
 
-		} else if enumType, ok := newFieldType.(types.LocalizedEnumType); ok {
+		} else if enumType, ok := newFieldType.(commercetools.CustomFieldLocalizedEnumType); ok {
 			oldEnumV := oldFieldType["localized_value"].([]interface{})
 			oldEnumKeys := make(map[string]map[string]interface{}, len(oldEnumV))
 
@@ -495,9 +500,9 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 					// Key does not appear in old enum values, so we'll add it
 					actions = append(
 						actions,
-						types.AddLocalizedEnumValue{
+						commercetools.TypeAddLocalizedEnumValueAction{
 							FieldName: name,
-							Value:     enumValue,
+							Value:     &enumValue,
 						})
 				}
 			}
@@ -522,7 +527,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 	if checkAttributeOrder && !reflect.DeepEqual(oldNames, newNames) {
 		actions = append(
 			actions,
-			types.ChangeFieldDefinitionsOrder{
+			commercetools.TypeChangeFieldDefinitionOrderAction{
 				FieldNames: newNames,
 			})
 	}
@@ -531,9 +536,9 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 }
 
 func resourceTypeDelete(d *schema.ResourceData, m interface{}) error {
-	svc := getTypeService(m)
+	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := svc.DeleteByID(d.Id(), version)
+	_, err := client.Types.DeleteByID(d.Id(), version)
 	if err != nil {
 		return err
 	}
@@ -541,15 +546,9 @@ func resourceTypeDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func getTypeService(m interface{}) *types.Service {
-	client := m.(*commercetools.Client)
-	svc := types.New(client)
-	return svc
-}
-
-func resourceTypeGetFieldDefinitions(d *schema.ResourceData) ([]types.FieldDefinition, error) {
+func resourceTypeGetFieldDefinitions(d *schema.ResourceData) ([]commercetools.FieldDefinition, error) {
 	input := d.Get("field").([]interface{})
-	var result []types.FieldDefinition
+	var result []commercetools.FieldDefinition
 
 	for _, raw := range input {
 		fieldDef, err := resourceTypeGetFieldDefinition(raw.(map[string]interface{}))
@@ -564,7 +563,7 @@ func resourceTypeGetFieldDefinitions(d *schema.ResourceData) ([]types.FieldDefin
 	return result, nil
 }
 
-func resourceTypeGetFieldDefinition(input map[string]interface{}) (*types.FieldDefinition, error) {
+func resourceTypeGetFieldDefinition(input map[string]interface{}) (*commercetools.FieldDefinition, error) {
 	fieldTypes := input["type"].([]interface{})
 	fieldType, err := getFieldType(fieldTypes[0])
 	if err != nil {
@@ -574,16 +573,16 @@ func resourceTypeGetFieldDefinition(input map[string]interface{}) (*types.FieldD
 	label := commercetools.LocalizedString(
 		expandStringMap(input["label"].(map[string]interface{})))
 
-	return &types.FieldDefinition{
+	return &commercetools.FieldDefinition{
 		Type:      fieldType,
 		Name:      input["name"].(string),
-		Label:     label,
+		Label:     &label,
 		Required:  input["required"].(bool),
-		InputHint: commercetools.TextInputHint(input["input_hint"].(string)),
+		InputHint: input["input_hint"].(string),
 	}, nil
 }
 
-func getFieldType(input interface{}) (types.FieldType, error) {
+func getFieldType(input interface{}) (commercetools.FieldType, error) {
 	config := input.(map[string]interface{})
 	typeName, ok := config["name"].(string)
 
@@ -593,57 +592,57 @@ func getFieldType(input interface{}) (types.FieldType, error) {
 
 	switch typeName {
 	case "Boolean":
-		return types.BooleanType{}, nil
+		return commercetools.CustomFieldBooleanType{}, nil
 	case "String":
-		return types.StringType{}, nil
+		return commercetools.CustomFieldStringType{}, nil
 	case "LocalizedString":
-		return types.LocalizedStringType{}, nil
+		return commercetools.CustomFieldLocalizedStringType{}, nil
 	case "Enum":
 		valuesInput, valuesOk := config["values"].(map[string]interface{})
 		if !valuesOk {
 			return nil, fmt.Errorf("No values specified for Enum type: %+v", valuesInput)
 		}
-		var values []commercetools.EnumValue
+		var values []commercetools.CustomFieldEnumValue
 		for k, v := range valuesInput {
-			values = append(values, commercetools.EnumValue{
+			values = append(values, commercetools.CustomFieldEnumValue{
 				Key:   k,
 				Label: v.(string),
 			})
 		}
-		return types.EnumType{Values: values}, nil
+		return commercetools.CustomFieldEnumType{Values: values}, nil
 	case "LocalizedEnum":
 		valuesInput, valuesOk := config["localized_value"]
 		if !valuesOk {
 			return nil, fmt.Errorf("No localized_value elements specified for LocalizedEnum type")
 		}
-		var values []commercetools.LocalizedEnumValue
+		var values []commercetools.CustomFieldLocalizedEnumValue
 		for _, value := range valuesInput.([]interface{}) {
 			v := value.(map[string]interface{})
-			labels := expandStringMap(
-				v["label"].(map[string]interface{}))
-			values = append(values, commercetools.LocalizedEnumValue{
+			labels := commercetools.LocalizedString(
+				expandStringMap(v["label"].(map[string]interface{})))
+			values = append(values, commercetools.CustomFieldLocalizedEnumValue{
 				Key:   v["key"].(string),
-				Label: commercetools.LocalizedString(labels),
+				Label: &labels,
 			})
 		}
-		return types.LocalizedEnumType{Values: values}, nil
+		return commercetools.CustomFieldLocalizedEnumType{Values: values}, nil
 	case "Number":
-		return types.NumberType{}, nil
+		return commercetools.CustomFieldNumberType{}, nil
 	case "Money":
-		return types.MoneyType{}, nil
+		return commercetools.CustomFieldMoneyType{}, nil
 	case "Date":
-		return types.DateType{}, nil
+		return commercetools.CustomFieldDateType{}, nil
 	case "Time":
-		return types.TimeType{}, nil
+		return commercetools.CustomFieldTimeType{}, nil
 	case "DateTime":
-		return types.DateTimeType{}, nil
+		return commercetools.CustomFieldDateTimeType{}, nil
 	case "Reference":
 		refTypeID, refTypeIDOk := config["reference_type_id"].(string)
 		if !refTypeIDOk {
 			return nil, fmt.Errorf("No reference_type_id specified for Reference type")
 		}
-		return types.ReferenceType{
-			ReferenceTypeID: refTypeID,
+		return commercetools.CustomFieldReferenceType{
+			ReferenceTypeID: commercetools.ReferenceTypeID(refTypeID),
 		}, nil
 	case "Set":
 		elementTypes, elementTypesOk := config["element_type"]
@@ -660,10 +659,21 @@ func getFieldType(input interface{}) (types.FieldType, error) {
 			return nil, err
 		}
 
-		return types.SetType{
+		return commercetools.CustomFieldSetType{
 			ElementType: setFieldType,
 		}, nil
 	}
 
 	return nil, fmt.Errorf("Unknown FieldType %s", typeName)
+}
+
+func readCustomFieldLocalizedEnum(values []commercetools.CustomFieldLocalizedEnumValue) []interface{} {
+	enumValues := make([]interface{}, len(values))
+	for i, value := range values {
+		enumValues[i] = map[string]interface{}{
+			"key":   value.Key,
+			"label": &value.Label,
+		}
+	}
+	return enumValues
 }
