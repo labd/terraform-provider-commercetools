@@ -241,7 +241,7 @@ func resourceAPIExtensionGetDestination(d *schema.ResourceData) (commercetools.D
 			return nil, err
 		}
 
-		return commercetools.ExtensionHttpDestination{
+		return commercetools.ExtensionHTTPDestination{
 			URL:            input["url"].(string),
 			Authentication: auth,
 		}, nil
@@ -256,7 +256,7 @@ func resourceAPIExtensionGetDestination(d *schema.ResourceData) (commercetools.D
 	}
 }
 
-func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (commercetools.ExtensionHttpDestinationAuthentication, error) {
+func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (commercetools.ExtensionHTTPDestinationAuthentication, error) {
 	authKeys := [2]string{"authorization_header", "azure_authentication"}
 	count := 0
 	for _, key := range authKeys {

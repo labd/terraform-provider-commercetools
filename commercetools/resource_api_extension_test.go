@@ -111,7 +111,7 @@ func testAccAPIExtensionExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No Extension ID is set")
 		}
 		client := getClient(testAccProvider.Meta())
-		result, err := client.Extensions.GetByID(rs.Primary.ID)
+		result, err := client.ExtensionGetByID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}

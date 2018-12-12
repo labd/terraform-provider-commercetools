@@ -165,7 +165,7 @@ func testAccTypeExists(n string) resource.TestCheckFunc {
 		}
 
 		client := getClient(testAccProvider.Meta())
-		result, err := client.Types.GetByID(rs.Primary.ID)
+		result, err := client.TypeGetByID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}

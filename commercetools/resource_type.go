@@ -239,7 +239,7 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 		ctType, err = client.TypeCreate(draft)
 		if err != nil {
 			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-				if _, ok := ctErr.Errors[0].(commercetools.InvalidJsonInputError); ok {
+				if _, ok := ctErr.Errors[0].(commercetools.InvalidJSONInputError); ok {
 					return resource.NonRetryableError(ctErr)
 				}
 			} else {
