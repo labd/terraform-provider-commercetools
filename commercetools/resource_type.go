@@ -236,7 +236,7 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		ctType, err = client.Types.Create(draft)
+		ctType, err = client.TypeCreate(draft)
 		if err != nil {
 			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 				if _, ok := ctErr.Errors[0].(commercetools.InvalidJsonInputError); ok {
@@ -268,7 +268,7 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading type from commercetools")
 	client := getClient(m)
 
-	ctType, err := client.Types.GetByID(d.Id())
+	ctType, err := client.TypeGetByID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -410,7 +410,7 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.Types.Update(input)
+	_, err := client.TypeUpdate(input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -538,7 +538,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 func resourceTypeDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Types.DeleteByID(d.Id(), version)
+	_, err := client.TypeDeleteByID(d.Id(), version)
 	if err != nil {
 		return err
 	}

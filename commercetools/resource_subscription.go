@@ -176,7 +176,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		subscription, err = client.Subscriptions.Create(draft)
+		subscription, err = client.SubscriptionCreate(draft)
 		if err != nil {
 			return resource.RetryableError(err)
 		}
@@ -201,7 +201,7 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading subscriptions from commercetools")
 	client := getClient(m)
 
-	subscription, err := client.Subscriptions.GetByID(d.Id())
+	subscription, err := client.SubscriptionGetByID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -270,7 +270,7 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.SubscriptionSetChangesAction{Changes: changes})
 	}
 
-	_, err := client.Subscriptions.Update(input)
+	_, err := client.SubscriptionUpdate(input)
 	if err != nil {
 		return err
 	}
@@ -281,7 +281,7 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Subscriptions.DeleteByID(d.Id(), version)
+	_, err := client.SubscriptionDeleteByID(d.Id(), version)
 	if err != nil {
 		return err
 	}

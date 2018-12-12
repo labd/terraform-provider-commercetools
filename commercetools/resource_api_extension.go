@@ -123,7 +123,7 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		extension, err = client.Extensions.Create(draft)
+		extension, err = client.ExtensionCreate(draft)
 		if err != nil {
 			log.Print("[DEBUG] Error while creating extension, will try again")
 			log.Print(err)
@@ -150,7 +150,7 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading extensions from commercetools")
 	client := getClient(m)
 
-	extension, err := client.Extensions.GetByID(d.Id())
+	extension, err := client.ExtensionGetByID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -210,7 +210,7 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.ExtensionChangeDestinationAction{Destination: destination})
 	}
 
-	_, err := client.Extensions.Update(input)
+	_, err := client.ExtensionUpdate(input)
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceAPIExtensionDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Extensions.DeleteByID(d.Id(), version)
+	_, err := client.ExtensionDeleteByID(d.Id(), version)
 	if err != nil {
 		return err
 	}

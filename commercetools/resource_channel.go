@@ -59,7 +59,7 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	client := getClient(m)
-	channel, err := client.Channels.Create(draft)
+	channel, err := client.ChannelCreate(draft)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	channel, err := client.Channels.GetByID(d.Id())
+	channel, err := client.ChannelGetByID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -126,7 +126,7 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.ChannelSetRolesAction{Roles: roles})
 	}
 
-	_, err := client.Channels.Update(input)
+	_, err := client.ChannelUpdate(input)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceChannelDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Channels.Delete(d.Id(), version)
+	_, err := client.ChannelDelete(d.Id(), version)
 	if err != nil {
 		return err
 	}

@@ -70,7 +70,7 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading projects from commercetools")
 	client := getClient(m)
 
-	project, err := client.Project.Get()
+	project, err := client.ProjectGet()
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -158,7 +158,7 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: enabled})
 	}
 
-	_, err := client.Project.Update(input)
+	_, err := client.ProjectUpdate(input)
 	if err != nil {
 		return err
 	}
