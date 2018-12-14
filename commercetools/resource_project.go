@@ -110,7 +110,7 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("name") {
-		input.Actions = append(input.Actions, &commercetools.ProjectChangeNameAction{d.Get("name").(string)})
+		input.Actions = append(input.Actions, &commercetools.ProjectChangeNameAction{Name: d.Get("name").(string)})
 	}
 
 	if d.HasChange("currencies") {
