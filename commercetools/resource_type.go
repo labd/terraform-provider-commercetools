@@ -578,7 +578,7 @@ func resourceTypeGetFieldDefinition(input map[string]interface{}) (*commercetool
 		Name:      input["name"].(string),
 		Label:     &label,
 		Required:  input["required"].(bool),
-		InputHint: input["input_hint"].(commercetools.TypeTextInputHint),
+		InputHint: commercetools.TypeTextInputHint(input["input_hint"].(string)),
 	}, nil
 }
 
