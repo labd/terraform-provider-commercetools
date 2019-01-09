@@ -297,7 +297,7 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 			}
 			fieldData["type"] = fieldType
 			fieldData["name"] = fieldDef.Name
-			fieldData["label"] = fieldDef.Label
+			fieldData["label"] = *fieldDef.Label
 			fieldData["required"] = fieldDef.Required
 			fieldData["input_hint"] = fieldDef.InputHint
 

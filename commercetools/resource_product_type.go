@@ -272,10 +272,12 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 
 			fieldData["type"] = fieldType
 			fieldData["name"] = fieldDef.Name
-			fieldData["label"] = fieldDef.Label
+			fieldData["label"] = *fieldDef.Label
 			fieldData["required"] = fieldDef.IsRequired
 			fieldData["input_hint"] = fieldDef.InputHint
-			fieldData["input_tip"] = fieldDef.InputTip
+			if fieldDef.InputTip != nil {
+				fieldData["input_tip"] = fieldDef.InputTip
+			}
 			fieldData["constraint"] = fieldDef.AttributeConstraint
 			fieldData["searchable"] = fieldDef.IsSearchable
 
@@ -288,7 +290,12 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("key", ctType.Key)
 		d.Set("name", ctType.Name)
 		d.Set("description", ctType.Description)
-		d.Set("attribute", attributes)
+		err = d.Set("attribute", attributes)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("Terraform attribute state: %#v", d.Get("attribute"))
 	}
 	return nil
 }
