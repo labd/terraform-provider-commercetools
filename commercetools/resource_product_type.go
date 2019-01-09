@@ -258,12 +258,13 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 		log.Print("[DEBUG] No product type found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following product type:")
+		log.Printf("[DEBUG] Found following product type: %#v", ctType)
 		log.Print(stringFormatObject(ctType))
 
 		attributes := make([]map[string]interface{}, len(ctType.Attributes))
 		for i, fieldDef := range ctType.Attributes {
 			fieldData := make(map[string]interface{})
+			log.Printf("[DEBUGct] reading field: %s: %#v", fieldDef.Name, fieldDef)
 			fieldType, err := resourceProductTypeReadAttributeType(fieldDef.Type, true)
 			if err != nil {
 				return err
@@ -281,6 +282,8 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 			attributes[i] = fieldData
 		}
 
+		log.Printf("Created attributes %#v", attributes)
+		log.Printf("Created attributes %s", stringFormatObject(attributes))
 		d.Set("version", ctType.Version)
 		d.Set("key", ctType.Key)
 		d.Set("name", ctType.Name)
