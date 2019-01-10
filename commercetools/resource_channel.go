@@ -85,8 +85,10 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId(channel.ID)
 	d.Set("version", channel.Version)
-	d.Set("name", channel.Name)
-	d.Set("description", channel.Description)
+	d.Set("name", *channel.Name)
+	if channel.Description != nil {
+		d.Set("description", *channel.Description)
+	}
 	d.Set("roles", channel.Roles)
 	return nil
 }

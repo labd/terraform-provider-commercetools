@@ -32,28 +32,6 @@ func TestFieldTypeElement(t *testing.T) {
 	}
 }
 
-func TestResourceTypeGetFieldDefinition(t *testing.T) {
-	input := map[string]interface{}{
-		"name": "test",
-		"label": map[string]interface{}{
-			"en": "Test",
-			"nl": "Test",
-		},
-		"type": []interface{}{
-			map[string]interface{}{
-				"name": "String",
-			},
-		},
-		"required":   false,
-		"input_hint": "SingleLine",
-	}
-
-	_, err := resourceTypeGetFieldDefinition(input)
-	if err != nil {
-		t.Error("Got an unexpected error")
-	}
-}
-
 func TestGetFieldType(t *testing.T) {
 	// Test Boolean
 	input := map[string]interface{}{

@@ -276,7 +276,7 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 			fieldData["required"] = fieldDef.IsRequired
 			fieldData["input_hint"] = fieldDef.InputHint
 			if fieldDef.InputTip != nil {
-				fieldData["input_tip"] = fieldDef.InputTip
+				fieldData["input_tip"] = *fieldDef.InputTip
 			}
 			fieldData["constraint"] = fieldDef.AttributeConstraint
 			fieldData["searchable"] = fieldDef.IsSearchable

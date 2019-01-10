@@ -306,8 +306,10 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 
 		d.Set("version", ctType.Version)
 		d.Set("key", ctType.Key)
-		d.Set("name", ctType.Name)
-		d.Set("description", ctType.Description)
+		d.Set("name", *ctType.Name)
+		if ctType.Description != nil {
+			d.Set("description", ctType.Description)
+		}
 		d.Set("resource_type_ids", ctType.ResourceTypeIds)
 		d.Set("field", fields)
 	}
