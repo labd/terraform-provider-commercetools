@@ -290,7 +290,7 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 		fields := make([]map[string]interface{}, len(ctType.FieldDefinitions))
 		for i, fieldDef := range ctType.FieldDefinitions {
 			fieldData := make(map[string]interface{})
-			log.Printf("[DEBUGct] reading field: %s: %#v", fieldDef.Name, fieldDef)
+			log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
 			fieldType, err := resourceTypeReadFieldType(fieldDef.Type, true)
 			if err != nil {
 				return err
@@ -351,7 +351,6 @@ func resourceTypeReadFieldType(fieldType commercetools.FieldType, setsAllowed bo
 	} else if f, ok := fieldType.(commercetools.CustomFieldSetType); ok {
 		typeData["name"] = "Set"
 		if setsAllowed {
-			log.Print("[DEBUGct] reading set type")
 			elemType, err := resourceTypeReadFieldType(f.ElementType, false)
 			if err != nil {
 				return nil, err
