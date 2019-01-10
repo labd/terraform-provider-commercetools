@@ -290,13 +290,14 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 		fields := make([]map[string]interface{}, len(ctType.FieldDefinitions))
 		for i, fieldDef := range ctType.FieldDefinitions {
 			fieldData := make(map[string]interface{})
+			log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
 			fieldType, err := resourceTypeReadFieldType(fieldDef.Type, true)
 			if err != nil {
 				return err
 			}
 			fieldData["type"] = fieldType
 			fieldData["name"] = fieldDef.Name
-			fieldData["label"] = fieldDef.Label
+			fieldData["label"] = *fieldDef.Label
 			fieldData["required"] = fieldDef.Required
 			fieldData["input_hint"] = fieldDef.InputHint
 
@@ -305,8 +306,10 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 
 		d.Set("version", ctType.Version)
 		d.Set("key", ctType.Key)
-		d.Set("name", ctType.Name)
-		d.Set("description", ctType.Description)
+		d.Set("name", *ctType.Name)
+		if ctType.Description != nil {
+			d.Set("description", ctType.Description)
+		}
 		d.Set("resource_type_ids", ctType.ResourceTypeIds)
 		d.Set("field", fields)
 	}
@@ -355,7 +358,7 @@ func resourceTypeReadFieldType(fieldType commercetools.FieldType, setsAllowed bo
 			typeData["element_type"] = elemType
 		}
 	} else {
-		return nil, fmt.Errorf("Unknown resource Type %T", fieldType)
+		return nil, fmt.Errorf("Unknown resource Type %T: %#v", fieldType, fieldType)
 	}
 
 	return []interface{}{typeData}, nil

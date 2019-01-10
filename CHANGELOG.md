@@ -1,4 +1,8 @@
-0.2.1 (Unreleased)
+0.4.0 (unreleased)
+==================
+ - Use auto-generated commercetools-go-sdk types
+
+0.3.0 (2018-12-10)
 ==================
  - **New resource:** `commercetools_channel`
  - **New resource:** `commercetools_tax_category`
@@ -10,7 +14,7 @@
  - Resource product type: Added support for Nested types
 
 
-0.2.0 (2018-10-25)
+0.2.0 (2018-12-10)
 ==================
  - **New resource:** `commercetools_product_type`
 

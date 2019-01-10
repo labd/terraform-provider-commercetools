@@ -258,12 +258,13 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 		log.Print("[DEBUG] No product type found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following product type:")
+		log.Printf("[DEBUG] Found following product type: %#v", ctType)
 		log.Print(stringFormatObject(ctType))
 
 		attributes := make([]map[string]interface{}, len(ctType.Attributes))
 		for i, fieldDef := range ctType.Attributes {
 			fieldData := make(map[string]interface{})
+			log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
 			fieldType, err := resourceProductTypeReadAttributeType(fieldDef.Type, true)
 			if err != nil {
 				return err
@@ -271,21 +272,27 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 
 			fieldData["type"] = fieldType
 			fieldData["name"] = fieldDef.Name
-			fieldData["label"] = fieldDef.Label
+			fieldData["label"] = *fieldDef.Label
 			fieldData["required"] = fieldDef.IsRequired
 			fieldData["input_hint"] = fieldDef.InputHint
-			fieldData["input_tip"] = fieldDef.InputTip
+			if fieldDef.InputTip != nil {
+				fieldData["input_tip"] = *fieldDef.InputTip
+			}
 			fieldData["constraint"] = fieldDef.AttributeConstraint
 			fieldData["searchable"] = fieldDef.IsSearchable
 
 			attributes[i] = fieldData
 		}
 
+		log.Printf("[DEBUG] Created attributes %#v", attributes)
 		d.Set("version", ctType.Version)
 		d.Set("key", ctType.Key)
 		d.Set("name", ctType.Name)
 		d.Set("description", ctType.Description)
-		d.Set("attribute", attributes)
+		err = d.Set("attribute", attributes)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
