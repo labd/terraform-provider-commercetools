@@ -1,4 +1,4 @@
-0.4.0 (unreleased)
+0.4.0 (2019-01-10)
 ==================
  - Use auto-generated commercetools-go-sdk types
 
