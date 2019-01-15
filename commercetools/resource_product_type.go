@@ -700,6 +700,7 @@ func getAttributeType(input interface{}) (commercetools.AttributeType, error) {
 				Label: &labels,
 			})
 		}
+		log.Printf("[DEBUG] GetAttributeType localized enum values: %#v", values)
 		return commercetools.AttributeLocalizedEnumType{Values: values}, nil
 	case "number":
 		return commercetools.AttributeNumberType{}, nil
@@ -755,8 +756,9 @@ func readAttributeLocalizedEnum(values []commercetools.AttributeLocalizedEnumVal
 	for i, value := range values {
 		enumValues[i] = map[string]interface{}{
 			"key":   value.Key,
-			"label": &value.Label,
+			"label": *value.Label,
 		}
 	}
+	log.Printf("[DEBUG] readLocalizedEnum values: %#v", enumValues)
 	return enumValues
 }

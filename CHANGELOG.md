@@ -1,3 +1,7 @@
+0.4.1 (unreleased)
+==================
+ - Fix resource\_type attribute label not mapping correctly
+
 0.4.0 (2019-01-10)
 ==================
  - Use auto-generated commercetools-go-sdk types
