@@ -62,8 +62,11 @@ func resourceProjectSettings() *schema.Resource {
 }
 
 func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
-	log.Print("A project can not be created through terraform")
-	return fmt.Errorf("A project can not be created through terraform")
+	err := resourceProjectRead(d, m)
+	if err != nil {
+		return err
+	}
+	return resourceProjectUpdate(d, m)
 }
 
 func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
