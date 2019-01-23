@@ -174,12 +174,17 @@ func resourceTaxCategoryGetRate(input map[string]interface{}, draft bool) (inter
 		}
 	}
 
+	var countryCode commercetools.CountryCode
+	if value, isOk := input["country"].(string); isOk {
+		countryCode = commercetools.CountryCode(value)
+	}
+
 	if draft {
 		return commercetools.TaxRateDraft{
 			Name:            input["name"].(string),
 			Amount:          input["amount"].(float64),
 			IncludedInPrice: input["included_in_price"].(bool),
-			Country:         input["country"].(commercetools.CountryCode),
+			Country:         countryCode,
 			State:           input["state"].(string),
 			SubRates:        subrates,
 		}, nil
@@ -189,7 +194,7 @@ func resourceTaxCategoryGetRate(input map[string]interface{}, draft bool) (inter
 		Name:            input["name"].(string),
 		Amount:          input["amount"].(float64),
 		IncludedInPrice: input["included_in_price"].(bool),
-		Country:         input["country"].(commercetools.CountryCode),
+		Country:         countryCode,
 		State:           input["state"].(string),
 		SubRates:        subrates,
 	}, nil
