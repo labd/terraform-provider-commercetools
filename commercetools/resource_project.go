@@ -1,7 +1,6 @@
 package commercetools
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -14,6 +13,7 @@ func resourceProjectSettings() *schema.Resource {
 		Read:   resourceProjectRead,
 		Update: resourceProjectUpdate,
 		Delete: resourceProjectDelete,
+		Exists: resourceProjectExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -61,12 +61,39 @@ func resourceProjectSettings() *schema.Resource {
 	}
 }
 
+func resourceProjectExists(d *schema.ResourceData, m interface{}) (bool, error) {
+	client := getClient(m)
+
+	_, err := client.ProjectGet()
+	if err != nil {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+			if ctErr.StatusCode == 404 {
+				return false, nil
+			}
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
-	err := resourceProjectRead(d, m)
+	client := getClient(m)
+	project, err := client.ProjectGet()
+
+	if err != nil {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+			if ctErr.StatusCode == 404 {
+				return nil
+			}
+		}
+		return err
+	}
+
+	err = projectUpdate(d, client, project.Version)
 	if err != nil {
 		return err
 	}
-	return resourceProjectUpdate(d, m)
+	return resourceProjectRead(d, m)
 }
 
 func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
@@ -106,9 +133,22 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
+	version := d.Get("version").(int)
+	err := projectUpdate(d, client, version)
+	if err != nil {
+		return err
+	}
+	return resourceProjectRead(d, m)
+}
 
+func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
+	d.SetId("")
+	return nil
+}
+
+func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version int) error {
 	input := &commercetools.ProjectUpdateInput{
-		Version: d.Get("version").(int),
+		Version: version,
 		Actions: []commercetools.ProjectUpdateAction{},
 	}
 
@@ -162,16 +202,7 @@ func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	_, err := client.ProjectUpdate(input)
-	if err != nil {
-		return err
-	}
-
-	return resourceProjectRead(d, m)
-}
-
-func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
-	log.Print("A project can not be deleted through terraform")
-	return fmt.Errorf("A project can not be deleted through terraform")
+	return err
 }
 
 func getStringSlice(d *schema.ResourceData, field string) []string {
