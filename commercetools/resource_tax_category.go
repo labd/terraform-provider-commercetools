@@ -101,7 +101,7 @@ func resourceTaxCategoryValidateAmount(val interface{}, key string) (warns []str
 
 func resourceTaxCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	var ctType *commercetools.TaxCategory
+	var taxCategory *commercetools.TaxCategory
 
 	rates, err := resourceTaxCategoryGetRates(d)
 
@@ -119,7 +119,7 @@ func resourceTaxCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		ctType, err = client.TaxCategoryCreate(draft)
+		taxCategory, err = client.TaxCategoryCreate(draft)
 		if err != nil {
 			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 				if _, ok := ctErr.Errors[0].(commercetools.InvalidJSONInputError); ok {
@@ -137,12 +137,12 @@ func resourceTaxCategoryCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if ctType == nil {
+	if taxCategory == nil {
 		log.Fatal("No tax category created?")
 	}
 
-	d.SetId(ctType.ID)
-	d.Set("version", ctType.Version)
+	d.SetId(taxCategory.ID)
+	d.Set("version", taxCategory.Version)
 
 	return resourceTaxCategoryRead(d, m)
 }
@@ -217,7 +217,7 @@ func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading tax category from commercetools")
 	client := getClient(m)
 
-	ctType, err := client.TaxCategoryGetByID(d.Id())
+	taxCategory, err := client.TaxCategoryGetByID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -229,15 +229,15 @@ func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if ctType == nil {
+	if taxCategory == nil {
 		log.Print("[DEBUG] No tax category found")
 		d.SetId("")
 	} else {
 		log.Print("[DEBUG] Found following tax category:")
-		log.Print(stringFormatObject(ctType))
+		log.Print(stringFormatObject(taxCategory))
 
-		taxRates := make([]map[string]interface{}, len(ctType.Rates))
-		for i, rate := range ctType.Rates {
+		taxRates := make([]map[string]interface{}, len(taxCategory.Rates))
+		for i, rate := range taxCategory.Rates {
 			rateData := make(map[string]interface{})
 
 			subRateData := make([]map[string]interface{}, len(rate.SubRates))
@@ -259,10 +259,10 @@ func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
 			taxRates[i] = rateData
 		}
 
-		d.Set("version", ctType.Version)
-		d.Set("key", ctType.Key)
-		d.Set("name", ctType.Name)
-		d.Set("description", ctType.Description)
+		d.Set("version", taxCategory.Version)
+		d.Set("key", taxCategory.Key)
+		d.Set("name", taxCategory.Name)
+		d.Set("description", taxCategory.Description)
 		d.Set("rate", taxRates)
 	}
 	return nil
