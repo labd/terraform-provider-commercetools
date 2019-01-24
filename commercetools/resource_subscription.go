@@ -173,7 +173,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 		Changes:     changes,
 	}
 
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
 		subscription, err = client.SubscriptionCreate(draft)

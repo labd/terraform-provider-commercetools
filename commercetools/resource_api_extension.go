@@ -120,7 +120,7 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 		Triggers:    triggers,
 	}
 
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
 		extension, err = client.ExtensionCreate(draft)
