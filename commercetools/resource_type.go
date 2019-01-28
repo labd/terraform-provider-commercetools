@@ -405,10 +405,8 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		if err != nil {
 			return err
 		}
-
 		input.Actions = append(input.Actions, fieldChangeActions...)
 	}
-
 	log.Printf(
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
@@ -450,6 +448,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			return nil, err
 		}
 
+		// A new field is added
 		if !existingField {
 			log.Printf("[DEBUG] Field added: %s", name)
 			actions = append(

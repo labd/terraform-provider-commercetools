@@ -146,6 +146,33 @@ func TestAccTypes_basic(t *testing.T) {
 	})
 }
 
+func TestAccTypes_update(t *testing.T) {
+	name := "acctest_type"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckTypesDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccTypeConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccTypeExists("acctest_type"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "key", name),
+				),
+			},
+			{
+				Config: testAccTypeUpdate(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccTypeExists("acctest_type"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "key", name),
+				),
+			},
+		},
+	})
+}
+
 func testAccTypeConfig(name string) string {
 	return fmt.Sprintf(`
 resource "commercetools_type" "%s" {
@@ -166,6 +193,45 @@ resource "commercetools_type" "%s" {
 		label = {
 			en = "Skype name"
 			nl = "Skype naam"
+		}
+		type {
+			name = "String"
+		}
+	}
+}`, name, name)
+}
+
+func testAccTypeUpdate(name string) string {
+	return fmt.Sprintf(`
+resource "commercetools_type" "%s" {
+	key = "%s"
+	name = {
+		en = "Contact info"
+		nl = "Contact informatie"
+	}
+	description = {
+		en = "All things related communication"
+		nl = "Alle communicatie-gerelateerde zaken"
+	}
+
+	resource_type_ids = ["customer"]
+
+	field {
+		name = "skype_name"
+		label = {
+			en = "Skype name"
+			nl = "Skype naam"
+		}
+		type {
+			name = "String"
+		}
+	}
+
+	field {
+		name = "new_field"
+		label = {
+			en = "Some new field"
+			nl = "Een nieuw veld"
 		}
 		type {
 			name = "String"
