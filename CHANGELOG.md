@@ -1,6 +1,7 @@
 0.4.1 (unreleased)
 ==================
  - Fix resource\_type attribute label not mapping correctly
+ - **New resource:** `commercetools_shipping_zone`
 
 0.4.0 (2019-01-10)
 ==================
