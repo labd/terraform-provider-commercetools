@@ -55,16 +55,16 @@ func resourceShippingZone() *schema.Resource {
 func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Creating shippingzones in commercetools")
 	client := getClient(m)
-	
+
 	var shippingZone *commercetools.Zone
 
 	input := d.Get("location").([]interface{})
 	locations := resourceShippingZoneGetLocation(input)
-	
+
 	draft := &commercetools.ZoneDraft{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
-		Locations:	 locations,
+		Locations:   locations,
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -145,13 +145,8 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.ZoneSetDescriptionAction{Description: newDescription})
 	}
 
-	fmt.Println("TEST")
 	if d.HasChange("location") {
 		old, new := d.GetChange("location")
-		log.Println(old)
-		log.Println(new)
-		fmt.Println(old)
-		fmt.Println(new)
 
 		oldLocations := resourceShippingZoneGetLocation(old)
 		newLocations := resourceShippingZoneGetLocation(new)
@@ -170,10 +165,6 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 					&commercetools.ZoneAddLocationAction{Location: &location})
 			}
 		}
-		log.Println(oldLocations)
-		log.Println(newLocations)
-		fmt.Println(oldLocations)
-		fmt.Println(newLocations)
 	}
 
 	_, err := client.ZoneUpdate(input)

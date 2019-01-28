@@ -1,4 +1,4 @@
-# Channel Settings
+# Zones Settings
 
 Lets you manage shipping zones within a commercetools project.
 
