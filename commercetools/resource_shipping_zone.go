@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"github.com/labd/commercetools-go-sdk/service/shippingzones"
 )
 
 func resourceShippingZone() *schema.Resource {
@@ -54,12 +53,12 @@ func resourceShippingZone() *schema.Resource {
 }
 
 func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
-	svc := getShippingZoneService(m)
-	var shippingZone *shippingzones.ShippingZone
+	client := getClient(m)
+	var shippingZone *commercetools.Zone
 
 	// input := d.Get("location").([]interface{})
 	// locations := resourceShippingZoneGetLocation(input)
-	draft := &shippingzones.ShippingZoneDraft{
+	draft := &commercetools.ZoneDraft{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 	}
@@ -67,7 +66,7 @@ func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		shippingZone, err = svc.Create(draft)
+		shippingZone, err = client.ZoneCreate(draft)
 		if err != nil {
 			return resource.RetryableError(err)
 		}
@@ -90,13 +89,13 @@ func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading shippingzones from commercetools")
-	svc := getShippingZoneService(m)
+	client := getClient(m)
 
-	shippingZone, err := svc.GetByID(d.Id())
+	shippingZone, err := client.ZoneGetByID(d.Id())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.Error); ok {
-			if ctErr.Code() == commercetools.ErrResourceNotFound {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
 			}
@@ -119,26 +118,26 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
-	svc := getShippingZoneService(m)
+	client := getClient(m)
 
-	input := &shippingzones.UpdateInput{
+	input := &commercetools.ZoneUpdateInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
-		Actions: commercetools.UpdateActions{},
+		Actions: []commercetools.ZoneUpdateAction{},
 	}
 
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		input.Actions = append(
 			input.Actions,
-			&shippingzones.ChangeName{Name: newName})
+			&commercetools.ZoneChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
 		newDescription := d.Get("description").(string)
 		input.Actions = append(
 			input.Actions,
-			&shippingzones.SetDescription{Description: newDescription})
+			&commercetools.ZoneSetDescriptionAction{Description: newDescription})
 	}
 
 	fmt.Println("TEST")
@@ -156,14 +155,14 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 			if !_locationInSlice(location, newLocations) {
 				input.Actions = append(
 					input.Actions,
-					&shippingzones.RemoveLocation{Location: location})
+					&commercetools.ZoneRemoveLocationAction{Location: &location})
 			}
 		}
 		for _, location := range newLocations {
 			if !_locationInSlice(location, oldLocations) {
 				input.Actions = append(
 					input.Actions,
-					&shippingzones.AddLocation{Location: location})
+					&commercetools.ZoneAddLocationAction{Location: &location})
 			}
 		}
 		log.Println(oldLocations)
@@ -172,7 +171,7 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 		fmt.Println(newLocations)
 	}
 
-	_, err := svc.Update(input)
+	_, err := client.ZoneUpdate(input)
 	if err != nil {
 		return err
 	}
@@ -181,9 +180,9 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
-	svc := getShippingZoneService(m)
+	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := svc.DeleteByID(d.Id(), version)
+	_, err := client.ZoneDeleteByID(d.Id(), version)
 	if err != nil {
 		return err
 	}
@@ -191,15 +190,9 @@ func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func getShippingZoneService(m interface{}) *shippingzones.Service {
-	client := m.(*commercetools.Client)
-	svc := shippingzones.New(client)
-	return svc
-}
-
-func resourceShippingZoneGetLocation(input interface{}) []shippingzones.Location {
+func resourceShippingZoneGetLocation(input interface{}) []commercetools.Location {
 	inputSlice := input.([]interface{})
-	var result []shippingzones.Location
+	var result []commercetools.Location
 
 	for _, raw := range inputSlice {
 		i := raw.(map[string]interface{})
@@ -214,8 +207,8 @@ func resourceShippingZoneGetLocation(input interface{}) []shippingzones.Location
 			state = ""
 		}
 
-		result = append(result, shippingzones.Location{
-			Country: country,
+		result = append(result, commercetools.Location{
+			Country: commercetools.CountryCode(country),
 			State:   state,
 		})
 	}
@@ -223,7 +216,7 @@ func resourceShippingZoneGetLocation(input interface{}) []shippingzones.Location
 	return result
 }
 
-func _locationInSlice(needle shippingzones.Location, haystack []shippingzones.Location) bool {
+func _locationInSlice(needle commercetools.Location, haystack []commercetools.Location) bool {
 	for _, item := range haystack {
 		if item == needle {
 			return true
