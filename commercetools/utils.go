@@ -70,10 +70,9 @@ func stringFormatErrorExtras(err commercetools.ErrorResponse) string {
 	}
 }
 
-func stringFormatActions(actions interface{}) string {
-
+func stringFormatActions(actions ...interface{}) string {
 	lines := []string{}
-	for i, action := range actions.([]interface{}) {
+	for i, action := range actions {
 		lines = append(
 			lines,
 			fmt.Sprintf("%d: %s", i, stringFormatObject(action)))
