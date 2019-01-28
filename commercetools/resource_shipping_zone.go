@@ -53,14 +53,18 @@ func resourceShippingZone() *schema.Resource {
 }
 
 func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
+	log.Print("[DEBUG] Creating shippingzones in commercetools")
 	client := getClient(m)
+	
 	var shippingZone *commercetools.Zone
 
-	// input := d.Get("location").([]interface{})
-	// locations := resourceShippingZoneGetLocation(input)
+	input := d.Get("location").([]interface{})
+	locations := resourceShippingZoneGetLocation(input)
+	
 	draft := &commercetools.ZoneDraft{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
+		Locations:	 locations,
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -113,6 +117,7 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("version", shippingZone.Version)
 		d.Set("name", shippingZone.Name)
 		d.Set("description", shippingZone.Description)
+		d.Set("locations", shippingZone.Locations)
 	}
 	return nil
 }
