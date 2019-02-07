@@ -48,7 +48,7 @@ func resourceTaxCategory() *schema.Resource {
 						},
 						"amount": {
 							Type:         schema.TypeFloat,
-							Required:     true,
+							Optional:     true,
 							ValidateFunc: resourceTaxCategoryValidateAmount,
 						},
 						"included_in_price": {
@@ -179,10 +179,16 @@ func resourceTaxCategoryGetRate(input map[string]interface{}, draft bool) (inter
 		countryCode = commercetools.CountryCode(value)
 	}
 
+	var amount *float64
+	if amountRaw, ok := input["amount"]; ok {
+		amountFloat := amountRaw.(float64)
+		amount = &amountFloat
+	}
+
 	if draft {
 		return commercetools.TaxRateDraft{
 			Name:            input["name"].(string),
-			Amount:          input["amount"].(float64),
+			Amount:          amount,
 			IncludedInPrice: input["included_in_price"].(bool),
 			Country:         countryCode,
 			State:           input["state"].(string),
@@ -192,7 +198,7 @@ func resourceTaxCategoryGetRate(input map[string]interface{}, draft bool) (inter
 	return commercetools.TaxRate{
 		ID:              input["id"].(string),
 		Name:            input["name"].(string),
-		Amount:          input["amount"].(float64),
+		Amount:          amount,
 		IncludedInPrice: input["included_in_price"].(bool),
 		Country:         countryCode,
 		State:           input["state"].(string),
@@ -205,9 +211,10 @@ func resourceTaxCategoryGetSubRates(input []interface{}) ([]commercetools.SubRat
 
 	for _, raw := range input {
 		raw := raw.(map[string]interface{})
+		amount := raw["amount"].(float64)
 		result = append(result, commercetools.SubRate{
 			Name:   raw["name"].(string),
-			Amount: raw["amount"].(float64),
+			Amount: &amount,
 		})
 	}
 	return result, nil
@@ -250,7 +257,7 @@ func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
 
 			rateData["id"] = rate.ID
 			rateData["name"] = rate.Name
-			rateData["amount"] = rate.Amount
+			rateData["amount"] = &rate.Amount
 			rateData["included_in_price"] = rate.IncludedInPrice
 			rateData["country"] = rate.Country
 			rateData["state"] = rate.State
