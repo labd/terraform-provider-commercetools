@@ -46,7 +46,7 @@ The following arguments are supported:
 These can have the following arguments:
 
 * `name` - Tax rate name
-* `amount` - Number Percentage in the range of [0..1]. The sum of the amounts of all sub rates, if there are any
+* `amount` - Number Percentage in the range of [0..1]. The sum of the amounts of all sub rates, if there are any. Optional if sub_rates are defined.
 * `include_in_price`
 * `country` - A two-digit country code as per [ISO 3166-1 alpha-2][country-iso]
 * `state` - (Optional) The state in the country
