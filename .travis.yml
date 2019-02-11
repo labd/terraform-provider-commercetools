@@ -13,7 +13,7 @@ env:
     - CTP_CLIENT_SECRET=x
 
 go:
-  - "1.11"
+  - "1.11.5"
 
 before_install:
   - docker pull labdigital/commercetools-mock-server
