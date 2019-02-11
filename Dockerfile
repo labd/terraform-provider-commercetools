@@ -1,4 +1,4 @@
-FROM golang:1.11.0-stretch AS build-env
+FROM golang:1.11.5-stretch AS build-env
 WORKDIR /terraform-provider
 
 ADD . /terraform-provider
