@@ -53,5 +53,11 @@ func testAccTaxCategoryConfig(name string) string {
 		country = "US"
 		included_in_price = true
 	}
+	rate {
+		name = "0% VAT"
+		amount = 0.0
+		included_in_price = true
+		country = "GB"
+	}
 	}`
 }
