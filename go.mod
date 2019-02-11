@@ -31,7 +31,7 @@ require (
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/terraform v0.11.11
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
-	github.com/labd/commercetools-go-sdk v0.0.0-20190110212305-31e3d78a9560
+	github.com/labd/commercetools-go-sdk v0.0.0-20190211090859-a52a063bbb78
 	github.com/mattn/go-colorable v0.1.0 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2 // indirect
 	github.com/mitchellh/cli v1.0.0 // indirect
