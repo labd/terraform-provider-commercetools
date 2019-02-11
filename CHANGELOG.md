@@ -1,6 +1,7 @@
-0.4.1 (unreleased)
+0.4.1 (2019-02-11)
 ==================
  - Fix resource\_type attribute label not mapping correctly
+ - Fix tax rate 0.0 case not being handled
  - **New resource:** `commercetools_shipping_zone`
 
 0.4.0 (2019-01-10)
