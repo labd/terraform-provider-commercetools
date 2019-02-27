@@ -1,0 +1,43 @@
+parameters:
+  vmImage:
+
+jobs:
+  - job: Test_${{ parameters.platform }}
+    displayName: Test ${{ parameters.platform }}
+
+    pool:
+      vmImage: ${{ parameters.vmImage }}
+
+    variables:
+      GO111MODULE: on
+
+    steps:
+      - script: |
+          docker pull labdigital/commercetools-mock-server
+          docker run -d -p 127.0.0.1:898:8989 labdigital/commercetools-mock-server
+        displayName: "Start commercetools mock server"
+
+      - task: GoTool@0
+        displayName: 'Use Go 1.12'
+        inputs:
+          version: 1.12
+
+      - script: go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... -v ./...
+        displayName: "Run tests"
+        env:
+          TF_ACC: 1
+          CTP_AUTH_URL: http://localhost:8989
+          CTP_PROJECT_KEY: unittest
+          CTP_API_URL: http://localhost:8989
+          CTP_CLIENT_ID: unittest
+          CTP_CLIENT_SECRET: x
+
+      - task: Go@0
+        displayName: 'Build'
+        inputs:
+          command: build
+          arguments: -v ./...
+
+      - script: bash <(curl -s https://codecov.io/bash)
+        condition: succeeded()
+        displayName: "Upload coverage information to codecov.io"
