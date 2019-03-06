@@ -22,6 +22,18 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "name", "Test this thing",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "countries.#", "3",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "currencies.#", "2",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "languages.#", "4",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "messages.enabled", "1",
+					),
 				),
 			},
 		},
