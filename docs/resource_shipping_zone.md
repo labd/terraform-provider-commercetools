@@ -13,7 +13,7 @@ resource "commercetools_shipping_zone" "de-us" {
   location = {
       country = "DE"
   }
-  locations = {
+  location = {
       country = "US"
       state = "Nevada"
   }
