@@ -116,7 +116,29 @@ func TestAccProductTypes_basic(t *testing.T) {
 				Config: testAccProductTypeConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"commercetools_product_type.acctest_product_type", "key", name),
+						"commercetools_product_type.acctest_product_type", "key", name,
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "name", "Shipping info",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "description", "All things related shipping",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.0.name", "location",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.0.label.en", "Location",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.0.label.nl", "Locatie",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.0.type.0.name", "text",
+					),
 				),
 			},
 		},
