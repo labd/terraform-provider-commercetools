@@ -171,7 +171,7 @@ func TestAccShippingZone_createAndRemoveLocation(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccShippingZoneConfigLocationAdded(),
+				Config: testAccShippingZoneConfigLocationRemoved(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "name", "the zone",
