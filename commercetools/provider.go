@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/labd/commercetools-go-sdk/commercetools"
@@ -65,15 +66,16 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"commercetools_api_client":       resourceAPIClient(),
-			"commercetools_api_extension":    resourceAPIExtension(),
-			"commercetools_subscription":     resourceSubscription(),
-			"commercetools_project_settings": resourceProjectSettings(),
-			"commercetools_type":             resourceType(),
-			"commercetools_channel":          resourceChannel(),
-			"commercetools_product_type":     resourceProductType(),
-			"commercetools_tax_category":     resourceTaxCategory(),
-			"commercetools_shipping_zone":    resourceShippingZone(),
+			"commercetools_api_client":        resourceAPIClient(),
+			"commercetools_api_extension":     resourceAPIExtension(),
+			"commercetools_subscription":      resourceSubscription(),
+			"commercetools_project_settings":  resourceProjectSettings(),
+			"commercetools_type":              resourceType(),
+			"commercetools_channel":           resourceChannel(),
+			"commercetools_product_type":      resourceProductType(),
+			"commercetools_tax_category":      resourceTaxCategory(),
+			"commercetools_tax_category_rate": resourceTaxCategoryRate(),
+			"commercetools_shipping_zone":     resourceShippingZone(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -106,3 +108,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	return client, nil
 }
+
+// This is a global MutexKV for use within this plugin.
+var ctMutexKV = mutexkv.NewMutexKV()

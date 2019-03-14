@@ -92,7 +92,7 @@ func resourceTaxCategoryCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
-	log.Print("[DEBUG] Reading tax category from commercetools")
+	log.Printf("[DEBUG] Reading tax category from commercetools, with taxCategory id: %s", d.Id())
 	client := getClient(m)
 
 	taxCategory, err := client.TaxCategoryGetByID(d.Id())
@@ -123,11 +123,19 @@ func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceTaxCategoryUpdate(d *schema.ResourceData, m interface{}) error {
+	// Lock to prevent concurrent updates due to Version number conflicts
+	ctMutexKV.Lock(d.Id())
+	defer ctMutexKV.Unlock(d.Id())
+
 	client := getClient(m)
+	taxCategory, err := client.TaxCategoryGetByID(d.Id())
+	if err != nil {
+		return err
+	}
 
 	input := &commercetools.TaxCategoryUpdateInput{
 		ID:      d.Id(),
-		Version: d.Get("version").(int),
+		Version: taxCategory.Version,
 		Actions: []commercetools.TaxCategoryUpdateAction{},
 	}
 
@@ -156,7 +164,7 @@ func resourceTaxCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.TaxCategoryUpdate(input)
+	_, err = client.TaxCategoryUpdate(input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -169,8 +177,16 @@ func resourceTaxCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceTaxCategoryDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	version := d.Get("version").(int)
-	_, err := client.TaxCategoryDeleteByID(d.Id(), version)
+
+	// Lock to prevent concurrent updates due to Version number conflicts
+	ctMutexKV.Lock(d.Id())
+	defer ctMutexKV.Unlock(d.Id())
+
+	taxCategory, err := client.TaxCategoryGetByID(d.Id())
+	if err != nil {
+		return err
+	}
+	_, err = client.TaxCategoryDeleteByID(d.Id(), taxCategory.Version)
 	if err != nil {
 		return err
 	}
