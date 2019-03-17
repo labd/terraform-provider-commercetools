@@ -8,15 +8,13 @@ jobs:
     pool:
       vmImage: ${{ parameters.vmImage }}
 
+    services:
+      commercetools: commercetools
+
     variables:
       GO111MODULE: on
 
     steps:
-      - script: |
-          docker pull labdigital/commercetools-mock-server
-          docker run -d -p 127.0.0.1:898:8989 labdigital/commercetools-mock-server
-        displayName: "Start commercetools mock server"
-
       - task: GoTool@0
         displayName: 'Use Go 1.12'
         inputs:
