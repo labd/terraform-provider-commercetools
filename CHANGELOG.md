@@ -1,3 +1,8 @@
+0.5.0 (2019-03-18)
+==================
+ - **New resource** `commercetools_tax_category_rate`
+ - Resource tax category: removed `rate`, now a separate resource.
+
 0.4.2 (2019-02-11)
 ==================
  - Fix tax rate 0.0 case not being handled
