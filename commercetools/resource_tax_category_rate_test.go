@@ -2,6 +2,7 @@ package commercetools
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -10,7 +11,7 @@ import (
 
 func TestAccTaxCategoryRate_createAndUpdate(t *testing.T) {
 
-	name := "test rate"
+	name := acctest.RandomWithPrefix("tf-acc-test")
 	amount := 0.2
 	country := "DE"
 
@@ -77,12 +78,11 @@ resource "commercetools_tax_category_rate" "test_rate" {
 
 func TestAccTaxCategoryRate_createAndUpdateSubRates(t *testing.T) {
 
-	name := "test rate"
+	name := acctest.RandomWithPrefix("tf-acc-test")
 	subRateAmount := 0.3
 	amount := 0.2
 	country := "DE"
 
-	// # TODO: make parallel test cases
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -184,7 +184,7 @@ resource "commercetools_tax_category_rate" "test_rate" {
 
 func TestAccTaxCategoryRate_createAndUpdateBothRateAndTaxCategory(t *testing.T) {
 
-	name := "test rate"
+	name := acctest.RandomWithPrefix("tf-acc-test")
 	amount := 0.2
 	country := "DE"
 
