@@ -1,7 +1,8 @@
-0.5.0 (2019-03-18)
+0.5.0 (2019-03-19)
 ==================
  - **New resource** `commercetools_tax_category_rate`
  - Resource tax category: removed `rate`, now a separate resource.
+ - Fix shipping zone add/remove location logic.
 
 0.4.2 (2019-02-11)
 ==================
