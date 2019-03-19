@@ -151,18 +151,18 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 		oldLocations := resourceShippingZoneGetLocation(old)
 		newLocations := resourceShippingZoneGetLocation(new)
 
-		for _, location := range oldLocations {
+		for i, location := range oldLocations {
 			if !_locationInSlice(location, newLocations) {
 				input.Actions = append(
 					input.Actions,
-					&commercetools.ZoneRemoveLocationAction{Location: &location})
+					&commercetools.ZoneRemoveLocationAction{Location: &oldLocations[i]})
 			}
 		}
-		for _, location := range newLocations {
+		for i, location := range newLocations {
 			if !_locationInSlice(location, oldLocations) {
 				input.Actions = append(
 					input.Actions,
-					&commercetools.ZoneAddLocationAction{Location: &location})
+					&commercetools.ZoneAddLocationAction{Location: &newLocations[i]})
 			}
 		}
 	}
