@@ -79,7 +79,7 @@ func resourceTaxCategoryRateImportState(d *schema.ResourceData, meta interface{}
 	taxCategory, taxRate := findTaxRate(taxRateID, taxCategoriesQuery.Results)
 
 	if taxRate == nil {
-		return nil, fmt.Errorf("Tax rate does not seem to exist")
+		return nil, fmt.Errorf("Tax rate %s does not seem to exist", taxRateID)
 	}
 
 	results := make([]*schema.ResourceData, 0)
