@@ -1,3 +1,7 @@
+0.5.1 (2019-03-20)
+==================
+ - Fix import existing `commercetools_tax_category_rate`
+
 0.5.0 (2019-03-19)
 ==================
  - **New resource** `commercetools_tax_category_rate`
