@@ -2,8 +2,9 @@ package commercetools
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/acctest"
 	"testing"
+
+	"github.com/hashicorp/terraform/helper/acctest"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -48,6 +49,23 @@ func TestAccTaxCategoryRate_createAndUpdate(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_tax_category_rate.test_rate", "included_in_price", "false",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_tax_category_rate.test_rate", "country", country,
+					),
+				),
+			},
+			{
+				Config: testAccTaxCategoryRateConfig(name, 0.0, true, country),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_tax_category_rate.test_rate", "name", name,
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_tax_category_rate.test_rate", "amount", "0",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_tax_category_rate.test_rate", "included_in_price", "true",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_tax_category_rate.test_rate", "country", country,

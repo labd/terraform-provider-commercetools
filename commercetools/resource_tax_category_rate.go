@@ -141,7 +141,7 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 
 	input.Actions = append(input.Actions, commercetools.TaxCategoryAddTaxRateAction{TaxRate: taxRateDraft})
 
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(30*time.Second, func() *resource.RetryError {
 		taxCategory, err = client.TaxCategoryUpdate(input)
 		if err != nil {
 			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -276,19 +276,20 @@ func createTaxRateDraft(d *schema.ResourceData) (*commercetools.TaxRateDraft, er
 		countryCode = commercetools.CountryCode(value)
 	}
 
-	var amount *float64
-	if amountRaw, ok := d.GetOk("amount"); ok {
-		amountFloat := amountRaw.(float64)
-		amount = &amountFloat
-	}
+	amountRaw := d.Get("amount").(float64)
+
+	log.Printf("[DEBUG] Got amount: %f", amountRaw)
+
 	taxRateDraft := commercetools.TaxRateDraft{
 		Name:            d.Get("name").(string),
-		Amount:          amount,
+		Amount:          &amountRaw,
 		IncludedInPrice: d.Get("included_in_price").(bool),
 		Country:         countryCode,
 		State:           d.Get("state").(string),
 		SubRates:        subrates,
 	}
+
+	log.Printf("[DEBUG] Created tax rate draft: %#v from input %#v", taxRateDraft, d)
 
 	return &taxRateDraft, nil
 }
