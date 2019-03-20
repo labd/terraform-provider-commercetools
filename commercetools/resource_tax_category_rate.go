@@ -17,7 +17,7 @@ func resourceTaxCategoryRate() *schema.Resource {
 		Update: resourceTaxCategoryRateUpdate,
 		Delete: resourceTaxCategoryRateDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceTaxCategoryRateImportState,
 		},
 		Schema: map[string]*schema.Schema{
 			"tax_category_id": {
@@ -66,6 +66,38 @@ func resourceTaxCategoryRate() *schema.Resource {
 	}
 }
 
+func resourceTaxCategoryRateImportState(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := getClient(meta)
+	taxRateID := d.Id()
+	// Arbitrary number, safe to assume there won't be more than 500 tax categories...
+	queryInput := commercetools.QueryInput{Limit: 500}
+	taxCategoriesQuery, err := client.TaxCategoryQuery(&queryInput)
+	if err != nil {
+		return nil, err
+	}
+
+	taxCategory, taxRate := findTaxRate(taxRateID, taxCategoriesQuery.Results)
+
+	if taxRate == nil {
+		return nil, fmt.Errorf("Tax rate %s does not seem to exist", taxRateID)
+	}
+
+	results := make([]*schema.ResourceData, 0)
+	taxRateState := resourceTaxCategoryRate().Data(nil)
+
+	taxRateState.SetId(taxRate.ID)
+	taxRateState.SetType("commercetools_tax_category_rate")
+	taxRateState.Set("tax_category_id", taxCategory.ID)
+
+	setTaxRateState(taxRateState, taxRate)
+
+	results = append(results, taxRateState)
+
+	log.Printf("[DEBUG] Importing results: %#v", results)
+
+	return results, nil
+}
+
 func resourceTaxCategoryRateGetSubRates(input []interface{}) ([]commercetools.SubRate, error) {
 	result := []commercetools.SubRate{}
 
@@ -109,7 +141,7 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 
 	input.Actions = append(input.Actions, commercetools.TaxCategoryAddTaxRateAction{TaxRate: taxRateDraft})
 
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(30*time.Second, func() *resource.RetryError {
 		taxCategory, err = client.TaxCategoryUpdate(input)
 		if err != nil {
 			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -141,17 +173,27 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 }
 
 func resourceTaxCategoryRateRead(d *schema.ResourceData, m interface{}) error {
+	log.Printf("[DEBUG] Current tax rate state: %s and m: %s", stringFormatObject(d), stringFormatObject(m))
 	_, taxRate, err := readResourcesFromStateIDs(d, m)
 
 	if err != nil {
+		d.SetId("")
 		return err
 	}
 
+	setTaxRateState(d, taxRate)
+
+	return nil
+}
+
+func setTaxRateState(d *schema.ResourceData, taxRate *commercetools.TaxRate) {
+	log.Printf("[DEBUG] Setting state: %s to taxRate: %s", stringFormatObject(d), stringFormatObject(taxRate))
 	d.Set("name", taxRate.Name)
 	d.Set("amount", taxRate.Amount)
 	d.Set("included_in_price", taxRate.IncludedInPrice)
 	d.Set("country", taxRate.Country)
 	d.Set("state", taxRate.State)
+
 	subRateData := make([]map[string]interface{}, len(taxRate.SubRates))
 	for srIndex, subrate := range taxRate.SubRates {
 		subRateData[srIndex] = map[string]interface{}{
@@ -161,7 +203,7 @@ func resourceTaxCategoryRateRead(d *schema.ResourceData, m interface{}) error {
 	}
 	d.Set("sub_rate", subRateData)
 
-	return nil
+	log.Printf("[DEBUG] Updated state to: %s", stringFormatObject(d))
 }
 
 func resourceTaxCategoryRateUpdate(d *schema.ResourceData, m interface{}) error {
@@ -234,19 +276,20 @@ func createTaxRateDraft(d *schema.ResourceData) (*commercetools.TaxRateDraft, er
 		countryCode = commercetools.CountryCode(value)
 	}
 
-	var amount *float64
-	if amountRaw, ok := d.GetOk("amount"); ok {
-		amountFloat := amountRaw.(float64)
-		amount = &amountFloat
-	}
+	amountRaw := d.Get("amount").(float64)
+
+	log.Printf("[DEBUG] Got amount: %f", amountRaw)
+
 	taxRateDraft := commercetools.TaxRateDraft{
 		Name:            d.Get("name").(string),
-		Amount:          amount,
+		Amount:          &amountRaw,
 		IncludedInPrice: d.Get("included_in_price").(bool),
 		Country:         countryCode,
 		State:           d.Get("state").(string),
 		SubRates:        subrates,
 	}
+
+	log.Printf("[DEBUG] Created tax rate draft: %#v from input %#v", taxRateDraft, d)
 
 	return &taxRateDraft, nil
 }
@@ -343,4 +386,15 @@ func getTaxRateByID(taxCategory *commercetools.TaxCategory, taxRateID string) *c
 	}
 
 	return nil
+}
+
+func findTaxRate(taxRateID string, taxCategories []commercetools.TaxCategory) (*commercetools.TaxCategory, *commercetools.TaxRate) {
+	for _, taxCategory := range taxCategories {
+		for _, taxRate := range taxCategory.Rates {
+			if taxRate.ID == taxRateID {
+				return &taxCategory, &taxRate
+			}
+		}
+	}
+	return nil, nil
 }
