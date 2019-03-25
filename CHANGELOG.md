@@ -1,3 +1,7 @@
+0.5.2 (2019-03-26)
+==================
+ - Fix error reading field type `Money` in `commercetools_type`
+
 0.5.1 (2019-03-20)
 ==================
  - Fix import existing `commercetools_tax_category_rate`
