@@ -510,7 +510,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		if enumType, ok := newFieldType.(commercetools.AttributeEnumType); ok {
 			oldEnumV := oldFieldType["values"].(map[string]interface{})
 
-			for _, enumValue := range enumType.Values {
+			for i, enumValue := range enumType.Values {
 				newEnumKeys[enumValue.Key] = enumValue
 				if _, ok := oldEnumV[enumValue.Key]; !ok {
 					// Key does not appear in old enum values, so we'll add it
@@ -518,7 +518,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 						actions,
 						commercetools.ProductTypeAddPlainEnumValueAction{
 							AttributeName: name,
-							Value:         &enumValue,
+							Value:         &enumType.Values[i],
 						})
 				}
 			}
@@ -534,7 +534,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 				oldEnumKeys[v["key"].(string)] = v
 			}
 
-			for _, enumValue := range enumType.Values {
+			for i, enumValue := range enumType.Values {
 				newEnumKeys[enumValue.Key] = enumValue
 				if _, ok := oldEnumKeys[enumValue.Key]; !ok {
 					// Key does not appear in old enum values, so we'll add it
@@ -542,8 +542,21 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 						actions,
 						commercetools.ProductTypeAddLocalizedEnumValueAction{
 							AttributeName: name,
-							Value:         &enumValue,
+							Value:         &enumType.Values[i],
 						})
+				} else {
+					oldEnumValue := oldEnumKeys[enumValue.Key].(map[string]interface{})
+					oldLocalizedLabel := oldEnumValue["label"].(map[string]interface{})
+					newLocalizedLabel := enumValue.Label
+					labelChanged := !reflect.DeepEqual(oldLocalizedLabel, newLocalizedLabel)
+					if labelChanged {
+						actions = append(
+							actions,
+							commercetools.ProductTypeChangeLocalizedEnumValueLabelAction{
+								AttributeName: name,
+								NewValue:      &enumType.Values[i],
+							})
+					}
 				}
 			}
 
@@ -557,6 +570,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 				removeEnumKeys = append(removeEnumKeys, key)
 			}
 		}
+
 		if len(removeEnumKeys) > 0 {
 			actions = append(
 				actions,

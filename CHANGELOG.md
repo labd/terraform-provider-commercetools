@@ -1,3 +1,8 @@
+0.5.3 (2019-03-27)
+==================
+ - Implement description update on `commercetools_product_type`
+ - Implement localized enum label change on `commercetools_product_type`
+
 0.5.2 (2019-03-26)
 ==================
  - Fix error reading field type `Money` in `commercetools_type`
