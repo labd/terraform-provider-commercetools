@@ -35,6 +35,22 @@ $ cd $GOPATH/src/github.com/labd/terraform-provider-commercetools
 $ make build
 ```
 
+To then locally test:
+
+```sh
+$ cp terraform-provider-commercetools ~/.terraform.d/plugins/darwin_amd64/terraform-provider-commercetools
+```
+
+## Releasing
+
+This project uses Goreleaser, see `.goreleaser.yml`. To release:
+
+```sh
+git tag <release> -m "Release <release>"
+git push --follow-tags
+GITHUB_TOKEN=<your github token> gorelease release --rm-dist
+```
+
 ## Testing
 
 ### Running the unit tests
