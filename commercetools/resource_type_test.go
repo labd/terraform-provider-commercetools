@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 
@@ -202,6 +203,33 @@ resource "commercetools_type" "%s" {
 }
 
 func testAccTypeUpdate(name string) string {
+	newFields := []string{
+		"Boolean",
+		"LocalizedString",
+		"Number",
+		"Money",
+		"Date",
+		"Time",
+		"DateTime",
+	}
+	var newFieldsBuffer bytes.Buffer
+	for _, newType := range newFields {
+		newFieldsBuffer.WriteString(
+			fmt.Sprintf(`
+		field {
+			name = "%[1]s"
+			label = {
+				en = "%[1]s"
+				nl = "%[1]s"
+			}
+
+			type {
+				name = "%[1]s"
+			}
+		}
+		`, newType))
+	}
+
 	return fmt.Sprintf(`
 resource "commercetools_type" "%s" {
 	key = "%s"
@@ -228,16 +256,47 @@ resource "commercetools_type" "%s" {
 	}
 
 	field {
-		name = "new_field"
+		name = "new_enum"
 		label = {
-			en = "Some new field"
-			nl = "Een nieuw veld"
+			en = "new enum"
+			nl = "nieuwe enum"
 		}
 		type {
-			name = "String"
+			name = "Enum"
+			values {
+				day = "Daytime"
+				evening = "Evening"
+			}
 		}
 	}
-}`, name, name)
+
+	field {
+		name = "new_localized_enum"
+		label = {
+			en = "New localized enum"
+			nl = "Nieuwe localized enum"
+		}
+		type {
+			name = "LocalizedEnum"
+			localized_value {
+				key = "phone"
+				label {
+					en = "Phone"
+					nl = "Telefoon"
+				}
+			}
+			localized_value {
+				key = "skype"
+				label {
+					en = "Skype"
+					nl = "Skype"
+				}
+			}
+		}
+	}
+
+	%s
+}`, name, name, newFieldsBuffer.String())
 }
 
 func testAccTypeExists(n string) resource.TestCheckFunc {

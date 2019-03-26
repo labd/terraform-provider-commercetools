@@ -337,7 +337,7 @@ func resourceTypeReadFieldType(fieldType commercetools.FieldType, setsAllowed bo
 		typeData["localized_value"] = readCustomFieldLocalizedEnum(f.Values)
 	} else if _, ok := fieldType.(commercetools.CustomFieldNumberType); ok {
 		typeData["name"] = "Number"
-	} else if _, ok := fieldType.(commercetools.CustomFieldNumberType); ok {
+	} else if _, ok := fieldType.(commercetools.CustomFieldMoneyType); ok {
 		typeData["name"] = "Money"
 	} else if _, ok := fieldType.(commercetools.CustomFieldDateType); ok {
 		typeData["name"] = "Date"
