@@ -388,16 +388,14 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.TypeChangeNameAction{Name: &newName})
 	}
 
-	/*
-		TODO
-		if d.HasChange("description") {
-			newDescr := commercetools.LocalizedString(
-				expandStringMap(d.Get("description").(map[string]interface{})))
-			input.Actions = append(
-				input.Actions,
-				&commercetools.SetDescription{Description: &newDescr})
-		}
-	*/
+	if d.HasChange("description") {
+		newDescr := commercetools.LocalizedString(
+			expandStringMap(d.Get("description").(map[string]interface{})))
+		input.Actions = append(
+			input.Actions,
+			&commercetools.TypeSetDescriptionAction{
+				Description: &newDescr})
+	}
 
 	if d.HasChange("field") {
 		old, new := d.GetChange("field")
@@ -473,14 +471,14 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		if enumType, ok := newFieldType.(commercetools.CustomFieldEnumType); ok {
 			oldEnumV := oldFieldType["values"].(map[string]interface{})
 
-			for _, enumValue := range enumType.Values {
+			for i, enumValue := range enumType.Values {
 				if _, ok := oldEnumV[enumValue.Key]; !ok {
 					// Key does not appear in old enum values, so we'll add it
 					actions = append(
 						actions,
 						commercetools.TypeAddEnumValueAction{
 							FieldName: name,
-							Value:     &enumValue,
+							Value:     &enumType.Values[i],
 						})
 				}
 			}
@@ -497,14 +495,14 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 				oldEnumKeys[v["key"].(string)] = v
 			}
 
-			for _, enumValue := range enumType.Values {
+			for i, enumValue := range enumType.Values {
 				if _, ok := oldEnumKeys[enumValue.Key]; !ok {
 					// Key does not appear in old enum values, so we'll add it
 					actions = append(
 						actions,
 						commercetools.TypeAddLocalizedEnumValueAction{
 							FieldName: name,
-							Value:     &enumValue,
+							Value:     &enumType.Values[i],
 						})
 				}
 			}
