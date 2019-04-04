@@ -28,6 +28,10 @@ func resourceShippingZone() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"key": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"location": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -62,6 +66,7 @@ func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
 	locations := resourceShippingZoneGetLocation(input)
 
 	draft := &commercetools.ZoneDraft{
+		Key:         d.Get("key").(string),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 		Locations:   locations,
@@ -115,6 +120,7 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 		log.Print(stringFormatObject(shippingZone))
 
 		d.Set("version", shippingZone.Version)
+		d.Set("key", shippingZone.Key)
 		d.Set("name", shippingZone.Name)
 		d.Set("description", shippingZone.Description)
 		d.Set("locations", shippingZone.Locations)
@@ -131,6 +137,12 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 		Actions: []commercetools.ZoneUpdateAction{},
 	}
 
+	if d.HasChange("key") {
+		newKey := d.Get("key").(string)
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ZoneSetKeyAction{Key: newKey})
+	}
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		input.Actions = append(
