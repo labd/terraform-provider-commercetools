@@ -10,9 +10,11 @@ import (
 
 func TestAccShippingZone_createAndUpdate(t *testing.T) {
 
+	key := "key"
 	name := "name"
 	description := "description"
 
+	newKey := "new key"
 	newName := "new name"
 	newDescription := "new description"
 
@@ -22,7 +24,7 @@ func TestAccShippingZone_createAndUpdate(t *testing.T) {
 		CheckDestroy: testAccCheckShippingZoneDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingZoneConfig(name, description),
+				Config: testAccShippingZoneConfig(name, description, key),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "name", name,
@@ -33,10 +35,13 @@ func TestAccShippingZone_createAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "location.#", "2",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_zone.standard", "key", key,
+					),
 				),
 			},
 			{
-				Config: testAccShippingZoneConfig(newName, newDescription),
+				Config: testAccShippingZoneConfig(newName, newDescription, newKey),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "name", newName,
@@ -47,17 +52,21 @@ func TestAccShippingZone_createAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "location.#", "2",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_zone.standard", "key", newKey,
+					),
 				),
 			},
 		},
 	})
 }
 
-func testAccShippingZoneConfig(name string, description string) string {
+func testAccShippingZoneConfig(name string, description string, key string) string {
 	return fmt.Sprintf(`
 resource "commercetools_shipping_zone" "standard" {
 	name = "%s"
 	description = "%s"
+	key = "%s"
 	location = {
 		country = "DE"
 	}
@@ -65,7 +74,7 @@ resource "commercetools_shipping_zone" "standard" {
 		country = "US"
 		state = "Nevada"
 	}
-}`, name, description)
+}`, name, description, key)
 }
 
 func TestAccShippingZone_createAndAddLocation(t *testing.T) {
@@ -79,7 +88,7 @@ func TestAccShippingZone_createAndAddLocation(t *testing.T) {
 		CheckDestroy: testAccCheckShippingZoneDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingZoneConfig(name, description),
+				Config: testAccShippingZoneConfig(name, description, name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "name", name,
@@ -154,7 +163,7 @@ func TestAccShippingZone_createAndRemoveLocation(t *testing.T) {
 		CheckDestroy: testAccCheckShippingZoneDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingZoneConfig(name, description),
+				Config: testAccShippingZoneConfig(name, description, name),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "name", name,
