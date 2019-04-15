@@ -125,7 +125,7 @@ func TestAccProductTypes_basic(t *testing.T) {
 						"commercetools_product_type.acctest_product_type", "description", "All things related shipping",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_product_type.acctest_product_type", "attribute.#", "1",
+						"commercetools_product_type.acctest_product_type", "attribute.#", "2",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.0.name", "location",
@@ -139,10 +139,86 @@ func TestAccProductTypes_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.0.type.0.name", "text",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.1.type.0.localized_value.0.label.en", "Snack",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.1.type.0.localized_value.0.label.nl", "maaltijd",
+					),
+				),
+			},
+			{
+				Config: testAccProductTypeConfigLabelChange(name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "key", name,
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "name", "Shipping info",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "description", "All things related shipping",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.#", "2",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.0.name", "location",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.0.label.en", "Location change",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.1.type.0.localized_value.0.label.en", "snack",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.1.type.0.localized_value.0.label.nl", "nomnom",
+					),
 				),
 			},
 		},
 	})
+}
+
+func testAccProductTypeConfigLabelChange(name string) string {
+	return fmt.Sprintf(`
+resource "commercetools_product_type" "acctest_product_type" {
+	key = "%s"
+	name = "Shipping info"
+	description = "All things related shipping"
+
+	attribute {
+		name = "location"
+		label = {
+			en = "Location change"
+			nl = "Locatie"
+		}
+		type {
+			name = "text"
+		}
+	}
+
+	attribute {
+		name = "meal"
+		label = {
+			en = "meal"
+			nl = "maaltijd"
+		}
+
+		type = {
+			name = "lenum"
+
+            localized_value = {
+			  key = "snack"
+
+			  label {
+				en = "snack"
+				nl = "nomnom"
+			  }
+			}
+		}
+	}
+}`, name)
 }
 
 func testAccProductTypeConfig(name string) string {
@@ -160,6 +236,27 @@ resource "commercetools_product_type" "acctest_product_type" {
 		}
 		type {
 			name = "text"
+		}
+	}
+
+	attribute {
+		name = "meal"
+		label = {
+			en = "meal"
+			nl = "maaltijd"
+		}
+
+		type = {
+			name = "lenum"
+
+			localized_value = {
+			  key = "snack"
+
+			  label {
+				en = "Snack"
+				nl = "maaltijd"
+			  }
+			}
 		}
 	}
 }`, name)
