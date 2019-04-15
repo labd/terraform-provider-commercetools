@@ -35,8 +35,21 @@ func expandStringMap(input map[string]interface{}) map[string]string {
 	return s
 }
 
-func localizedStringToMap(input commercetools.LocalizedString) map[string]interface{} {
-	result := make(map[string]interface{}, len(input))
+func localizedStringCompare(a commercetools.LocalizedString, b map[string]interface{}) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+
+func localizedStringToMap(input commercetools.LocalizedString) map[string]string {
+	result := make(map[string]string, len(input))
 	for k, v := range input {
 		result[k] = v
 	}
