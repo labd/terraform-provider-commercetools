@@ -1,3 +1,7 @@
+0.5.4 (2019-04-14)
+==================
+ - Fixed localized enum values being updated even if not changed for `commercetools_product_type`
+
 0.5.3 (2019-03-27)
 ==================
  - Implement description update on `commercetools_product_type`
