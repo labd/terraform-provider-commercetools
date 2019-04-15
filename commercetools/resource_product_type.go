@@ -547,8 +547,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 				} else {
 					oldEnumValue := oldEnumKeys[enumValue.Key].(map[string]interface{})
 					oldLocalizedLabel := oldEnumValue["label"].(map[string]interface{})
-					newLocalizedLabel := enumValue.Label
-					labelChanged := !reflect.DeepEqual(oldLocalizedLabel, newLocalizedLabel)
+					labelChanged := !localizedStringCompare(*enumValue.Label, oldLocalizedLabel)
 					if labelChanged {
 						actions = append(
 							actions,
