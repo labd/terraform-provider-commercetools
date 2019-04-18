@@ -39,6 +39,10 @@ func resourceShippingMethod() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"tax_category_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -46,14 +50,17 @@ func resourceShippingMethod() *schema.Resource {
 func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	var shippingMethod *commercetools.ShippingMethod
-	emptyTaxCategory := commercetools.TaxCategoryReference{}
+	taxCategory := commercetools.TaxCategoryReference{}
+	if taxCategoryID, ok := d.GetOk("tax_category_id"); ok {
+		taxCategory.ID = taxCategoryID.(string)
+	}
 
 	draft := &commercetools.ShippingMethodDraft{
 		Key:         d.Get("key").(string),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 		IsDefault:   d.Get("is_default").(bool),
-		TaxCategory: &emptyTaxCategory,
+		TaxCategory: &taxCategory,
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -116,6 +123,7 @@ func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("name", shippingMethod.Name)
 		d.Set("description", shippingMethod.Description)
 		d.Set("is_default", shippingMethod.IsDefault)
+		d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
 	}
 
 	return nil
@@ -163,6 +171,13 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 		input.Actions = append(
 			input.Actions,
 			&commercetools.ShippingMethodChangeIsDefaultAction{IsDefault: newIsDefault})
+	}
+
+	if d.HasChange("tax_category_id") {
+		taxCategoryID := d.Get("tax_category_id").(string)
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ShippingMethodChangeTaxCategoryAction{TaxCategory: &commercetools.TaxCategoryReference{ID: taxCategoryID}})
 	}
 
 	log.Printf(

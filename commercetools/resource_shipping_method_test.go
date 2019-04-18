@@ -24,7 +24,7 @@ func TestAccShippingMethod_createAndUpdate(t *testing.T) {
 		CheckDestroy: testAccCheckShippingMethodDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingMethodConfig(name, key, description, false),
+				Config: testAccShippingMethodConfig(name, key, description, false, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "name", name,
@@ -41,7 +41,7 @@ func TestAccShippingMethod_createAndUpdate(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccShippingMethodConfig(newName, newKey, newDescription, true),
+				Config: testAccShippingMethodConfig(newName, newKey, newDescription, true, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "name", newName,
@@ -55,20 +55,31 @@ func TestAccShippingMethod_createAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "is_default", "true",
 					),
+					resource.TestCheckResourceAttrSet(
+						"commercetools_shipping_method.standard", "tax_category_id",
+					),
 				),
 			},
 		},
 	})
 }
 
-func testAccShippingMethodConfig(name string, key string, description string, isDefault bool) string {
+func testAccShippingMethodConfig(name string, key string, description string, isDefault bool, setTaxCategory bool) string {
+	taxCategoryReference := ""
+	if setTaxCategory {
+		taxCategoryReference = "tax_category_id = \"${commercetools_tax_category.test.id}\""
+	}
 	return fmt.Sprintf(`
+resource "commercetools_tax_category" "test" {
+	name = "test"
+	key = "test"
+	description = "test"
+}
 resource "commercetools_shipping_method" "standard" {
 	name = "%s"
 	key = "%s"
 	description = "%s"
-	is_default = "%t"
-}`, name, key, description, isDefault)
+	is_default = "%t"`, name, key, description, isDefault) + taxCategoryReference + "\n}\n"
 }
 
 func testAccCheckShippingMethodDestroy(s *terraform.State) error {
