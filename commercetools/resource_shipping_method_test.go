@@ -24,7 +24,7 @@ func TestAccShippingMethod_createAndUpdate(t *testing.T) {
 		CheckDestroy: testAccCheckShippingMethodDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingMethodConfig(name, key, description),
+				Config: testAccShippingMethodConfig(name, key, description, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "name", name,
@@ -35,10 +35,13 @@ func TestAccShippingMethod_createAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "description", description,
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_method.standard", "is_default", "false",
+					),
 				),
 			},
 			{
-				Config: testAccShippingMethodConfig(newName, newKey, newDescription),
+				Config: testAccShippingMethodConfig(newName, newKey, newDescription, true),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "name", newName,
@@ -49,19 +52,23 @@ func TestAccShippingMethod_createAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "description", newDescription,
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_method.standard", "is_default", "true",
+					),
 				),
 			},
 		},
 	})
 }
 
-func testAccShippingMethodConfig(name string, key string, description string) string {
+func testAccShippingMethodConfig(name string, key string, description string, isDefault bool) string {
 	return fmt.Sprintf(`
 resource "commercetools_shipping_method" "standard" {
 	name = "%s"
 	key = "%s"
 	description = "%s"
-}`, name, key, description)
+	is_default = "%t"
+}`, name, key, description, isDefault)
 }
 
 func testAccCheckShippingMethodDestroy(s *terraform.State) error {

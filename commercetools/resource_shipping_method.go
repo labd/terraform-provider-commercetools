@@ -31,6 +31,10 @@ func resourceShippingMethod() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"is_default": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -48,6 +52,7 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 		Key:         d.Get("key").(string),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
+		IsDefault:   d.Get("is_default").(bool),
 		TaxCategory: &emptyTaxCategory,
 	}
 
@@ -110,6 +115,7 @@ func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("key", shippingMethod.Key)
 		d.Set("name", shippingMethod.Name)
 		d.Set("description", shippingMethod.Description)
+		d.Set("is_default", shippingMethod.IsDefault)
 	}
 
 	return nil
@@ -150,6 +156,13 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 		input.Actions = append(
 			input.Actions,
 			&commercetools.ShippingMethodSetDescriptionAction{Description: newDescription})
+	}
+
+	if d.HasChange("is_default") {
+		newIsDefault := d.Get("is_default").(bool)
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ShippingMethodChangeIsDefaultAction{IsDefault: newIsDefault})
 	}
 
 	log.Printf(
