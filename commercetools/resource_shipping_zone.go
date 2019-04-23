@@ -131,6 +131,9 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
+	ctMutexKV.Lock(d.Id())
+	defer ctMutexKV.Unlock(d.Id())
+
 	input := &commercetools.ZoneUpdateInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
@@ -189,6 +192,11 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
+
+	// Lock to prevent concurrent updates due to Version number conflicts
+	ctMutexKV.Lock(d.Id())
+	defer ctMutexKV.Unlock(d.Id())
+
 	version := d.Get("version").(int)
 	_, err := client.ZoneDeleteByID(d.Id(), version)
 	if err != nil {
