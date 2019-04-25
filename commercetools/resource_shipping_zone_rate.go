@@ -24,10 +24,12 @@ func resourceShippingZoneRate() *schema.Resource {
 			"shipping_method_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"shipping_zone_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"price": {
 				Type:     schema.TypeList,
@@ -39,6 +41,7 @@ func resourceShippingZoneRate() *schema.Resource {
 						"currency_code": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 						"cent_amount": {
 							Type:     schema.TypeString,
@@ -57,6 +60,7 @@ func resourceShippingZoneRate() *schema.Resource {
 						"currency_code": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 						"cent_amount": {
 							Type:     schema.TypeString,
@@ -71,7 +75,6 @@ func resourceShippingZoneRate() *schema.Resource {
 
 func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	var zoneRate *commercetools.ZoneRate
 	shippingZoneID := d.Get("shipping_zone_id").(string)
 	shippingMethodID := d.Get("shipping_method_id").(string)
 
@@ -139,7 +142,7 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 func resourceShippingZoneRateRead(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] Reading shipping zone rate from commercetools, with id: %s", d.Id())
 
-	shippingMethodID, shippingZoneID, _ := getShippingIDs(d.Id())
+	shippingMethodID, _, _ := getShippingIDs(d.Id())
 
 	client := getClient(m)
 
@@ -172,7 +175,7 @@ func resourceShippingZoneRateRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceShippingZoneRateUpdate(d *schema.ResourceData, m interface{}) error {
-	shippingMethodID := d.Get("shipping_method_id").(string)
+	shippingMethodID, shippingZoneID, currencyCode := getShippingIDs(d.Id())
 	ctMutexKV.Lock(shippingMethodID)
 	defer ctMutexKV.Unlock(shippingMethodID)
 
@@ -182,21 +185,66 @@ func resourceShippingZoneRateUpdate(d *schema.ResourceData, m interface{}) error
 		return err
 	}
 
+	shippingRate, err := findShippingZoneRate(shippingZoneID, currencyCode, shippingMethod)
+
+	if err != nil {
+		return err
+	}
+
 	input := &commercetools.ShippingMethodUpdateInput{
-		ID:      d.Id(),
+		ID:      shippingMethodID,
 		Version: shippingMethod.Version,
 		Actions: []commercetools.ShippingMethodUpdateAction{},
 	}
 
+	// TODO: test if this HasChange works correctly like this
 	if d.HasChange("price") || d.HasChange("free_above") {
-		// TODO: figure out if you can remove/add at the same time (probably not)
-		input.Actions = append(
-			input.Actions,
-			&commercetools.ShippingMethodRemoveShippingRateAction{})
-		input.Actions = append(
-			input.Actions,
-			&commercetools.ShippingMethodAddShippingRateAction{})
+		zoneReference := commercetools.ZoneReference{
+			ID: shippingZoneID,
+		}
 
+		oldTypedPrice := shippingRate.Price.(commercetools.CentPrecisionMoney)
+		oldFreeAbove := shippingRate.FreeAbove.(commercetools.CentPrecisionMoney)
+
+		oldShippingRateDraft := commercetools.ShippingRateDraft{
+			Price: &commercetools.Money{
+				CurrencyCode: commercetools.CurrencyCode(currencyCode),
+				CentAmount:   oldTypedPrice.CentAmount,
+			},
+			FreeAbove: &commercetools.Money{
+				CurrencyCode: commercetools.CurrencyCode(currencyCode),
+				CentAmount:   oldFreeAbove.CentAmount,
+			},
+		}
+
+		price := d.Get("price").([]interface{})[0].(map[string]interface{})
+		freeAbove := d.Get("free_above").([]interface{})[0].(map[string]interface{})
+
+		newShippingRateDraft := commercetools.ShippingRateDraft{
+			Price: &commercetools.Money{
+				CurrencyCode: commercetools.CurrencyCode(currencyCode),
+				CentAmount:   price["cent_amount"].(int),
+			},
+			FreeAbove: &commercetools.Money{
+				CurrencyCode: commercetools.CurrencyCode(currencyCode),
+				CentAmount:   freeAbove["cent_amount"].(int),
+			},
+		}
+
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ShippingMethodRemoveShippingRateAction{
+				Zone: &commercetools.ZoneReference{
+					ID: shippingZoneID,
+				},
+				ShippingRate: &oldShippingRateDraft,
+			})
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ShippingMethodAddShippingRateAction{
+				Zone: &zoneReference,
+				ShippingRate: &newShippingRateDraft,
+			})
 	}
 
 	log.Printf(
@@ -250,6 +298,8 @@ func resourceShippingZoneRateDelete(d *schema.ResourceData, m interface{}) error
 		},
 	}
 
+	input.Actions = append(input.Actions, removeAction)
+
 	_, err = client.ShippingMethodUpdateByID(input)
 	if err != nil {
 		return err
@@ -269,9 +319,9 @@ func getShippingIDs(shippingZoneRateID string) (string, string, string) {
 }
 
 func findShippingZoneRate(shippingZoneID string, currencyCode string, shippingMethod *commercetools.ShippingMethod) (*commercetools.ShippingRate, error) {
-	for idx, zoneRate := range shippingMethod.ZoneRates {
+	for _, zoneRate := range shippingMethod.ZoneRates {
 		if zoneRate.Zone.ID == shippingZoneID {
-			for idx, shippingRate := range zoneRate.ShippingRates {
+			for _, shippingRate := range zoneRate.ShippingRates {
 				if shippingRate.Price.(commercetools.CentPrecisionMoney).CurrencyCode == commercetools.CurrencyCode(currencyCode) {
 					return &shippingRate, nil
 				}
