@@ -18,7 +18,7 @@ func resourceShippingZoneRate() *schema.Resource {
 		Update: resourceShippingZoneRateUpdate,
 		Delete: resourceShippingZoneRateDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceShippingZoneRateImportState,
 		},
 		Schema: map[string]*schema.Schema{
 			"shipping_method_id": {
@@ -44,7 +44,7 @@ func resourceShippingZoneRate() *schema.Resource {
 							ForceNew: true,
 						},
 						"cent_amount": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeInt,
 							Required: true,
 						},
 					},
@@ -63,7 +63,7 @@ func resourceShippingZoneRate() *schema.Resource {
 							ForceNew: true,
 						},
 						"cent_amount": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeInt,
 							Required: true,
 						},
 					},
@@ -71,6 +71,30 @@ func resourceShippingZoneRate() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceShippingZoneRateImportState(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := getClient(meta)
+	shippingMethodID, _, _ := getShippingIDs(d.Id())
+
+	shippingMethod, err := client.ShippingMethodGetByID(shippingMethodID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]*schema.ResourceData, 0)
+	shippingZoneRateState := resourceShippingZoneRate().Data(nil)
+	shippingZoneRateState.SetId(d.Id())
+	shippingZoneRateState.SetType("commercetools_shipping_zone_rate")
+
+	setShippingZoneRateState(d, shippingMethod)
+
+	results = append(results, shippingZoneRateState)
+
+	log.Printf("[DEBUG] Importing results: %#v", results)
+
+	return results, nil
 }
 
 func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error {
@@ -94,18 +118,24 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 		Actions: []commercetools.ShippingMethodUpdateAction{},
 	}
 	price := d.Get("price").([]interface{})[0].(map[string]interface{})
-	freeAbove := d.Get("free_above").([]interface{})[0].(map[string]interface{})
+	var freeAbove *commercetools.Money
+	if freeAbove, ok := d.GetOk("free_above"); ok {
+		freeAboveMap := freeAbove.([]interface{})[0].(map[string]interface{})
+		freeAbove = &commercetools.Money{
+			CurrencyCode: commercetools.CurrencyCode(freeAboveMap["currency_code"].(string)),
+			CentAmount:   freeAboveMap["cent_amount"].(int),
+		}
+	}
+
+	priceCurrencyCode := commercetools.CurrencyCode(price["currency_code"].(string))
 	input.Actions = append(input.Actions, commercetools.ShippingMethodAddShippingRateAction{
 		Zone: &commercetools.ZoneReference{ID: shippingZoneID},
 		ShippingRate: &commercetools.ShippingRateDraft{
 			Price: &commercetools.Money{
-				CurrencyCode: price["currency_code"].(commercetools.CurrencyCode),
+				CurrencyCode: priceCurrencyCode,
 				CentAmount:   price["cent_amount"].(int),
 			},
-			FreeAbove: &commercetools.Money{
-				CurrencyCode: freeAbove["currency_code"].(commercetools.CurrencyCode),
-				CentAmount:   freeAbove["cent_amount"].(int),
-			},
+			FreeAbove: freeAbove,
 		},
 	})
 
@@ -133,10 +163,13 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 		log.Fatal("No shipping method created?")
 	}
 
-	newID := shippingMethod.ID + "@" + shippingZoneID
-	d.SetId(newID)
+	d.SetId(buildShippingZoneRateID(shippingMethod.ID, shippingZoneID, string(priceCurrencyCode)))
 
 	return resourceShippingZoneRateRead(d, m)
+}
+
+func buildShippingZoneRateID(shippingMethodID string, shippingZoneID string, currencyCode string) string {
+	return shippingMethodID + "@" + shippingZoneID + "@" + currencyCode
 }
 
 func resourceShippingZoneRateRead(d *schema.ResourceData, m interface{}) error {
@@ -204,31 +237,39 @@ func resourceShippingZoneRateUpdate(d *schema.ResourceData, m interface{}) error
 		}
 
 		oldTypedPrice := shippingRate.Price.(commercetools.CentPrecisionMoney)
-		oldFreeAbove := shippingRate.FreeAbove.(commercetools.CentPrecisionMoney)
+		var oldFreeAboveMoney *commercetools.Money
+		if shippingRate.FreeAbove != nil {
+			oldFreeAbove := shippingRate.FreeAbove.(commercetools.CentPrecisionMoney)
+			oldFreeAboveMoney = &commercetools.Money{
+				CurrencyCode: commercetools.CurrencyCode(currencyCode),
+				CentAmount:   oldFreeAbove.CentAmount,
+			}
+		}
 
 		oldShippingRateDraft := commercetools.ShippingRateDraft{
 			Price: &commercetools.Money{
 				CurrencyCode: commercetools.CurrencyCode(currencyCode),
 				CentAmount:   oldTypedPrice.CentAmount,
 			},
-			FreeAbove: &commercetools.Money{
-				CurrencyCode: commercetools.CurrencyCode(currencyCode),
-				CentAmount:   oldFreeAbove.CentAmount,
-			},
+			FreeAbove: oldFreeAboveMoney,
 		}
 
 		price := d.Get("price").([]interface{})[0].(map[string]interface{})
-		freeAbove := d.Get("free_above").([]interface{})[0].(map[string]interface{})
+		var newFreeAboveMoney *commercetools.Money
+		if freeAbove, ok := d.GetOk("free_above"); ok {
+			freeAboveMap := freeAbove.([]interface{})[0].(map[string]interface{})
+			newFreeAboveMoney = &commercetools.Money{
+				CurrencyCode: commercetools.CurrencyCode(currencyCode),
+				CentAmount:   freeAboveMap["cent_amount"].(int),
+			}
+		}
 
 		newShippingRateDraft := commercetools.ShippingRateDraft{
 			Price: &commercetools.Money{
 				CurrencyCode: commercetools.CurrencyCode(currencyCode),
 				CentAmount:   price["cent_amount"].(int),
 			},
-			FreeAbove: &commercetools.Money{
-				CurrencyCode: commercetools.CurrencyCode(currencyCode),
-				CentAmount:   freeAbove["cent_amount"].(int),
-			},
+			FreeAbove: newFreeAboveMoney,
 		}
 
 		input.Actions = append(
@@ -242,7 +283,7 @@ func resourceShippingZoneRateUpdate(d *schema.ResourceData, m interface{}) error
 		input.Actions = append(
 			input.Actions,
 			&commercetools.ShippingMethodAddShippingRateAction{
-				Zone: &zoneReference,
+				Zone:         &zoneReference,
 				ShippingRate: &newShippingRateDraft,
 			})
 	}
@@ -280,7 +321,14 @@ func resourceShippingZoneRateDelete(d *schema.ResourceData, m interface{}) error
 	}
 
 	price := d.Get("price").([]interface{})[0].(map[string]interface{})
-	freeAbove := d.Get("free_above").([]interface{})[0].(map[string]interface{})
+	var newFreeAboveMoney *commercetools.Money
+	if freeAbove, ok := d.GetOk("free_above"); ok {
+		freeAboveMap := freeAbove.([]interface{})[0].(map[string]interface{})
+		newFreeAboveMoney = &commercetools.Money{
+			CurrencyCode: commercetools.CurrencyCode(freeAboveMap["currency_code"].(string)),
+			CentAmount:   freeAboveMap["cent_amount"].(int),
+		}
+	}
 
 	removeAction := commercetools.ShippingMethodRemoveShippingRateAction{
 		Zone: &commercetools.ZoneReference{
@@ -288,13 +336,10 @@ func resourceShippingZoneRateDelete(d *schema.ResourceData, m interface{}) error
 		},
 		ShippingRate: &commercetools.ShippingRateDraft{
 			Price: &commercetools.Money{
-				CurrencyCode: price["currency_code"].(commercetools.CurrencyCode),
+				CurrencyCode: commercetools.CurrencyCode(price["currency_code"].(string)),
 				CentAmount:   price["cent_amount"].(int),
 			},
-			FreeAbove: &commercetools.Money{
-				CurrencyCode: freeAbove["currency_code"].(commercetools.CurrencyCode),
-				CentAmount:   freeAbove["cent_amount"].(int),
-			},
+			FreeAbove: newFreeAboveMoney,
 		},
 	}
 
@@ -343,21 +388,31 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *commerceto
 	if err != nil {
 		return err
 	}
-	typedPrice := shippingRate.Price.(commercetools.CentPrecisionMoney)
-	typedFreeAbove := shippingRate.FreeAbove.(commercetools.CentPrecisionMoney)
 
-	price := map[string]interface{}{
-		"currency_code": string(typedPrice.CurrencyCode),
-		"cent_amount":   typedPrice.CentAmount,
+	log.Printf("[DEBUG] Found shipping rate: %s", stringFormatObject(shippingRate))
+
+	if typedPrice, ok := shippingRate.Price.(commercetools.CentPrecisionMoney); ok {
+		price := map[string]interface{}{
+			"currency_code": string(typedPrice.CurrencyCode),
+			"cent_amount":   typedPrice.CentAmount,
+		}
+		err = d.Set("price", []interface{}{price})
+		if err != nil {
+			return err
+		}
 	}
 
-	freeAbove := map[string]interface{}{
-		"currency_code": string(typedFreeAbove.CurrencyCode),
-		"cent_amount":   typedFreeAbove.CentAmount,
+	if typedFreeAbove, ok := shippingRate.FreeAbove.(commercetools.CentPrecisionMoney); ok {
+		freeAbove := map[string]interface{}{
+			"currency_code": string(typedFreeAbove.CurrencyCode),
+			"cent_amount":   typedFreeAbove.CentAmount,
+		}
+		err = d.Set("free_above", []interface{}{freeAbove})
+		if err != nil {
+			return err
+		}
 	}
-
-	d.Set("price", []interface{}{price})
-	d.Set("free_above", []interface{}{freeAbove})
+	log.Printf("[DEBUG] New state: %#v", d)
 
 	return nil
 }

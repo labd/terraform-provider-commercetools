@@ -47,7 +47,6 @@ func localizedStringCompare(a commercetools.LocalizedString, b map[string]interf
 	return true
 }
 
-
 func localizedStringToMap(input commercetools.LocalizedString) map[string]string {
 	result := make(map[string]string, len(input))
 	for k, v := range input {
