@@ -119,13 +119,15 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 	}
 	price := d.Get("price").([]interface{})[0].(map[string]interface{})
 	var freeAbove *commercetools.Money
-	if freeAbove, ok := d.GetOk("free_above"); ok {
-		freeAboveMap := freeAbove.([]interface{})[0].(map[string]interface{})
+	if freeAboveState, ok := d.GetOk("free_above"); ok {
+		log.Printf("[DEBUG] Free above state: %s", stringFormatObject(freeAboveState))
+		freeAboveMap := freeAboveState.([]interface{})[0].(map[string]interface{})
 		freeAbove = &commercetools.Money{
 			CurrencyCode: commercetools.CurrencyCode(freeAboveMap["currency_code"].(string)),
 			CentAmount:   freeAboveMap["cent_amount"].(int),
 		}
 	}
+	log.Printf("[DEBUG] Setting freeAbove: %s", stringFormatObject(freeAbove))
 
 	priceCurrencyCode := commercetools.CurrencyCode(price["currency_code"].(string))
 	input.Actions = append(input.Actions, commercetools.ShippingMethodAddShippingRateAction{
