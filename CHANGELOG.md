@@ -1,3 +1,8 @@
+0.6.0 (2019-04-26)
+==================
+ - **New resource:** `commercetools_shipping_method`
+ - **New resource:** `commercetools_shipping_zone_rate`, *Subject to changes, tiers/validation is not yet implemented*
+
 0.5.4 (2019-04-14)
 ==================
  - Fixed localized enum values being updated even if not changed for `commercetools_product_type`
