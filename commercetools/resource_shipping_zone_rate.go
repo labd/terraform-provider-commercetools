@@ -232,7 +232,6 @@ func resourceShippingZoneRateUpdate(d *schema.ResourceData, m interface{}) error
 		Actions: []commercetools.ShippingMethodUpdateAction{},
 	}
 
-	// TODO: test if this HasChange works correctly like this
 	if d.HasChange("price") || d.HasChange("free_above") {
 		zoneReference := commercetools.ZoneReference{
 			ID: shippingZoneID,
