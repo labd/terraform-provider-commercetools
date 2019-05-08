@@ -1,3 +1,8 @@
+0.7.0 (2019-05-08)
+==================
+ - Use latest commercetools Go SDK
+ - **New resource:** `commercetools_store` **This is an alpha Commercetools resource**
+
 0.6.0 (2019-04-26)
 ==================
  - **New resource:** `commercetools_shipping_method`
