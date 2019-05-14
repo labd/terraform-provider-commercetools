@@ -1,3 +1,7 @@
+0.7.1 (2019-05-14)
+==================
+ - Add validation for currency codes `commercetools_shipping_zone_rate`
+
 0.7.0 (2019-05-08)
 ==================
  - Use latest commercetools Go SDK

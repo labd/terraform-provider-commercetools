@@ -42,6 +42,7 @@ func resourceShippingZoneRate() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
+							ValidateFunc: ValidateCurrencyCode,
 						},
 						"cent_amount": {
 							Type:     schema.TypeInt,
@@ -61,6 +62,7 @@ func resourceShippingZoneRate() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
+							ValidateFunc: ValidateCurrencyCode,
 						},
 						"cent_amount": {
 							Type:     schema.TypeInt,

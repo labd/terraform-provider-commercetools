@@ -2,6 +2,7 @@ package commercetools
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -21,7 +22,7 @@ func TestAccShippingZoneRate_create(t *testing.T) {
 		CheckDestroy: testAccCheckShippingZoneRateDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingZoneRateConfig(taxCategoryName, shippingMethodName),
+				Config: testAccShippingZoneRateConfig(taxCategoryName, shippingMethodName, "EUR"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone_rate.standard-de", "price.0.cent_amount", "5000",
@@ -37,11 +38,15 @@ func TestAccShippingZoneRate_create(t *testing.T) {
 					),
 				),
 			},
+			{
+				Config:      testAccShippingZoneRateConfig(taxCategoryName, shippingMethodName, "XXX"),
+				ExpectError: regexp.MustCompile(`unknown currency code`),
+			},
 		},
 	})
 }
 
-func testAccShippingZoneRateConfig(taxCategoryName string, shippingMethodName string) string {
+func testAccShippingZoneRateConfig(taxCategoryName string, shippingMethodName string, currencyCode string) string {
 	return fmt.Sprintf(`
 	resource "commercetools_tax_category" "standard" {
 		name        = "%[1]s"
@@ -70,15 +75,15 @@ func testAccShippingZoneRateConfig(taxCategoryName string, shippingMethodName st
 
 		price {
 		    cent_amount   = 5000
-		    currency_code = "EUR"
+		    currency_code = "%[3]s"
 		}
 
 		free_above {
 		    cent_amount   = 50000
-		    currency_code = "EUR"
+		    currency_code = "%[3]s"
 		}
 	}
-`, taxCategoryName, shippingMethodName)
+`, taxCategoryName, shippingMethodName, currencyCode)
 }
 
 func testAccCheckShippingZoneRateDestroy(s *terraform.State) error {
