@@ -1,6 +1,9 @@
 build:
 	go build
 
+format:
+	go fmt ./...
+
 test:
 	go test -v ./...
 

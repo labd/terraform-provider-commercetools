@@ -39,9 +39,9 @@ func resourceShippingZoneRate() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"currency_code": {
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ForceNew:     true,
 							ValidateFunc: ValidateCurrencyCode,
 						},
 						"cent_amount": {
@@ -59,9 +59,9 @@ func resourceShippingZoneRate() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"currency_code": {
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ForceNew:     true,
 							ValidateFunc: ValidateCurrencyCode,
 						},
 						"cent_amount": {

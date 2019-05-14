@@ -36,8 +36,8 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 		expandStringMap(d.Get("name").(map[string]interface{})))
 
 	draft := &commercetools.StoreDraft{
-		Key:         d.Get("key").(string),
-		Name:        &name,
+		Key:  d.Get("key").(string),
+		Name: &name,
 	}
 
 	client := getClient(m)
