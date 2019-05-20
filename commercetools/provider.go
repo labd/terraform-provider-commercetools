@@ -79,6 +79,7 @@ func Provider() terraform.ResourceProvider {
 			"commercetools_tax_category":       resourceTaxCategory(),
 			"commercetools_tax_category_rate":  resourceTaxCategoryRate(),
 			"commercetools_shipping_zone":      resourceShippingZone(),
+			"commercetools_state":              resourceState(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
