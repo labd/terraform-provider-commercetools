@@ -1,3 +1,7 @@
+0.9.0 (2019-05-20)
+==================
+ - Use Terraform 0.12 dependency to prepare for 0.12 release
+
 0.8.0 (2019-05-20)
 ==================
  - **New resource:** `commercetools_state`
