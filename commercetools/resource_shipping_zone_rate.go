@@ -135,15 +135,15 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 
 	//zoneReference := &commercetools.ZoneReference{ID: shippingZoneID}
 
-	zoneFound := false
+	zoneNotFound := true
 	for _, v := range shippingMethod.ZoneRates {
 		if v.Zone.ID == shippingZoneID {
-			zoneFound = true
+			zoneNotFound = false
 			break
 		}
 	}
 
-	if !zoneFound {
+	if zoneNotFound {
 		input.Actions = append(input.Actions, commercetools.ShippingMethodAddZoneAction{
 			Zone: &commercetools.ZoneReference{ID: shippingZoneID},
 		})
