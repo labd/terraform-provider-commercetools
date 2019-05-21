@@ -133,13 +133,21 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 
 	priceCurrencyCode := commercetools.CurrencyCode(price["currency_code"].(string))
 
-	input.Actions = append(input.Actions, commercetools.ShippingMethodRemoveZoneAction{
-		Zone: &commercetools.ZoneReference{ID: shippingZoneID},
-	})
+	//zoneReference := &commercetools.ZoneReference{ID: shippingZoneID}
 
-	input.Actions = append(input.Actions, commercetools.ShippingMethodAddZoneAction{
-		Zone: &commercetools.ZoneReference{ID: shippingZoneID},
-	})
+	zoneFound := false
+	for _, v := range shippingMethod.ZoneRates {
+		if v.Zone.ID == shippingZoneID {
+			zoneFound = true
+			break
+		}
+	}
+
+	if !zoneFound {
+		input.Actions = append(input.Actions, commercetools.ShippingMethodAddZoneAction{
+			Zone: &commercetools.ZoneReference{ID: shippingZoneID},
+		})
+	}
 
 	input.Actions = append(input.Actions, commercetools.ShippingMethodAddShippingRateAction{
 		Zone: &commercetools.ZoneReference{ID: shippingZoneID},
@@ -355,11 +363,14 @@ func resourceShippingZoneRateDelete(d *schema.ResourceData, m interface{}) error
 
 	input.Actions = append(input.Actions, removeAction)
 
-	input.Actions = append(input.Actions, commercetools.ShippingMethodRemoveZoneAction{
-		Zone: &commercetools.ZoneReference{ID: shippingZoneID},
-	})
-
-	log.Printf("[DEBUG] Remove actions from: %s", stringFormatObject(input.Actions))
+	for _, v := range shippingMethod.ZoneRates {
+		if v.Zone.ID == shippingZoneID && len(v.ShippingRates) == 1 {
+			input.Actions = append(input.Actions, commercetools.ShippingMethodRemoveZoneAction{
+				Zone: &commercetools.ZoneReference{ID: shippingZoneID},
+			})
+			break
+		}
+	}
 
 	_, err = client.ShippingMethodUpdateByID(input)
 	if err != nil {
