@@ -133,8 +133,6 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 
 	priceCurrencyCode := commercetools.CurrencyCode(price["currency_code"].(string))
 
-	//zoneReference := &commercetools.ZoneReference{ID: shippingZoneID}
-
 	zoneNotFound := true
 	for _, v := range shippingMethod.ZoneRates {
 		if v.Zone.ID == shippingZoneID {
