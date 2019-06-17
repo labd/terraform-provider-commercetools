@@ -1,3 +1,7 @@
+0.10.0 (2019-06-17)
+===================
+ - Use Terraform 0.12.2 dependency for compatability with latest version
+
 0.9.0 (2019-05-20)
 ==================
  - Use Terraform 0.12 dependency to prepare for 0.12 release
