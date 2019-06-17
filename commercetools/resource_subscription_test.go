@@ -86,7 +86,7 @@ func testAccSubscriptionConfig(rName string) string {
 resource "commercetools_subscription" "subscription_%[1]s" {
 	key = "commercetools-acc-%[1]s"
 
-	destination {
+	destination = {
 		type          = "SQS"
 		queue_url     = "%[2]s"
 		access_key    = "%[3]s"

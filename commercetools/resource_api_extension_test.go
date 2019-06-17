@@ -85,7 +85,7 @@ func testAccAPIExtensionConfig(name string) string {
 resource "commercetools_api_extension" "ext" {
 	key = "%s"
 
-  destination {
+  destination = {
     type                 = "HTTP"
     url                  = "https://example.com"
     authorization_header = "Basic 12345"

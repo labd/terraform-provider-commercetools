@@ -75,11 +75,13 @@ resource "commercetools_tax_category" "test" {
 	key = "test"
 	description = "test"
 }
+
 resource "commercetools_shipping_method" "standard" {
 	name = "%s"
 	key = "%s"
 	description = "%s"
-	is_default = "%t"`, name, key, description, isDefault) + taxCategoryReference + "\n}\n"
+	is_default = "%t"
+    `, name, key, description, isDefault) + taxCategoryReference + "\n}\n"
 }
 
 func testAccCheckShippingMethodDestroy(s *terraform.State) error {

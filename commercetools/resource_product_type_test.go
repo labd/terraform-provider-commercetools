@@ -205,13 +205,13 @@ resource "commercetools_product_type" "acctest_product_type" {
 			nl = "maaltijd"
 		}
 
-		type = {
+		type {
 			name = "lenum"
 
-            localized_value = {
+            localized_value {
 			  key = "snack"
 
-			  label {
+			  label = {
 				en = "snack"
 				nl = "nomnom"
 			  }
@@ -246,13 +246,13 @@ resource "commercetools_product_type" "acctest_product_type" {
 			nl = "maaltijd"
 		}
 
-		type = {
+		type {
 			name = "lenum"
 
-			localized_value = {
+			localized_value {
 			  key = "snack"
 
-			  label {
+			  label = {
 				en = "Snack"
 				nl = "maaltijd"
 			  }

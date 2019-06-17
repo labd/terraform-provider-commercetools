@@ -16,3 +16,6 @@ crash.log
 // Local files
 /local/*
 !/local/*.example
+
+// Go modules
+vendor/

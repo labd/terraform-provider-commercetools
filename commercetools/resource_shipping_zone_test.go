@@ -67,10 +67,10 @@ resource "commercetools_shipping_zone" "standard" {
 	name = "%s"
 	description = "%s"
 	key = "%s"
-	location = {
+	location {
 		country = "DE"
 	}
-	location = {
+	location {
 		country = "US"
 		state = "Nevada"
 	}
@@ -139,13 +139,13 @@ func testAccShippingZoneConfigLocationAdded() string {
 resource "commercetools_shipping_zone" "standard" {
 	name = "the zone"
 	description = "the description"
-	location = {
+	location {
 		country = "DE"
 	}
-	location = {
+	location {
 		country = "ES"
 	}
-	location = {
+	location {
 		country = "US"
 		state = "Nevada"
 	}
@@ -208,7 +208,7 @@ func testAccShippingZoneConfigLocationRemoved() string {
 resource "commercetools_shipping_zone" "standard" {
 	name = "the zone"
 	description = "the description"
-	location = {
+	location {
 		country = "US"
 		state = "Nevada"
 	}

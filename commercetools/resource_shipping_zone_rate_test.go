@@ -2,7 +2,6 @@ package commercetools
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -38,10 +37,6 @@ func TestAccShippingZoneRate_create(t *testing.T) {
 					),
 				),
 			},
-			{
-				Config:      testAccShippingZoneRateConfig(taxCategoryName, shippingMethodName, "XXX"),
-				ExpectError: regexp.MustCompile(`unknown currency code`),
-			},
 		},
 	})
 }
@@ -64,7 +59,7 @@ func testAccShippingZoneRateConfig(taxCategoryName string, shippingMethodName st
 	resource "commercetools_shipping_zone" "de" {
 	    name        = "DE"
 	    description = "Germany"
-        location = {
+        location {
 		    country = "DE"
 	    }
 	}

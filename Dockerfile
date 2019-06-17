@@ -7,7 +7,7 @@ RUN go mod download
 RUN go build -o terraform-provider-commercetools
 
 # final stage
-FROM hashicorp/terraform:light
+FROM hashicorp/terraform:0.12.2
 
 WORKDIR /config
 
