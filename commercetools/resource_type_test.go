@@ -263,7 +263,7 @@ resource "commercetools_type" "%s" {
 		}
 		type {
 			name = "Enum"
-			values {
+			values = {
 				day = "Daytime"
 				evening = "Evening"
 			}
