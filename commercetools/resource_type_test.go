@@ -280,14 +280,14 @@ resource "commercetools_type" "%s" {
 			name = "LocalizedEnum"
 			localized_value {
 				key = "phone"
-				label {
+				label = {
 					en = "Phone"
 					nl = "Telefoon"
 				}
 			}
 			localized_value {
 				key = "skype"
-				label {
+				label = {
 					en = "Skype"
 					nl = "Skype"
 				}
