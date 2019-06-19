@@ -41,6 +41,15 @@ To then locally test:
 $ cp terraform-provider-commercetools ~/.terraform.d/plugins/darwin_amd64/terraform-provider-commercetools
 ```
 
+## Debugging / Troubleshooting
+
+There are two environment settings for troubleshooting:
+
+- `TF_LOG=1` enables debug output for Terraform.
+- `CTP_DEBUG=1` enables debug output for the Commercetools GO SDK this provider uses.
+
+Note this generates a lot of output!
+
 ## Releasing
 
 This project uses Goreleaser, see `.goreleaser.yml`. To release:
