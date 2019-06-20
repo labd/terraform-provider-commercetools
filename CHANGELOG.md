@@ -1,3 +1,7 @@
+0.11.0 (2019-06-20)
+===================
+- Use new Commercetools Go SDK to set the User-Agent header on Commercetools HTTP requests.
+
 0.10.0 (2019-06-17)
 ===================
  - Use Terraform 0.12.2 dependency for compatability with latest version

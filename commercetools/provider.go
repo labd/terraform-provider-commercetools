@@ -105,9 +105,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	httpClient := oauth2Config.Client(context.TODO())
 
 	client := commercetools.New(&commercetools.Config{
-		ProjectKey: projectKey,
-		URL:        d.Get("api_url").(string),
-		HTTPClient: httpClient,
+		ProjectKey:   projectKey,
+		URL:          d.Get("api_url").(string),
+		HTTPClient:   httpClient,
+		LibraryName:  "terraform-provider-commercetools",
+		ContactURL:   "https://labdigital.nl",
+		ContactEmail: "opensource@labdigital.nl",
 	})
 
 	return client, nil
