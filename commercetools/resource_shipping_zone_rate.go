@@ -132,6 +132,21 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 	log.Printf("[DEBUG] Setting freeAbove: %s", stringFormatObject(freeAbove))
 
 	priceCurrencyCode := commercetools.CurrencyCode(price["currency_code"].(string))
+
+	zoneNotFound := true
+	for _, v := range shippingMethod.ZoneRates {
+		if v.Zone.ID == shippingZoneID {
+			zoneNotFound = false
+			break
+		}
+	}
+
+	if zoneNotFound {
+		input.Actions = append(input.Actions, commercetools.ShippingMethodAddZoneAction{
+			Zone: &commercetools.ZoneReference{ID: shippingZoneID},
+		})
+	}
+
 	input.Actions = append(input.Actions, commercetools.ShippingMethodAddShippingRateAction{
 		Zone: &commercetools.ZoneReference{ID: shippingZoneID},
 		ShippingRate: &commercetools.ShippingRateDraft{
@@ -332,11 +347,9 @@ func resourceShippingZoneRateDelete(d *schema.ResourceData, m interface{}) error
 			CentAmount:   freeAboveMap["cent_amount"].(int),
 		}
 	}
-
+	shippingZoneID := d.Get("shipping_zone_id").(string)
 	removeAction := commercetools.ShippingMethodRemoveShippingRateAction{
-		Zone: &commercetools.ZoneReference{
-			ID: d.Get("shipping_zone_id").(string),
-		},
+		Zone: &commercetools.ZoneReference{ID: shippingZoneID},
 		ShippingRate: &commercetools.ShippingRateDraft{
 			Price: &commercetools.Money{
 				CurrencyCode: commercetools.CurrencyCode(price["currency_code"].(string)),
@@ -347,6 +360,15 @@ func resourceShippingZoneRateDelete(d *schema.ResourceData, m interface{}) error
 	}
 
 	input.Actions = append(input.Actions, removeAction)
+
+	for _, v := range shippingMethod.ZoneRates {
+		if v.Zone.ID == shippingZoneID && len(v.ShippingRates) == 1 {
+			input.Actions = append(input.Actions, commercetools.ShippingMethodRemoveZoneAction{
+				Zone: &commercetools.ZoneReference{ID: shippingZoneID},
+			})
+			break
+		}
+	}
 
 	_, err = client.ShippingMethodUpdateByID(input)
 	if err != nil {
