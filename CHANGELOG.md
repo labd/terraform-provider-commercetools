@@ -1,3 +1,7 @@
+0.11.1 (2019-06-26)
+===================
+- Fix shipping zone rate creation / deletion, thanks to @sshibani !
+
 0.11.0 (2019-06-20)
 ===================
 - Use new Commercetools Go SDK to set the User-Agent header on Commercetools HTTP requests.
