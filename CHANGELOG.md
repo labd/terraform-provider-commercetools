@@ -1,3 +1,7 @@
+0.12.1 (2019-06-26)
+===================
+- Small fix in creating api client with new scopes for resource `commercetools_api_client`
+
 0.12.0 (2019-06-26)
 ===================
 - *Backwards incompatible* Changed scope type from string to set for `commercetools_api_client`
