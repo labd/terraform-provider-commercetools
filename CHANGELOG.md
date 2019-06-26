@@ -1,3 +1,7 @@
+0.12.0 (2019-06-26)
+===================
+- *Backwards incompatible* Changed scope type from string to set for `commercetools_api_client`
+
 0.11.1 (2019-06-26)
 ===================
 - Fix shipping zone rate creation / deletion, thanks to @sshibani !

@@ -1,6 +1,9 @@
 package commercetools
 
 import (
+	"sort"
+	"strings"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
 )
@@ -20,7 +23,8 @@ func resourceAPIClient() *schema.Resource {
 				Required: true,
 			},
 			"scope": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
 			},
 			"secret": {
@@ -33,11 +37,11 @@ func resourceAPIClient() *schema.Resource {
 
 func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 	name := d.Get("name").(string)
-	scope := d.Get("scope").(string)
+	scopes := d.Get("scope").([]string)
 
 	draft := &commercetools.APIClientDraft{
 		Name:  name,
-		Scope: scope,
+		Scope: strings.Join(scopes, " "),
 	}
 
 	client := getClient(m)
@@ -68,7 +72,9 @@ func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId(apiClient.ID)
 	d.Set("name", apiClient.Name)
-	d.Set("scope", apiClient.Scope)
+	scopes := strings.Split(apiClient.Scope, " ")
+	sort.Strings(scopes)
+	d.Set("scope", scopes)
 	return nil
 }
 
