@@ -37,11 +37,16 @@ func resourceAPIClient() *schema.Resource {
 
 func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 	name := d.Get("name").(string)
-	scopes := d.Get("scope").([]string)
+	scopes := d.Get("scope").(*schema.Set).List()
+
+	scopeParts := make([]string, 0)
+	for i := 0; i < len(scopes); i++ {
+		scopeParts = append(scopeParts, scopes[i].(string))
+	}
 
 	draft := &commercetools.APIClientDraft{
 		Name:  name,
-		Scope: strings.Join(scopes, " "),
+		Scope: strings.Join(scopeParts, " "),
 	}
 
 	client := getClient(m)
