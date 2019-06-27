@@ -68,6 +68,7 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	d.SetId(store.ID)
 	d.Set("key", store.Key)
 	d.Set("name", *store.Name)
+	d.Set("version", store.Version)
 	return nil
 }
 
