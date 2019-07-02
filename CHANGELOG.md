@@ -1,3 +1,7 @@
+0.13.0 (2019-07-02)
+===================
+- Add brew install option to goreleaser, see README for more info
+
 0.12.1 (2019-06-26)
 ===================
 - Small fix in creating api client with new scopes for resource `commercetools_api_client`
