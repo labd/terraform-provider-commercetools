@@ -1,7 +1,7 @@
 project_name: terraform-provider-commercetools
 
 builds:
-  - binary: terraform-provider-commercetools_v{{ .Version }}
+  - binary: terraform-provider-commercetools
     env:
       - CGO_ENABLED=0
     goos:
@@ -50,4 +50,4 @@ brews:
     github:
       owner: labd
       name: homebrew-terraform-provider-commercetools
-    skip_upload: true
+    skip_upload: false

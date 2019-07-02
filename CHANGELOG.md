@@ -1,3 +1,7 @@
+0.13.1 (2019-07-02)
+===================
+- Small fix for incorrect binary name in homebrew installation
+
 0.13.0 (2019-07-02)
 ===================
 - Add brew install option to goreleaser, see README for more info
