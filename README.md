@@ -12,6 +12,9 @@ This is the Terraform provider for commercetools. It allows you to configure you
 still in early development and it doesn't support the complete commercetools.
 API yet but it can be considered 'production' ready for the resource it does support.
 
+# Commercial support
+Need support implementing this terraform module in your organization? We are able to offer support. Please contact us at opensource@labdigital.nl
+
 # Installation
 
 This is a third-party provider and that means that terraform cannot download it automatically. 
