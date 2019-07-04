@@ -50,7 +50,7 @@ func resourceShippingMethod() *schema.Resource {
 func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	var shippingMethod *commercetools.ShippingMethod
-	taxCategory := commercetools.TaxCategoryReference{}
+	taxCategory := commercetools.TaxCategoryResourceIdentifier{}
 	if taxCategoryID, ok := d.GetOk("tax_category_id"); ok {
 		taxCategory.ID = taxCategoryID.(string)
 	}
@@ -177,7 +177,7 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 		taxCategoryID := d.Get("tax_category_id").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ShippingMethodChangeTaxCategoryAction{TaxCategory: &commercetools.TaxCategoryReference{ID: taxCategoryID}})
+			&commercetools.ShippingMethodChangeTaxCategoryAction{TaxCategory: &commercetools.TaxCategoryResourceIdentifier{ID: taxCategoryID}})
 	}
 
 	log.Printf(

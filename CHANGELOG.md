@@ -1,3 +1,7 @@
+0.14.0 (2019-07-04)
+===================
+- Use new Commercetools Go SDK definitions (main change is Reference is now ResourceIdentifier resource)
+
 0.13.1 (2019-07-02)
 ===================
 - Small fix for incorrect binary name in homebrew installation
