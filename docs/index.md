@@ -2,6 +2,11 @@
 This is the Terraform provider for commercetools. It allows you to configure your
 commercetools project with infrastructure-as-code principles.
 
+
+# Commercial support
+Need support implementing this terraform module in your organization? We are able to offer support. Please contact us at [opensource@labdigital.nl](opensource@labdigital.nl)!
+
+
 ## Installation
 This is a third-party provider and that means that terraform cannot download it automatically. Packages of the releases are available at [the GitHub Repo](https://github.com/labd/terraform-provider-commercetools/releases). See the [terraform documentation](https://www.terraform.io/docs/configuration/providers.html#third-party-plugins) for more information about installing third-party providers.
 
