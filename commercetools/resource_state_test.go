@@ -16,6 +16,8 @@ func TestAccState_createAndUpdateWithID(t *testing.T) {
 
 	newName := "new test state name"
 
+	transition := "state-b"
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -43,6 +45,17 @@ func TestAccState_createAndUpdateWithID(t *testing.T) {
 					),
 				),
 			},
+			{
+				Config: testAccTransitionConfig(t, transition),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_state.acctest-state-a", "transitions.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_state.acctest-state-a", "transitions.0", transition,
+					),
+				),
+			},
 		},
 	})
 }
@@ -67,6 +80,19 @@ func testAccStateConfig(t *testing.T, name string, key string, addRole bool) str
 	newState := buf.String()
 
 	return newState
+}
+
+func testAccTransitionConfig(t *testing.T, transition string) string {
+	return fmt.Sprintf(`
+	resource "commercetools_state" "acctest-transitions" {
+		key = "state-a"
+		type = "ReviewState"
+		name = {
+			en = "State A"
+		}
+		transitions = ["%s"]
+	}
+	`, transition)
 }
 
 func testAccCheckStateDestroy(s *terraform.State) error {
