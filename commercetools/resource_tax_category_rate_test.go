@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccTaxCategoryRate_createAndUpdate(t *testing.T) {
+func TestAccTaxCategoryRate_createAndUpdateWithID(t *testing.T) {
 
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	amount := 0.2

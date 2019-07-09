@@ -100,7 +100,7 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading shippingzones from commercetools")
 	client := getClient(m)
 
-	shippingZone, err := client.ZoneGetByID(d.Id())
+	shippingZone, err := client.ZoneGetWithID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -134,7 +134,7 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	input := &commercetools.ZoneUpdateInput{
+	input := &commercetools.ZoneUpdateWithIDInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
 		Actions: []commercetools.ZoneUpdateAction{},
@@ -182,7 +182,7 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
-	_, err := client.ZoneUpdate(input)
+	_, err := client.ZoneUpdateWithID(input)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	version := d.Get("version").(int)
-	_, err := client.ZoneDeleteByID(d.Id(), version)
+	_, err := client.ZoneDeleteWithID(d.Id(), version)
 	if err != nil {
 		return err
 	}

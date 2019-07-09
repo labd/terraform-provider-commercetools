@@ -147,7 +147,7 @@ func TestAccTypes_basic(t *testing.T) {
 	})
 }
 
-func TestAccTypes_update(t *testing.T) {
+func TestAccTypes_UpdateWithID(t *testing.T) {
 	name := "acctest_type"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -163,7 +163,7 @@ func TestAccTypes_update(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccTypeUpdate(name),
+				Config: testAccTypeUpdateWithID(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTypeExists("acctest_type"),
 					resource.TestCheckResourceAttr(
@@ -202,7 +202,7 @@ resource "commercetools_type" "%s" {
 }`, name, name)
 }
 
-func testAccTypeUpdate(name string) string {
+func testAccTypeUpdateWithID(name string) string {
 	newFields := []string{
 		"Boolean",
 		"LocalizedString",
@@ -312,7 +312,7 @@ func testAccTypeExists(n string) resource.TestCheckFunc {
 		}
 
 		client := getClient(testAccProvider.Meta())
-		result, err := client.TypeGetByID(rs.Primary.ID)
+		result, err := client.TypeGetWithID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}

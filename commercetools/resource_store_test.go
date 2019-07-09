@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccStore_createAndUpdate(t *testing.T) {
+func TestAccStore_createAndUpdateWithID(t *testing.T) {
 
 	name := "test method"
 	key := "test-method"

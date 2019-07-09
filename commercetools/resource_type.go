@@ -268,7 +268,7 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading type from commercetools")
 	client := getClient(m)
 
-	ctType, err := client.TypeGetByID(d.Id())
+	ctType, err := client.TypeGetWithID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -367,7 +367,7 @@ func resourceTypeReadFieldType(fieldType commercetools.FieldType, setsAllowed bo
 func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	input := &commercetools.TypeUpdateInput{
+	input := &commercetools.TypeUpdateWithIDInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
 		Actions: []commercetools.TypeUpdateAction{},
@@ -409,7 +409,7 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.TypeUpdate(input)
+	_, err := client.TypeUpdateWithID(input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -538,7 +538,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 func resourceTypeDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.TypeDeleteByID(d.Id(), version)
+	_, err := client.TypeDeleteWithID(d.Id(), version)
 	if err != nil {
 		return err
 	}

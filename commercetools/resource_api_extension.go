@@ -150,7 +150,7 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading extensions from commercetools")
 	client := getClient(m)
 
-	extension, err := client.ExtensionGetByID(d.Id())
+	extension, err := client.ExtensionGetWithID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -180,7 +180,7 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	input := &commercetools.ExtensionUpdateInput{
+	input := &commercetools.ExtensionUpdateWithIDInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
 		Actions: []commercetools.ExtensionUpdateAction{},
@@ -210,7 +210,7 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.ExtensionChangeDestinationAction{Destination: destination})
 	}
 
-	_, err := client.ExtensionUpdate(input)
+	_, err := client.ExtensionUpdateWithID(input)
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceAPIExtensionDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ExtensionDeleteByID(d.Id(), version)
+	_, err := client.ExtensionDeleteWithID(d.Id(), version)
 	if err != nil {
 		return err
 	}

@@ -53,7 +53,7 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	store, err := client.StoreGetByID(d.Id())
+	store, err := client.StoreGetWithID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -75,7 +75,7 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	input := &commercetools.StoreUpdateInput{
+	input := &commercetools.StoreUpdateWithIDInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
 		Actions: []commercetools.StoreUpdateAction{},
@@ -89,7 +89,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.StoreSetNameAction{Name: &newName})
 	}
 
-	_, err := client.StoreUpdate(input)
+	_, err := client.StoreUpdateWithID(input)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceStoreDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.StoreDelete(d.Id(), version)
+	_, err := client.StoreDeleteWithID(d.Id(), version)
 	if err != nil {
 		return err
 	}

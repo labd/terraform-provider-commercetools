@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccTaxCategory_createAndUpdate(t *testing.T) {
+func TestAccTaxCategory_createAndUpdateWithID(t *testing.T) {
 
 	name := "test category"
 	key := "test-category"

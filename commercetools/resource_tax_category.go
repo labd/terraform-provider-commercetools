@@ -95,7 +95,7 @@ func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] Reading tax category from commercetools, with taxCategory id: %s", d.Id())
 	client := getClient(m)
 
-	taxCategory, err := client.TaxCategoryGetByID(d.Id())
+	taxCategory, err := client.TaxCategoryGetWithID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -128,12 +128,12 @@ func resourceTaxCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
-	taxCategory, err := client.TaxCategoryGetByID(d.Id())
+	taxCategory, err := client.TaxCategoryGetWithID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	input := &commercetools.TaxCategoryUpdateInput{
+	input := &commercetools.TaxCategoryUpdateWithIDInput{
 		ID:      d.Id(),
 		Version: taxCategory.Version,
 		Actions: []commercetools.TaxCategoryUpdateAction{},
@@ -164,7 +164,7 @@ func resourceTaxCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.TaxCategoryUpdate(input)
+	_, err = client.TaxCategoryUpdateWithID(input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -182,11 +182,11 @@ func resourceTaxCategoryDelete(d *schema.ResourceData, m interface{}) error {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	taxCategory, err := client.TaxCategoryGetByID(d.Id())
+	taxCategory, err := client.TaxCategoryGetWithID(d.Id())
 	if err != nil {
 		return err
 	}
-	_, err = client.TaxCategoryDeleteByID(d.Id(), taxCategory.Version)
+	_, err = client.TaxCategoryDeleteWithID(d.Id(), taxCategory.Version)
 	if err != nil {
 		return err
 	}

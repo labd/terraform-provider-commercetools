@@ -99,7 +99,7 @@ func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
 
 	client := getClient(m)
 
-	shippingMethod, err := client.ShippingMethodGetByID(d.Id())
+	shippingMethod, err := client.ShippingMethodGetWithID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -134,12 +134,12 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
-	shippingMethod, err := client.ShippingMethodGetByID(d.Id())
+	shippingMethod, err := client.ShippingMethodGetWithID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	input := &commercetools.ShippingMethodUpdateInput{
+	input := &commercetools.ShippingMethodUpdateWithIDInput{
 		ID:      d.Id(),
 		Version: shippingMethod.Version,
 		Actions: []commercetools.ShippingMethodUpdateAction{},
@@ -184,7 +184,7 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.ShippingMethodUpdateByID(input)
+	_, err = client.ShippingMethodUpdateWithID(input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -201,12 +201,12 @@ func resourceShippingMethodDelete(d *schema.ResourceData, m interface{}) error {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	shippingMethod, err := client.ShippingMethodGetByID(d.Id())
+	shippingMethod, err := client.ShippingMethodGetWithID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	_, err = client.ShippingMethodDeleteByID(d.Id(), shippingMethod.Version)
+	_, err = client.ShippingMethodDeleteWithID(d.Id(), shippingMethod.Version)
 	if err != nil {
 		return err
 	}

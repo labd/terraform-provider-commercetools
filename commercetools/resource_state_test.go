@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccState_createAndUpdate(t *testing.T) {
+func TestAccState_createAndUpdateWithID(t *testing.T) {
 
 	name := "test state"
 	key := "test-state"

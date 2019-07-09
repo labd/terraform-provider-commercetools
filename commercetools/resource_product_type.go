@@ -242,7 +242,7 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading product type from commercetools")
 	client := getClient(m)
 
-	ctType, err := client.ProductTypeGetByID(d.Id())
+	ctType, err := client.ProductTypeGetWithID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -351,7 +351,7 @@ func resourceProductTypeReadAttributeType(attrType commercetools.AttributeType, 
 func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	input := &commercetools.ProductTypeUpdateInput{
+	input := &commercetools.ProductTypeUpdateWithIDInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
 		Actions: []commercetools.ProductTypeUpdateAction{},
@@ -393,7 +393,7 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.ProductTypeUpdate(input)
+	_, err := client.ProductTypeUpdateWithID(input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -407,7 +407,7 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceProductTypeDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ProductTypeDeleteByID(d.Id(), version)
+	_, err := client.ProductTypeDeleteWithID(d.Id(), version)
 	if err != nil {
 		return err
 	}

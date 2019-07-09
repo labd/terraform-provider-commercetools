@@ -98,7 +98,7 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	state, err := client.StateGetByID(d.Id())
+	state, err := client.StateGetWithID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -130,7 +130,7 @@ func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	input := &commercetools.StateUpdateInput{
+	input := &commercetools.StateUpdateWithIDInput{
 		ID:      d.Id(),
 		Version: d.Get("version").(int),
 		Actions: []commercetools.StateUpdateAction{},
@@ -183,7 +183,7 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.StateSetRolesAction{Roles: roles})
 	}
 
-	_, err := client.StateUpdate(input)
+	_, err := client.StateUpdateWithID(input)
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceStateDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.StateDeleteByID(d.Id(), version)
+	_, err := client.StateDeleteWithID(d.Id(), version)
 	if err != nil {
 		return err
 	}

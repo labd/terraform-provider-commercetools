@@ -79,7 +79,7 @@ func resourceShippingZoneRateImportState(d *schema.ResourceData, meta interface{
 	client := getClient(meta)
 	shippingMethodID, _, _ := getShippingIDs(d.Id())
 
-	shippingMethod, err := client.ShippingMethodGetByID(shippingMethodID)
+	shippingMethod, err := client.ShippingMethodGetWithID(shippingMethodID)
 
 	if err != nil {
 		return nil, err
@@ -108,13 +108,13 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 	ctMutexKV.Lock(shippingMethodID)
 	defer ctMutexKV.Unlock(shippingMethodID)
 
-	shippingMethod, err := client.ShippingMethodGetByID(shippingMethodID)
+	shippingMethod, err := client.ShippingMethodGetWithID(shippingMethodID)
 
 	if err != nil {
 		return err
 	}
 
-	input := commercetools.ShippingMethodUpdateInput{
+	input := commercetools.ShippingMethodUpdateWithIDInput{
 		ID:      shippingMethod.ID,
 		Version: shippingMethod.Version,
 		Actions: []commercetools.ShippingMethodUpdateAction{},
@@ -160,7 +160,7 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
-		shippingMethod, err = client.ShippingMethodUpdateByID(&input)
+		shippingMethod, err = client.ShippingMethodUpdateWithID(&input)
 		if err != nil {
 			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 				if _, ok := ctErr.Errors[0].(commercetools.InvalidJSONInputError); ok {
@@ -198,7 +198,7 @@ func resourceShippingZoneRateRead(d *schema.ResourceData, m interface{}) error {
 
 	client := getClient(m)
 
-	shippingMethod, err := client.ShippingMethodGetByID(shippingMethodID)
+	shippingMethod, err := client.ShippingMethodGetWithID(shippingMethodID)
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -232,7 +232,7 @@ func resourceShippingZoneRateUpdate(d *schema.ResourceData, m interface{}) error
 	defer ctMutexKV.Unlock(shippingMethodID)
 
 	client := getClient(m)
-	shippingMethod, err := client.ShippingMethodGetByID(shippingMethodID)
+	shippingMethod, err := client.ShippingMethodGetWithID(shippingMethodID)
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func resourceShippingZoneRateUpdate(d *schema.ResourceData, m interface{}) error
 		return err
 	}
 
-	input := &commercetools.ShippingMethodUpdateInput{
+	input := &commercetools.ShippingMethodUpdateWithIDInput{
 		ID:      shippingMethodID,
 		Version: shippingMethod.Version,
 		Actions: []commercetools.ShippingMethodUpdateAction{},
@@ -310,7 +310,7 @@ func resourceShippingZoneRateUpdate(d *schema.ResourceData, m interface{}) error
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.ShippingMethodUpdateByID(input)
+	_, err = client.ShippingMethodUpdateWithID(input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -327,12 +327,12 @@ func resourceShippingZoneRateDelete(d *schema.ResourceData, m interface{}) error
 	defer ctMutexKV.Unlock(shippingMethodID)
 
 	client := getClient(m)
-	shippingMethod, err := client.ShippingMethodGetByID(shippingMethodID)
+	shippingMethod, err := client.ShippingMethodGetWithID(shippingMethodID)
 	if err != nil {
 		return err
 	}
 
-	input := &commercetools.ShippingMethodUpdateInput{
+	input := &commercetools.ShippingMethodUpdateWithIDInput{
 		ID:      shippingMethod.ID,
 		Version: shippingMethod.Version,
 		Actions: []commercetools.ShippingMethodUpdateAction{},
@@ -370,7 +370,7 @@ func resourceShippingZoneRateDelete(d *schema.ResourceData, m interface{}) error
 		}
 	}
 
-	_, err = client.ShippingMethodUpdateByID(input)
+	_, err = client.ShippingMethodUpdateWithID(input)
 	if err != nil {
 		return err
 	}

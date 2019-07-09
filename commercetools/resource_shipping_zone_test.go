@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccShippingZone_createAndUpdate(t *testing.T) {
+func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 
 	key := "key"
 	name := "name"

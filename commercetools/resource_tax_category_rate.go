@@ -120,7 +120,7 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 	ctMutexKV.Lock(taxCategoryID)
 	defer ctMutexKV.Unlock(taxCategoryID)
 
-	taxCategory, err := client.TaxCategoryGetByID(taxCategoryID)
+	taxCategory, err := client.TaxCategoryGetWithID(taxCategoryID)
 
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 
 	oldTaxRateIds := getTaxRateIds(taxCategory)
 
-	input := &commercetools.TaxCategoryUpdateInput{
+	input := &commercetools.TaxCategoryUpdateWithIDInput{
 		ID:      taxCategoryID,
 		Version: taxCategory.Version,
 		Actions: []commercetools.TaxCategoryUpdateAction{},
@@ -142,7 +142,7 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 	input.Actions = append(input.Actions, commercetools.TaxCategoryAddTaxRateAction{TaxRate: taxRateDraft})
 
 	err = resource.Retry(30*time.Second, func() *resource.RetryError {
-		taxCategory, err = client.TaxCategoryUpdate(input)
+		taxCategory, err = client.TaxCategoryUpdateWithID(input)
 		if err != nil {
 			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 				if _, ok := ctErr.Errors[0].(commercetools.InvalidJSONInputError); ok {
@@ -220,7 +220,7 @@ func resourceTaxCategoryRateUpdate(d *schema.ResourceData, m interface{}) error 
 
 	oldTaxRateIds := getTaxRateIds(taxCategory)
 
-	input := &commercetools.TaxCategoryUpdateInput{
+	input := &commercetools.TaxCategoryUpdateWithIDInput{
 		ID:      taxCategory.ID,
 		Version: taxCategory.Version,
 		Actions: []commercetools.TaxCategoryUpdateAction{},
@@ -242,7 +242,7 @@ func resourceTaxCategoryRateUpdate(d *schema.ResourceData, m interface{}) error 
 		stringFormatActions(input.Actions))
 
 	client := getClient(m)
-	taxCategory, err = client.TaxCategoryUpdate(input)
+	taxCategory, err = client.TaxCategoryUpdateWithID(input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -306,7 +306,7 @@ func resourceTaxCategoryRateDelete(d *schema.ResourceData, m interface{}) error 
 		return err
 	}
 
-	input := &commercetools.TaxCategoryUpdateInput{
+	input := &commercetools.TaxCategoryUpdateWithIDInput{
 		ID:      taxCategory.ID,
 		Version: taxCategory.Version,
 		Actions: []commercetools.TaxCategoryUpdateAction{},
@@ -318,7 +318,7 @@ func resourceTaxCategoryRateDelete(d *schema.ResourceData, m interface{}) error 
 	input.Actions = append(input.Actions, removeAction)
 
 	client := getClient(m)
-	_, err = client.TaxCategoryUpdate(input)
+	_, err = client.TaxCategoryUpdateWithID(input)
 	if err != nil {
 		return err
 	}
@@ -333,7 +333,7 @@ func readResourcesFromStateIDs(d *schema.ResourceData, m interface{}) (*commerce
 
 	log.Printf("[DEBUG] Reading tax category from commercetools, taxCategory ID: %s, taxRate ID: %s", taxCategoryID, taxRateID)
 
-	taxCategory, err := client.TaxCategoryGetByID(taxCategoryID)
+	taxCategory, err := client.TaxCategoryGetWithID(taxCategoryID)
 
 	if err != nil {
 		return nil, nil, err
@@ -341,7 +341,7 @@ func readResourcesFromStateIDs(d *schema.ResourceData, m interface{}) (*commerce
 
 	log.Print("[DEBUG] Found following tax category:")
 	log.Print(stringFormatObject(taxCategory))
-	taxRate := getTaxRateByID(taxCategory, taxRateID)
+	taxRate := getTaxRateWithID(taxCategory, taxRateID)
 	if taxRate == nil {
 		return nil, nil, fmt.Errorf("Could not find tax rate %s in tax category %s", taxRateID, taxCategory.ID)
 	}
@@ -378,7 +378,7 @@ func findNewTaxRate(taxCategory *commercetools.TaxCategory, oldTaxRateIds []stri
 	return nil
 }
 
-func getTaxRateByID(taxCategory *commercetools.TaxCategory, taxRateID string) *commercetools.TaxRate {
+func getTaxRateWithID(taxCategory *commercetools.TaxCategory, taxRateID string) *commercetools.TaxRate {
 	for _, rate := range taxCategory.Rates {
 		if rate.ID == taxRateID {
 			return &rate

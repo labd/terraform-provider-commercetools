@@ -63,7 +63,7 @@ func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	apiClient, err := client.APIClientGetByID(d.Id())
+	apiClient, err := client.APIClientGetWithID(d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -91,7 +91,7 @@ func resourceAPIClientUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceAPIClientDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	_, err := client.APIClientDelete(d.Id())
+	_, err := client.APIClientDeleteWithID(d.Id())
 	if err != nil {
 		return err
 	}

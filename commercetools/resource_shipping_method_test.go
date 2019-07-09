@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccShippingMethod_createAndUpdate(t *testing.T) {
+func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 
 	name := "test method"
 	key := "test-method"
