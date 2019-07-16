@@ -197,6 +197,7 @@ func expandProductDiscountValue(d *schema.ResourceData) commercetools.ProductDis
 }
 
 func flattenProductDiscountValue(productDiscount commercetools.ProductDiscountValue) (out map[string]interface{}) {
+	log.Printf("[DEBUG] Trying to flatten %#v", productDiscount)
 	out = make(map[string]interface{})
 	if discount, ok := productDiscount.(commercetools.ProductDiscountValueAbsolute); ok {
 		out["type"] = "absolute"
@@ -211,7 +212,7 @@ func flattenProductDiscountValue(productDiscount commercetools.ProductDiscountVa
 		return out
 	}
 
-	return out
+	panic(fmt.Errorf("Failed to flatten product discount value"))
 }
 
 func flattenProductDiscountAbsolute(money []commercetools.Money) []map[string]interface{} {
@@ -252,7 +253,7 @@ func resourceProductDiscountRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("name", productDiscount.Name)
 		d.Set("key", productDiscount.Key)
 		d.Set("description", productDiscount.Description)
-		if err := d.Set("value", []interface{}{flattenProductDiscountValue(productDiscount)}); err != nil {
+		if err := d.Set("value", []interface{}{flattenProductDiscountValue(productDiscount.Value)}); err != nil {
 			return err
 		}
 		d.Set("predicate", productDiscount.Predicate)
