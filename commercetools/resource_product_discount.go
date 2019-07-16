@@ -35,20 +35,20 @@ func resourceProductDiscount() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"sortOrder": {
+			"sort_order": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"isActive": {
-				Type:     schema.TypeString,
+			"is_active": {
+				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"validFrom": {
+			"valid_from": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"validUntil": {
+			"valid_until": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -103,11 +103,11 @@ func resourceProductDiscountCreate(d *schema.ResourceData, m interface{}) error 
 
 	name := expandLocalizedString(d.Get("name"))
 	description := expandLocalizedString(d.Get("description"))
-	validFrom, err := expandDate(d.Get("validFrom").(string))
+	validFrom, err := expandDate(d.Get("valid_from").(string))
 	if err != nil {
 		return err
 	}
-	validUntil, err := expandDate(d.Get("validUntil").(string))
+	validUntil, err := expandDate(d.Get("valid_until").(string))
 	if err != nil {
 		return err
 	}
@@ -118,8 +118,8 @@ func resourceProductDiscountCreate(d *schema.ResourceData, m interface{}) error 
 		Description: &description,
 		Value:       expandProductDiscountValue(d),
 		Predicate:   d.Get("predicate").(string),
-		SortOrder:   d.Get("sortOrder").(string),
-		IsActive:    d.Get("isActive").(bool),
+		SortOrder:   d.Get("sort_order").(string),
+		IsActive:    d.Get("is_active").(bool),
 		ValidFrom:   validFrom,
 		ValidUntil:  validUntil,
 	}
@@ -230,10 +230,10 @@ func resourceProductDiscountRead(d *schema.ResourceData, m interface{}) error {
 			return err
 		}
 		d.Set("predicate", productDiscount.Predicate)
-		d.Set("sortOrder", productDiscount.SortOrder)
-		d.Set("isActive", productDiscount.IsActive)
-		d.Set("validFrom", flattenDateToString(productDiscount.ValidFrom))
-		d.Set("validUntil", flattenDateToString(productDiscount.ValidUntil))
+		d.Set("sort_order", productDiscount.SortOrder)
+		d.Set("is_active", productDiscount.IsActive)
+		d.Set("valid_from", flattenDateToString(productDiscount.ValidFrom))
+		d.Set("valid_until", flattenDateToString(productDiscount.ValidUntil))
 	}
 
 	return nil
@@ -263,8 +263,8 @@ func resourceProductDiscountUpdate(d *schema.ResourceData, m interface{}) error 
 			&commercetools.ProductDiscountSetKeyAction{Key: newKey})
 	}
 
-	if d.HasChange("isActive") {
-		isActive := d.Get("isActive").(bool)
+	if d.HasChange("is_active") {
+		isActive := d.Get("is_active").(bool)
 		input.Actions = append(
 			input.Actions,
 			&commercetools.ProductDiscountChangeIsActiveAction{IsActive: isActive})
@@ -277,15 +277,15 @@ func resourceProductDiscountUpdate(d *schema.ResourceData, m interface{}) error 
 			&commercetools.ProductDiscountChangePredicateAction{Predicate: newPredicate})
 	}
 
-	if d.HasChange("sortOrder") {
-		newSortOrder := d.Get("sortOrder").(string)
+	if d.HasChange("sort_order") {
+		newSortOrder := d.Get("sort_order").(string)
 		input.Actions = append(
 			input.Actions,
 			&commercetools.ProductDiscountChangeSortOrderAction{SortOrder: newSortOrder})
 	}
 
-	if d.HasChange("validFrom") {
-		validFrom, err := expandDate(d.Get("validFrom").(string))
+	if d.HasChange("valid_from") {
+		validFrom, err := expandDate(d.Get("valid_from").(string))
 		if err != nil {
 			return err
 		}
@@ -294,8 +294,8 @@ func resourceProductDiscountUpdate(d *schema.ResourceData, m interface{}) error 
 			&commercetools.ProductDiscountSetValidFromAction{ValidFrom: validFrom})
 	}
 
-	if d.HasChange("validUntil") {
-		validUntil, err := expandDate(d.Get("validUntil").(string))
+	if d.HasChange("valid_until") {
+		validUntil, err := expandDate(d.Get("valid_until").(string))
 		if err != nil {
 			return err
 		}
