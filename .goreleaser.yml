@@ -39,7 +39,7 @@ brews:
     caveats: |
       After installation, you must symlink the provider into Terraform's plugins directory.
       mkdir -p ~/.terraform.d/plugins/
-      ln -sf /usr/local/Cellar/terraform-provider-commercetools/$VERSION/bin/terraform-provider-commercetools_v{{ .Version }} ~/.terraform.d/plugins/terraform-provider-commercetools
+      ln -sf /usr/local/Cellar/terraform-provider-commercetools/$VERSION/bin/terraform-provider-commercetools ~/.terraform.d/plugins/terraform-provider-commercetools
       Symlinking is necessary because Homebrew is sandboxed and cannot write to your home directory.
       Replace $VERSION above.
       If Homebrew is installing somewhere other than /usr/local/Cellar, update the path as well.
