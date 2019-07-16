@@ -1,3 +1,7 @@
+0.15.1 (2019-07-16)
+===================
+- Trying to fix Brew release now that version number is in binary
+
 0.15.0 (2019-07-16)
 ===================
 - Use new Commercetools Go SDK definitions (main change is auto generated services, most CRUD actions are renamed)

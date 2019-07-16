@@ -44,7 +44,7 @@ brews:
       Replace $VERSION above.
       If Homebrew is installing somewhere other than /usr/local/Cellar, update the path as well.
     install: |
-      bin.install "terraform-provider-commercetools"
+      bin.install "terraform-provider-commercetools_v{{ .Version}}"
     test: |
       system "#{bin}/terraform-provider-commercetools_v{{ .Version }}", "-h"  # running bin directly gives error, exit code 1
     github:
