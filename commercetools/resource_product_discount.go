@@ -103,7 +103,7 @@ func validateProductDiscountType(val interface{}, key string) (warns []string, e
 
 	switch v {
 	case
-		"external"
+		"external",
 		"relative",
 		"absolute":
 		return
