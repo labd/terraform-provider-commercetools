@@ -28,12 +28,13 @@ func resourceProductDiscount() *schema.Resource {
 				Optional: true,
 			},
 			"description": {
-				Type:     schema.TypeString,
+				Type:     TypeLocalizedString,
 				Optional: true,
 			},
 			"predicate": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "1=1",
 			},
 			"sort_order": {
 				Type:     schema.TypeString,
@@ -53,7 +54,8 @@ func resourceProductDiscount() *schema.Resource {
 				Optional: true,
 			},
 			"value": {
-				Type:     schema.TypeMap,
+				Type:     schema.TypeList,
+				MaxItems: 1,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -66,18 +68,16 @@ func resourceProductDiscount() *schema.Resource {
 						"money": {
 							Type:     schema.TypeList,
 							Optional: true,
-							MinItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"currency_code": {
-										Type:         schema.TypeString,
-										Required:     true,
-										ForceNew:     true,
-										ValidateFunc: ValidateCurrencyCode,
-									},
 									"cent_amount": {
 										Type:     schema.TypeInt,
 										Required: true,
+									},
+									"currency_code": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: ValidateCurrencyCode,
 									},
 								},
 							},
@@ -118,26 +118,33 @@ func resourceProductDiscountCreate(d *schema.ResourceData, m interface{}) error 
 
 	name := expandLocalizedString(d.Get("name"))
 	description := expandLocalizedString(d.Get("description"))
-	validFrom, err := expandDate(d.Get("valid_from").(string))
-	if err != nil {
-		return err
-	}
-	validUntil, err := expandDate(d.Get("valid_until").(string))
-	if err != nil {
-		return err
-	}
 
 	draft := &commercetools.ProductDiscountDraft{
 		Name:        &name,
 		Key:         d.Get("key").(string),
 		Description: &description,
-		Value:       expandProductDiscountValue(d),
 		Predicate:   d.Get("predicate").(string),
+		Value:       expandProductDiscountValue(d),
 		SortOrder:   d.Get("sort_order").(string),
 		IsActive:    d.Get("is_active").(bool),
-		ValidFrom:   validFrom,
-		ValidUntil:  validUntil,
 	}
+
+	if val := d.Get("valid_from").(string); len(val) > 0 {
+		validFrom, err := expandDate(val)
+		if err != nil {
+			return err
+		}
+		draft.ValidFrom = &validFrom
+	}
+	if val := d.Get("valid_until").(string); len(val) > 0 {
+		validUntil, err := expandDate(val)
+		if err != nil {
+			return err
+		}
+		draft.ValidUntil = &validUntil
+	}
+
+	log.Printf("[DEBUG] Going to create draft: %#v", draft)
 
 	productDiscount, err := client.ProductDiscountCreate(draft)
 	if err != nil {
@@ -156,16 +163,20 @@ func expandLocalizedString(value interface{}) commercetools.LocalizedString {
 }
 
 func expandProductDiscountValue(d *schema.ResourceData) commercetools.ProductDiscountValue {
-	value := d.Get("value").(map[string]interface{})
+	value := d.Get("value").([]interface{})[0].(map[string]interface{})
+
+	log.Printf("[DEBUG] Product discount value: %#v", value)
+
 	switch value["type"].(string) {
 	case "external":
 		return commercetools.ProductDiscountValueExternal{}
 	case "absolute":
-		moneyData := value["money"].([]map[string]interface{})
+		moneyData := value["money"].([]interface{})
 		moneyList := make([]commercetools.Money, 0)
 		for _, data := range moneyData {
-			currencyCode := data["currency_code"].(string)
-			centAmount := data["cent_amount"].(int)
+			mapData := data.(map[string]interface{})
+			currencyCode := mapData["currency_code"].(string)
+			centAmount := mapData["cent_amount"].(int)
 			money := commercetools.Money{
 				CurrencyCode: commercetools.CurrencyCode(currencyCode),
 				CentAmount:   centAmount,
@@ -241,14 +252,20 @@ func resourceProductDiscountRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("name", productDiscount.Name)
 		d.Set("key", productDiscount.Key)
 		d.Set("description", productDiscount.Description)
-		if err := d.Set("value", flattenProductDiscountValue(productDiscount)); err != nil {
+		if err := d.Set("value", []interface{}{flattenProductDiscountValue(productDiscount)}); err != nil {
 			return err
 		}
 		d.Set("predicate", productDiscount.Predicate)
 		d.Set("sort_order", productDiscount.SortOrder)
 		d.Set("is_active", productDiscount.IsActive)
-		d.Set("valid_from", flattenDateToString(productDiscount.ValidFrom))
-		d.Set("valid_until", flattenDateToString(productDiscount.ValidUntil))
+		d.Set("valid_from", nil)
+		if productDiscount.ValidFrom != nil {
+			d.Set("valid_from", flattenDateToString(*productDiscount.ValidFrom))
+		}
+		d.Set("valid_until", nil)
+		if productDiscount.ValidUntil != nil {
+			d.Set("valid_until", flattenDateToString(*productDiscount.ValidUntil))
+		}
 	}
 
 	return nil
@@ -306,7 +323,7 @@ func resourceProductDiscountUpdate(d *schema.ResourceData, m interface{}) error 
 		}
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProductDiscountSetValidFromAction{ValidFrom: validFrom})
+			&commercetools.ProductDiscountSetValidFromAction{ValidFrom: &validFrom})
 	}
 
 	if d.HasChange("valid_until") {
@@ -316,7 +333,7 @@ func resourceProductDiscountUpdate(d *schema.ResourceData, m interface{}) error 
 		}
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProductDiscountSetValidUntilAction{ValidUntil: validUntil})
+			&commercetools.ProductDiscountSetValidUntilAction{ValidUntil: &validUntil})
 	}
 
 	if d.HasChange("name") {

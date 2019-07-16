@@ -18,7 +18,7 @@ resource "commercetools_product_discount" "10_percent_off" {
   } 
   sort_order = "0.05"
   is_active  = true
-  value = {
+  value {
     type      = "relative"
     permyriad = 1000
   }
@@ -35,7 +35,7 @@ The following arguments are supported:
 
 * `key` - (Optional) User-specific unique identifier for the product discount.
 * `description` - (Optional) Localized description of the product discount.
-* `predicate` - (Optional) Predicate to match this product discount.
+* `predicate` - (Optional) Predicate to match this product discount. Default is `1=1`.
 * `is_active` - (Optional) If this discount is active, default false.
 * `valid_from` - (Optional) Date in format YYYY-MM-DD, when the discount should be active.
 * `valid_until` - (Optional) Date in format YYYY-MM-DD, when the discount should be active.
