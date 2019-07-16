@@ -351,6 +351,14 @@ func resourceProductDiscountUpdate(d *schema.ResourceData, m interface{}) error 
 			&commercetools.ProductDiscountSetDescriptionAction{Description: &newDescr})
 	}
 
+	if d.HasChange("value") {
+		newValue := expandProductDiscountValue(d)
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ProductDiscountChangeValueAction{Value: newValue})
+	}
+
+
 	log.Printf(
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
