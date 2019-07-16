@@ -1,25 +1,26 @@
 # Product Discounts
 
-A product discount applies to a specific product or subset of products based criteria you provide.
+A product discount applies to a specific product or subset of products based criteria you provide. 
+Also see [Commercetools API docs](commercetools-product-discounts).
 
 ## Example Usage
 
 ```hcl
 resource "commercetools_product_discount" "10_percent_off" {
-  name = "10% off"
   key  = "10-percent-off"
-  description = 
-  rate {
-    name = "21% BTW"
-    amount = 0.21
-    country = "NL"
-    included_in_price = false
+  name = {
+      nl-NL = "10% korting"
+      en    = "10% discount"
   }
-  rate {
-    name = "5% US"
-    amount = 0.05
-    country = "US"
-    included_in_price = true
+  description = {
+      nl-NL = "10% korting"
+      en    = "10% discount"
+  } 
+  sort_order = "0.05"
+  is_active  = true
+  value = {
+    type      = "relative"
+    permyriad = 1000
   }
 }
 ```
@@ -28,35 +29,34 @@ resource "commercetools_product_discount" "10_percent_off" {
 
 The following arguments are supported:
 
-* `name` - Name of the tax category
-* `key` - (Optional) User-specific unique identifier for the category
-* `description` - (Optional) Description of the tax category
-* `rate` - Can be 1 or more [rates](#rates)
+* `name` - Localized name of the product discount.
+* `sort_order` - String to order the discounts, must be between 0 and 1.
+* `value` - Actual value of the discount. For more options see Product discount values.
+
+* `key` - (Optional) User-specific unique identifier for the product discount.
+* `description` - (Optional) Localized description of the product discount.
+* `predicate` - (Optional) Predicate to match this product discount.
+* `is_active` - (Optional) If this discount is active, default false.
+* `valid_from` - (Optional) Date in format YYYY-MM-DD, when the discount should be active.
+* `valid_until` - (Optional) Date in format YYYY-MM-DD, when the discount should be active.
 
 
-### Rates
-[Tax Rates][commercetool-rate] defines specific rates.
+### Product discount values
+There are three types of product discount types: external, relative and absolute. Below are the arguments for each type.
 
-These can have the following arguments:
+#### Absolute
 
-* `name` - Tax rate name
-* `amount` - Number Percentage in the range of [0..1]. The sum of the amounts of all sub rates, if there are any. Optional if sub_rates are defined, or equal to the sum of all sub_rates.
-* `include_in_price`
-* `country` - A two-digit country code as per [ISO 3166-1 alpha-2][country-iso]
-* `state` - (Optional) The state in the country
-* `sub_rate` - Can be 1 or more [subrates](#sub-rates)
+* `type` - 'relative'
+* `currency_code` - A three-digit currency code as per ISO 4217.
+* `cent_amount` - Amount in cents.
 
+#### Relative
 
-### Sub rates
-A [SubRate][commercetool-subrate] is used to calculate the taxPortions field in a cart or order. It is useful if the total tax of a country is a combination of multiple taxes (e.g. state and local taxes).
+* `type` - 'relative'
+* `permyriad` - Per ten thousand. The fraction the price is reduced. 1000 will result in a 10% price reduction. 
 
-These can have the following arguments:
+#### External
 
-* `name`
-* `amount` - Number Percentage in the range of [0..1]
+* `type` - 'external'
 
-
-[commercetool-tax-categories]: https://docs.commercetools.com/http-api-projects-taxCategories.html
-[commercetool-rate]: https://docs.commercetools.com/http-api-projects-taxCategories.html#taxrate
-[commercetool-subrate]: https://docs.commercetools.com/http-api-projects-taxCategories.html#subrate
-[country-iso]: https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
+[commercetools-product-discounts](https://docs.commercetools.com/http-api-projects-productDiscounts)

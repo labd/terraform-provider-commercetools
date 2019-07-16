@@ -60,7 +60,7 @@ func resourceProductDiscount() *schema.Resource {
 						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateDestinationType,
+							ValidateFunc: validateProductDiscountType,
 						},
 						// Absolute specific fields
 						"money": {
@@ -96,6 +96,21 @@ func resourceProductDiscount() *schema.Resource {
 			},
 		},
 	}
+}
+
+func validateProductDiscountType(val interface{}, key string) (warns []string, errs []error) {
+	var v = val.(string)
+
+	switch v {
+	case
+		"external"
+		"relative",
+		"absolute":
+		return
+	default:
+		errs = append(errs, fmt.Errorf("%q not a valid value for %q", val, key))
+	}
+	return
 }
 
 func resourceProductDiscountCreate(d *schema.ResourceData, m interface{}) error {
