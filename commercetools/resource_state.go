@@ -54,6 +54,7 @@ func resourceState() *schema.Resource {
 					Type: schema.TypeString,
 					ValidateFunc: validation.StringInSlice([]string{
 						string(commercetools.StateRoleEnumReviewIncludedInStatistics),
+						string(commercetools.StateRoleEnumReturn),
 					}, false),
 				},
 			},
