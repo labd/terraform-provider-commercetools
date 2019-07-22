@@ -90,7 +90,7 @@ This project uses Goreleaser, see `.goreleaser.yml`. To release:
 ```sh
 git tag <release> -m "Release <release>"
 git push --follow-tags
-GITHUB_TOKEN=<your github token> gorelease release --rm-dist
+GITHUB_TOKEN=<your github token> goreleaser release --rm-dist
 ```
 
 ## Testing
