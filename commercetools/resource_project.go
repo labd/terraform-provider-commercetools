@@ -53,6 +53,22 @@ func resourceProjectSettings() *schema.Resource {
 					},
 				},
 			},
+			"external_oauth": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"url": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"authorization_header": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,

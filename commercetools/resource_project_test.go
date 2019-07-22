@@ -51,6 +51,10 @@ resource "commercetools_project_settings" "acctest_project_settings" {
 	countries  = ["NL", "DE", "US"]
 	currencies = ["EUR", "USD"]
 	languages  = ["nl", "de", "en", "en-US"]
+	external_oauth = {
+		url = "https://example.com/oauth/token"
+		authorization_header = "Bearer secret"
+	}
 
 	messages = {
 	  enabled = true
