@@ -71,9 +71,7 @@ $ cp terraform-provider-commercetools ~/.terraform.d/plugins/darwin_amd64/terraf
 The commercetools-go-sdk always uses the latest (master) version. To update to the latest version:
 
 ```sh
-$ GO111MODULE=on go get github.com/labd/commercetools-go-sdk
-$ GO111MODULE=on go mod vendor
-$ GO111MODULE=on go mod tidy
+make update-sdk
 ```
 
 ## Debugging / Troubleshooting
