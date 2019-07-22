@@ -1,3 +1,8 @@
+0.16.0 (2019-07-22)
+===================
+ - Add support for setting the externalOAuth field on the project resource (#73)
+ - Add support for the StateRole Return item (#77)
+
 0.15.1 (2019-07-16)
 ===================
 - Trying to fix Brew release now that version number is in binary
