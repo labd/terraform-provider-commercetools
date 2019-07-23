@@ -2,6 +2,7 @@ package commercetools
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -24,7 +25,8 @@ func TestAPIExtensionGetDestination(t *testing.T) {
 			"access_key":    "ABCSDF123123123",
 			"access_secret": "****abc/",
 		},
-		"key": "create-order",
+		"timeout_in_ms": 1,
+		"key":           "create-order",
 	}
 
 	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
@@ -62,6 +64,7 @@ func TestAPIExtensionGetAuthentication(t *testing.T) {
 
 func TestAccAPIExtension_basic(t *testing.T) {
 	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
+	timeoutInMs := acctest.RandIntRange(200, 1800)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -69,21 +72,24 @@ func TestAccAPIExtension_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAPIExtensionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAPIExtensionConfig(name),
+				Config: testAccAPIExtensionConfig(name, timeoutInMs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAPIExtensionExists("ext"),
 					resource.TestCheckResourceAttr(
 						"commercetools_api_extension.ext", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
 				),
 			},
 		},
 	})
 }
 
-func testAccAPIExtensionConfig(name string) string {
+func testAccAPIExtensionConfig(name string, timeoutInMs int) string {
 	return fmt.Sprintf(`
 resource "commercetools_api_extension" "ext" {
-	key = "%s"
+  key = "%s"
+  timeout_in_ms = %d
 
   destination = {
     type                 = "HTTP"
@@ -96,7 +102,7 @@ resource "commercetools_api_extension" "ext" {
     actions = ["Create", "Update"]
   }
 }
-`, name)
+`, name, timeoutInMs)
 }
 
 func testAccAPIExtensionExists(n string) resource.TestCheckFunc {

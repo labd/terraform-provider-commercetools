@@ -81,6 +81,10 @@ func resourceAPIExtension() *schema.Resource {
 					},
 				},
 			},
+			"timeout_in_ms": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -118,6 +122,7 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 		Key:         d.Get("key").(string),
 		Destination: destination,
 		Triggers:    triggers,
+		TimeoutInMs: d.Get("timeout_in_ms").(int),
 	}
 
 	err = resource.Retry(20*time.Second, func() *resource.RetryError {
@@ -173,6 +178,7 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("key", extension.Key)
 		d.Set("destination", extension.Destination)
 		d.Set("triggers", extension.Triggers)
+		d.Set("timeout_in_ms", extension.TimeoutInMs)
 	}
 	return nil
 }
@@ -208,6 +214,13 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 		input.Actions = append(
 			input.Actions,
 			&commercetools.ExtensionChangeDestinationAction{Destination: destination})
+	}
+
+	if d.HasChange("timeout_in_ms") {
+		newTimeout := d.Get("timeout_in_ms").(int)
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ExtensionSetTimeoutInMsAction{TimeoutInMs: newTimeout})
 	}
 
 	_, err := client.ExtensionUpdateWithID(input)
