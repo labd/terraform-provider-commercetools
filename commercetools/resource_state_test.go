@@ -10,7 +10,6 @@ import (
 )
 
 func TestAccState_createAndUpdateWithID(t *testing.T) {
-
 	name := "test state"
 	key := "test-state"
 
@@ -49,10 +48,26 @@ func TestAccState_createAndUpdateWithID(t *testing.T) {
 				Config: testAccTransitionConfig(t, transition),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"commercetools_state.acctest-state-a", "transitions.#", "1",
+						"commercetools_state.acctest-t1", "transitions.#", "1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_state.acctest-state-a", "transitions.0", transition,
+						"commercetools_state.acctest-t1", "transitions.0", transition,
+					),
+				),
+			},
+			{
+				Config: testAccTransitionsConfig(t, "null"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr(
+						"commercetools_state.acctest-transitions", "transitions",
+					),
+				),
+			},
+			{
+				Config: testAccTransitionsConfig(t, "[]"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_state.acctest-transitions", "transitions.#", "0",
 					),
 				),
 			},
@@ -84,15 +99,38 @@ func testAccStateConfig(t *testing.T, name string, key string, addRole bool) str
 
 func testAccTransitionConfig(t *testing.T, transition string) string {
 	return fmt.Sprintf(`
-	resource "commercetools_state" "acctest-transitions" {
+	resource "commercetools_state" "acctest-t1" {
+		depends_on = [commercetools_state.acctest_t2]
 		key = "state-a"
 		type = "ReviewState"
 		name = {
-			en = "State A"
+			en = "State #1"
 		}
-		transitions = ["%s"]
+		transitions = ["%[1]s"]
+	}
+
+	resource "commercetools_state" "acctest_t2" {
+		key = "%[1]s"
+		type = "ReviewState"
+		name = {
+			en = "State #2"
+		}
+		transitions = []
 	}
 	`, transition)
+}
+
+func testAccTransitionsConfig(t *testing.T, transitions string) string {
+	return fmt.Sprintf(`
+	resource "commercetools_state" "acctest-transitions" {
+		key = "state-c"
+		type = "ReviewState"
+		name = {
+			en = "State C"
+		}
+		transitions = %s
+	}
+	`, transitions)
 }
 
 func testAccCheckStateDestroy(s *terraform.State) error {

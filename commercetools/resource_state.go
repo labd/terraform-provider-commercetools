@@ -59,11 +59,10 @@ func resourceState() *schema.Resource {
 				},
 			},
 			"transitions": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
-					// TODO: ValidateFunc to ensure keys are used?
 				},
 			},
 		},
@@ -81,10 +80,10 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 		roles = append(roles, commercetools.StateRoleEnum(value))
 	}
 
-	transitions := []commercetools.StateResourceIdentifier{}
-	for _, value := range expandStringArray(d.Get("transitions").([]interface{})) {
+	var transitions []commercetools.StateResourceIdentifier
+	for _, value := range d.Get("transitions").(*schema.Set).List() {
 		transitions = append(transitions, commercetools.StateResourceIdentifier{
-			Key: value,
+			Key: value.(string),
 		})
 	}
 
@@ -204,10 +203,10 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("transitions") {
-		transitions := []commercetools.StateResourceIdentifier{}
-		for _, value := range expandStringArray(d.Get("transitions").([]interface{})) {
+		var transitions []commercetools.StateResourceIdentifier
+		for _, value := range d.Get("transitions").(*schema.Set).List() {
 			transitions = append(transitions, commercetools.StateResourceIdentifier{
-				Key: value,
+				Key: value.(string),
 			})
 		}
 		input.Actions = append(
