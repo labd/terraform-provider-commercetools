@@ -13,6 +13,7 @@ resource "commercetools_shipping_method" "standard" {
   description = "Standard tax category"
   is_default = true
   tax_category_id = "<some tax category id>"
+  predicate = "1 = 1"
 }
 ```
 
@@ -25,6 +26,7 @@ The following arguments are supported:
 * `description` - (Optional) Description of the shipping method.
 * `is_default` - Whether it should be the default shipping method. There can be only one default shipping method.
 * `tax_category_id` - ID to a tax category.
+* `predicate` - Predicate conditions for shipping method aligibility. 
 
 
 ### Shipping Zone Rate *BETA, subject to changes*
@@ -46,6 +48,7 @@ resource "commercetools_shipping_method" "standard" {
   description = "Standard tax category"
   is_default = true
   tax_category_id = "<some tax category id>"
+  predicate = "1 = 1"
 }
 
 resource "commercetools_shipping_zone" "de" {

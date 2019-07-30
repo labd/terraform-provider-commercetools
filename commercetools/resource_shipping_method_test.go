@@ -10,13 +10,15 @@ import (
 
 func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 
-	name := "test method"
-	key := "test-method"
+	name := "test sh method"
+	key := "test-sh-method"
 	description := "test shipping method description"
+	predicate := "1 = 1"
 
-	newName := "new test method"
-	newKey := "new-test-method"
+	newName := "new test sh method"
+	newKey := "new-test-sh-method"
 	newDescription := "new test shipping method description"
+	newPredicate := "2 = 2"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,7 +26,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 		CheckDestroy: testAccCheckShippingMethodDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingMethodConfig(name, key, description, false, false),
+				Config: testAccShippingMethodConfig(name, key, description, false, true, predicate),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "name", name,
@@ -38,10 +40,13 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "is_default", "false",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_method.standard", "predicate", predicate,
+					),
 				),
 			},
 			{
-				Config: testAccShippingMethodConfig(newName, newKey, newDescription, true, true),
+				Config: testAccShippingMethodConfig(newName, newKey, newDescription, true, true, newPredicate),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "name", newName,
@@ -58,13 +63,16 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttrSet(
 						"commercetools_shipping_method.standard", "tax_category_id",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_method.standard", "predicate", newPredicate,
+					),
 				),
 			},
 		},
 	})
 }
 
-func testAccShippingMethodConfig(name string, key string, description string, isDefault bool, setTaxCategory bool) string {
+func testAccShippingMethodConfig(name string, key string, description string, isDefault bool, setTaxCategory bool, predicate string) string {
 	taxCategoryReference := ""
 	if setTaxCategory {
 		taxCategoryReference = "tax_category_id = \"${commercetools_tax_category.test.id}\""
@@ -81,7 +89,9 @@ resource "commercetools_shipping_method" "standard" {
 	key = "%s"
 	description = "%s"
 	is_default = "%t"
-    `, name, key, description, isDefault) + taxCategoryReference + "\n}\n"
+	predicate = "%s"
+	%s
+	`, name, key, description, isDefault, predicate, taxCategoryReference) + "\n}\n"
 }
 
 func testAccCheckShippingMethodDestroy(s *terraform.State) error {
