@@ -43,6 +43,10 @@ func resourceShippingMethod() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"predicate": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -61,6 +65,7 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 		Description: d.Get("description").(string),
 		IsDefault:   d.Get("is_default").(bool),
 		TaxCategory: &taxCategory,
+		Predicate:   d.Get("predicate").(string),
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -124,6 +129,7 @@ func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("description", shippingMethod.Description)
 		d.Set("is_default", shippingMethod.IsDefault)
 		d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
+		d.Set("predicate", shippingMethod.Predicate)
 	}
 
 	return nil
@@ -178,6 +184,13 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 		input.Actions = append(
 			input.Actions,
 			&commercetools.ShippingMethodChangeTaxCategoryAction{TaxCategory: &commercetools.TaxCategoryResourceIdentifier{ID: taxCategoryID}})
+	}
+
+	if d.HasChange("predicate") {
+		newPredicate := d.Get("predicate").(string)
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ShippingMethodSetPredicateAction{Predicate: newPredicate})
 	}
 
 	log.Printf(
