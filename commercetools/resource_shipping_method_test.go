@@ -63,7 +63,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttrSet(
 						"commercetools_shipping_method.standard", "tax_category_id",
 					),
-					resource.TestCheckResourceAttrSet(
+					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "predicate", newPredicate,
 					),
 				),
