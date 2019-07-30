@@ -18,6 +18,10 @@ resource "commercetools_project_settings" "project" {
   countries = ["NL", "DE", "US", "CA"]
   currencies = ["EUR", "USD", "CAD"]
   languages = ["nl", "de", "en", "fr-CA"]
+  external_oauth = {
+    url = "https://example.com/oauth/introspection"
+    authorization_header = "Bearer secret"
+  }
   messages = {
     enabled = true
   }
@@ -32,4 +36,6 @@ The following arguments are supported:
 * `countries` - A two-digit country code as per ISO 3166-1 alpha-2
 * `currencies` - A three-digit currency code as per ISO 4217
 * `languages` - An IETF language tag
+* `external_oauth.url` - The URL for your token introspection endpoint
+* `external_oauth.authorization_header` - The authorization header to send when querying the `external_oauth.url`
 * `messages.enabled` - When true the creation of messages is enabled
