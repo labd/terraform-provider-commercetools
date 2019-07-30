@@ -72,7 +72,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 	})
 }
 
-func testAccShippingMethodConfig(name string, key string, description string, isDefault bool, setTaxCategory bool, setPredicate string) string {
+func testAccShippingMethodConfig(name string, key string, description string, isDefault bool, setTaxCategory bool, predicate string) string {
 	taxCategoryReference := ""
 	if setTaxCategory {
 		taxCategoryReference = "tax_category_id = \"${commercetools_tax_category.test.id}\""
