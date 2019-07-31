@@ -10,13 +10,13 @@ import (
 
 func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 
-	name := "test method"
-	key := "test-method"
+	name := "test sh method"
+	key := "test-sh-method"
 	description := "test shipping method description"
 	predicate := "1 = 1"
 
-	newName := "new test method"
-	newKey := "new-test-method"
+	newName := "new test sh method"
+	newKey := "new-test-sh-method"
 	newDescription := "new test shipping method description"
 	newPredicate := "2 = 2"
 

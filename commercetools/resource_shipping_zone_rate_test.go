@@ -54,6 +54,7 @@ func testAccShippingZoneRateConfig(taxCategoryName string, shippingMethodName st
 		key             = "%[2]s"
 		description     = "Terraform test tax category"
 		tax_category_id = "${commercetools_tax_category.standard.id}"
+		predicate		= "1 = 1"
 	}
 
 	resource "commercetools_shipping_zone" "de" {
