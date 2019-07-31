@@ -26,7 +26,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 		CheckDestroy: testAccCheckShippingMethodDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingMethodConfig(name, key, description, false, false, predicate),
+				Config: testAccShippingMethodConfig(name, key, description, false, true, predicate),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "name", name,
@@ -82,7 +82,6 @@ resource "commercetools_tax_category" "test" {
 	name = "test"
 	key = "test"
 	description = "test"
-	predicate = "1=1"
 }
 
 resource "commercetools_shipping_method" "standard" {
@@ -91,7 +90,8 @@ resource "commercetools_shipping_method" "standard" {
 	description = "%s"
 	is_default = "%t"
 	predicate = "%s"
-    `, name, key, description, isDefault, predicate) + taxCategoryReference + "\n}\n"
+	%s
+	`, name, key, description, isDefault, predicate, taxCategoryReference) + "\n}\n"
 }
 
 func testAccCheckShippingMethodDestroy(s *terraform.State) error {

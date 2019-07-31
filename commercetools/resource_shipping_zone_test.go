@@ -14,7 +14,7 @@ func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 	name := "name"
 	description := "description"
 
-	newKey := "new key"
+	newKey := "new-key"
 	newName := "new name"
 	newDescription := "new description"
 
