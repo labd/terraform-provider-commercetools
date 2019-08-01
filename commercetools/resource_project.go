@@ -1,10 +1,9 @@
 package commercetools
 
 import (
-	"log"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
+	"log"
 )
 
 func resourceProjectSettings() *schema.Resource {
@@ -136,6 +135,7 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("currencies", project.Currencies)
 	d.Set("countries", project.Countries)
 	d.Set("languages", project.Languages)
+	d.Set("external_oauth", project.ExternalOAuth)
 	// d.Set("createdAt", project.CreatedAt)
 	// d.Set("trialUntil", project.TrialUntil)
 	log.Print("[DEBUG] Logging messages enabled")
@@ -215,6 +215,21 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 		input.Actions = append(
 			input.Actions,
 			&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: enabled})
+	}
+
+	if d.HasChange("external_oauth") {
+		externalOAuth := d.Get("external_oauth").(map[string]interface{})
+		if externalOAuth["url"] != nil && externalOAuth["authorization_header"] != nil {
+			newExternalOAuth := commercetools.ExternalOAuth{
+				URL:                 externalOAuth["url"].(string),
+				AuthorizationHeader: externalOAuth["authorization_header"].(string),
+			}
+			input.Actions = append(
+				input.Actions,
+				&commercetools.ProjectSetExternalOAuthAction{ExternalOAuth: &newExternalOAuth})
+		} else {
+			input.Actions = append(input.Actions, &commercetools.ProjectSetExternalOAuthAction{ExternalOAuth: nil})
+		}
 	}
 
 	_, err := client.ProjectUpdate(input)
