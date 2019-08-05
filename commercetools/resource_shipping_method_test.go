@@ -13,12 +13,12 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 	name := "test sh method"
 	key := "test-sh-method"
 	description := "test shipping method description"
-	predicate := "1 = 1"
+	predicate := ""
 
 	newName := "new test sh method"
 	newKey := "new-test-sh-method"
 	newDescription := "new test shipping method description"
-	newPredicate := "2 = 2"
+	newPredicate := ""
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
