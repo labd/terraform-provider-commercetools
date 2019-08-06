@@ -31,3 +31,6 @@ The following arguments are supported:
 * `key` - User-specific unique identifier for the subscription
 * `destination` - Details where the extension can be reached
 * `triggers` - Describes what triggers the extension
+* `timeout_in_ms` - The maximum time the commercetools platform waits for a
+  response from the extension. If not present, 2000 (2 seconds) is used.
+
