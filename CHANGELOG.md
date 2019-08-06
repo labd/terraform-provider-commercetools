@@ -1,3 +1,8 @@
+0.17.0 (2019-08-06)
+===================
+ - Update Extension resource to add `timeout_in_ms` (#80)
+ - Update ShippingMethod resource to add `predicate` (#82)
+
 0.16.0 (2019-07-22)
 ===================
  - Add support for setting the externalOAuth field on the project resource (#73)
@@ -9,12 +14,14 @@
 
 0.15.0 (2019-07-16)
 ===================
-- Use new Commercetools Go SDK definitions (main change is auto generated services, most CRUD actions are renamed)
+- Use new Commercetools Go SDK definitions (main change is auto generated
+  services, most CRUD actions are renamed)
 - Fix Goreleaser not putting version number in released binary
 
 0.14.0 (2019-07-04)
 ===================
-- Use new Commercetools Go SDK definitions (main change is Reference is now ResourceIdentifier resource)
+- Use new Commercetools Go SDK definitions (main change is Reference is now
+  ResourceIdentifier resource)
 
 0.13.1 (2019-07-02)
 ===================
@@ -115,16 +122,13 @@
  - Resource product type: Avoid `changeAttributeOrder` update action when new attribute gets added
  - Resource product type: Added support for Nested types
 
-
 0.2.0 (2018-12-10)
 ==================
  - **New resource:** `commercetools_product_type`
 
-
 0.1.1 (2018-10-04)
 ==================
  - **New resource:** `commercetools_type`
-
 
 0.1.0 (2018-09-14)
 ==================
