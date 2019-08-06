@@ -23,8 +23,6 @@ jobs:
       - script: go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... -v ./...
         displayName: "Run tests"
         env:
-          CTP_DEBUG: 1
-          TF_LOG: 1
           TF_ACC: 1
           CTP_AUTH_URL: http://localhost:8989
           CTP_PROJECT_KEY: unittest
