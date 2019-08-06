@@ -9,6 +9,8 @@ RUN go build -o terraform-provider-commercetools
 # final stage
 FROM hashicorp/terraform:0.12.2
 
+RUN apk add libc6-compat
+
 WORKDIR /config
 
 COPY --from=build-env /terraform-provider/terraform-provider-commercetools /bin
