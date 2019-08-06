@@ -7,19 +7,27 @@
 
 # Status
 
-This is the Terraform provider for commercetools. It allows you to configure your
-[commercetools](https://commercetools.com/) project with infrastructure-as-code principles. The project is in development and it might not support the complete commercetools API yet, but it can be considered 'production' ready for the resource it does support.
+This is the Terraform provider for commercetools. It allows you to configure
+your [commercetools](https://commercetools.com/) project with
+infrastructure-as-code principles. The project is in development and it might
+not support the complete commercetools API yet, but it can be considered
+'production' ready for the resource it does support.
 
 # Commercial support
-Need support implementing this terraform module in your organization? We are able to offer support. Please contact us at opensource@labdigital.nl
+Need support implementing this terraform module in your organization? We are
+able to offer support. Please contact us at opensource@labdigital.nl
 
 # Installation
 
-This is a third-party provider and that means that terraform cannot download it automatically. 
+This is a third-party provider and that means that terraform cannot download it
+automatically. 
 
 ## Binaries
 
-Packages of the releases are available at https://github.com/labd/terraform-provider-commercetools/releases See the [terraform documentation](https://www.terraform.io/docs/configuration/providers.html#third-party-plugins) for more information about installing third-party providers.
+Packages of the releases are available at
+https://github.com/labd/terraform-provider-commercetools/releases See the
+[terraform documentation](https://www.terraform.io/docs/configuration/providers.html#third-party-plugins)
+for more information about installing third-party providers.
 
 ## Homebrew
 
@@ -40,7 +48,8 @@ And follow the terminal output instructions to symlink the binary.
 
 # Getting started
 
-[Read our documentation](https://readthedocs.org/projects/commercetools-terraform-provider) and check out the [examples](https://commercetools-terraform-provider.readthedocs.io/en/latest/examples/).
+[Read our documentation](https://readthedocs.org/projects/commercetools-terraform-provider) 
+and check out the [examples](https://commercetools-terraform-provider.readthedocs.io/en/latest/examples/).
 
 # Contributing
 
@@ -68,7 +77,8 @@ $ cp terraform-provider-commercetools ~/.terraform.d/plugins/darwin_amd64/terraf
 
 ### Update commercetools-go-sdk
 
-The commercetools-go-sdk always uses the latest (master) version. To update to the latest version:
+The commercetools-go-sdk always uses the latest (master) version. To update to
+the latest version:
 
 ```sh
 make update-sdk
