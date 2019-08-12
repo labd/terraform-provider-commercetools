@@ -98,7 +98,7 @@ Note this generates a lot of output!
 This project uses Goreleaser, see `.goreleaser.yml`. To release:
 
 ```sh
-git tag <release> -m "Release <release>"
+git tag <release> -m "Release <release>" # please use semantic version, so always X.Y.Z
 git push --follow-tags
 GITHUB_TOKEN=<your github token> goreleaser release --rm-dist
 ```
