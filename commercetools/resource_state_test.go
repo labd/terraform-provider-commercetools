@@ -50,9 +50,6 @@ func TestAccState_createAndUpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_state.acctest-t1", "transitions.#", "1",
 					),
-					resource.TestCheckResourceAttr(
-						"commercetools_state.acctest-t1", "transitions.0", transition,
-					),
 				),
 			},
 			{
