@@ -58,6 +58,13 @@ func resourceState() *schema.Resource {
 					}, false),
 				},
 			},
+			"transitions": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -73,12 +80,20 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 		roles = append(roles, commercetools.StateRoleEnum(value))
 	}
 
+	var transitions []commercetools.StateResourceIdentifier
+	for _, value := range d.Get("transitions").(*schema.Set).List() {
+		transitions = append(transitions, commercetools.StateResourceIdentifier{
+			Key: value.(string),
+		})
+	}
+
 	draft := &commercetools.StateDraft{
 		Key:         d.Get("key").(string),
 		Type:        commercetools.StateTypeEnum(d.Get("type").(string)),
 		Name:        &name,
 		Description: &description,
 		Roles:       roles,
+		Transitions: transitions,
 	}
 
 	// Note the use of GetOkExists since it's an optional bool type
@@ -124,6 +139,9 @@ func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("initial", state.Initial)
 	if state.Roles != nil {
 		d.Set("roles", state.Roles)
+	}
+	if state.Transitions != nil {
+		d.Set("transitions", state.Transitions)
 	}
 	return nil
 }
@@ -182,6 +200,20 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 		input.Actions = append(
 			input.Actions,
 			&commercetools.StateSetRolesAction{Roles: roles})
+	}
+
+	if d.HasChange("transitions") {
+		var transitions []commercetools.StateResourceIdentifier
+		for _, value := range d.Get("transitions").(*schema.Set).List() {
+			transitions = append(transitions, commercetools.StateResourceIdentifier{
+				Key: value.(string),
+			})
+		}
+		input.Actions = append(
+			input.Actions,
+			&commercetools.StateSetTransitionsAction{
+				Transitions: transitions,
+			})
 	}
 
 	_, err := client.StateUpdateWithID(input)
