@@ -1,3 +1,7 @@
+0.18.0 (2019-08-14)
+===================
+ - Add `transitions` field for State resource (#74)
+
 0.17.0 (2019-08-06)
 ===================
  - Update Extension resource to add `timeout_in_ms` (#80)
