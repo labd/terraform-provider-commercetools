@@ -1,3 +1,7 @@
+0.18.1 (2019-08-19)
+===================
+ - Change Linux release artifact back to default archive format
+
 0.18.0 (2019-08-14)
 ===================
  - Add `transitions` field for State resource (#74)
