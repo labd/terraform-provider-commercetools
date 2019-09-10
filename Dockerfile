@@ -1,8 +1,9 @@
-FROM golang:1.12.1-stretch AS build-env
+FROM golang:1.12.9-stretch AS build-env
 WORKDIR /terraform-provider
 
 ADD . /terraform-provider
 
+ENV GOPROXY=https://proxy.golang.org
 RUN go mod download
 RUN go build -o terraform-provider-commercetools
 
