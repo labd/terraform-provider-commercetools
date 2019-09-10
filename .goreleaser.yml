@@ -33,7 +33,7 @@ brews:
     name: terraform-provider-commercetools
     description: Terraform provider for Commercetools
     homepage: https://github.com/labd/terraform-provider-commercetools
-    url_template: https://github.com/labd/terraform-provider-commercetools/releases/download/{{ .Version }}/terraform-provider-commercetools-{{ .Version }}-{{ .Os }}-{{ .Arch }}.zip
+    url_template: https://github.com/labd/terraform-provider-commercetools/releases/download/{{ .Version }}/{{ .ArtifactName }}
     caveats: |
       After installation, you must symlink the provider into Terraform's plugins directory.
       mkdir -p ~/.terraform.d/plugins/

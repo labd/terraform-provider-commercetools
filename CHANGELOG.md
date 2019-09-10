@@ -1,3 +1,8 @@
+0.18.2 (2019-09-10)
+===================
+- Brew release Linux has incorrect artifact name
+- Set GOPROXY for possible unreachable go packages
+
 0.18.1 (2019-08-19)
 ===================
  - Change Linux release artifact back to default archive format
