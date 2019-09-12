@@ -8,7 +8,7 @@ RUN go mod download
 RUN go build -o terraform-provider-commercetools
 
 # final stage
-FROM hashicorp/terraform:0.12.2
+FROM hashicorp/terraform:0.12.8
 
 RUN apk add libc6-compat
 

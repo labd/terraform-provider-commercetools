@@ -1,3 +1,7 @@
+0.18.3 (2019-09-11)
+===================
+- Use Terraform 0.12.8 dependency
+
 0.18.2 (2019-09-10)
 ===================
 - Brew release Linux has incorrect artifact name
