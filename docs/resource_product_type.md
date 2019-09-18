@@ -53,7 +53,7 @@ resource "commercetools_product_type" "my-product-type" {
             name = "text"
         }
         constraint = "Unique"
-        input_tip {
+        input_tip = {
             en = "Enter the product code"
             nl = "Voer de product code in"
         }
