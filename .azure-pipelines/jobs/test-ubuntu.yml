@@ -16,9 +16,9 @@ jobs:
 
     steps:
       - task: GoTool@0
-        displayName: 'Use Go 1.12'
+        displayName: 'Use Go 1.13'
         inputs:
-          version: 1.12
+          version: 1.13
 
       - script: go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... -v ./...
         displayName: "Run tests"

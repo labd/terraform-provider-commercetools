@@ -1,4 +1,4 @@
-FROM golang:1.12.9-stretch AS build-env
+FROM golang:1.13.1-stretch AS build-env
 WORKDIR /terraform-provider
 
 ADD . /terraform-provider
@@ -8,7 +8,7 @@ RUN go mod download
 RUN go build -o terraform-provider-commercetools
 
 # final stage
-FROM hashicorp/terraform:0.12.8
+FROM hashicorp/terraform:0.12.9
 
 RUN apk add libc6-compat
 

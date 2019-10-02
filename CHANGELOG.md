@@ -1,3 +1,7 @@
+0.19.0 (2019-10-02)
+===================
+- Update all dependencies (use go 1.13, switch to terraform plugin sdk)
+
 0.18.3 (2019-09-11)
 ===================
 - Use Terraform 0.12.8 dependency
