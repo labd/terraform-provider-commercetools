@@ -167,7 +167,7 @@ A [Localized String][commercetool-localized-string] is used to provide a string 
 The way to define this in the template is as:
 
 ```hcl
-value {
+value = {
     en = "Our new shiny value"
     nl = "Onze versie nieuwe waarde"
 }
@@ -181,7 +181,7 @@ The way to define this in the template is as:
 ```hcl
 localized_value {
     key = "phone"
-    label {
+    label = {
         en = "Phone"
         nl = "Telefoon"
     }

@@ -50,7 +50,7 @@ resource "commercetools_type" "my-custom-type" {
     }
     type {
       name = "Enum"
-      values {
+      values = {
         day = "Daytime"
         evening = "Evening"
       }
@@ -83,14 +83,14 @@ resource "commercetools_type" "my-custom-type" {
       name = "LocalizedEnum"
       localized_value {
         key = "phone"
-        label {
+        label = {
           en = "Phone"
           nl = "Telefoon"
         }
       }
       localized_value {
         key = "skype"
-        label {
+        label = {
           en = "Skype"
           nl = "Skype"
         }
@@ -184,7 +184,7 @@ A [Localized String][commercetool-localized-string] is used to provide a string 
 The way to define this in the template is as:
 
 ```hcl
-value {
+value = {
     en = "Our new shiny value"
     nl = "Onze versie nieuwe waarde"
 }
@@ -198,7 +198,7 @@ The way to define this in the template is as:
 ```hcl
 localized_value {
     key = "phone"
-    label {
+    label = {
         en = "Phone"
         nl = "Telefoon"
     }
