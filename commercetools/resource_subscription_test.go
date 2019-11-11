@@ -20,6 +20,11 @@ func TestValidateDestination(t *testing.T) {
 			"region":        "<region>",
 		},
 		{
+			"type":       "azure_eventgrid",
+			"uri":        "<uri>",
+			"access_key": "<access_key>",
+		},
+		{
 			"type":              "azure_servicebus",
 			"connection_string": "<connection_string>",
 		},
