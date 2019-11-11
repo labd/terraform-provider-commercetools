@@ -11,10 +11,16 @@ import (
 )
 
 const (
+	// Destinations
 	subSQS             = "SQS"
 	subSNS             = "SNS"
+	subAzureEventGrid  = "azure_eventgrid"
 	subAzureServiceBus = "azure_servicebus"
 	subGooglePubSub    = "google_pubsub"
+
+	// Formats
+	cloudEvents = "cloud_events"
+	platform    = "platform"
 )
 
 var destinationFields = map[string][]string{
@@ -29,6 +35,10 @@ var destinationFields = map[string][]string{
 		"access_key",
 		"access_secret",
 	},
+	subAzureEventGrid: {
+		"uri",
+		"access_key",
+	},
 	subAzureServiceBus: {
 		"connection_string",
 	},
@@ -36,6 +46,13 @@ var destinationFields = map[string][]string{
 		"project_id",
 		"topic",
 	},
+}
+
+var formatFields = map[string][]string{
+	cloudEvents: {
+		"cloud_events_version",
+	},
+	platform: {},
 }
 
 func resourceSubscription() *schema.Resource {
@@ -82,17 +99,25 @@ func resourceSubscription() *schema.Resource {
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
 						},
 
-						// AWS SNS / SQS
+						// AWS SNS / SQS / Azure Event Grid
 						"access_key": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS, subAzureEventGrid),
 						},
+						// AWS SNS / SQS
 						"access_secret": {
 							Type:             schema.TypeString,
 							Optional:         true,
 							ForceNew:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
+						},
+
+						//	Azure Event Grid
+						"uri": {
+							Type:             schema.TypeString,
+							Optional:         false,
+							DiffSuppressFunc: suppressIfNotDestinationType(subAzureEventGrid),
 						},
 
 						// Azure Service Bus
@@ -113,6 +138,26 @@ func resourceSubscription() *schema.Resource {
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
+						},
+					},
+				},
+			},
+			"format": {
+				Type:         schema.TypeMap,
+				Optional:     true,
+				ValidateFunc: validateFormat,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						// CloudEvents
+						"cloud_events_version": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotFormatType(cloudEvents),
 						},
 					},
 				},
@@ -165,10 +210,15 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
+	format, err := resourceSubscriptionGetFormat(d)
+	if err != nil {
+		return err
+	}
 
 	draft := &commercetools.SubscriptionDraft{
 		Key:         d.Get("key").(string),
 		Destination: destination,
+		Format:      format,
 		Messages:    messages,
 		Changes:     changes,
 	}
@@ -223,6 +273,7 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("version", subscription.Version)
 		d.Set("key", subscription.Key)
 		d.Set("destination", subscription.Destination)
+		d.Set("format", subscription.Format)
 		d.Set("message", subscription.Messages)
 		d.Set("changes", subscription.Changes)
 	}
@@ -306,6 +357,11 @@ func resourceSubscriptionGetDestination(d *schema.ResourceData) (commercetools.D
 			AccessSecret: input["access_secret"].(string),
 			Region:       input["region"].(string),
 		}, nil
+	case subAzureEventGrid:
+		return commercetools.AzureEventGridDestination{
+			URI:       input["uri"].(string),
+			AccessKey: input["access_key"].(string),
+		}, nil
 	case subAzureServiceBus:
 		return commercetools.AzureServiceBusDestination{
 			ConnectionString: input["connection_string"].(string),
@@ -317,6 +373,21 @@ func resourceSubscriptionGetDestination(d *schema.ResourceData) (commercetools.D
 		}, nil
 	default:
 		return nil, fmt.Errorf("Destination type %s not implemented", input["type"])
+	}
+}
+
+func resourceSubscriptionGetFormat(d *schema.ResourceData) (commercetools.DeliveryFormat, error) {
+	input := d.Get("format").(map[string]interface{})
+
+	switch input["type"] {
+	case cloudEvents:
+		return commercetools.DeliveryCloudEventsFormat{
+			CloudEventsVersion: input["cloud_events_version"].(string),
+		}, nil
+	case platform:
+		return commercetools.DeliveryPlatformFormat{}, nil
+	default:
+		return nil, fmt.Errorf("Format type %s not implemented", input["type"])
 	}
 }
 
@@ -352,24 +423,24 @@ func resourceSubscriptionGetMessages(d *schema.ResourceData) []commercetools.Mes
 	return messageObjects
 }
 
-func validateDestination(val interface{}, key string) (warns []string, errs []error) {
+func validateTypeAttribute(val interface{}, key string, attributeFields map[string][]string) (warns []string, errs []error) {
 	valueAsMap := val.(map[string]interface{})
 
-	destinationType, ok := valueAsMap["type"]
+	attributeType, ok := valueAsMap["type"]
 
 	if !ok {
 		errs = append(errs, fmt.Errorf("Property 'type' missing"))
 		return warns, errs
 	}
 
-	destinationTypeAsString, ok := destinationType.(string)
+	attributeTypeAsString, ok := attributeType.(string)
 	if !ok {
 		errs = append(errs, fmt.Errorf("Property 'type' has wrong type"))
 		return warns, errs
 	}
-	fields, ok := destinationFields[destinationTypeAsString]
+	fields, ok := attributeFields[attributeTypeAsString]
 	if !ok {
-		errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", destinationTypeAsString))
+		errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", attributeTypeAsString))
 		return warns, errs
 	}
 
@@ -385,9 +456,17 @@ func validateDestination(val interface{}, key string) (warns []string, errs []er
 	return warns, errs
 }
 
-func suppressIfNotDestinationType(t ...string) schema.SchemaDiffSuppressFunc {
+func validateDestination(val interface{}, key string) (warns []string, errs []error) {
+	return validateTypeAttribute(val, key, destinationFields)
+}
+
+func validateFormat(val interface{}, key string) (warns []string, errs []error) {
+	return validateTypeAttribute(val, key, formatFields)
+}
+
+func suppressFuncForAttribute(attribute string, t ...string) schema.SchemaDiffSuppressFunc {
 	return func(k string, old string, new string, d *schema.ResourceData) bool {
-		input := d.Get("destination").(map[string]interface{})
+		input := d.Get(attribute).(map[string]interface{})
 		for _, val := range t {
 			if val == input["type"] {
 				return false
@@ -395,4 +474,12 @@ func suppressIfNotDestinationType(t ...string) schema.SchemaDiffSuppressFunc {
 		}
 		return true
 	}
+}
+
+func suppressIfNotDestinationType(t ...string) schema.SchemaDiffSuppressFunc {
+	return suppressFuncForAttribute("destination", t...)
+}
+
+func suppressIfNotFormatType(t ...string) schema.SchemaDiffSuppressFunc {
+	return suppressFuncForAttribute("format", t...)
 }
