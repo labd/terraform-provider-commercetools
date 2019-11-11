@@ -386,9 +386,9 @@ func resourceSubscriptionGetFormat(d *schema.ResourceData) (commercetools.Delive
 		}, nil
 	case platform:
 		return commercetools.DeliveryPlatformFormat{}, nil
-	default:
-		return nil, fmt.Errorf("Format type %s not implemented", input["type"])
 	}
+
+	return nil, nil
 }
 
 func resourceSubscriptionGetChanges(d *schema.ResourceData) []commercetools.ChangeSubscription {
