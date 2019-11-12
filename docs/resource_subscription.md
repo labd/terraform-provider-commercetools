@@ -1,4 +1,4 @@
-# Subscription 
+# Subscription
 
 Provides a commercetools subscription
 
@@ -10,7 +10,7 @@ Also see the [subscription HTTP API documentation](https://docs.commercetools.co
 resource "commercetools_subscription" "my-sqs-subscription" {
   key = "my-subscription"
 
-  destination {
+  destination = {
     type          = "SQS"
     queue_url     = "${aws_sqs_queue.your-queue.id}"
     access_key    = "${aws_iam_access_key.ct.id}"
@@ -37,6 +37,7 @@ The following arguments are supported:
 * `destination` - The [Message Queue](#destination) into which the notifications are to be sent
 * `changes` - The change notifications subscribed to.
 * `messages` - The messages subscribed to.
+* `format` - The format in which the payload is delivered.
 
 ### Destination
 
@@ -63,6 +64,12 @@ differentiated by the type field.
 
 * `type` - `"azure_servicebus"`
 * `connection_string` - The SharedAccessKey for the service bus destination.
+
+#### Azure Event Grid Destination
+
+* `type` - `"azure_eventgrid"`
+* `uri` - The URI of the topic.
+* `access_key` - The access key for the destination.
 
 #### Google Cloud Pub/Sub Destination
 
