@@ -77,7 +77,7 @@ func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
 
 		shippingZone, err = client.ZoneCreate(draft)
 		if err != nil {
-			return resource.RetryableError(err)
+			return handleCommercetoolsError(err)
 		}
 		return nil
 	})

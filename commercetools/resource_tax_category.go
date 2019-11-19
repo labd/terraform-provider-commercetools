@@ -65,14 +65,7 @@ func resourceTaxCategoryCreate(d *schema.ResourceData, m interface{}) error {
 
 		taxCategory, err = client.TaxCategoryCreate(draft)
 		if err != nil {
-			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-				if _, ok := ctErr.Errors[0].(commercetools.InvalidJSONInputError); ok {
-					return resource.NonRetryableError(ctErr)
-				}
-			} else {
-				log.Printf("[DEBUG] Received error: %s", err)
-			}
-			return resource.RetryableError(err)
+			return handleCommercetoolsError(err)
 		}
 		return nil
 	})

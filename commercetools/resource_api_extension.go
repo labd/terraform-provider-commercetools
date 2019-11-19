@@ -130,9 +130,7 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 
 		extension, err = client.ExtensionCreate(draft)
 		if err != nil {
-			log.Print("[DEBUG] Error while creating extension, will try again")
-			log.Print(err)
-			return resource.RetryableError(err)
+			return handleCommercetoolsError(err)
 		}
 		return nil
 	})

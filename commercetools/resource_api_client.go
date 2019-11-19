@@ -3,7 +3,9 @@ package commercetools
 import (
 	"sort"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
 )
@@ -50,7 +52,19 @@ func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	client := getClient(m)
-	apiClient, err := client.APIClientCreate(draft)
+
+	var apiClient *commercetools.APIClient
+
+	err := resource.Retry(20*time.Second, func() *resource.RetryError {
+		var err error
+
+		apiClient, err = client.APIClientCreate(draft)
+		if err != nil {
+			return handleCommercetoolsError(err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}

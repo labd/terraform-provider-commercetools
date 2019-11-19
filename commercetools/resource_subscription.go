@@ -228,6 +228,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 
 		subscription, err = client.SubscriptionCreate(draft)
 		if err != nil {
+			// Some subscription resources might not be ready yet, always keep retrying
 			return resource.RetryableError(err)
 		}
 		return nil
