@@ -38,28 +38,34 @@ func resourceAPIExtension() *schema.Resource {
 						"url": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  "",
 						},
 						"azure_authentication": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  "",
 						},
 						"authorization_header": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  "",
 						},
 
 						// AWSLambda specific fields
 						"arn": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  "",
 						},
 						"access_key": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  "",
 						},
 						"access_secret": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  "",
 						},
 					},
 				},
