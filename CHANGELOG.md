@@ -1,3 +1,7 @@
+0.20.0 (2020-02-22)
+===================
+- Add Azure Event Grid subscription
+
 0.19.0 (2019-10-02)
 ===================
 - Update all dependencies (use go 1.13, switch to terraform plugin sdk)
