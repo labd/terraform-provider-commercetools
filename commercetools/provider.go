@@ -49,14 +49,14 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CTP_API_URL", nil),
 				Description: "The API URL of the commercetools platform. https://docs.commercetools.com/http-api",
-				Removed:     "Use the region and cloud_provider fields, to let the provider construct the correct hostname.",
+				Deprecated:  "Use the region and cloud_provider fields, to let the provider construct the correct hostname.",
 			},
 			"token_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CTP_AUTH_URL", nil),
 				Description: "The authentication URL of the commercetools platform. https://docs.commercetools.com/http-api-authorization",
-				Removed:     "Use the region and cloud_provider fields, to let the provider construct the correct hostname.",
+				Deprecated:  "Use the region and cloud_provider fields, to let the provider construct the correct hostname.",
 			},
 			"region": {
 				Type:        schema.TypeString,

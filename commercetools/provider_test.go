@@ -43,6 +43,8 @@ func testAccPreCheck(t *testing.T) {
 		"CTP_CLIENT_ID",
 		"CTP_CLIENT_SECRET",
 		"CTP_PROJECT_KEY",
+		"CTP_REGION",
+		"CTP_CLOUD_PROVIDER",
 	}
 	for _, val := range requiredEnvs {
 		if os.Getenv(val) == "" {
