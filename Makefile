@@ -27,4 +27,12 @@ testacct:
 	TF_ACC=1 go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... -v ./...
 
 mockacc:
-	TF_ACC=1 CTP_AUTH_URL=http://localhost:8989 CTP_PROJECT_KEY=unittest CTP_API_URL=http://localhost:8989 CTP_CLIENT_ID=unittest CTP_CLIENT_SECRET=x go test -count=1 -v ./...
+	TF_ACC=1 \
+	CTP_PROJECT_KEY=projectkey \
+	CTP_CLIENT_ID=clientid \
+	CTP_CLIENT_SECRET=clientsecret \
+	CTP_REGION=europe-west1 \
+	CTP_CLOUD_PROVIDER=gcp \
+	CTP_API_URL=http://localhost:8989 \
+	CTP_AUTH_URL=http://localhost:8989 \
+	go test -count=1 -v ./...

@@ -3,6 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/mutexkv"
@@ -17,52 +18,57 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"client_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"CTP_CLIENT_ID",
-				}, nil),
-				Description: "CommercesTools Client ID",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CTP_CLIENT_ID", nil),
+				Description: "The OAuth Client ID for a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
+				Sensitive:   true,
 			},
 			"client_secret": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"CTP_CLIENT_SECRET",
-				}, nil),
-				Description: "CommercesTools Client Secret",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CTP_CLIENT_SECRET", nil),
+				Description: "The OAuth Client Secret for a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
+				Sensitive:   true,
 			},
 			"project_key": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"CTP_PROJECT_KEY",
-				}, nil),
-				Description: "CommercesTools Project key",
-			},
-			"token_url": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"CTP_AUTH_URL",
-				}, "https://auth.sphere.io"),
-				Description: "CommercesTools Token URL",
-			},
-			"api_url": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"CTP_API_URL",
-				}, "https://api.sphere.io"),
-				Description: "CommercesTools API URL",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CTP_PROJECT_KEY", nil),
+				Description: "The project key of commercetools platform project. https://docs.commercetools.com/getting-started",
+				Sensitive:   true,
 			},
 			"scopes": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"CTP_SCOPES",
-				}, nil),
-				Description: "CommercesTools Scopes",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CTP_SCOPES", nil),
+				Description: "A list as string of OAuth scopes assigned to a project key, to access resources in a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
+			},
+			"api_url": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CTP_API_URL", nil),
+				Description: "The API URL of the commercetools platform. https://docs.commercetools.com/http-api",
+				Removed:     "Use the region and cloud_provider fields, to let the provider construct the correct hostname.",
+			},
+			"token_url": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CTP_AUTH_URL", nil),
+				Description: "The authentication URL of the commercetools platform. https://docs.commercetools.com/http-api-authorization",
+				Removed:     "Use the region and cloud_provider fields, to let the provider construct the correct hostname.",
+			},
+			"region": {
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CTP_REGION", nil),
+				Description: "The region where the commercetools platform runs, for example 'europe-west1', 'us-central1', etc. https://docs.commercetools.com/http-api.html#regions",
+			},
+			"cloud_provider": {
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CTP_CLOUD_PROVIDER", nil),
+				Description: "The cloud provider where the commercetools platform runs: 'gcp', 'aws'. https://docs.commercetools.com/http-api.html#regions",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
@@ -86,27 +92,26 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	clientID := d.Get("client_id").(string)
+	clientSecret := d.Get("client_secret").(string)
 	projectKey := d.Get("project_key").(string)
-
 	scopesRaw := d.Get("scopes").(string)
-	var scopes []string
-	if scopesRaw == "" {
-		scopes = []string{fmt.Sprintf("manage_project:%s", projectKey)}
-	} else {
-		scopes = strings.Split(scopesRaw, " ")
-	}
+
+	oauthScopes := strings.Split(scopesRaw, " ")
+	apiURL := getAPIURL(d)
+	authURL := getAuthURL(d)
 
 	oauth2Config := &clientcredentials.Config{
-		ClientID:     d.Get("client_id").(string),
-		ClientSecret: d.Get("client_secret").(string),
-		Scopes:       scopes,
-		TokenURL:     fmt.Sprintf("%s/oauth/token", d.Get("token_url").(string)),
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Scopes:       oauthScopes,
+		TokenURL:     fmt.Sprintf("%s/oauth/token", authURL),
 	}
 	httpClient := oauth2Config.Client(context.TODO())
 
 	client := commercetools.New(&commercetools.Config{
 		ProjectKey:   projectKey,
-		URL:          d.Get("api_url").(string),
+		URL:          apiURL,
 		HTTPClient:   httpClient,
 		LibraryName:  "terraform-provider-commercetools",
 		ContactURL:   "https://labdigital.nl",
@@ -118,3 +123,25 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 // This is a global MutexKV for use within this plugin.
 var ctMutexKV = mutexkv.NewMutexKV()
+
+func getAPIURL(d *schema.ResourceData) string {
+	testAPIURL := os.Getenv("CTP_API_URL")
+	if testAPIURL != "" {
+		return testAPIURL
+	}
+	return fmt.Sprintf("https://api.%s", getBaseHostname(d))
+}
+
+func getAuthURL(d *schema.ResourceData) string {
+	testAuthURL := os.Getenv("CTP_AUTH_URL")
+	if testAuthURL != "" {
+		return testAuthURL
+	}
+	return fmt.Sprintf("https://auth.%s", getBaseHostname(d))
+}
+
+func getBaseHostname(d *schema.ResourceData) string {
+	region := d.Get("region").(string)
+	cloudProvider := d.Get("cloud_provider").(string)
+	return fmt.Sprintf("%s.%s.commercetools.com", region, cloudProvider)
+}

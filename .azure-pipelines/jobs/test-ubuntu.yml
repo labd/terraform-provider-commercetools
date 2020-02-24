@@ -24,11 +24,14 @@ jobs:
         displayName: "Run tests"
         env:
           TF_ACC: 1
-          CTP_AUTH_URL: http://localhost:8989
-          CTP_PROJECT_KEY: unittest
+          CTP_CLIENT_ID: clientid
+          CTP_CLIENT_SECRET: clientsecret
+          CTP_PROJECT_KEY: projectkey
+          CTP_SCOPES: view_project:projectkey
+          CTP_REGION: europe-west1
+          CTP_CLOUD_PROVIDER: gcp
           CTP_API_URL: http://localhost:8989
-          CTP_CLIENT_ID: unittest
-          CTP_CLIENT_SECRET: x
+          CTP_AUTH_URL: http://localhost:8989
 
       - task: Go@0
         displayName: 'Build'
