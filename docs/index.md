@@ -16,11 +16,9 @@ The provider attempts to read the required values from environment variables:
 - `CTP_CLIENT_ID`
 - `CTP_CLIENT_SECRET`
 - `CTP_PROJECT_KEY`
-- `CTP_REGION`
-- `CTP_CLOUD_PROVIDER`
 - `CTP_SCOPES`
-
-> The following fields have been removed: `CTP_AUTH_URL`, `CTP_API_URL`. Use `CTP_REGION` and `CTP_CLOUD_PROVIDER` instead.
+- `CTP_API_URL`
+- `CTP_AUTH_URL`
 
 Alternatively, you can set it up directly in the terraform file:
 

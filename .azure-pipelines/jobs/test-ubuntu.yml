@@ -28,8 +28,6 @@ jobs:
           CTP_CLIENT_SECRET: clientsecret
           CTP_PROJECT_KEY: projectkey
           CTP_SCOPES: view_project:projectkey
-          CTP_REGION: europe-west1
-          CTP_CLOUD_PROVIDER: gcp
           CTP_API_URL: http://localhost:8989
           CTP_AUTH_URL: http://localhost:8989
 
