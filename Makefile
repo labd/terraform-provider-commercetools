@@ -28,10 +28,10 @@ testacct:
 
 mockacc:
 	TF_ACC=1 \
-	CTP_CLIENT_ID=clientid \
-	CTP_CLIENT_SECRET=clientsecret \
-	CTP_PROJECT_KEY=projectkey \
-	CTP_SCOPES=view_project:projectkey \
+	CTP_CLIENT_ID=unittest \
+	CTP_CLIENT_SECRET=x \
+	CTP_PROJECT_KEY=unittest \
+	CTP_SCOPES=manage_project:projectkey \
 	CTP_API_URL=http://localhost:8989 \
 	CTP_AUTH_URL=http://localhost:8989 \
 	go test -count=1 -v ./...
