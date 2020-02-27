@@ -1,3 +1,13 @@
+0.21.0 (2020-02-27)
+===================
+- Provider arguments (`client_id`, `client_secret`, `project_key`,
+  `scopes`, `token_url` and `api_url`) are now required
+- Don't retry various calls if Commercetools returns an error (resulting in
+  unnecessary retries/waiting times).
+- resource `commercetools_api_client`: updating now recreates the resource since
+  it cannot be updated.
+- Dependency update: use terraform-plugin-sdk 1.7.0
+
 0.20.0 (2020-02-22)
 ===================
 - Add Azure Event Grid subscription
