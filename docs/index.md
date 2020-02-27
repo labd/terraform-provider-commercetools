@@ -12,11 +12,13 @@ This is a third-party provider and that means that terraform cannot download it 
 
 
 ## Using the provider
-Setting up the commercetools credentials The provider reads the environment
-variables `CTP_PROJECT_KEY`, `CTP_CLIENT_SECRET`, `CTP_CLIENT_ID`,
-`CTP_AUTH_URL`, `CTP_API_URL` and `CTP_SCOPES`. This is compatible with the
-"Environment Variables" format you can download in the Merchant Center after
-creating an API Client.
+The provider attempts to read the required values from environment variables:
+- `CTP_CLIENT_ID`
+- `CTP_CLIENT_SECRET`
+- `CTP_PROJECT_KEY`
+- `CTP_SCOPES`
+- `CTP_API_URL`
+- `CTP_AUTH_URL`
 
 Alternatively, you can set it up directly in the terraform file:
 
