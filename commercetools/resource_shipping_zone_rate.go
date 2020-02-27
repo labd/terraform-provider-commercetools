@@ -160,16 +160,10 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
+
 		shippingMethod, err = client.ShippingMethodUpdateWithID(&input)
 		if err != nil {
-			if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-				if _, ok := ctErr.Errors[0].(commercetools.InvalidJSONInputError); ok {
-					return resource.NonRetryableError(ctErr)
-				}
-			} else {
-				log.Printf("[DEBUG] Received error: %s", err)
-			}
-			return resource.RetryableError(err)
+			return handleCommercetoolsError(err)
 		}
 		return nil
 	})

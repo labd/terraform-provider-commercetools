@@ -3,8 +3,10 @@ package commercetools
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
 )
@@ -17,6 +19,15 @@ const TypeLocalizedString = schema.TypeMap
 func getClient(m interface{}) *commercetools.Client {
 	client := m.(*commercetools.Client)
 	return client
+}
+
+func handleCommercetoolsError(err error) *resource.RetryError {
+	if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		return resource.NonRetryableError(ctErr)
+	}
+
+	log.Printf("[DEBUG] Received error: %s", err)
+	return resource.RetryableError(err)
 }
 
 func expandStringArray(input []interface{}) []string {

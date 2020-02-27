@@ -1,6 +1,9 @@
 package commercetools
 
 import (
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
 )
@@ -41,7 +44,19 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	client := getClient(m)
-	store, err := client.StoreCreate(draft)
+
+	var store *commercetools.Store
+
+	err := resource.Retry(20*time.Second, func() *resource.RetryError {
+		var err error
+
+		store, err = client.StoreCreate(draft)
+		if err != nil {
+			return handleCommercetoolsError(err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
