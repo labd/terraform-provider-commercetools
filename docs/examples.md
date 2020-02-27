@@ -9,7 +9,14 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-provider "commercetools" {}
+provider "commercetools" {
+  client_id     = "foo"
+  client_secret = "bar"
+  project_key   = "some-project"
+  scopes        = "manage_project:some-project"
+  token_url     = "https://auth.sphere.io"
+  api_url       = "https://api.sphere.io"
+}
 
 resource "aws_sqs_queue" "ct_queue" {
   name                      = "terraform-queue-two"

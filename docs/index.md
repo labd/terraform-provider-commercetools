@@ -27,6 +27,10 @@ provider "commercetools" {
   client_id     = "<your client id>"
   client_secret = "<your client secret>"
   project_key   = "<your project key>"
+  project_key   = "<your project key>"
+  scopes        = "<space seperated list of scopes>"
+  api_url       = "<api url>"
+  token_url     = "<token url>"
 }
 ```
 
