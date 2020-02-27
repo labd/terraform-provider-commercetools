@@ -14,7 +14,6 @@ func resourceAPIClient() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAPIClientCreate,
 		Read:   resourceAPIClientRead,
-		Update: resourceAPIClientUpdate,
 		Delete: resourceAPIClientDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -23,11 +22,13 @@ func resourceAPIClient() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"scope": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
+				ForceNew: true,
 			},
 			"secret": {
 				Type:     schema.TypeString,
@@ -94,11 +95,6 @@ func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
 	scopes := strings.Split(apiClient.Scope, " ")
 	sort.Strings(scopes)
 	d.Set("scope", scopes)
-	return nil
-}
-
-func resourceAPIClientUpdate(d *schema.ResourceData, m interface{}) error {
-	// not supported
 	return nil
 }
 
