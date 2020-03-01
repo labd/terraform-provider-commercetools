@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/machinebox/graphql"
 )
 
 // TypeLocalizedString defined merely for documentation,
@@ -17,8 +18,18 @@ import (
 const TypeLocalizedString = schema.TypeMap
 
 func getClient(m interface{}) *commercetools.Client {
-	client := m.(*commercetools.Client)
-	return client
+	terraformContext := m.(TerraformContext)
+	return terraformContext.HTTPClient
+}
+
+func getGraphQLClient(m interface{}) *graphql.Client {
+	terraformContext := m.(TerraformContext)
+	return terraformContext.GraphQLClient
+}
+
+func getProjectKey(m interface{}) string {
+	terraformContext := m.(TerraformContext)
+	return terraformContext.ProjectKey
 }
 
 func handleCommercetoolsError(err error) *resource.RetryError {

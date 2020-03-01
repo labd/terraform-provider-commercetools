@@ -46,6 +46,7 @@ func testAccPreCheck(t *testing.T) {
 		"CTP_SCOPES",
 		"CTP_API_URL",
 		"CTP_AUTH_URL",
+		"CTP_MC_API_URL",
 	}
 	for _, val := range requiredEnvs {
 		if os.Getenv(val) == "" {
