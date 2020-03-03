@@ -19,6 +19,7 @@ The provider attempts to read the required values from environment variables:
 - `CTP_SCOPES`
 - `CTP_API_URL`
 - `CTP_AUTH_URL`
+- `CTP_MC_API_URL`
 
 Alternatively, you can set it up directly in the terraform file:
 
