@@ -37,6 +37,9 @@ resource "commercetools_custom_application" "state-machines" {
       }
       permissions = ["ManageDeveloperSettings"]
     }
+    # submenu {
+    #   # ...
+    # }
   }
 }
 ```
@@ -45,46 +48,22 @@ resource "commercetools_custom_application" "state-machines" {
 
 The following arguments are supported:
 
-* `key` - User-specific unique identifier for the subscription
-* `destination` - The [Message Queue](#destination) into which the notifications are to be sent
-* `changes` - The change notifications subscribed to.
-* `messages` - The messages subscribed to.
-* `format` - The format in which the payload is delivered.
+* `name` - The name of the Custom Application.
+* `description` (_optional) - The description of the Custom Application.
+* `url` - The URL (origin) of the Custom Application. The Merchant Center serves Custom Applications on its own domain, but requests are internally forwarded to this URL.
+* `is_active` - Whether to activate or deactivate the Custom Application.
+* `navbar_menu` - The [Navbar Menu](#navbar-menu) configuration for the links in the main navigation.
 
-### Destination
+### Navbar Menu
 
-A destination contains all info necessary for the commercetools platform to
-deliver a message onto your Message Queue. Message Queues can be
-differentiated by the type field.
+* `uri_path` - The main route path forms the URL for the Custom Application in the Merchant Center. The URL always contains the project key followed by the value in this field. The main route path matches requests forwarded to the application. Do not use spaces in your URL, use dash separators.
+* `icon` - The icon to be shown in the navigation menu on the left side.
+* `permissions` - A list of permission strings to be applied to the navigation links. If a user does not have at least one of the permissions, they won't be able to see the Custom Application in the Merchant Center navigation menu.
+* `label_all_locales` - A list of localized labels. The values are used in the navigation links according to the language/locale settings in the user profile.
+* `submenu` - The [Submenu](#submenu) configuration for the links in the main navigation.
 
-#### AWS SQS Destination
+### Submenu
 
-* `type` - `"SQS"`
-* `queue_url` - The url of the queue.
-* `access_key` - The aws access key.
-* `access_secret` - The aws access secret.
-* `region` - The aws region.
-
-#### AWS SNS Destination
-
-* `type` - `"SNS"`
-* `topic_arn` - The arn of the topic.
-* `access_key` - The aws access key.
-* `access_secret` - The aws access secret.
-
-#### Azure Service Bus Destination
-
-* `type` - `"azure_servicebus"`
-* `connection_string` - The SharedAccessKey for the service bus destination.
-
-#### Azure Event Grid Destination
-
-* `type` - `"azure_eventgrid"`
-* `uri` - The URI of the topic.
-* `access_key` - The access key for the destination.
-
-#### Google Cloud Pub/Sub Destination
-
-* `type` - `"google_pubsub"`
-* `project_id` - The id of the project that contains the Pub/Sub topic.
-* `topic` - The name of the Pub/Sub topic.
+* `uri_path` - The main route path forms the URL for the Custom Application in the Merchant Center. The URL always contains the project key followed by the value in this field. The main route path matches requests forwarded to the application. Do not use spaces in your URL, use dash separators.
+* `permissions` - A list of permission strings to be applied to the navigation links. If a user does not have at least one of the permissions, they won't be able to see the Custom Application in the Merchant Center navigation menu.
+* `label_all_locales` - A list of localized labels. The values are used in the navigation links according to the language/locale settings in the user profile.
