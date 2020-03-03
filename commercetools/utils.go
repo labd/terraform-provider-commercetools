@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/iancoleman/strcase"
 	"github.com/labd/commercetools-go-sdk/commercetools"
 	"github.com/machinebox/graphql"
 )
@@ -131,6 +132,10 @@ func stringInSlice(a string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func slugify(s string) string {
+	return strings.ReplaceAll(strcase.ToKebab(s), "/", "-")
 }
 
 var currencyCodes = map[string]bool{

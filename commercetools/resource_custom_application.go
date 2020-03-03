@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/machinebox/graphql"
-	"github.com/stoewer/go-strcase"
 )
 
 func resourceCustomApplication() *schema.Resource {
@@ -139,7 +138,7 @@ func resourceCustomApplication() *schema.Resource {
 func resourceCustomApplicationCreate(d *schema.ResourceData, meta interface{}) error {
 	client := getGraphQLClient(meta)
 	projectKey := getProjectKey(meta)
-	log.Printf("project key %s", projectKey)
+
 	req := graphql.NewRequest(`
 		mutation CreateCustomApplication($draft: ApplicationExtensionDataInput!) {
 			createProjectExtensionApplication(data: $draft) {
@@ -160,11 +159,9 @@ func resourceCustomApplicationCreate(d *schema.ResourceData, meta interface{}) e
 	req.Header.Set("X-Project-Key", projectKey)
 	req.Header.Set("X-GraphQL-Target", "settings")
 
-	log.Printf("before sending request %s", draft)
 	var res GraphQLResponseProjectExtensionCreation
 	err := client.Run(context.Background(), req, &res)
 	if err != nil {
-		log.Printf("hey, got a response %s", err.Error())
 		return err
 	}
 	customApp := res.CreateProjectExtensionApplication.Applications[0]
@@ -363,7 +360,7 @@ func resourceCustomApplicationFormToDocNavbarMenu(formValues []interface{}) map[
 	// There can only be one `navbarMenu`.
 	value := (formValues[0]).(map[string]interface{})
 	result := map[string]interface{}{
-		"key":             strcase.KebabCase(value["uri_path"].(string)),
+		"key":             slugify(value["uri_path"].(string)),
 		"uriPath":         value["uri_path"],
 		"icon":            value["icon"],
 		"labelAllLocales": value["label_all_locales"],
@@ -387,7 +384,7 @@ func resourceCustomApplicationFormToDocNavbarSubmenu(formValues []interface{}) [
 	for _, raw := range formValues {
 		value := raw.(map[string]interface{})
 		doc := map[string]interface{}{
-			"key":             strcase.KebabCase(value["uri_path"].(string)),
+			"key":             slugify(value["uri_path"].(string)),
 			"uriPath":         value["uri_path"],
 			"labelAllLocales": value["label_all_locales"],
 		}
