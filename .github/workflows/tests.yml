@@ -1,0 +1,40 @@
+name: Run Tests
+
+on: [push]
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      commercetools:
+        image: labdigital/commercetools-mock-server
+        ports:
+        - 8989:8989
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        go-version: [1.14]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v2-beta
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: Install dependencies
+      run: 	go get ./commercetools
+    - name: Run tests
+      run: 	go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./commercetools -v ./commercetools
+      env:
+        TF_ACC: 1
+        CTP_CLIENT_ID: unittest
+        CTP_CLIENT_SECRET: x
+        CTP_PROJECT_KEY: unittest
+        CTP_SCOPES: manage_project:unittest
+        CTP_API_URL: http://localhost:8989
+        CTP_AUTH_URL: http://localhost:8989
+    - name: Upload to codecov
+      uses: codecov/codecov-action@v1.0.6
