@@ -134,8 +134,8 @@ github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348 h1:MtvEpTB6LX3v
 github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348/go.mod h1:B69LEHPfb2qLo0BaaOLcbitczOKLWTsrBG9LczfCD4k=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
-github.com/labd/commercetools-go-sdk v0.0.0-20190722144546-80b2ca71bd4d h1:tQPiC54Y3Eebi5G8jIQlVVIh9cqlaIQIuhlW82Yvqgg=
-github.com/labd/commercetools-go-sdk v0.0.0-20190722144546-80b2ca71bd4d/go.mod h1:4IG4Fi2139S7HAjJlaL2Z9kcyKdbIjUTdqd4l4pPXdw=
+github.com/labd/commercetools-go-sdk v0.0.0-20200309143931-ca72e918a79d h1:wI9Pc33M4Weg78J/fDFsKWTiEsAvriH6x4EHbcR3zus=
+github.com/labd/commercetools-go-sdk v0.0.0-20200309143931-ca72e918a79d/go.mod h1:uOXGd793oxD6CZiPp30hzs4L511bcYSF0yPu17LBqAo=
 github.com/mattn/go-colorable v0.0.9 h1:UVL0vNpWh04HeJXV0KLcaT7r06gOH2l4OW6ddYRUIY4=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.1 h1:G1f5SKeVxmagw/IyvzvtZE4Gybcc4Tr1tf7I8z0XgOg=

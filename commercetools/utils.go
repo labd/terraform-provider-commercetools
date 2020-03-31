@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -309,4 +310,8 @@ func ValidateCurrencyCode(val interface{}, key string) (warns []string, errs []e
 		errs = append(errs, fmt.Errorf("%q unknown currency code, must be valid ISO 4217 code, got: %s", key, currency))
 	}
 	return
+}
+
+func expandDate(input string) (time.Time, error) {
+	return time.Parse(time.RFC3339, input)
 }
