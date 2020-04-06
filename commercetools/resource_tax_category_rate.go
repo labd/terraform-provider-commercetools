@@ -219,7 +219,7 @@ func resourceTaxCategoryRateUpdate(d *schema.ResourceData, m interface{}) error 
 		Actions: []commercetools.TaxCategoryUpdateAction{},
 	}
 
-	if d.HasChange("name") || d.HasChange("included_in_price") || d.HasChange("country") || d.HasChange("state") || d.HasChange("sub_rate") {
+	if d.HasChange("name") || d.HasChange("amount") || d.HasChange("included_in_price") || d.HasChange("country") || d.HasChange("state") || d.HasChange("sub_rate") {
 		taxRateDraft, err := createTaxRateDraft(d)
 		if err != nil {
 			return err
