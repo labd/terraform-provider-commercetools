@@ -393,20 +393,20 @@ func resourceSubscriptionGetFormat(d *schema.ResourceData) (commercetools.Delive
 }
 
 func resourceSubscriptionGetChanges(d *schema.ResourceData) []commercetools.ChangeSubscription {
-	input := d.Get("changes").([]interface{})
 	var result []commercetools.ChangeSubscription
+	input := d.Get("changes").([]interface{})
+	if len(input) > 0 {
+		for _, raw := range input {
+			i := raw.(map[string]interface{})
+			rawTypeIds := expandStringArray(i["resource_type_ids"].([]interface{}))
 
-	for _, raw := range input {
-		i := raw.(map[string]interface{})
-		rawTypeIds := expandStringArray(i["resource_type_ids"].([]interface{}))
-
-		for _, item := range rawTypeIds {
-			result = append(result, commercetools.ChangeSubscription{
-				ResourceTypeID: item,
-			})
+			for _, item := range rawTypeIds {
+				result = append(result, commercetools.ChangeSubscription{
+					ResourceTypeID: item,
+				})
+			}
 		}
 	}
-
 	return result
 }
 
