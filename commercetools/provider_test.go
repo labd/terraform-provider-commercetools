@@ -6,6 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/machinebox/graphql"
+	"github.com/stretchr/testify/assert"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider
@@ -34,6 +37,27 @@ func TestProvider(t *testing.T) {
 	}
 }
 
+func TestProviderConfig(t *testing.T) {
+	resourceDataMap := map[string]interface{}{
+		"client_id":     "test-client-id",
+		"client_secret": "test-client-secret",
+		"project_key":   "test-project-key",
+		"scopes":        "view_project_settings:test-project-key",
+		"api_url":       "https://api.europe-west1.gcp.commercetools.com",
+		"token_url":     "https://auth.europe-west1.gcp.commercetools.com",
+		"mc_api_url":    "https://mc-api.europe-west1.gcp.commercetools.com",
+	}
+	err := testAccProvider.Configure(terraform.NewResourceConfigRaw(resourceDataMap))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	meta := testAccProvider.Meta()
+	assert.IsType(t, getClient(meta), (*commercetools.Client)(nil))
+	assert.IsType(t, getGraphQLClient(meta), (*graphql.Client)(nil))
+	assert.Equal(t, getProjectKey(meta), "test-project-key")
+}
+
 func TestProvider_impl(t *testing.T) {
 	var _ terraform.ResourceProvider = Provider()
 }
@@ -46,6 +70,7 @@ func testAccPreCheck(t *testing.T) {
 		"CTP_SCOPES",
 		"CTP_API_URL",
 		"CTP_AUTH_URL",
+		"CTP_MC_API_URL",
 	}
 	for _, val := range requiredEnvs {
 		if os.Getenv(val) == "" {

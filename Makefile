@@ -34,4 +34,5 @@ mockacc:
 	CTP_SCOPES=manage_project:projectkey \
 	CTP_API_URL=http://localhost:8989 \
 	CTP_AUTH_URL=http://localhost:8989 \
+	CTP_MC_API_URL=http://unused \
 	go test -count=1 -v ./...

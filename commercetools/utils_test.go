@@ -1,6 +1,10 @@
 package commercetools
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestCreateLookup(t *testing.T) {
 	input := []interface{}{
@@ -20,4 +24,10 @@ func TestCreateLookup(t *testing.T) {
 	if _, ok := result["name2"]; !ok {
 		t.Error("Could not lookup name1")
 	}
+}
+
+func TestSlugify(t *testing.T) {
+	assert.Equal(t, slugify("foo-bar"), "foo-bar")
+	assert.Equal(t, slugify("foo_bar"), "foo-bar")
+	assert.Equal(t, slugify("foo/bar"), "foo-bar")
 }

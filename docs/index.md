@@ -19,6 +19,7 @@ The provider attempts to read the required values from environment variables:
 - `CTP_SCOPES`
 - `CTP_API_URL`
 - `CTP_AUTH_URL`
+- `CTP_MC_API_URL`
 
 Alternatively, you can set it up directly in the terraform file:
 
@@ -27,10 +28,10 @@ provider "commercetools" {
   client_id     = "<your client id>"
   client_secret = "<your client secret>"
   project_key   = "<your project key>"
-  project_key   = "<your project key>"
   scopes        = "<space seperated list of scopes>"
   api_url       = "<api url>"
   token_url     = "<token url>"
+  mc_api_url    = "<mc api url>"
 }
 ```
 

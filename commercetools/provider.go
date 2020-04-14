@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/machinebox/graphql"
 	"golang.org/x/oauth2/clientcredentials"
 )
 
@@ -55,25 +56,41 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("CTP_AUTH_URL", nil),
 				Description: "The authentication URL of the commercetools platform. https://docs.commercetools.com/http-api-authorization",
 			},
+			"mc_api_url": {
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CTP_MC_API_URL", nil),
+				Description: "The API URL of the Merchant Center. https://docs.commercetools.com/custom-applications/main-concepts/api-gateway#hostnames",
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"commercetools_api_client":         resourceAPIClient(),
 			"commercetools_api_extension":      resourceAPIExtension(),
-			"commercetools_subscription":       resourceSubscription(),
-			"commercetools_project_settings":   resourceProjectSettings(),
-			"commercetools_type":               resourceType(),
 			"commercetools_channel":            resourceChannel(),
+			"commercetools_custom_application": resourceCustomApplication(),
 			"commercetools_product_type":       resourceProductType(),
+			"commercetools_project_settings":   resourceProjectSettings(),
 			"commercetools_shipping_method":    resourceShippingMethod(),
+			"commercetools_shipping_zone":      resourceShippingZone(),
 			"commercetools_shipping_zone_rate": resourceShippingZoneRate(),
+			"commercetools_state":              resourceState(),
 			"commercetools_store":              resourceStore(),
+			"commercetools_subscription":       resourceSubscription(),
 			"commercetools_tax_category":       resourceTaxCategory(),
 			"commercetools_tax_category_rate":  resourceTaxCategoryRate(),
-			"commercetools_shipping_zone":      resourceShippingZone(),
-			"commercetools_state":              resourceState(),
+			"commercetools_type":               resourceType(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
+}
+
+// TerraformContext holds the HTTP and GraphQL clients to be used by the Terraform resources.
+// We recommend to use the utility functions `getClient` and `getGraphQLClient`
+// to get the necessary client object.
+type TerraformContext struct {
+	HTTPClient    *commercetools.Client
+	GraphQLClient *graphql.Client
+	ProjectKey    string
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
@@ -83,6 +100,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	scopesRaw := d.Get("scopes").(string)
 	apiURL := d.Get("api_url").(string)
 	authURL := d.Get("token_url").(string)
+	mcAPIURL := d.Get("mc_api_url").(string)
 
 	oauthScopes := strings.Split(scopesRaw, " ")
 
@@ -103,7 +121,15 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		ContactEmail: "opensource@labdigital.nl",
 	})
 
-	return client, nil
+	graphqlClient := graphql.NewClient(fmt.Sprintf("%s/graphql", mcAPIURL), graphql.WithHTTPClient(httpClient))
+
+	meta := TerraformContext{
+		HTTPClient:    client,
+		GraphQLClient: graphqlClient,
+		ProjectKey:    projectKey,
+	}
+
+	return meta, nil
 }
 
 // This is a global MutexKV for use within this plugin.
