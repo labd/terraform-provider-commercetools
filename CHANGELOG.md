@@ -1,3 +1,7 @@
+0.21.1 (2020-04-22)
+===================
+- Fix channel read null pointer exception. Name should be optional.
+
 0.21.0 (2020-02-27)
 ===================
 - Provider arguments (`client_id`, `client_secret`, `project_key`,
