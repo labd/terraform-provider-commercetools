@@ -1,6 +1,6 @@
 # commercetools Terraform Provider
 
-[![Build Status](https://dev.azure.com/lab-digital/terraform-provider-commercetools/_apis/build/status/labd.terraform-provider-commercetools?branchName=master)](https://dev.azure.com/lab-digital/terraform-provider-commercetools/_build/latest?definitionId=5&branchName=master)
+[![Test status](https://github.com/labd/terraform-provider-commercetools/workflows/Run%20Tests/badge.svg)](https://github.com/labd/terraform-provider-commercetools/actions?query=workflow%3A%22Run+Tests%22)
 [![codecov](https://codecov.io/gh/LabD/terraform-provider-commercetools/branch/master/graph/badge.svg)](https://codecov.io/gh/LabD/terraform-provider-commercetools)
 [![Go Report Card](https://goreportcard.com/badge/github.com/labd/terraform-provider-commercetools)](https://goreportcard.com/report/github.com/labd/terraform-provider-commercetools)
 [![Documentation Status](https://readthedocs.org/projects/commercetools-terraform-provider/badge/?version=latest)](https://commercetools-terraform-provider.readthedocs.io/en/latest/?badge=latest)
