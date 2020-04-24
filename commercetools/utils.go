@@ -48,9 +48,6 @@ func expandStringMap(input map[string]interface{}) map[string]string {
 }
 
 func localizedStringCompare(a commercetools.LocalizedString, b map[string]interface{}) bool {
-	if len(a) != len(b) {
-		return false
-	}
 	for i, v := range a {
 		if v != b[i] {
 			return false

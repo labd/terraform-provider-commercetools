@@ -125,7 +125,7 @@ func TestAccProductTypes_basic(t *testing.T) {
 						"commercetools_product_type.acctest_product_type", "description", "All things related shipping",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_product_type.acctest_product_type", "attribute.#", "2",
+						"commercetools_product_type.acctest_product_type", "attribute.#", "3",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.0.name", "location",
@@ -145,6 +145,12 @@ func TestAccProductTypes_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.1.type.0.localized_value.0.label.nl", "maaltijd",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.0.label.en", "Breakfast",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.1.label.en", "Lunch",
+					),
 				),
 			},
 			{
@@ -160,7 +166,7 @@ func TestAccProductTypes_basic(t *testing.T) {
 						"commercetools_product_type.acctest_product_type", "description", "All things related shipping",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_product_type.acctest_product_type", "attribute.#", "2",
+						"commercetools_product_type.acctest_product_type", "attribute.#", "3",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.0.name", "location",
@@ -173,6 +179,21 @@ func TestAccProductTypes_basic(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.1.type.0.localized_value.0.label.nl", "nomnom",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.1.type.0.localized_value.0.label.de", "happen",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.0.label.en", "Breakfast",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.1.label.en", "Lunch",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.0.label.de", "Frühstück",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.1.label.de", "Mittagessen",
 					),
 				),
 			},
@@ -214,10 +235,44 @@ resource "commercetools_product_type" "acctest_product_type" {
 			  label = {
 				en = "snack"
 				nl = "nomnom"
+				de = "happen"
 			  }
 			}
 		}
 	}
+
+	attribute {
+		name = "types"
+		label = {
+			en = "meal types"
+		}
+
+		type {
+			name = "set"
+			element_type {
+				name = "lenum"
+
+				localized_value {
+				  key = "breakfast"
+	
+				  label = {
+					en = "Breakfast"
+					de = "Frühstück"
+				  }
+				}
+
+				localized_value {
+				  key = "lunch"
+	
+				  label = {
+					en = "Lunch"
+					de = "Mittagessen"
+				  }
+				}
+			}
+		}
+	}
+
 }`, name)
 }
 
@@ -256,6 +311,36 @@ resource "commercetools_product_type" "acctest_product_type" {
 				en = "Snack"
 				nl = "maaltijd"
 			  }
+			}
+		}
+	}
+
+	attribute {
+		name = "types"
+		label = {
+			en = "meal types"
+		}
+
+		type {
+			name = "set"
+			element_type {
+				name = "lenum"
+
+				localized_value {
+				  key = "breakfast"
+	
+				  label = {
+					en = "Breakfast"
+				  }
+				}
+
+				localized_value {
+				  key = "lunch"
+	
+				  label = {
+					en = "Lunch"
+				  }
+				}
 			}
 		}
 	}
