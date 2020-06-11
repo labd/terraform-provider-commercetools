@@ -30,6 +30,11 @@ func resourceStore() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"languages": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -39,8 +44,9 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 		expandStringMap(d.Get("name").(map[string]interface{})))
 
 	draft := &commercetools.StoreDraft{
-		Key:  d.Get("key").(string),
-		Name: &name,
+		Key:       d.Get("key").(string),
+		Name:      &name,
+		Languages: expandStringArray(d.Get("languages").([]interface{})),
 	}
 
 	client := getClient(m)
@@ -49,8 +55,8 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 
 	err := resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
-
 		store, err = client.StoreCreate(draft)
+
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -84,6 +90,9 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("key", store.Key)
 	d.Set("name", *store.Name)
 	d.Set("version", store.Version)
+	if store.Languages != nil {
+		d.Set("languages", store.Languages)
+	}
 	return nil
 }
 
@@ -102,6 +111,14 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 		input.Actions = append(
 			input.Actions,
 			&commercetools.StoreSetNameAction{Name: &newName})
+	}
+
+	if d.HasChange("languages") {
+		languages := expandStringArray(d.Get("languages").([]interface{}))
+
+		input.Actions = append(
+			input.Actions,
+			&commercetools.StoreSetLanguagesAction{Languages: languages})
 	}
 
 	_, err := client.StoreUpdateWithID(input)
