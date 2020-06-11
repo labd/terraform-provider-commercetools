@@ -12,6 +12,7 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 
 	name := "test method"
 	key := "test-method"
+	languages := []string{"en-US"}
 
 	newName := "new test method"
 
@@ -42,6 +43,28 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 					),
 				),
 			},
+			{
+				Config: testAccStoreConfigWithLanguages(name, key, languages),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_store.standard", "languages.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_store.standard", "languages.0", "en-US",
+					),
+				),
+			},
+			{
+				Config: testAccNewStoreConfigWithLanguages(name, key, languages),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_store.standard", "languages.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_store.standard", "languages.0", "en-US",
+					),
+				),
+			},
 		},
 	})
 }
@@ -55,6 +78,30 @@ func testAccStoreConfig(name string, key string) string {
 		}
 		key = "%[2]s"
 	}`, name, key)
+}
+
+func testAccStoreConfigWithLanguages(name string, key string, languages []string) string {
+	return fmt.Sprintf(`
+	resource "commercetools_store" "standard" {
+		name = {
+			en = "%[1]s"
+			nl = "%[1]s"
+		}
+		key = "%[2]s"
+		languages = %[3]q
+	}`, name, key, languages)
+}
+
+func testAccNewStoreConfigWithLanguages(name string, key string, languages []string) string {
+	return fmt.Sprintf(`
+	resource "commercetools_store" "standard" {
+		name = {
+			en = "%[1]s"
+			nl = "%[1]s"
+		}
+		key = "%[2]s"
+		languages = %[3]q
+	}`, name, key, languages)
 }
 
 func testAccCheckStoreDestroy(s *terraform.State) error {
