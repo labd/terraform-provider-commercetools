@@ -1,3 +1,7 @@
+0.21.2 (2020-06-11)
+===================
+- Add store languages attribute to `store` resource
+
 0.21.1 (2020-04-22)
 ===================
 - Fix channel read null pointer exception. Name should be optional.
