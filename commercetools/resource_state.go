@@ -23,6 +23,8 @@ func resourceState() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			// TODO: Now that we've added resource_state_transitions we can not guarantee
+			// this version will stay in sync. Should we remove it altogether?
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -127,8 +129,13 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceStateRead(d *schema.ResourceData, m interface{}) error {
+	stateID := d.Id()
+	// Lock to prevent concurrent updates due to Version number conflicts
+	ctMutexKV.Lock(stateID)
+	defer ctMutexKV.Unlock(stateID)
+
 	client := getClient(m)
-	state, err := client.StateGetWithID(d.Id())
+	state, err := client.StateGetWithID(stateID)
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -161,10 +168,15 @@ func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
+	stateID := d.Id()
+	// Lock to prevent concurrent updates due to Version number conflicts
+	ctMutexKV.Lock(stateID)
+	defer ctMutexKV.Unlock(stateID)
+
 	client := getClient(m)
 
 	input := &commercetools.StateUpdateWithIDInput{
-		ID:      d.Id(),
+		ID:      stateID,
 		Version: d.Get("version").(int),
 		Actions: []commercetools.StateUpdateAction{},
 	}
@@ -239,12 +251,19 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceStateDelete(d *schema.ResourceData, m interface{}) error {
+	stateID := d.Id()
+	// Lock to prevent concurrent updates due to Version number conflicts
+	ctMutexKV.Lock(stateID)
+	defer ctMutexKV.Unlock(stateID)
+
 	client := getClient(m)
-	version := d.Get("version").(int)
-	_, err := client.StateDeleteWithID(d.Id(), version)
+	state, err := client.StateGetWithID(stateID)
+	// TODO: Do we need to handle a 404 in either of these methods?
+
 	if err != nil {
 		return err
 	}
 
-	return nil
+	_, err = client.StateDeleteWithID(stateID, state.Version)
+	return err
 }
