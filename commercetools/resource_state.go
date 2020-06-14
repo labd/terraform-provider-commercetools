@@ -110,8 +110,7 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.SetId(state.ID)
-	return resourceStateRead(d, m)
+	return setStateResourceState(d, state)
 }
 
 func resourceStateRead(d *schema.ResourceData, m interface{}) error {
@@ -129,20 +128,7 @@ func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.SetId(state.ID)
-	d.Set("key", state.Key)
-	d.Set("type", state.Type)
-	if state.Name != nil {
-		d.Set("name", *state.Name)
-	}
-	if state.Description != nil {
-		d.Set("description", *state.Description)
-	}
-	d.Set("initial", state.Initial)
-	if state.Roles != nil {
-		d.Set("roles", state.Roles)
-	}
-	return nil
+	return setStateResourceState(d, state)
 }
 
 func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
@@ -210,12 +196,12 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.StateSetRolesAction{Roles: roles})
 	}
 
-	_, err = client.StateUpdateWithID(input)
+	updatedState, err := client.StateUpdateWithID(input)
 	if err != nil {
 		return err
 	}
 
-	return resourceStateRead(d, m)
+	return setStateResourceState(d, updatedState)
 }
 
 func resourceStateDelete(d *schema.ResourceData, m interface{}) error {
@@ -234,6 +220,23 @@ func resourceStateDelete(d *schema.ResourceData, m interface{}) error {
 
 	_, err = client.StateDeleteWithID(stateID, state.Version)
 	return err
+}
+
+func setStateResourceState(d *schema.ResourceData, state *commercetools.State) error {
+	d.SetId(state.ID)
+	d.Set("key", state.Key)
+	d.Set("type", state.Type)
+	if state.Name != nil {
+		d.Set("name", *state.Name)
+	}
+	if state.Description != nil {
+		d.Set("description", *state.Description)
+	}
+	d.Set("initial", state.Initial)
+	if state.Roles != nil {
+		d.Set("roles", state.Roles)
+	}
+	return nil
 }
 
 func resourceStateResourceV0() *schema.Resource {
