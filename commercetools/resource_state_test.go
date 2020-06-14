@@ -15,8 +15,6 @@ func TestAccState_createAndUpdateWithID(t *testing.T) {
 
 	newName := "new test state name"
 
-	transition := "state-b"
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -44,30 +42,6 @@ func TestAccState_createAndUpdateWithID(t *testing.T) {
 					),
 				),
 			},
-			{
-				Config: testAccTransitionConfig(t, transition),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_state.acctest-t1", "transitions.#", "1",
-					),
-				),
-			},
-			{
-				Config: testAccTransitionsConfig(t, "null"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckNoResourceAttr(
-						"commercetools_state.acctest-transitions", "transitions",
-					),
-				),
-			},
-			{
-				Config: testAccTransitionsConfig(t, "[]"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_state.acctest-transitions", "transitions.#", "0",
-					),
-				),
-			},
 		},
 	})
 }
@@ -92,42 +66,6 @@ func testAccStateConfig(t *testing.T, name string, key string, addRole bool) str
 	newState := buf.String()
 
 	return newState
-}
-
-func testAccTransitionConfig(t *testing.T, transition string) string {
-	return fmt.Sprintf(`
-	resource "commercetools_state" "acctest-t1" {
-		depends_on = [commercetools_state.acctest_t2]
-		key = "state-a"
-		type = "ReviewState"
-		name = {
-			en = "State #1"
-		}
-		transitions = ["%[1]s"]
-	}
-
-	resource "commercetools_state" "acctest_t2" {
-		key = "%[1]s"
-		type = "ReviewState"
-		name = {
-			en = "State #2"
-		}
-		transitions = []
-	}
-	`, transition)
-}
-
-func testAccTransitionsConfig(t *testing.T, transitions string) string {
-	return fmt.Sprintf(`
-	resource "commercetools_state" "acctest-transitions" {
-		key = "state-c"
-		type = "ReviewState"
-		name = {
-			en = "State C"
-		}
-		transitions = %s
-	}
-	`, transitions)
 }
 
 func testAccCheckStateDestroy(s *terraform.State) error {
