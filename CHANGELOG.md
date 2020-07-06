@@ -1,3 +1,8 @@
+0.22.0 (unreleased)
+===================
+- Update commercetools-go-sdk dependency to v0.1.0. This version now properly
+  handles oauth2 authentication failures (#117)
+
 0.21.2 (2020-06-11)
 ===================
 - Add store languages attribute to `store` resource
