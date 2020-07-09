@@ -23,10 +23,6 @@ func resourceState() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"version": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
 			"type": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -61,12 +57,13 @@ func resourceState() *schema.Resource {
 					}, false),
 				},
 			},
-			"transitions": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceStateResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceStateUpgradeV0,
+				Version: 0,
 			},
 		},
 	}
@@ -83,20 +80,12 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 		roles = append(roles, commercetools.StateRoleEnum(value))
 	}
 
-	var transitions []commercetools.StateResourceIdentifier
-	for _, value := range d.Get("transitions").(*schema.Set).List() {
-		transitions = append(transitions, commercetools.StateResourceIdentifier{
-			Key: value.(string),
-		})
-	}
-
 	draft := &commercetools.StateDraft{
 		Key:         d.Get("key").(string),
 		Type:        commercetools.StateTypeEnum(d.Get("type").(string)),
 		Name:        &name,
 		Description: &description,
 		Roles:       roles,
-		Transitions: transitions,
 	}
 
 	// Note the use of GetOkExists since it's an optional bool type
@@ -121,14 +110,13 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.SetId(state.ID)
-	d.Set("version", state.Version)
-	return resourceStateRead(d, m)
+	return setStateResourceState(d, state)
 }
 
 func resourceStateRead(d *schema.ResourceData, m interface{}) error {
+	stateID := d.Id()
 	client := getClient(m)
-	state, err := client.StateGetWithID(d.Id())
+	state, err := client.StateGetWithID(stateID)
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -140,32 +128,24 @@ func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.SetId(state.ID)
-	d.Set("version", state.Version)
-	d.Set("key", state.Key)
-	d.Set("type", state.Type)
-	if state.Name != nil {
-		d.Set("name", *state.Name)
-	}
-	if state.Description != nil {
-		d.Set("description", *state.Description)
-	}
-	d.Set("initial", state.Initial)
-	if state.Roles != nil {
-		d.Set("roles", state.Roles)
-	}
-	if state.Transitions != nil {
-		d.Set("transitions", state.Transitions)
-	}
-	return nil
+	return setStateResourceState(d, state)
 }
 
 func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
+	stateID := d.Id()
+	// Lock to prevent concurrent updates due to Version number conflicts
+	ctMutexKV.Lock(stateID)
+	defer ctMutexKV.Unlock(stateID)
+
 	client := getClient(m)
+	state, err := client.StateGetWithID(stateID)
+	if err != nil {
+		return err
+	}
 
 	input := &commercetools.StateUpdateWithIDInput{
-		ID:      d.Id(),
-		Version: d.Get("version").(int),
+		ID:      stateID,
+		Version: state.Version,
 		Actions: []commercetools.StateUpdateAction{},
 	}
 
@@ -216,35 +196,107 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.StateSetRolesAction{Roles: roles})
 	}
 
-	if d.HasChange("transitions") {
-		var transitions []commercetools.StateResourceIdentifier
-		for _, value := range d.Get("transitions").(*schema.Set).List() {
-			transitions = append(transitions, commercetools.StateResourceIdentifier{
-				Key: value.(string),
-			})
-		}
-		input.Actions = append(
-			input.Actions,
-			&commercetools.StateSetTransitionsAction{
-				Transitions: transitions,
-			})
-	}
-
-	_, err := client.StateUpdateWithID(input)
+	updatedState, err := client.StateUpdateWithID(input)
 	if err != nil {
 		return err
 	}
 
-	return resourceStateRead(d, m)
+	return setStateResourceState(d, updatedState)
 }
 
 func resourceStateDelete(d *schema.ResourceData, m interface{}) error {
+	stateID := d.Id()
+	// Lock to prevent concurrent updates due to Version number conflicts
+	ctMutexKV.Lock(stateID)
+	defer ctMutexKV.Unlock(stateID)
+
 	client := getClient(m)
-	version := d.Get("version").(int)
-	_, err := client.StateDeleteWithID(d.Id(), version)
+	state, err := client.StateGetWithID(stateID)
+	// TODO: Do we need to handle a 404 in either of these methods?
+
 	if err != nil {
 		return err
 	}
 
+	_, err = client.StateDeleteWithID(stateID, state.Version)
+	return err
+}
+
+func setStateResourceState(d *schema.ResourceData, state *commercetools.State) error {
+	d.SetId(state.ID)
+	d.Set("key", state.Key)
+	d.Set("type", state.Type)
+	if state.Name != nil {
+		d.Set("name", *state.Name)
+	}
+	if state.Description != nil {
+		d.Set("description", *state.Description)
+	}
+	d.Set("initial", state.Initial)
+	if state.Roles != nil {
+		d.Set("roles", state.Roles)
+	}
 	return nil
+}
+
+func resourceStateResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"key": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"type": {
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(commercetools.StateTypeEnumOrderState),
+					string(commercetools.StateTypeEnumLineItemState),
+					string(commercetools.StateTypeEnumProductState),
+					string(commercetools.StateTypeEnumReviewState),
+					string(commercetools.StateTypeEnumPaymentState),
+				}, false),
+			},
+			"name": {
+				Type:     TypeLocalizedString,
+				Optional: true,
+			},
+			"description": {
+				Type:     TypeLocalizedString,
+				Optional: true,
+			},
+			"initial": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"roles": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+					ValidateFunc: validation.StringInSlice([]string{
+						string(commercetools.StateRoleEnumReviewIncludedInStatistics),
+						string(commercetools.StateRoleEnumReturn),
+					}, false),
+				},
+			},
+			"transitions": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+		},
+	}
+}
+
+func resourceStateUpgradeV0(rawState map[string]interface{}, m interface{}) (map[string]interface{}, error) {
+	delete(rawState, "version")
+	delete(rawState, "transitions")
+	return rawState, nil
 }

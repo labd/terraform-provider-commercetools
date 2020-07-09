@@ -36,7 +36,11 @@ resource "commercetools_state" "product_for_sale" {
     en = "Regularly stocked product."
   }
   initial = true
-  transitions = ["${commercetools_state.product_clearance.key}"]
+}
+
+resource "commercetools_state_transitions" "product_for_sale" {
+  from = commercetools_state.product_for_sale.id
+  to   = [commercetools_state.product_clearance.id]
 }
 
 resource "commercetools_state" "product_clearance" {
@@ -61,6 +65,7 @@ The following arguments are supported:
 * `description` - Optional, localized description of the state.
 * `initial` - Optional, initial state of the state machine.
 * `roles` - Optional, list of roles this state has. See [Commercetools documentation][commercetools-states] for possible values.
-* `transitions` - Optional, list of state keys representing the states this state can transition to. If empty then this state can be transitioned to any other state.
+
+If you want to declare state transitions, use the [`commercetools_state_transitions`](/docs/resource_state_transitions.md) resource.
 
 [commercetool-states]: https://docs.commercetools.com/http-api-projects-states.html
