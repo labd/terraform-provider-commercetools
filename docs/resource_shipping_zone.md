@@ -10,10 +10,10 @@ Also see the [Zones HTTP API documentation][commercetool-zones].
 resource "commercetools_shipping_zone" "de-us" {
   name = "DE and US"
   description = "Germany and US"
-  location = {
+  location {
       country = "DE"
   }
-  location = {
+  location {
       country = "US"
       state = "Nevada"
   }
