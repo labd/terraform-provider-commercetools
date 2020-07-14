@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -128,7 +129,7 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
-		extension, err = client.ExtensionCreate(draft)
+		extension, err = client.ExtensionCreate(context.Background(), draft)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -153,7 +154,7 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading extensions from commercetools")
 	client := getClient(m)
 
-	extension, err := client.ExtensionGetWithID(d.Id())
+	extension, err := client.ExtensionGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -221,7 +222,7 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.ExtensionSetTimeoutInMsAction{TimeoutInMs: newTimeout})
 	}
 
-	_, err := client.ExtensionUpdateWithID(input)
+	_, err := client.ExtensionUpdateWithID(context.Background(), input)
 	if err != nil {
 		return err
 	}
@@ -232,7 +233,7 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceAPIExtensionDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ExtensionDeleteWithID(d.Id(), version)
+	_, err := client.ExtensionDeleteWithID(context.Background(), d.Id(), version)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"reflect"
@@ -210,7 +211,7 @@ func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		ctType, err = client.ProductTypeCreate(draft)
+		ctType, err = client.ProductTypeCreate(context.Background(), draft)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -235,7 +236,7 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading product type from commercetools")
 	client := getClient(m)
 
-	ctType, err := client.ProductTypeGetWithID(d.Id())
+	ctType, err := client.ProductTypeGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -386,7 +387,7 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.ProductTypeUpdateWithID(input)
+	_, err := client.ProductTypeUpdateWithID(context.Background(), input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -400,7 +401,7 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceProductTypeDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ProductTypeDeleteWithID(d.Id(), version)
+	_, err := client.ProductTypeDeleteWithID(context.Background(), d.Id(), version)
 	if err != nil {
 		return err
 	}

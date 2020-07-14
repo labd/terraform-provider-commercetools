@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -63,7 +64,7 @@ func resourceTaxCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		taxCategory, err = client.TaxCategoryCreate(draft)
+		taxCategory, err = client.TaxCategoryCreate(context.Background(), draft)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -88,7 +89,7 @@ func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] Reading tax category from commercetools, with taxCategory id: %s", d.Id())
 	client := getClient(m)
 
-	taxCategory, err := client.TaxCategoryGetWithID(d.Id())
+	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -121,7 +122,7 @@ func resourceTaxCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
-	taxCategory, err := client.TaxCategoryGetWithID(d.Id())
+	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), d.Id())
 	if err != nil {
 		return err
 	}
@@ -157,7 +158,7 @@ func resourceTaxCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.TaxCategoryUpdateWithID(input)
+	_, err = client.TaxCategoryUpdateWithID(context.Background(), input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -175,11 +176,11 @@ func resourceTaxCategoryDelete(d *schema.ResourceData, m interface{}) error {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	taxCategory, err := client.TaxCategoryGetWithID(d.Id())
+	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), d.Id())
 	if err != nil {
 		return err
 	}
-	_, err = client.TaxCategoryDeleteWithID(d.Id(), taxCategory.Version)
+	_, err = client.TaxCategoryDeleteWithID(context.Background(), d.Id(), taxCategory.Version)
 	if err != nil {
 		return err
 	}

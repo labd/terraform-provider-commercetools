@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -110,7 +111,7 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 	err := resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
-		state, err = client.StateCreate(draft)
+		state, err = client.StateCreate(context.Background(), draft)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -128,7 +129,7 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	state, err := client.StateGetWithID(d.Id())
+	state, err := client.StateGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -230,7 +231,7 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 			})
 	}
 
-	_, err := client.StateUpdateWithID(input)
+	_, err := client.StateUpdateWithID(context.Background(), input)
 	if err != nil {
 		return err
 	}
@@ -241,7 +242,7 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceStateDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.StateDeleteWithID(d.Id(), version)
+	_, err := client.StateDeleteWithID(context.Background(), d.Id(), version)
 	if err != nil {
 		return err
 	}

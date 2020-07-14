@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -113,7 +114,7 @@ func resourceDiscountCodeCreate(d *schema.ResourceData, m interface{}) error {
 	errorResponse := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		discountCode, err = client.DiscountCodeCreate(draft)
+		discountCode, err = client.DiscountCodeCreate(context.Background(), draft)
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -140,7 +141,7 @@ func resourceDiscountCodetRead(d *schema.ResourceData, m interface{}) error {
 
 	client := getClient(m)
 
-	discountCode, err := client.DiscountCodeGetWithID(d.Id())
+	discountCode, err := client.DiscountCodeGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -178,7 +179,7 @@ func resourceDiscountCodetRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	discountCode, err := client.DiscountCodeGetWithID(d.Id())
+	discountCode, err := client.DiscountCodeGetWithID(context.Background(), d.Id())
 	if err != nil {
 		return err
 	}
@@ -289,7 +290,7 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.DiscountCodeUpdateWithID(input)
+	_, err = client.DiscountCodeUpdateWithID(context.Background(), input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -303,7 +304,7 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceDiscountCodeDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.DiscountCodeDeleteWithID(d.Id(), version, false)
+	_, err := client.DiscountCodeDeleteWithID(context.Background(), d.Id(), version, false)
 	if err != nil {
 		log.Printf("[ERROR] Error during deleting discount code resource %s", err)
 		return nil

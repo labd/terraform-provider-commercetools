@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -117,7 +118,7 @@ func testAccAPIExtensionExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No Extension ID is set")
 		}
 		client := getClient(testAccProvider.Meta())
-		result, err := client.ExtensionGetWithID(rs.Primary.ID)
+		result, err := client.ExtensionGetWithID(context.Background(), rs.Primary.ID)
 		if err != nil {
 			return err
 		}

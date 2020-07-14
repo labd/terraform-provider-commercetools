@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -75,7 +76,7 @@ func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		shippingZone, err = client.ZoneCreate(draft)
+		shippingZone, err = client.ZoneCreate(context.Background(), draft)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -100,7 +101,7 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading shippingzones from commercetools")
 	client := getClient(m)
 
-	shippingZone, err := client.ZoneGetWithID(d.Id())
+	shippingZone, err := client.ZoneGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -182,7 +183,7 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
-	_, err := client.ZoneUpdateWithID(input)
+	_, err := client.ZoneUpdateWithID(context.Background(), input)
 	if err != nil {
 		return err
 	}
@@ -198,7 +199,7 @@ func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	version := d.Get("version").(int)
-	_, err := client.ZoneDeleteWithID(d.Id(), version)
+	_, err := client.ZoneDeleteWithID(context.Background(), d.Id(), version)
 	if err != nil {
 		return err
 	}
