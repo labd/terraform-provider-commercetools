@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -55,7 +56,7 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 
 	err := resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
-		store, err = client.StoreCreate(draft)
+		store, err = client.StoreCreate(context.Background(), draft)
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -74,7 +75,7 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	store, err := client.StoreGetWithID(d.Id())
+	store, err := client.StoreGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -121,7 +122,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.StoreSetLanguagesAction{Languages: languages})
 	}
 
-	_, err := client.StoreUpdateWithID(input)
+	_, err := client.StoreUpdateWithID(context.Background(), input)
 	if err != nil {
 		return err
 	}
@@ -132,7 +133,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceStoreDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.StoreDeleteWithID(d.Id(), version)
+	_, err := client.StoreDeleteWithID(context.Background(), d.Id(), version)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -226,7 +227,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
-		subscription, err = client.SubscriptionCreate(draft)
+		subscription, err = client.SubscriptionCreate(context.Background(), draft)
 		if err != nil {
 			// Some subscription resources might not be ready yet, always keep retrying
 			return resource.RetryableError(err)
@@ -252,7 +253,7 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading subscriptions from commercetools")
 	client := getClient(m)
 
-	subscription, err := client.SubscriptionGetWithID(d.Id())
+	subscription, err := client.SubscriptionGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -322,7 +323,7 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.SubscriptionSetChangesAction{Changes: changes})
 	}
 
-	_, err := client.SubscriptionUpdateWithID(input)
+	_, err := client.SubscriptionUpdateWithID(context.Background(), input)
 	if err != nil {
 		return err
 	}
@@ -333,7 +334,7 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.SubscriptionDeleteWithID(d.Id(), version)
+	_, err := client.SubscriptionDeleteWithID(context.Background(), d.Id(), version)
 	if err != nil {
 		return err
 	}

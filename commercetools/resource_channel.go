@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -67,7 +68,7 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	err := resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
-		channel, err = client.ChannelCreate(draft)
+		channel, err = client.ChannelCreate(context.Background(), draft)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -85,7 +86,7 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	channel, err := client.ChannelGetWithID(d.Id())
+	channel, err := client.ChannelGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -145,7 +146,7 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.ChannelSetRolesAction{Roles: roles})
 	}
 
-	_, err := client.ChannelUpdateWithID(input)
+	_, err := client.ChannelUpdateWithID(context.Background(), input)
 	if err != nil {
 		return err
 	}
@@ -156,7 +157,7 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceChannelDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ChannelDeleteWithID(d.Id(), version)
+	_, err := client.ChannelDeleteWithID(context.Background(), d.Id(), version)
 	if err != nil {
 		return err
 	}

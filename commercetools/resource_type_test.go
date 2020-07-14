@@ -2,6 +2,7 @@ package commercetools
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
@@ -312,7 +313,7 @@ func testAccTypeExists(n string) resource.TestCheckFunc {
 		}
 
 		client := getClient(testAccProvider.Meta())
-		result, err := client.TypeGetWithID(rs.Primary.ID)
+		result, err := client.TypeGetWithID(context.Background(), rs.Primary.ID)
 		if err != nil {
 			return err
 		}

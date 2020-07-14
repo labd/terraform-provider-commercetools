@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -71,7 +72,7 @@ func resourceTaxCategoryRateImportState(d *schema.ResourceData, meta interface{}
 	taxRateID := d.Id()
 	// Arbitrary number, safe to assume there won't be more than 500 tax categories...
 	queryInput := commercetools.QueryInput{Limit: 500}
-	taxCategoriesQuery, err := client.TaxCategoryQuery(&queryInput)
+	taxCategoriesQuery, err := client.TaxCategoryQuery(context.Background(), &queryInput)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +121,7 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 	ctMutexKV.Lock(taxCategoryID)
 	defer ctMutexKV.Unlock(taxCategoryID)
 
-	taxCategory, err := client.TaxCategoryGetWithID(taxCategoryID)
+	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), taxCategoryID)
 
 	if err != nil {
 		return err
@@ -142,7 +143,7 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 	input.Actions = append(input.Actions, commercetools.TaxCategoryAddTaxRateAction{TaxRate: taxRateDraft})
 
 	err = resource.Retry(30*time.Second, func() *resource.RetryError {
-		taxCategory, err = client.TaxCategoryUpdateWithID(input)
+		taxCategory, err = client.TaxCategoryUpdateWithID(context.Background(), input)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -235,7 +236,7 @@ func resourceTaxCategoryRateUpdate(d *schema.ResourceData, m interface{}) error 
 		stringFormatActions(input.Actions))
 
 	client := getClient(m)
-	taxCategory, err = client.TaxCategoryUpdateWithID(input)
+	taxCategory, err = client.TaxCategoryUpdateWithID(context.Background(), input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -311,7 +312,7 @@ func resourceTaxCategoryRateDelete(d *schema.ResourceData, m interface{}) error 
 	input.Actions = append(input.Actions, removeAction)
 
 	client := getClient(m)
-	_, err = client.TaxCategoryUpdateWithID(input)
+	_, err = client.TaxCategoryUpdateWithID(context.Background(), input)
 	if err != nil {
 		return err
 	}
@@ -326,7 +327,7 @@ func readResourcesFromStateIDs(d *schema.ResourceData, m interface{}) (*commerce
 
 	log.Printf("[DEBUG] Reading tax category from commercetools, taxCategory ID: %s, taxRate ID: %s", taxCategoryID, taxRateID)
 
-	taxCategory, err := client.TaxCategoryGetWithID(taxCategoryID)
+	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), taxCategoryID)
 
 	if err != nil {
 		return nil, nil, err

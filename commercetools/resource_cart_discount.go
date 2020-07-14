@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -240,7 +241,7 @@ func resourceCartDiscountCreate(d *schema.ResourceData, m interface{}) error {
 	errorResponse := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		cartDiscount, err = client.CartDiscountCreate(draft)
+		cartDiscount, err = client.CartDiscountCreate(context.Background(), draft)
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -267,7 +268,7 @@ func resourceCartDiscountRead(d *schema.ResourceData, m interface{}) error {
 
 	client := getClient(m)
 
-	cartDiscount, err := client.CartDiscountGetWithID(d.Id())
+	cartDiscount, err := client.CartDiscountGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -306,7 +307,7 @@ func resourceCartDiscountRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	cartDiscount, err := client.CartDiscountGetWithID(d.Id())
+	cartDiscount, err := client.CartDiscountGetWithID(context.Background(), d.Id())
 	if err != nil {
 		return err
 	}
@@ -439,7 +440,7 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.CartDiscountUpdateWithID(input)
+	_, err = client.CartDiscountUpdateWithID(context.Background(), input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -453,7 +454,7 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceCartDiscountDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.CartDiscountDeleteWithID(d.Id(), version)
+	_, err := client.CartDiscountDeleteWithID(context.Background(), d.Id(), version)
 	if err != nil {
 		return err
 	}

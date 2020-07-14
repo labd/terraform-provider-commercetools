@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -71,7 +72,7 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		shippingMethod, err = client.ShippingMethodCreate(draft)
+		shippingMethod, err = client.ShippingMethodCreate(context.Background(), draft)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -97,7 +98,7 @@ func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
 
 	client := getClient(m)
 
-	shippingMethod, err := client.ShippingMethodGetWithID(d.Id())
+	shippingMethod, err := client.ShippingMethodGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -133,7 +134,7 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
-	shippingMethod, err := client.ShippingMethodGetWithID(d.Id())
+	shippingMethod, err := client.ShippingMethodGetWithID(context.Background(), d.Id())
 	if err != nil {
 		return err
 	}
@@ -190,7 +191,7 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.ShippingMethodUpdateWithID(input)
+	_, err = client.ShippingMethodUpdateWithID(context.Background(), input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -207,12 +208,12 @@ func resourceShippingMethodDelete(d *schema.ResourceData, m interface{}) error {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	shippingMethod, err := client.ShippingMethodGetWithID(d.Id())
+	shippingMethod, err := client.ShippingMethodGetWithID(context.Background(), d.Id())
 	if err != nil {
 		return err
 	}
 
-	_, err = client.ShippingMethodDeleteWithID(d.Id(), shippingMethod.Version)
+	_, err = client.ShippingMethodDeleteWithID(context.Background(), d.Id(), shippingMethod.Version)
 	if err != nil {
 		return err
 	}

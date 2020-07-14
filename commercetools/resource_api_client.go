@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"time"
@@ -59,7 +60,7 @@ func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 	err := resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
-		apiClient, err = client.APIClientCreate(draft)
+		apiClient, err = client.APIClientCreate(context.Background(), draft)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -78,7 +79,7 @@ func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	apiClient, err := client.APIClientGetWithID(d.Id())
+	apiClient, err := client.APIClientGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -101,7 +102,7 @@ func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
 func resourceAPIClientDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	_, err := client.APIClientDeleteWithID(d.Id())
+	_, err := client.APIClientDeleteWithID(context.Background(), d.Id())
 	if err != nil {
 		return err
 	}
