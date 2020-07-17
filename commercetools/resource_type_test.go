@@ -179,6 +179,8 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 						"commercetools_type.acctest_type", "field.2.name", "existing_enum"),
 					resource.TestCheckResourceAttr(
 						"commercetools_type.acctest_type", "field.2.type.0.element_type.0.values.%", "3"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.2.type.0.element_type.0.values.evening", "Evening Changed"),
 				),
 			},
 		},
@@ -312,7 +314,7 @@ resource "commercetools_type" "%s" {
 				name = "Enum"
 				values = {
 					day = "Daytime"
-					evening = "Evening"
+					evening = "Evening Changed"
 					later   = "later"
 				}
 			}
