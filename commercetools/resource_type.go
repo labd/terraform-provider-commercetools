@@ -482,48 +482,16 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		newFieldType := fieldDef.Type
 		oldFieldType := oldV["type"].([]interface{})[0].(map[string]interface{})
 
-		if enumType, ok := newFieldType.(commercetools.CustomFieldEnumType); ok {
-			oldEnumV := oldFieldType["values"].(map[string]interface{})
+		if enumType, ok := newFieldType.(commercetools.CustomFieldSetType); ok {
 
-			for i, enumValue := range enumType.Values {
-				if _, ok := oldEnumV[enumValue.Key]; !ok {
-					// Key does not appear in old enum values, so we'll add it
-					actions = append(
-						actions,
-						commercetools.TypeAddEnumValueAction{
-							FieldName: name,
-							Value:     &enumType.Values[i],
-						})
-				}
-			}
+			myOldFieldType := oldFieldType["element_type"].([]interface{})[0].(map[string]interface{})
+			actions = resourceTypeHandleEnumTypeChanges(enumType.ElementType, myOldFieldType, actions, name)
 
-			// Action: changeEnumValueOrder
-			// TODO: Change the order of EnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-fielddefinitions
-
-		} else if enumType, ok := newFieldType.(commercetools.CustomFieldLocalizedEnumType); ok {
-			oldEnumV := oldFieldType["localized_value"].([]interface{})
-			oldEnumKeys := make(map[string]map[string]interface{}, len(oldEnumV))
-
-			for _, value := range oldEnumV {
-				v := value.(map[string]interface{})
-				oldEnumKeys[v["key"].(string)] = v
-			}
-
-			for i, enumValue := range enumType.Values {
-				if _, ok := oldEnumKeys[enumValue.Key]; !ok {
-					// Key does not appear in old enum values, so we'll add it
-					actions = append(
-						actions,
-						commercetools.TypeAddLocalizedEnumValueAction{
-							FieldName: name,
-							Value:     &enumType.Values[i],
-						})
-				}
-			}
-
-			// Action: changeLocalizedEnumValueOrder
-			// TODO: Change the order of LocalizedEnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-localizedenumvalues
+			log.Printf("[DEBUG] Set detected: %s", name)
+			log.Printf(string(len(myOldFieldType)))
 		}
+
+		actions = resourceTypeHandleEnumTypeChanges(newFieldType, oldFieldType, actions, name)
 	}
 
 	oldNames := make([]string, len(oldValues))
@@ -547,6 +515,52 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 	}
 
 	return actions, nil
+}
+
+func resourceTypeHandleEnumTypeChanges(newFieldType commercetools.FieldType, oldFieldType map[string]interface{}, actions []commercetools.TypeUpdateAction, name string) []commercetools.TypeUpdateAction {
+	if enumType, ok := newFieldType.(commercetools.CustomFieldEnumType); ok {
+		oldEnumV := oldFieldType["values"].(map[string]interface{})
+
+		for i, enumValue := range enumType.Values {
+			if _, ok := oldEnumV[enumValue.Key]; !ok {
+				// Key does not appear in old enum values, so we'll add it
+				actions = append(
+					actions,
+					commercetools.TypeAddEnumValueAction{
+						FieldName: name,
+						Value:     &enumType.Values[i],
+					})
+			}
+		}
+
+		// Action: changeEnumValueOrder
+		// TODO: Change the order of EnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-fielddefinitions
+
+	} else if enumType, ok := newFieldType.(commercetools.CustomFieldLocalizedEnumType); ok {
+		oldEnumV := oldFieldType["localized_value"].([]interface{})
+		oldEnumKeys := make(map[string]map[string]interface{}, len(oldEnumV))
+
+		for _, value := range oldEnumV {
+			v := value.(map[string]interface{})
+			oldEnumKeys[v["key"].(string)] = v
+		}
+
+		for i, enumValue := range enumType.Values {
+			if _, ok := oldEnumKeys[enumValue.Key]; !ok {
+				// Key does not appear in old enum values, so we'll add it
+				actions = append(
+					actions,
+					commercetools.TypeAddLocalizedEnumValueAction{
+						FieldName: name,
+						Value:     &enumType.Values[i],
+					})
+			}
+		}
+
+		// Action: changeLocalizedEnumValueOrder
+		// TODO: Change the order of LocalizedEnumValues: https://docs.commercetools.com/http-api-projects-types.html#change-the-order-of-localizedenumvalues
+	}
+	return actions
 }
 
 func resourceTypeDelete(d *schema.ResourceData, m interface{}) error {

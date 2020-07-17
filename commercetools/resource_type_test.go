@@ -161,6 +161,10 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 					testAccTypeExists("acctest_type"),
 					resource.TestCheckResourceAttr(
 						"commercetools_type.acctest_type", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.1.name", "existing_enum"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.1.type.0.element_type.0.values.%", "2"),
 				),
 			},
 			{
@@ -169,6 +173,12 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 					testAccTypeExists("acctest_type"),
 					resource.TestCheckResourceAttr(
 						"commercetools_type.acctest_type", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.#", "11"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.2.name", "existing_enum"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.2.type.0.element_type.0.values.%", "3"),
 				),
 			},
 		},
@@ -200,6 +210,25 @@ resource "commercetools_type" "%s" {
 			name = "String"
 		}
 	}
+
+	field {
+		name = "existing_enum"
+		label = {
+			en = "existing enum"
+			de = "existierendes enum"
+		}
+		type {
+			name = "Set" 
+			element_type {
+				name = "Enum"
+				values = {
+					day = "Daytime"
+					evening = "Evening"
+				}
+			}
+		}
+	}
+
 }`, name, name)
 }
 
@@ -267,6 +296,25 @@ resource "commercetools_type" "%s" {
 			values = {
 				day = "Daytime"
 				evening = "Evening"
+			}
+		}
+	}
+
+	field {
+		name = "existing_enum"
+		label = {
+			en = "existing enum"
+			de = "existierendes enum"
+		}
+		type {
+			name = "Set" 
+			element_type {
+				name = "Enum"
+				values = {
+					day = "Daytime"
+					evening = "Evening"
+					later   = "later"
+				}
 			}
 		}
 	}
