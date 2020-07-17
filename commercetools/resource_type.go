@@ -530,6 +530,17 @@ func resourceTypeHandleEnumTypeChanges(newFieldType commercetools.FieldType, old
 						FieldName: name,
 						Value:     &enumType.Values[i],
 					})
+				continue
+			}
+
+			if oldEnumV[enumValue.Key].(string) != enumValue.Label {
+				//label for this key is changed
+				actions = append(
+					actions,
+					commercetools.TypeChangeEnumValueLabelAction{
+						FieldName: name,
+						Value:     &enumType.Values[i],
+					})
 			}
 		}
 
