@@ -69,6 +69,31 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 	})
 }
 
+func TestAccStore_createAndUpdateDistributionLanguages(t *testing.T) {
+	name := "test dl"
+	key := "test-dl"
+	languages := []string{"en-US"}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckStoreDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNewStoreConfigWithChannels(name, key, languages),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_store.test", "distribution_channels.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_store.test", "distribution_channels.0", "TEST",
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccStoreConfig(name string, key string) string {
 	return fmt.Sprintf(`
 	resource "commercetools_store" "standard" {
@@ -102,6 +127,26 @@ func testAccNewStoreConfigWithLanguages(name string, key string, languages []str
 		key = "%[2]s"
 		languages = %[3]q
 	}`, name, key, languages)
+}
+
+func testAccNewStoreConfigWithChannels(name string, key string, languages []string) string {
+	return fmt.Sprintf(`
+	resource "commercetools_channel" "test_channel" {
+		key = "TEST"
+		roles = ["ProductDistribution"]
+	}
+
+	resource "commercetools_store" "test" {
+		name = {
+			en = "%[1]s"
+			nl = "%[1]s"
+		}
+		key = "%[2]s"
+		languages = %[3]q
+		distribution_channels = [commercetools_channel.test_channel.key]
+	}
+
+	`, name, key, languages)
 }
 
 func testAccCheckStoreDestroy(s *terraform.State) error {

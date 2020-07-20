@@ -12,6 +12,10 @@ resource "commercetools_store" "standard" {
       nl-NL = "My standard store"
   }
   key = "standard-store"
+
+  // optional
+  languages            = ["nl-NL"]
+  distributionChannels = ["NL"]
 }
 ```
 
@@ -21,6 +25,8 @@ The following arguments are supported:
 
 * `name` - Name of the store.
 * `key`  - User-specific unique identifier for the store. The key is mandatory and immutable. It is used to reference the store.
+* `languages` - Optional array of languages.
+* `distributionChannels` - Optional array of distribution channel keys used for [product projection store filtering](https://docs.commercetools.com/http-api-projects-productProjections#prices-beta).
 
 
 [commercetool-stores]: https://docs.commercetools.com/http-api-projects-stores.html
