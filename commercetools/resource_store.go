@@ -46,26 +46,10 @@ func resourceStore() *schema.Resource {
 	}
 }
 
-func convertChannelsToIdentifiers(channelKeys []string) []commercetools.ChannelResourceIdentifier {
-	identifiers := make([]commercetools.ChannelResourceIdentifier, 0)
-	for i := 0; i < len(channelKeys); i++ {
-		channelIdentifier := commercetools.ChannelResourceIdentifier{
-			Key: channelKeys[i],
-		}
-		identifiers = append(identifiers, channelIdentifier)
-	}
-	return identifiers
-}
-
-func channelDataToIdentifiers(distributionChannelData interface{}) []commercetools.ChannelResourceIdentifier {
-	distributionChannelKeys := expandStringArray(distributionChannelData.([]interface{}))
-	return convertChannelsToIdentifiers(distributionChannelKeys)
-}
-
 func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 	name := commercetools.LocalizedString(
 		expandStringMap(d.Get("name").(map[string]interface{})))
-	dcIdentifiers := channelDataToIdentifiers(d.Get("distribution_channels"))
+	dcIdentifiers := expandDistributionChannels(d.Get("distribution_channels"))
 
 	draft := &commercetools.StoreDraft{
 		Key:                  d.Get("key").(string),
@@ -120,12 +104,9 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("languages", store.Languages)
 	}
 	if store.DistributionChannels != nil {
-		channelKeys := make([]string, 0)
-		for i := 0; i < len(channelKeys); i++ {
-			if store.DistributionChannels[i].Obj == nil {
-				return errors.New("failed to expand channel objects")
-			}
-			channelKeys = append(channelKeys, store.DistributionChannels[i].Obj.Key)
+		channelKeys, err := flattenDistributionChannels(store.DistributionChannels)
+		if err != nil {
+			return err
 		}
 		d.Set("distributionChannels", channelKeys)
 	}
@@ -186,4 +167,31 @@ func resourceStoreDelete(d *schema.ResourceData, m interface{}) error {
 	}
 
 	return nil
+}
+
+func convertChannelKeysToIdentifiers(channelKeys []string) []commercetools.ChannelResourceIdentifier {
+	identifiers := make([]commercetools.ChannelResourceIdentifier, 0)
+	for i := 0; i < len(channelKeys); i++ {
+		channelIdentifier := commercetools.ChannelResourceIdentifier{
+			Key: channelKeys[i],
+		}
+		identifiers = append(identifiers, channelIdentifier)
+	}
+	return identifiers
+}
+
+func expandDistributionChannels(distributionChannelData interface{}) []commercetools.ChannelResourceIdentifier {
+	distributionChannelKeys := expandStringArray(distributionChannelData.([]interface{}))
+	return convertChannelKeysToIdentifiers(distributionChannelKeys)
+}
+
+func flattenDistributionChannels(distributionChannels []commercetools.ChannelReference) ([]string, error) {
+	channelKeys := make([]string, 0)
+	for i := 0; i < len(channelKeys); i++ {
+		if distributionChannels[i].Obj == nil {
+			return nil, errors.New("failed to expand channel objects")
+		}
+		channelKeys = append(channelKeys, distributionChannels[i].Obj.Key)
+	}
+	return channelKeys, nil
 }
