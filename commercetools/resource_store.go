@@ -139,7 +139,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("distributionChannels") {
-		dcIdentifiers := channelDataToIdentifiers(d.Get("distribution_channels"))
+		dcIdentifiers := expandDistributionChannels(d.Get("distribution_channels"))
 
 		// set action replaces current values
 		input.Actions = append(
