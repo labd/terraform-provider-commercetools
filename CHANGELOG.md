@@ -1,7 +1,8 @@
-0.22.0 (unreleased)
+0.22.0 (2020-07-20)
 ===================
-- Update commercetools-go-sdk dependency to v0.1.0. This version now properly
+- Update commercetools-go-sdk dependency to v0.2.0. This version now properly
   handles oauth2 authentication failures (#117)
+- resource `commercetools_store`: add distribution\_channels
 
 0.21.2 (2020-06-11)
 ===================
