@@ -2,6 +2,7 @@ package commercetools
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -36,6 +37,11 @@ func resourceStore() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"distribution_channels": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -43,11 +49,13 @@ func resourceStore() *schema.Resource {
 func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 	name := commercetools.LocalizedString(
 		expandStringMap(d.Get("name").(map[string]interface{})))
+	dcIdentifiers := expandDistributionChannels(d.Get("distribution_channels"))
 
 	draft := &commercetools.StoreDraft{
-		Key:       d.Get("key").(string),
-		Name:      &name,
-		Languages: expandStringArray(d.Get("languages").([]interface{})),
+		Key:                  d.Get("key").(string),
+		Name:                 &name,
+		Languages:            expandStringArray(d.Get("languages").([]interface{})),
+		DistributionChannels: dcIdentifiers,
 	}
 
 	client := getClient(m)
@@ -75,7 +83,8 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	store, err := client.StoreGetWithID(context.Background(), d.Id())
+
+	store, err := client.StoreGetWithID(context.Background(), d.Id(), commercetools.WithReferenceExpansion("distributionChannels[*]"))
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -93,6 +102,13 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("version", store.Version)
 	if store.Languages != nil {
 		d.Set("languages", store.Languages)
+	}
+	if store.DistributionChannels != nil {
+		channelKeys, err := flattenDistributionChannels(store.DistributionChannels)
+		if err != nil {
+			return err
+		}
+		d.Set("distributionChannels", channelKeys)
 	}
 	return nil
 }
@@ -122,6 +138,18 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.StoreSetLanguagesAction{Languages: languages})
 	}
 
+	if d.HasChange("distributionChannels") {
+		dcIdentifiers := expandDistributionChannels(d.Get("distribution_channels"))
+
+		// set action replaces current values
+		input.Actions = append(
+			input.Actions,
+			&commercetools.StoresStDistributionChannelsAction{
+				DistributionChannels: dcIdentifiers,
+			},
+		)
+	}
+
 	_, err := client.StoreUpdateWithID(context.Background(), input)
 	if err != nil {
 		return err
@@ -139,4 +167,31 @@ func resourceStoreDelete(d *schema.ResourceData, m interface{}) error {
 	}
 
 	return nil
+}
+
+func convertChannelKeysToIdentifiers(channelKeys []string) []commercetools.ChannelResourceIdentifier {
+	identifiers := make([]commercetools.ChannelResourceIdentifier, 0)
+	for i := 0; i < len(channelKeys); i++ {
+		channelIdentifier := commercetools.ChannelResourceIdentifier{
+			Key: channelKeys[i],
+		}
+		identifiers = append(identifiers, channelIdentifier)
+	}
+	return identifiers
+}
+
+func expandDistributionChannels(distributionChannelData interface{}) []commercetools.ChannelResourceIdentifier {
+	distributionChannelKeys := expandStringArray(distributionChannelData.([]interface{}))
+	return convertChannelKeysToIdentifiers(distributionChannelKeys)
+}
+
+func flattenDistributionChannels(distributionChannels []commercetools.ChannelReference) ([]string, error) {
+	channelKeys := make([]string, 0)
+	for i := 0; i < len(channelKeys); i++ {
+		if distributionChannels[i].Obj == nil {
+			return nil, errors.New("failed to expand channel objects")
+		}
+		channelKeys = append(channelKeys, distributionChannels[i].Obj.Key)
+	}
+	return channelKeys, nil
 }
