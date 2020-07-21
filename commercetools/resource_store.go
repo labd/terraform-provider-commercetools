@@ -3,6 +3,7 @@ package commercetools
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -103,12 +104,15 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	if store.Languages != nil {
 		d.Set("languages", store.Languages)
 	}
+
+	log.Printf("[DEBUG] Store read, distributionChannels: %+v", store.DistributionChannels)
 	if store.DistributionChannels != nil {
 		channelKeys, err := flattenDistributionChannels(store.DistributionChannels)
 		if err != nil {
 			return err
 		}
-		d.Set("distributionChannels", channelKeys)
+		log.Printf("[DEBUG] Setting channel keys to: %+v", channelKeys)
+		d.Set("distribution_channels", channelKeys)
 	}
 	return nil
 }
@@ -138,8 +142,10 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.StoreSetLanguagesAction{Languages: languages})
 	}
 
-	if d.HasChange("distributionChannels") {
+	if d.HasChange("distribution_channels") {
 		dcIdentifiers := expandDistributionChannels(d.Get("distribution_channels"))
+
+		log.Printf("[DEBUG] distributionChannels change, new identifiers: %v", dcIdentifiers)
 
 		// set action replaces current values
 		input.Actions = append(
@@ -177,21 +183,30 @@ func convertChannelKeysToIdentifiers(channelKeys []string) []commercetools.Chann
 		}
 		identifiers = append(identifiers, channelIdentifier)
 	}
+
+	log.Printf("[DEBUG] Converted keys: %v", identifiers)
 	return identifiers
 }
 
 func expandDistributionChannels(distributionChannelData interface{}) []commercetools.ChannelResourceIdentifier {
+	log.Printf("[DEBUG] Expanding distribution channels: %v", distributionChannelData)
 	distributionChannelKeys := expandStringArray(distributionChannelData.([]interface{}))
+	log.Printf("[DEBUG] Expanding distribution channels, got keys: %v", distributionChannelKeys)
 	return convertChannelKeysToIdentifiers(distributionChannelKeys)
 }
 
 func flattenDistributionChannels(distributionChannels []commercetools.ChannelReference) ([]string, error) {
+	log.Printf("[DEBUG] flattening: %+v", distributionChannels)
 	channelKeys := make([]string, 0)
-	for i := 0; i < len(channelKeys); i++ {
+	for i := 0; i < len(distributionChannels); i++ {
+
+		log.Printf("[DEBUG] flattening checking channel: %s", stringFormatObject(distributionChannels[i]))
+		log.Printf("[DEBUG] flattening checking channel obj: %s", stringFormatObject(distributionChannels[i].Obj))
 		if distributionChannels[i].Obj == nil {
 			return nil, errors.New("failed to expand channel objects")
 		}
 		channelKeys = append(channelKeys, distributionChannels[i].Obj.Key)
 	}
+	log.Printf("[DEBUG] flattening final keys: %v", channelKeys)
 	return channelKeys, nil
 }

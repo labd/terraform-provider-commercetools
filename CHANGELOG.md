@@ -1,3 +1,7 @@
+0.22.1 (2020-07-21)
+===================
+- Fix edge case where distribution channels were not updated
+
 0.22.0 (2020-07-20)
 ===================
 - Update commercetools-go-sdk dependency to v0.2.0. This version now properly
