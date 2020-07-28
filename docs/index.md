@@ -44,7 +44,7 @@ docker build . -t terraform-with-provider-commercetools:latest
 ```
 Then you can run a terraform command on files in the current directory with:
 ```sh
-docker run -v${pwd}:/config terraform-with-provider-commercetools:latest <CMD>
+docker run -v "$(pwd)":/config terraform-with-provider-commercetools:latest <CMD>
 ```
 
 ## Authors
