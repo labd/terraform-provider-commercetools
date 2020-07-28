@@ -29,7 +29,7 @@ provider "commercetools" {
   project_key   = "<your project key>"
   scopes        = "<space seperated list of scopes>"
   api_url       = "<api url>"
-  token_url     = "<token url>"
+  auth_url      = "<auth url>"
 }
 ```
 
