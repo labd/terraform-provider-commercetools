@@ -1,25 +1,38 @@
 project_name: terraform-provider-commercetools
 
 builds:
-  - binary: terraform-provider-commercetools_v{{ .Version }}
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - windows
-      - darwin
-      - linux
-    goarch:
-      - amd64
+- env:
+    # goreleaser does not work with CGO, it could also complicate
+    # usage by users in CI/CD systems like Terraform Cloud where
+    # they are unable to install libraries.
+    - CGO_ENABLED=0
+  mod_timestamp: '{{ .CommitTimestamp }}'
+  flags:
+    - -trimpath
+  ldflags:
+    - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
+  goos:
+    - freebsd
+    - windows
+    - linux
+    - darwin
+  goarch:
+    - amd64
+    - '386'
+    - arm
+    - arm64
+  ignore:
+    - goos: darwin
+      goarch: '386'
+  binary: '{{ .ProjectName }}_v{{ .Version }}'
 
 archives:
-  - name_template: "terraform-provider-commercetools-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
-    format_overrides:
-      - goos: windows
-        format: zip
-      - goos: darwin
-        format: zip
-    files:
-      - none*
+- format: zip
+  name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
+  algorithm: sha256
 
 changelog:
   sort: asc
@@ -28,24 +41,40 @@ changelog:
       - "^docs:"
       - "^test:"
 
+signs:
+  - artifacts: checksum
+    args:
+      # if you are using this is a GitHub action or some other automated pipeline, you
+      # need to pass the batch flag to indicate its not interactive.
+      - "--batch"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}" # set this environment variable for your signing key
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+
+release:
+  draft: true
+
 brews:
-  - 
-    name: terraform-provider-commercetools
+  -
+    name: "{{ .ProjectName }}"
     description: Terraform provider for Commercetools
     homepage: https://github.com/labd/terraform-provider-commercetools
     url_template: https://github.com/labd/terraform-provider-commercetools/releases/download/{{ .Version }}/{{ .ArtifactName }}
     caveats: |
       After installation, you must symlink the provider into Terraform's plugins directory.
       mkdir -p ~/.terraform.d/plugins/
-      ln -sf /usr/local/Cellar/terraform-provider-commercetools/$VERSION/bin/terraform-provider-commercetools_v{{ .Version }} ~/.terraform.d/plugins/terraform-provider-commercetools
+      ln -sf /usr/local/Cellar/{{ .ProjectName }}/$VERSION/bin/{{ .ProjectName }}_v{{ .Version }} ~/.terraform.d/plugins/{{ .ProjectName }}
       Symlinking is necessary because Homebrew is sandboxed and cannot write to your home directory.
       Replace $VERSION above.
       If Homebrew is installing somewhere other than /usr/local/Cellar, update the path as well.
     install: |
-      bin.install "terraform-provider-commercetools_v{{ .Version}}"
+      bin.install "{{ .ProjectName }}_v{{ .Version}}"
     test: |
-      system "#{bin}/terraform-provider-commercetools_v{{ .Version }}", "-h"  # running bin directly gives error, exit code 1
-    github:
+      system "#{bin}/{{ .ProjectName }}_v{{ .Version }}", "-h"  # running bin directly gives error, exit code 1
+    tap:
       owner: labd
-      name: homebrew-terraform-provider-commercetools
+      name: homebrew-{{ .ProjectName }}
     skip_upload: false
