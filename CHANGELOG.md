@@ -1,3 +1,9 @@
+v0.23.0 (2020-08-28)
+====================
+ - New tag naming scheme (prefix with v) to conform to terraform repository
+   requirements
+ - Update terraform-plugin-sdk for compatibility with terraform 0.13
+
 0.22.1 (2020-07-21)
 ===================
 - Fix edge case where distribution channels were not updated
