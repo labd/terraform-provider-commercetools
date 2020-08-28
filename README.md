@@ -91,12 +91,12 @@ Note this generates a lot of output!
 
 ## Releasing
 
-This project uses Goreleaser, see `.goreleaser.yml`. To release:
+When pushing a new tag prefixed with `v` a GitHub action will automatically
+use Goreleaser to build and release the build.
 
 ```sh
 git tag <release> -m "Release <release>" # please use semantic version, so always vX.Y.Z
 git push --follow-tags
-GITHUB_TOKEN=<your github token> goreleaser release --rm-dist
 ```
 
 ## Testing
