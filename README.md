@@ -20,8 +20,20 @@ able to offer support. Please contact us at opensource@labdigital.nl
 
 # Installation
 
-This is a third-party provider and that means that terraform cannot download it
-automatically.
+## Terraform registry
+
+Terraform 0.13 added support for automatically downloading providers from
+the terraform registry. Add the following to your terraform project
+
+```hcl
+terraform {
+  required_providers {
+    commercetools = {
+      source = "labd/commercetools"
+    }
+  }
+}
+```
 
 ## Binaries
 
@@ -29,22 +41,6 @@ Packages of the releases are available at
 https://github.com/labd/terraform-provider-commercetools/releases See the
 [terraform documentation](https://www.terraform.io/docs/configuration/providers.html#third-party-plugins)
 for more information about installing third-party providers.
-
-## Homebrew
-
-Add the terraform tap:
-
-```sh
-$ brew tap labd/homebrew-terraform-provider-commercetools
-```
-
-Then install the provider:
-
-```sh
-$ brew install terraform-provider-commercetools
-```
-
-And follow the terminal output instructions to symlink the binary.
 
 # Getting started
 
