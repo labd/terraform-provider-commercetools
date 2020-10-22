@@ -43,6 +43,11 @@ func resourceStore() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"supply_channels": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -50,7 +55,7 @@ func resourceStore() *schema.Resource {
 func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 	name := commercetools.LocalizedString(
 		expandStringMap(d.Get("name").(map[string]interface{})))
-	dcIdentifiers := expandDistributionChannels(d.Get("distribution_channels"))
+	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
 
 	draft := &commercetools.StoreDraft{
 		Key:                  d.Get("key").(string),
@@ -85,7 +90,11 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	store, err := client.StoreGetWithID(context.Background(), d.Id(), commercetools.WithReferenceExpansion("distributionChannels[*]"))
+	store, err := client.StoreGetWithID(
+		context.Background(), d.Id(),
+		commercetools.WithReferenceExpansion("distributionChannels[*]"),
+		commercetools.WithReferenceExpansion("supplyChannels[*]"),
+	)
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -107,12 +116,22 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Printf("[DEBUG] Store read, distributionChannels: %+v", store.DistributionChannels)
 	if store.DistributionChannels != nil {
-		channelKeys, err := flattenDistributionChannels(store.DistributionChannels)
+		channelKeys, err := flattenStoreChannels(store.DistributionChannels)
 		if err != nil {
 			return err
 		}
 		log.Printf("[DEBUG] Setting channel keys to: %+v", channelKeys)
 		d.Set("distribution_channels", channelKeys)
+	}
+	log.Printf("[DEBUG] Store read, supplyChannels: %+v", store.SupplyChannels)
+
+	if store.SupplyChannels != nil {
+		channelKeys, err := flattenStoreChannels(store.SupplyChannels)
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] Setting channel keys to: %+v", channelKeys)
+		d.Set("supply_channels", channelKeys)
 	}
 	return nil
 }
@@ -143,7 +162,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("distribution_channels") {
-		dcIdentifiers := expandDistributionChannels(d.Get("distribution_channels"))
+		dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
 
 		log.Printf("[DEBUG] distributionChannels change, new identifiers: %v", dcIdentifiers)
 
@@ -152,6 +171,20 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 			input.Actions,
 			&commercetools.StoresSetDistributionChannelsAction{
 				DistributionChannels: dcIdentifiers,
+			},
+		)
+	}
+
+	if d.HasChange("supply_channels") {
+		scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
+
+		log.Printf("[DEBUG] supplyChannels change, new identifiers: %v", scIdentifiers)
+
+		// set action replaces current values
+		input.Actions = append(
+			input.Actions,
+			&commercetools.StoresSetSupplyChannelsAction{
+				SupplyChannels: scIdentifiers,
 			},
 		)
 	}
@@ -188,24 +221,24 @@ func convertChannelKeysToIdentifiers(channelKeys []string) []commercetools.Chann
 	return identifiers
 }
 
-func expandDistributionChannels(distributionChannelData interface{}) []commercetools.ChannelResourceIdentifier {
-	log.Printf("[DEBUG] Expanding distribution channels: %v", distributionChannelData)
-	distributionChannelKeys := expandStringArray(distributionChannelData.([]interface{}))
-	log.Printf("[DEBUG] Expanding distribution channels, got keys: %v", distributionChannelKeys)
-	return convertChannelKeysToIdentifiers(distributionChannelKeys)
+func expandStoreChannels(channelData interface{}) []commercetools.ChannelResourceIdentifier {
+	log.Printf("[DEBUG] Expanding store channels: %v", channelData)
+	channelKeys := expandStringArray(channelData.([]interface{}))
+	log.Printf("[DEBUG] Expanding store channels, got keys: %v", channelKeys)
+	return convertChannelKeysToIdentifiers(channelKeys)
 }
 
-func flattenDistributionChannels(distributionChannels []commercetools.ChannelReference) ([]string, error) {
-	log.Printf("[DEBUG] flattening: %+v", distributionChannels)
+func flattenStoreChannels(channels []commercetools.ChannelReference) ([]string, error) {
+	log.Printf("[DEBUG] flattening: %+v", channels)
 	channelKeys := make([]string, 0)
-	for i := 0; i < len(distributionChannels); i++ {
+	for i := 0; i < len(channels); i++ {
 
-		log.Printf("[DEBUG] flattening checking channel: %s", stringFormatObject(distributionChannels[i]))
-		log.Printf("[DEBUG] flattening checking channel obj: %s", stringFormatObject(distributionChannels[i].Obj))
-		if distributionChannels[i].Obj == nil {
+		log.Printf("[DEBUG] flattening checking channel: %s", stringFormatObject(channels[i]))
+		log.Printf("[DEBUG] flattening checking channel obj: %s", stringFormatObject(channels[i].Obj))
+		if channels[i].Obj == nil {
 			return nil, errors.New("failed to expand channel objects")
 		}
-		channelKeys = append(channelKeys, distributionChannels[i].Obj.Key)
+		channelKeys = append(channelKeys, channels[i].Obj.Key)
 	}
 	log.Printf("[DEBUG] flattening final keys: %v", channelKeys)
 	return channelKeys, nil
