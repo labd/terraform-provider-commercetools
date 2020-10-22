@@ -162,6 +162,10 @@ github.com/labd/commercetools-go-sdk v0.2.0 h1:jakQbApp2vFQQcaT6OgsM+XivrhYtZof8
 github.com/labd/commercetools-go-sdk v0.2.0/go.mod h1:ePw9FISpWsXywIcR6vvcBgvOIWAeUD0cD0GsNBl73ik=
 github.com/labd/commercetools-go-sdk v0.2.1-0.20200729102841-1c49bc01e9af h1:fPxLxlo8ybTnrSnugVDBKI4KPQuy23wHNSMDuu0S71k=
 github.com/labd/commercetools-go-sdk v0.2.1-0.20200729102841-1c49bc01e9af/go.mod h1:ePw9FISpWsXywIcR6vvcBgvOIWAeUD0cD0GsNBl73ik=
+github.com/labd/commercetools-go-sdk v0.2.1-0.20201022133046-00c101d1e136 h1:jTpRxzl7BBXuuyJWhBv7ZzwSSSufZSm/+PZl+hkdOlE=
+github.com/labd/commercetools-go-sdk v0.2.1-0.20201022133046-00c101d1e136/go.mod h1:I+KKNALlg6PcSertsVA7E442koO99GT7gldWqwZlUGo=
+github.com/labd/commercetools-go-sdk v0.2.1-0.20201022133731-089f176b654e h1:OShffpM27hUgfubg+WjQgh4s38jviyeH7cUqqT4vcxM=
+github.com/labd/commercetools-go-sdk v0.2.1-0.20201022133731-089f176b654e/go.mod h1:I+KKNALlg6PcSertsVA7E442koO99GT7gldWqwZlUGo=
 github.com/mattn/go-colorable v0.0.9 h1:UVL0vNpWh04HeJXV0KLcaT7r06gOH2l4OW6ddYRUIY4=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.1 h1:G1f5SKeVxmagw/IyvzvtZE4Gybcc4Tr1tf7I8z0XgOg=
