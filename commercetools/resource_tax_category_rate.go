@@ -154,7 +154,12 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 		return err
 	}
 
-	newTaxRate := findNewTaxRate(taxCategory, oldTaxRateIds)
+	// Refresh the taxCategory. When a tax rate is added the ID is different
+	// then the ID returned in the response
+	updatedTaxCategory, err := client.TaxCategoryGetWithID(
+		context.Background(), taxCategoryID)
+
+	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
 
 	if newTaxRate == nil {
 		log.Fatal("No tax category rate created?")
@@ -244,7 +249,12 @@ func resourceTaxCategoryRateUpdate(d *schema.ResourceData, m interface{}) error 
 		return err
 	}
 
-	newTaxRate := findNewTaxRate(taxCategory, oldTaxRateIds)
+	// Refresh the taxCategory. When a tax rate is added the ID is different
+	// then the ID returned in the response
+	updatedTaxCategory, err := client.TaxCategoryGetWithID(
+		context.Background(), taxCategoryID)
+
+	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
 
 	if newTaxRate == nil {
 		log.Fatal("No tax category rate created?")
