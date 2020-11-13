@@ -1,3 +1,8 @@
+v0.24.0 (2020-11-13)
+====================
+ - Add support for managing supply channels in stores
+ - Handle non-existing tax rates in tax categories when refreshing state
+
 v0.23.0 (2020-08-28)
 ====================
  - New tag naming scheme (prefix with v) to conform to terraform repository
