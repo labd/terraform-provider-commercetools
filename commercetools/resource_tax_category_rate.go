@@ -172,7 +172,7 @@ func resourceTaxCategoryRateRead(d *schema.ResourceData, m interface{}) error {
 
 	if err != nil {
 		d.SetId("")
-		return err
+		return nil
 	}
 
 	setTaxRateState(d, taxRate)
