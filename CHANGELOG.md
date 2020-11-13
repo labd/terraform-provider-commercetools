@@ -1,3 +1,8 @@
+v0.24.1 (2020-11-13)
+====================
+ - Add a workaround in tax_rate resources to handle an issue with changing
+   id's after a tax category update
+
 v0.24.0 (2020-11-13)
 ====================
  - Add support for managing supply channels in stores
