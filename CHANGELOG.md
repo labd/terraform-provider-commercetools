@@ -1,3 +1,7 @@
+v0.25.0 (2020-11-27)
+====================
+ - Add `commercetools_custom_object` resource
+
 v0.24.1 (2020-11-13)
 ====================
  - Add a workaround in tax_rate resources to handle an issue with changing
