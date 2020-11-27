@@ -21,13 +21,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Go ${{ matrix.go-version }}
-      uses: actions/setup-go@v2-beta
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Install dependencies
-      run: 	go get ./commercetools
+      run: go get ./commercetools
     - name: Run tests
-      run: 	go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./commercetools -v ./commercetools
+      run: go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./commercetools -v ./commercetools
       env:
         TF_ACC: 1
         CTP_CLIENT_ID: unittest
