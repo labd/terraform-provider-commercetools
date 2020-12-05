@@ -1,3 +1,7 @@
+v0.25.1 (2020-12-05)
+====================
+ - Fix a bug in `resource_type` when the input_hint of a field was modified.
+
 v0.25.0 (2020-11-27)
 ====================
  - Add `commercetools_custom_object` resource
