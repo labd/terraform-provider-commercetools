@@ -414,6 +414,8 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 	return resourceTypeRead(d, m)
 }
 
+// Generate a list of actions needed for updating the fields value in
+// commercetools so that it matches the terraform file
 func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interface{}) ([]commercetools.TypeUpdateAction, error) {
 	oldLookup := createLookup(oldValues, "name")
 	newLookup := createLookup(newValues, "name")
@@ -422,6 +424,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 
 	log.Printf("[DEBUG] Construction Field change actions")
 
+	// Check if we have fields which are removed
 	for name := range oldLookup {
 		if _, ok := newLookup[name]; !ok {
 			log.Printf("[DEBUG] Field deleted: %s", name)
@@ -440,7 +443,8 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			return nil, err
 		}
 
-		// A new field is added
+		// A new field is added. Create the update action skip the rest of the
+		// loop since there cannot be any change if the field didn't exist yet.
 		if !existingField {
 			log.Printf("[DEBUG] Field added: %s", name)
 			actions = append(
@@ -450,6 +454,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			continue
 		}
 
+		// Check if we need to update the field label
 		oldV := oldValue.(map[string]interface{})
 		if !reflect.DeepEqual(oldV["label"], newV["label"]) {
 			newLabel := commercetools.LocalizedString(
@@ -457,6 +462,21 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			actions = append(
 				actions,
 				commercetools.TypeChangeLabelAction{FieldName: name, Label: &newLabel})
+		}
+
+		// Update the input hint if this is changed
+		if !reflect.DeepEqual(oldV["input_hint"], newV["input_hint"]) {
+			var newInputHint commercetools.TypeTextInputHint
+			switch newV["input_hint"].(string) {
+			case "SingleLine":
+				newInputHint = commercetools.TypeTextInputHintSingleLine
+			case "MultiLine":
+				newInputHint = commercetools.TypeTextInputHintMultiLine
+			}
+
+			actions = append(
+				actions,
+				commercetools.TypeChangeInputHintAction{FieldName: name, InputHint: newInputHint})
 		}
 
 		newFieldType := fieldDef.Type

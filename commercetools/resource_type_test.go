@@ -273,6 +273,7 @@ resource "commercetools_type" "%s" {
 
 	field {
 		name = "new_localized_enum"
+		input_hint = "MultiLine"
 		label = {
 			en = "New localized enum"
 			nl = "Nieuwe localized enum"
