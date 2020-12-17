@@ -120,6 +120,13 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 		Actions: []commercetools.ChannelUpdateAction{},
 	}
 
+	if d.HasChange("key") {
+		newKey := d.Get("key").(string)
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ChannelChangeKeyAction{Key: newKey})
+	}
+
 	if d.HasChange("name") {
 		newName := commercetools.LocalizedString(
 			expandStringMap(d.Get("name").(map[string]interface{})))

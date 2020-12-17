@@ -1,3 +1,7 @@
+v0.25.2 (2020-12-17)
+====================
+ - Implement changing key of an existing channel resource
+
 v0.25.1 (2020-12-05)
 ====================
  - Fix a bug in `resource_type` when the input_hint of a field was modified.
