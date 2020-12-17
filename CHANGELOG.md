@@ -1,3 +1,8 @@
+v0.25.3 (2020-12-17)
+====================
+ - Force creation of new resource when changing a Store key. There is
+   no update action for this available.
+
 v0.25.2 (2020-12-17)
 ====================
  - Implement changing key of an existing channel resource

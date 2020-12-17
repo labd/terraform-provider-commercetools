@@ -24,6 +24,7 @@ func resourceStore() *schema.Resource {
 			"key": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"name": {
 				Type:     TypeLocalizedString,
