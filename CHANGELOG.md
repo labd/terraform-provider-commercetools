@@ -1,3 +1,7 @@
+unreleased (?)
+====================
+ - Fix ProductType and DiscountCode tests with real commercetools environment
+
 v0.25.3 (2020-12-17)
 ====================
  - Force creation of new resource when changing a Store key. There is
