@@ -509,7 +509,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 			actions = handleEnumTypeChanges(enumType.ElementType, myOldFieldType, newEnumKeys, actions, name, oldEnumKeys)
 
 			log.Printf("[DEBUG] Set detected: %s", name)
-			log.Printf(string(len(myOldFieldType)))
+			log.Print(len(myOldFieldType))
 		}
 
 		removeEnumKeys := []string{}

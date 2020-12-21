@@ -13,7 +13,7 @@ import (
 func resourceDiscountCode() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceDiscountCodeCreate,
-		Read:   resourceDiscountCodetRead,
+		Read:   resourceDiscountCodeRead,
 		Update: resourceDiscountCodeUpdate,
 		Delete: resourceDiscountCodeDelete,
 		Importer: &schema.ResourceImporter{
@@ -133,10 +133,10 @@ func resourceDiscountCodeCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(discountCode.ID)
 	d.Set("version", discountCode.Version)
 
-	return resourceDiscountCodetRead(d, m)
+	return resourceDiscountCodeRead(d, m)
 }
 
-func resourceDiscountCodetRead(d *schema.ResourceData, m interface{}) error {
+func resourceDiscountCodeRead(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] Reading discount code from commercetools, with discount code id: %s", d.Id())
 
 	client := getClient(m)
@@ -298,7 +298,7 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	return resourceDiscountCodetRead(d, m)
+	return resourceDiscountCodeRead(d, m)
 }
 
 func resourceDiscountCodeDelete(d *schema.ResourceData, m interface{}) error {
