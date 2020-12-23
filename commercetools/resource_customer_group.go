@@ -123,10 +123,10 @@ func resourceCustomerGroupUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("key") {
-		newName := d.Get("key").(string)
+		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CustomerGroupSetKeyAction{Key: newName})
+			&commercetools.CustomerGroupSetKeyAction{Key: newKey})
 	}
 
 	log.Printf(
