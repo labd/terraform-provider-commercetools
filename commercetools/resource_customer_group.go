@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 func resourceCustomerGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceCustomerGroupCreate,
-		Read:   resourceCustomerGrouptRead,
+		Read:   resourceCustomerGroupRead,
 		Update: resourceCustomerGroupUpdate,
 		Delete: resourceCustomerGroupDelete,
 		Importer: &schema.ResourceImporter{
@@ -47,7 +48,7 @@ func resourceCustomerGroupCreate(d *schema.ResourceData, m interface{}) error {
 	errorResponse := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		customerGroup, err = client.CustomerGroupCreate(draft)
+		customerGroup, err = client.CustomerGroupCreate(context.Background(), draft)
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -66,15 +67,15 @@ func resourceCustomerGroupCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(customerGroup.ID)
 	d.Set("version", customerGroup.Version)
 
-	return resourceCustomerGrouptRead(d, m)
+	return resourceCustomerGroupRead(d, m)
 }
 
-func resourceCustomerGrouptRead(d *schema.ResourceData, m interface{}) error {
+func resourceCustomerGroupRead(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] Reading customer group from commercetools, with customer group id: %s", d.Id())
 
 	client := getClient(m)
 
-	customerGroup, err := client.CustomerGroupGetWithID(d.Id())
+	customerGroup, err := client.CustomerGroupGetWithID(context.Background(), d.Id())
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -103,7 +104,7 @@ func resourceCustomerGrouptRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceCustomerGroupUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	customerGroup, err := client.CustomerGroupGetWithID(d.Id())
+	customerGroup, err := client.CustomerGroupGetWithID(context.Background(), d.Id())
 	if err != nil {
 		return err
 	}
@@ -132,7 +133,7 @@ func resourceCustomerGroupUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.CustomerGroupUpdateWithID(input)
+	_, err = client.CustomerGroupUpdateWithID(context.Background(), input)
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -140,32 +141,16 @@ func resourceCustomerGroupUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	return resourceCustomerGrouptRead(d, m)
+	return resourceCustomerGroupRead(d, m)
 }
 
 func resourceCustomerGroupDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.CustomerGroupDeleteWithID(d.Id(), version)
+	_, err := client.CustomerGroupDeleteWithID(context.Background(), d.Id(), version)
 	if err != nil {
 		log.Printf("[ERROR] Error during deleting customer group resource %s", err)
 		return nil
 	}
 	return nil
-}
-
-func resourceCustomerGroupGetGroups(d *schema.ResourceData) []string {
-	var groups []string
-	for _, group := range expandStringArray(d.Get("groups").([]interface{})) {
-		groups = append(groups, group)
-	}
-	return groups
-}
-
-func resourceCustomerGroupGetCartDiscounts(d *schema.ResourceData) []commercetools.CartDiscountResourceIdentifier {
-	var cartDiscounts []commercetools.CartDiscountResourceIdentifier
-	for _, cartDiscount := range expandStringArray(d.Get("cart_discounts").([]interface{})) {
-		cartDiscounts = append(cartDiscounts, commercetools.CartDiscountResourceIdentifier{ID: cartDiscount})
-	}
-	return cartDiscounts
 }
