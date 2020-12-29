@@ -28,6 +28,17 @@ resource "commercetools_project_settings" "project" {
   carts = {
     country_tax_rate_fallback_enabled = true
   }
+  shipping_rate_input_type = "CartClassification"
+  
+  shipping_rate_cart_classification_values {
+    key = "Small"
+    label = {
+      "en" = "Small"
+      "nl" = "Klein"
+    }
+  }
+  
+  
 }
 ```
 
@@ -43,3 +54,5 @@ The following arguments are supported:
 * `external_oauth.authorization_header` - The authorization header to send when querying the `external_oauth.url`
 * `messages.enabled` - When `true` the creation of messages is enabled
 * `carts.country_tax_rate_fallback_enabled` - When `true` uses country - _no state_ tax rate fallback when a shipping address state is not explicitly covered in the rates lists of all tax categories of a cart's line items.
+* `shipping_rate_input_type` - Allows for three ways to dynamically select a ShippingRatePriceTier: `"CartValue"`, `"CartScore"` and `"CartClassification"`
+* `shipping_rate_cart_classification_value` - If shipping_rate_input_type is set to CartClassification these values are used to create tiers
