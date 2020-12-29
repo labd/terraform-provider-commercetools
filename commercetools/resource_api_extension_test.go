@@ -99,7 +99,7 @@ resource "commercetools_api_extension" "ext" {
   }
 
   trigger {
-    resource_type_id = "customer"
+    resource_type_id = ["customer", "product"]
     actions = ["Create", "Update"]
   }
 }

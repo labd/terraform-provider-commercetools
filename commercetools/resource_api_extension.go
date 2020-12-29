@@ -71,8 +71,9 @@ func resourceAPIExtension() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"resource_type_id": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeList,
 							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"actions": {
 							Type:     schema.TypeList,
@@ -301,17 +302,18 @@ func resourceAPIExtensionGetTriggers(d *schema.ResourceData) []commercetools.Ext
 
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
-		typeID := i["resource_type_id"].(string)
+		var actions []commercetools.ExtensionAction
 
-		actions := []commercetools.ExtensionAction{}
-		for _, item := range expandStringArray(i["actions"].([]interface{})) {
-			actions = append(actions, commercetools.ExtensionAction(item))
+		for _, typeID := range expandStringArray(i["resource_type_id"].([]interface{})) {
+			for _, action := range expandStringArray(i["actions"].([]interface{})) {
+				actions = append(actions, commercetools.ExtensionAction(action))
+			}
+
+			result = append(result, commercetools.ExtensionTrigger{
+				ResourceTypeID: commercetools.ExtensionResourceTypeID(typeID),
+				Actions:        actions,
+			})
 		}
-
-		result = append(result, commercetools.ExtensionTrigger{
-			ResourceTypeID: commercetools.ExtensionResourceTypeID(typeID),
-			Actions:        actions,
-		})
 	}
 
 	return result
