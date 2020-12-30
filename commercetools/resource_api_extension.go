@@ -65,7 +65,7 @@ func resourceAPIExtension() *schema.Resource {
 					},
 				},
 			},
-			"trigger": {
+			"triggers": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
@@ -296,7 +296,7 @@ func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (co
 }
 
 func resourceAPIExtensionGetTriggers(d *schema.ResourceData) []commercetools.ExtensionTrigger {
-	input := d.Get("trigger").([]interface{})
+	input := d.Get("triggers").([]interface{})
 	var result []commercetools.ExtensionTrigger
 
 	for _, raw := range input {
