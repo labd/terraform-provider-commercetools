@@ -80,6 +80,26 @@ func TestAccAPIExtension_basic(t *testing.T) {
 						"commercetools_api_extension.ext", "key", name),
 					resource.TestCheckResourceAttr(
 						"commercetools_api_extension.ext", "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.#", "1"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
+				),
+			},
+			{
+				Config: testAccAPIExtensionUpdate(name, timeoutInMs),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAPIExtensionExists("ext"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.#", "2"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.1", "Update"),
 				),
 			},
 		},
@@ -87,6 +107,26 @@ func TestAccAPIExtension_basic(t *testing.T) {
 }
 
 func testAccAPIExtensionConfig(name string, timeoutInMs int) string {
+	return fmt.Sprintf(`
+resource "commercetools_api_extension" "ext" {
+  key = "%s"
+  timeout_in_ms = %d
+
+  destination = {
+    type                 = "HTTP"
+    url                  = "https://example.com"
+    authorization_header = "Basic 12345"
+  }
+
+  trigger {
+    resource_type_id = "customer"
+    actions = ["Create"]
+  }
+}
+`, name, timeoutInMs)
+}
+
+func testAccAPIExtensionUpdate(name string, timeoutInMs int) string {
 	return fmt.Sprintf(`
 resource "commercetools_api_extension" "ext" {
   key = "%s"
