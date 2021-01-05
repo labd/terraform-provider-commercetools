@@ -62,6 +62,7 @@ func Provider() terraform.ResourceProvider {
 			"commercetools_cart_discount":      resourceCartDiscount(),
 			"commercetools_channel":            resourceChannel(),
 			"commercetools_custom_object":      resourceCustomObject(),
+			"commercetools_customer_group":     resourceCustomerGroup(),
 			"commercetools_discount_code":      resourceDiscountCode(),
 			"commercetools_product_type":       resourceProductType(),
 			"commercetools_project_settings":   resourceProjectSettings(),
