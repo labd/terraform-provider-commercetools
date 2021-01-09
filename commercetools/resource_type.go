@@ -488,7 +488,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			actions = resourceTypeHandleEnumTypeChanges(enumType.ElementType, myOldFieldType, actions, name)
 
 			log.Printf("[DEBUG] Set detected: %s", name)
-			log.Printf(string(len(myOldFieldType)))
+			log.Print(len(myOldFieldType))
 		}
 
 		actions = resourceTypeHandleEnumTypeChanges(newFieldType, oldFieldType, actions, name)
