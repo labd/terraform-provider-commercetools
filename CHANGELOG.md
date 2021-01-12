@@ -1,5 +1,8 @@
-unreleased (?)
+v0.26.0 (2021-01-12)
 ====================
+ - Add Customer Group resource (#141)
+ - Type Resource: Allow updating the label of an existing Enum value
+ - Type Resource: Add support to update a set of enum in a custom type
  - Fix ProductType and DiscountCode tests with real commercetools environment
 
 v0.25.3 (2020-12-17)
