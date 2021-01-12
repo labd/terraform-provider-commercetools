@@ -1,3 +1,7 @@
+Unreleased
+====================
+ - Type Resource: Remove invalid type["name"] condition
+
 v0.27.0 (2021-03-01)
 ====================
  - Resource Project: Add new `carts` field to documentation
