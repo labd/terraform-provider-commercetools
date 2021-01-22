@@ -81,9 +81,9 @@ func TestAccAPIExtension_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_api_extension.ext", "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "triggers.0.actions.#", "1"),
+						"commercetools_api_extension.ext", "trigger.0.actions.#", "1"),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "triggers.0.actions.0", "Create"),
+						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
 				),
 			},
 			{
@@ -95,11 +95,11 @@ func TestAccAPIExtension_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_api_extension.ext", "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "triggers.0.actions.#", "2"),
+						"commercetools_api_extension.ext", "trigger.0.actions.#", "2"),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "triggers.0.actions.0", "Create"),
+						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "triggers.0.actions.1", "Update"),
+						"commercetools_api_extension.ext", "trigger.0.actions.1", "Update"),
 				),
 			},
 		},
@@ -118,7 +118,7 @@ resource "commercetools_api_extension" "ext" {
     authorization_header = "Basic 12345"
   }
 
-  triggers {
+  trigger {
     resource_type_id = "customer"
     actions = ["Create"]
   }
@@ -138,7 +138,7 @@ resource "commercetools_api_extension" "ext" {
     authorization_header = "Basic 12345"
   }
 
-  triggers {
+  trigger {
     resource_type_id = "customer"
     actions = ["Create", "Update"]
   }

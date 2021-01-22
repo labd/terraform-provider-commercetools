@@ -65,7 +65,7 @@ func resourceAPIExtension() *schema.Resource {
 					},
 				},
 			},
-			"triggers": {
+			"trigger": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
@@ -176,7 +176,7 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("version", extension.Version)
 		d.Set("key", extension.Key)
 		d.Set("destination", extension.Destination)
-		d.Set("triggers", extension.Triggers)
+		d.Set("trigger", extension.Triggers)
 		d.Set("timeout_in_ms", extension.TimeoutInMs)
 	}
 	return nil
@@ -198,7 +198,7 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.ExtensionSetKeyAction{Key: newKey})
 	}
 
-	if d.HasChange("triggers") {
+	if d.HasChange("trigger") {
 		triggers := resourceAPIExtensionGetTriggers(d)
 		input.Actions = append(
 			input.Actions,
@@ -296,7 +296,7 @@ func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (co
 }
 
 func resourceAPIExtensionGetTriggers(d *schema.ResourceData) []commercetools.ExtensionTrigger {
-	input := d.Get("triggers").([]interface{})
+	input := d.Get("trigger").([]interface{})
 	var result []commercetools.ExtensionTrigger
 
 	for _, raw := range input {
