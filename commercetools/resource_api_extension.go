@@ -176,7 +176,7 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("version", extension.Version)
 		d.Set("key", extension.Key)
 		d.Set("destination", extension.Destination)
-		d.Set("triggers", extension.Triggers)
+		d.Set("trigger", extension.Triggers)
 		d.Set("timeout_in_ms", extension.TimeoutInMs)
 	}
 	return nil
@@ -198,7 +198,7 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.ExtensionSetKeyAction{Key: newKey})
 	}
 
-	if d.HasChange("triggers") {
+	if d.HasChange("trigger") {
 		triggers := resourceAPIExtensionGetTriggers(d)
 		input.Actions = append(
 			input.Actions,
