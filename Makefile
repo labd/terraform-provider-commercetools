@@ -12,6 +12,9 @@ update-sdk:
 	GO111MODULE=on go mod vendor
 	GO111MODULE=on go mod tidy
 
+docs:
+	tfplugindocs
+
 coverage-html:
 	go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...
 	go tool cover -html=coverage.txt
