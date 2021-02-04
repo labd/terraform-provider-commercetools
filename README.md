@@ -3,7 +3,6 @@
 [![Test status](https://github.com/labd/terraform-provider-commercetools/workflows/Run%20Tests/badge.svg)](https://github.com/labd/terraform-provider-commercetools/actions?query=workflow%3A%22Run+Tests%22)
 [![codecov](https://codecov.io/gh/LabD/terraform-provider-commercetools/branch/master/graph/badge.svg)](https://codecov.io/gh/LabD/terraform-provider-commercetools)
 [![Go Report Card](https://goreportcard.com/badge/github.com/labd/terraform-provider-commercetools)](https://goreportcard.com/report/github.com/labd/terraform-provider-commercetools)
-[![Documentation Status](https://readthedocs.org/projects/commercetools-terraform-provider/badge/?version=latest)](https://commercetools-terraform-provider.readthedocs.io/en/latest/?badge=latest)
 
 # Status
 
@@ -44,8 +43,8 @@ for more information about installing third-party providers.
 
 # Getting started
 
-[Read our documentation](https://readthedocs.org/projects/commercetools-terraform-provider)
-and check out the [examples](https://commercetools-terraform-provider.readthedocs.io/en/latest/examples/).
+[Read our documentation](https://registry.terraform.io/providers/labd/commercetools/latest/docs)
+and check out the [examples](https://registry.terraform.io/providers/labd/commercetools/latest/docs/guides/examples).
 
 # Contributing
 
