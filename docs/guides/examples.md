@@ -1,3 +1,10 @@
+---
+subcategory: ""
+page_title: "Examples"
+description: |-
+    Example usage
+---
+
 # Examples
 
 A few examples for different cloud providers.
