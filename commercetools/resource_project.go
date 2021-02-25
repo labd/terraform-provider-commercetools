@@ -8,6 +8,9 @@ import (
 	"github.com/labd/commercetools-go-sdk/commercetools"
 )
 
+// TODO: A lot of fields are optional in this schema that are not optional in commercetools. When not set via terraform
+// commercetools simply sets the default values for these fields. This works but can be a little confusing. It is worth
+// considering whether to align the optional/required status of the fields in the provider with that of the API itself
 func resourceProjectSettings() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceProjectCreate,
@@ -217,25 +220,30 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 			&commercetools.ProjectChangeLanguagesAction{Languages: newLanguages})
 	}
 
-	// Previous implementation checked if messaged["enabled"] == "1" which was never true
-	// without this entire check everything somehow still magically worked though.
-	// Regardless implementing a more explicit check to be safe
 	if d.HasChange("messages") {
 		messages := d.Get("messages").(map[string]interface{})
-		// boolean value is somehow interface{} | string so....
-		var enabled bool
-		switch messages["enabled"] {
-		case "true":
-			enabled = true
-		case "false":
-			enabled = false
-		default:
-			return fmt.Errorf("invalid value for messages[\"enabled\"]: %t", messages["enabled"])
+		if messages["enabled"] != nil {
+			// boolean value is somehow interface{} | string so....
+			var enabled bool
+			switch messages["enabled"] {
+			case "true":
+				enabled = true
+			case "false":
+				enabled = false
+			default:
+				return fmt.Errorf("invalid value for messages[\"enabled\"]: %t", messages["enabled"])
+			}
+
+			input.Actions = append(
+				input.Actions,
+				&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: enabled})
+		} else {
+			// To commercetools this field is not optional, so when deleting we revert to the default: false:
+			input.Actions = append(
+				input.Actions,
+				&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: false})
 		}
 
-		input.Actions = append(
-			input.Actions,
-			&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: enabled})
 	}
 
 	if d.HasChange("external_oauth") {
@@ -270,6 +278,13 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 				input.Actions,
 				&commercetools.ProjectChangeCountryTaxRateFallbackEnabledAction{
 					CountryTaxRateFallbackEnabled: fallbackEnabled,
+				})
+		} else {
+			// To commercetools this field is not optional, so when deleting we revert to the default: false:
+			input.Actions = append(
+				input.Actions,
+				&commercetools.ProjectChangeCountryTaxRateFallbackEnabledAction{
+					CountryTaxRateFallbackEnabled: false,
 				})
 		}
 
