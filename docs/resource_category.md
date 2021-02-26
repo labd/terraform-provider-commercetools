@@ -26,13 +26,13 @@ resource "commercetools_category" "example" {
 ```
 
 ## Argument Reference
-* `key` - string - Optional
-* `name` - LocalizedString - optional
+* `key` - String - Optional
+* `name` - LocalizedString - Optional
 * `description` - LocalizedString - Optional
-* `slug` - LocalizedString - optional - human readable identifiers, needs to be unique
-* `parent` - string - optional - A category that is the parent of this category in the category tree
-* `order_hint` -  string - optional - An attribute as base for a custom category order in one level, filled with random value when left empty
-* `external_id` - string - Optional
+* `slug` - LocalizedString - Optional - Human readable identifiers, needs to be unique
+* `parent` - String - Optional - A category that is the parent of this category in the category tree
+* `order_hint` -  String - Optional - An attribute as base for a custom category order in one level, filled with random value when left empty
+* `external_id` - String - Optional
 * `meta_title` - LocalizedString - Optional
 * `meta_description` - LocalizedString - Optional
 * `meta_keywords` - LocalizedString - Optional
