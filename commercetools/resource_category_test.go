@@ -20,10 +20,31 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 						"commercetools_category.accessories", "name.en", "accessories",
 					),
 					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "key", "accessories",
+					),
+					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "description.en", "Standard description",
+					),
+					resource.TestCheckResourceAttrPair(
+						"commercetools_category.accessories", "parent", "commercetools_category.accessories_base", "id",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "slug.en", "accessories",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "external_id", "d1229e6f-2b79-441e-b419-180311e52754",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "meta_title.en", "meta text",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "meta_description.en", "meta description",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "meta_keywords.en", "keywords",
 					),
 				),
 			},
@@ -34,10 +55,31 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 						"commercetools_category.accessories", "name.en", "accessories",
 					),
 					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "key", "accessories",
+					),
+					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "description.en", "Updated description",
+					),
+					resource.TestCheckResourceAttrPair(
+						"commercetools_category.accessories", "parent", "commercetools_category.accessories_base", "id",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "slug.en", "accessories_updated",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "external_id", "d1229e6f-2b79-441e-b419-180311e52754",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "meta_title.en", "updated meta text",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "meta_description.en", "updated meta description",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "meta_keywords.en", "keywords, updated",
 					),
 				),
 			},
@@ -48,13 +90,31 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 						"commercetools_category.accessories", "name.en", "accessories",
 					),
 					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "key", "accessories_2",
+					),
+					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "description.en", "Updated description",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "slug.en", "accessories_updated",
 					),
+					resource.TestCheckResourceAttrPair(
+						"commercetools_category.accessories", "parent", "commercetools_category.accessories_base", "id",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "external_id", "d1229e6f-2b79-441e-b419-180311e52754",
+					),
 					resource.TestCheckNoResourceAttr(
 						"commercetools_category.accessories", "meta_title",
+					),
+					resource.TestCheckNoResourceAttr(
+						"commercetools_category.accessories", "meta_description",
+					),
+					resource.TestCheckNoResourceAttr(
+						"commercetools_category.accessories", "meta_keywords",
 					),
 				),
 			},
@@ -91,8 +151,15 @@ func testAccCategoryConfig() string {
 			en = "accessories"
 		}
 		order_hint = "0.000016143365484621617765232"
+		external_id = "d1229e6f-2b79-441e-b419-180311e52754"
 		meta_title = {
 			en = "meta text"
+		}
+		meta_description = {
+			en = "meta description"
+		}
+		meta_keywords = {
+			en = "keywords"
 		}
 	}  `
 }
@@ -126,8 +193,15 @@ func testAccCategoryUpdate() string {
 			en = "accessories_updated"
 		}
 		order_hint = "0.000016143365484621617765232"
+		external_id = "d1229e6f-2b79-441e-b419-180311e52754"
 		meta_title = {
-			en = "meta text"
+			en = "updated meta text"
+		}
+		meta_description = {
+			en = "updated meta description"
+		}
+		meta_keywords = {
+			en = "keywords, updated"
 		}
 	}  `
 }
@@ -152,7 +226,7 @@ func testAccCategoryRemoveProperties() string {
 		name = {
 			en = "accessories"
 		}
-		key = "accessories"
+		key = "accessories_2"
 		description = {
 			en = "Updated description"
 		}
@@ -161,5 +235,6 @@ func testAccCategoryRemoveProperties() string {
 			en = "accessories_updated"
 		}
 		order_hint = "0.000016143365484621617765232"
+		external_id = "d1229e6f-2b79-441e-b419-180311e52754"
 	}  `
 }

@@ -270,12 +270,8 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceCategoryDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	category, err := client.CategoryGetWithID(context.Background(), d.Id())
-
-	if err != nil {
-		return err
-	}
-	_, err = client.CategoryDeleteWithID(context.Background(), d.Id(), category.Version)
+	version := d.Get("version").(int)
+	_, err := client.CategoryDeleteWithID(context.Background(), d.Id(), version)
 	if err != nil {
 		return err
 	}

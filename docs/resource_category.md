@@ -1,6 +1,6 @@
 # Categories
 
-Categories allow to organize products into hiearchical structures.
+Categories allow you to organize products into hierarchical structures.
 
 Also see the [Categories HTTP API documentation](https://docs.commercetools.com/api/projects/categories).
 
