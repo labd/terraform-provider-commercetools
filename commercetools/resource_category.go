@@ -26,16 +26,16 @@ func resourceCategory() *schema.Resource {
 				ForceNew: true,
 			},
 			"name": {
-				Type:     schema.TypeMap,
+				Type:     TypeLocalizedString,
 				Required: true,
 				ForceNew: true,
 			},
 			"description": {
-				Type:     schema.TypeMap,
+				Type:     TypeLocalizedString,
 				Optional: true,
 			},
 			"slug": {
-				Type:     schema.TypeMap,
+				Type:     TypeLocalizedString,
 				Required: true,
 			},
 			"parent": {
@@ -51,15 +51,15 @@ func resourceCategory() *schema.Resource {
 				Optional: true,
 			},
 			"meta_title": {
-				Type:     schema.TypeMap,
+				Type:     TypeLocalizedString,
 				Optional: true,
 			},
 			"meta_description": {
-				Type:     schema.TypeMap,
+				Type:     TypeLocalizedString,
 				Optional: true,
 			},
 			"meta_keywords": {
-				Type:     schema.TypeMap,
+				Type:     TypeLocalizedString,
 				Optional: true,
 			},
 			"version": {
