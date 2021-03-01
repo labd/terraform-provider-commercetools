@@ -1,11 +1,16 @@
 package commercetools
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
-	"log"
 )
 
+// TODO: A lot of fields are optional in this schema that are not optional in commercetools. When not set via terraform
+// commercetools simply sets the default values for these fields. This works but can be a little confusing. It is worth
+// considering whether to align the optional/required status of the fields in the provider with that of the API itself
 func resourceProjectSettings() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceProjectCreate,
@@ -67,6 +72,17 @@ func resourceProjectSettings() *schema.Resource {
 						},
 					},
 				},
+			},
+			"carts": {
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"country_tax_rate_fallback_enabled": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+					}},
 			},
 			"version": {
 				Type:     schema.TypeInt,
@@ -136,6 +152,7 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("countries", project.Countries)
 	d.Set("languages", project.Languages)
 	d.Set("external_oauth", project.ExternalOAuth)
+	d.Set("carts", project.Carts)
 	// d.Set("createdAt", project.CreatedAt)
 	// d.Set("trialUntil", project.TrialUntil)
 	log.Print("[DEBUG] Logging messages enabled")
@@ -143,7 +160,6 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("messages", project.Messages)
 	log.Print(stringFormatObject(d))
 	// d.Set("shippingRateInputType", project.ShippingRateInputType)
-
 	return nil
 }
 
@@ -206,15 +222,28 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 
 	if d.HasChange("messages") {
 		messages := d.Get("messages").(map[string]interface{})
-		// ¯\_(ツ)_/¯
-		enabled := false
-		if messages["enabled"] == "1" {
-			enabled = true
+		if messages["enabled"] != nil {
+			// boolean value is somehow interface{} | string so....
+			var enabled bool
+			switch messages["enabled"] {
+			case "true":
+				enabled = true
+			case "false":
+				enabled = false
+			default:
+				return fmt.Errorf("invalid value for messages[\"enabled\"]: %t", messages["enabled"])
+			}
+
+			input.Actions = append(
+				input.Actions,
+				&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: enabled})
+		} else {
+			// To commercetools this field is not optional, so when deleting we revert to the default: false:
+			input.Actions = append(
+				input.Actions,
+				&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: false})
 		}
 
-		input.Actions = append(
-			input.Actions,
-			&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: enabled})
 	}
 
 	if d.HasChange("external_oauth") {
@@ -230,6 +259,35 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 		} else {
 			input.Actions = append(input.Actions, &commercetools.ProjectSetExternalOAuthAction{ExternalOAuth: nil})
 		}
+	}
+
+	if d.HasChange("carts") {
+		carts := d.Get("carts").(map[string]interface{})
+		if carts["country_tax_rate_fallback_enabled"] != nil {
+			// boolean value is somehow interface{} | string so....
+			var fallbackEnabled bool
+			switch carts["country_tax_rate_fallback_enabled"] {
+			case "true":
+				fallbackEnabled = true
+			case "false":
+				fallbackEnabled = false
+			default:
+				return fmt.Errorf("invalid value for carts[\"country_tax_rate_fallback_enabled\"]: %s", carts["country_tax_rate_fallback_enabled"])
+			}
+			input.Actions = append(
+				input.Actions,
+				&commercetools.ProjectChangeCountryTaxRateFallbackEnabledAction{
+					CountryTaxRateFallbackEnabled: fallbackEnabled,
+				})
+		} else {
+			// To commercetools this field is not optional, so when deleting we revert to the default: false:
+			input.Actions = append(
+				input.Actions,
+				&commercetools.ProjectChangeCountryTaxRateFallbackEnabledAction{
+					CountryTaxRateFallbackEnabled: false,
+				})
+		}
+
 	}
 
 	_, err := client.ProjectUpdate(input)
