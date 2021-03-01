@@ -25,6 +25,9 @@ resource "commercetools_project_settings" "project" {
   messages = {
     enabled = true
   }
+  carts = {
+    country_tax_rate_fallback_enabled = true
+  }
 }
 ```
 
@@ -38,4 +41,5 @@ The following arguments are supported:
 * `languages` - An IETF language tag
 * `external_oauth.url` - The URL for your token introspection endpoint
 * `external_oauth.authorization_header` - The authorization header to send when querying the `external_oauth.url`
-* `messages.enabled` - When true the creation of messages is enabled
+* `messages.enabled` - When `true` the creation of messages is enabled
+* `carts.country_tax_rate_fallback_enabled` - When `true` uses country - _no state_ tax rate fallback when a shipping address state is not explicitly covered in the rates lists of all tax categories of a cart's line items.
