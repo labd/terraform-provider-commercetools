@@ -1,3 +1,9 @@
+v0.26.2 (2021-03-01)
+====================
+ - Resource Project: Add `carts` field with countryTaxRateFallBackEnabled setting 
+ - Resource Project: Fix updating of `messages` field to explicitly set `false` when deleted or set to false in terraform
+instead of relying on commercetools default settings for project in these scenarios 
+
 v0.26.1 (2021-01-21)
 ====================
  - Api Extension Resource: Fixed typo in `trigger` field name that caused updates to actions in triggers to fail
