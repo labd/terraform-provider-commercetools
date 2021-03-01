@@ -1,3 +1,8 @@
+v0.27.0 (2021-03-01)
+====================
+ - Resource Project: Add new `carts` field to documentation
+ - Previous feature addition should have been minor update so making it minor now
+
 v0.26.2 (2021-03-01)
 ====================
  - Resource Project: Add `carts` field with countryTaxRateFallBackEnabled setting 
