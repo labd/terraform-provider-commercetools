@@ -38,6 +38,9 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "external_oauth.authorization_header", "Bearer secret",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.country_tax_rate_fallback_enabled", "true",
+					),
 				),
 			},
 			{
@@ -64,10 +67,13 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "external_oauth.authorization_header", "Bearer new-secret",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.country_tax_rate_fallback_enabled", "false",
+					),
 				),
 			},
 			{
-				Config: testAccProjectConfigDeleteOAuth(),
+				Config: testAccProjectConfigDeleteOAuthAndCarts(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "name", "Test this thing new",
@@ -89,6 +95,9 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					),
 					resource.TestCheckNoResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "external_oauth.authorization_header",
+					),
+					resource.TestCheckNoResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.country_tax_rate_fallback_enabled",
 					),
 				),
 			},
@@ -114,6 +123,9 @@ func testAccProjectConfig() string {
 			messages = {
 			  enabled = true
 			}
+			carts = {
+              country_tax_rate_fallback_enabled = true
+            }
 		}`
 }
 
@@ -131,10 +143,13 @@ func testAccProjectConfigUpdate() string {
 			messages = {
 			  enabled = false
 			}
+			carts = {
+              country_tax_rate_fallback_enabled = false
+            }
 		}`
 }
 
-func testAccProjectConfigDeleteOAuth() string {
+func testAccProjectConfigDeleteOAuthAndCarts() string {
 	return `
 		resource "commercetools_project_settings" "acctest_project_settings" {
 			name       = "Test this thing new"
