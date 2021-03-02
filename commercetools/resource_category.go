@@ -39,23 +39,23 @@ func resourceCategory() *schema.Resource {
 				Required: true,
 			},
 			//parent
-			"orderHint": {
+			"order_hint": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"externalId": {
+			"external_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"metaTitle": {
+			"meta_title": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
-			"metaDescription": {
+			"meta_description": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
-			"metaKeywords": {
+			"meta_keywords": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
