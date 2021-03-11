@@ -36,3 +36,27 @@ resource "commercetools_category" "example" {
 * `meta_title` - LocalizedString - Optional
 * `meta_description` - LocalizedString - Optional
 * `meta_keywords` - LocalizedString - Optional
+* `assets` - Array of [Asset](#asset) - Optional
+
+### Asset
+[Asset][asset] defines an image, icon or movie that is related to this category.
+* `key` - String - Human readable identifier for the asset
+* `sources` - Array of [AssetSource](#asset-source)
+* `description` - String - Optional
+* `tags` - String Array - Optional
+
+### AssetSource
+[AssetSource][asset-source] is a representation of an asset in a specific file format.
+* `uri` - String - Required
+* `key` - String - Optional
+* `dimensions` - Instance of [AssetDimensions](#asset-dimensions)
+* `content_type` - String - Optional
+
+### AssetDimensions
+[AssetDimensions][asset-dimensions] specifies the width and height of an asset.
+* `w` - String - Required
+* `h` - String - Required
+
+[asset]: https://docs.commercetools.com/api/types#asset
+[asset-source]: https://docs.commercetools.com/api/types#assetsource
+[asset-dimensions]: https://docs.commercetools.com/api/types#assetdimensions
