@@ -46,6 +46,15 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "meta_keywords.en", "keywords",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.0.name.en", "My Product Video",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.0.description.en", "Description",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.0.sources.0.key", "image",
+					),
 				),
 			},
 			{
@@ -81,6 +90,15 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "meta_keywords.en", "keywords, updated",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.0.name.en", "Updated name",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.0.description.en", "Updated description",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.0.sources.0.key", "image",
+					),
 				),
 			},
 			{
@@ -115,6 +133,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					),
 					resource.TestCheckNoResourceAttr(
 						"commercetools_category.accessories", "meta_keywords",
+					),
+					resource.TestCheckNoResourceAttr(
+						"commercetools_category.accessories", "assets",
 					),
 				),
 			},
@@ -161,6 +182,19 @@ func testAccCategoryConfig() string {
 		meta_keywords = {
 			en = "keywords"
 		}
+		assets {
+			key = "some_key"
+			name = {
+				en = "My Product Video"
+			}
+			description = {
+				en = "Description"
+			}
+			sources {
+				uri = "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg"
+				key = "image"
+			}
+		}
 	}  `
 }
 
@@ -202,6 +236,19 @@ func testAccCategoryUpdate() string {
 		}
 		meta_keywords = {
 			en = "keywords, updated"
+		}
+		assets {
+			key = "some_key"
+			name = {
+				en = "Updated name"
+			}
+			description = {
+				en = "Updated description"
+			}
+			sources {
+				uri = "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg"
+				key = "image"
+			}
 		}
 	}  `
 }

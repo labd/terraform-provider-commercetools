@@ -62,6 +62,68 @@ func resourceCategory() *schema.Resource {
 				Type:     TypeLocalizedString,
 				Optional: true,
 			},
+			"assets": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"name": {
+							Type:     TypeLocalizedString,
+							Required: true,
+						},
+						"description": {
+							Type:     TypeLocalizedString,
+							Optional: true,
+						},
+						"sources": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MinItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"uri": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"key": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"dimensions": {
+										Type:     schema.TypeMap,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"w": {
+													Type:     schema.TypeInt,
+													Required: true,
+												},
+												"h": {
+													Type:     schema.TypeInt,
+													Required: true,
+												},
+											},
+										},
+									},
+									"content_type": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+						"tags": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -97,6 +159,11 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 		parent := commercetools.CategoryResourceIdentifier{}
 		parent.ID = d.Get("parent").(string)
 		draft.Parent = &parent
+	}
+
+	if len(d.Get("assets").([]interface{})) != 0 {
+		assets := resourceCategoryGetAssets(d)
+		draft.Assets = assets
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -162,6 +229,9 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 		}
 		if category.MetaKeywords != nil {
 			d.Set("meta_keywords", *category.MetaKeywords)
+		}
+		if category.Assets != nil {
+			d.Set("assets", category.Assets)
 		}
 	}
 	return nil
@@ -252,6 +322,24 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.CategorySetMetaKeywordsAction{MetaKeywords: &newMetaKeywords})
 	}
 
+	if d.HasChange("assets") {
+		assets := resourceCategoryGetAssets(d)
+		for _, asset := range assets {
+			input.Actions = append(
+				input.Actions,
+				&commercetools.CategoryChangeAssetNameAction{Name: asset.Name, AssetKey: asset.Key},
+				&commercetools.CategorySetAssetDescriptionAction{Description: asset.Description, AssetKey: asset.Key},
+				&commercetools.CategorySetAssetSourcesAction{Sources: asset.Sources, AssetKey: asset.Key},
+			)
+			if len(asset.Tags) > 0 {
+				input.Actions = append(
+					input.Actions,
+					&commercetools.CategorySetAssetTagsAction{Tags: asset.Tags, AssetKey: asset.Key},
+				)
+			}
+		}
+	}
+
 	log.Printf(
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
@@ -277,4 +365,60 @@ func resourceCategoryDelete(d *schema.ResourceData, m interface{}) error {
 	}
 
 	return nil
+}
+
+func resourceCategoryGetAssets(d *schema.ResourceData) []commercetools.AssetDraft {
+	input := d.Get("assets").([]interface{})
+	var result []commercetools.AssetDraft
+
+	for _, raw := range input {
+		i := raw.(map[string]interface{})
+
+		name := commercetools.LocalizedString(expandStringMap(i["name"].(map[string]interface{})))
+		description := commercetools.LocalizedString(expandStringMap(i["description"].(map[string]interface{})))
+		sources := resourceCategoryGetAssetSources(i)
+
+		result = append(result, commercetools.AssetDraft{
+			Key:         i["key"].(string),
+			Name:        &name,
+			Description: &description,
+			Sources:     sources,
+		})
+	}
+
+	return result
+}
+
+func resourceCategoryGetAssetSources(i map[string]interface{}) []commercetools.AssetSource {
+	var sources []commercetools.AssetSource
+	for _, item := range i["sources"].([]interface{}) {
+		s := item.(map[string]interface{})
+
+		source := commercetools.AssetSource{
+			URI:         s["uri"].(string),
+			Key:         s["key"].(string),
+			ContentType: s["content_type"].(string),
+		}
+
+		if _, ok := s["dimensions"]; ok {
+			assetDimensions := resourceCategoryGetAssetSourceDimensions(s)
+			source.Dimensions = &assetDimensions
+		}
+
+		sources = append(sources, source)
+	}
+	return sources
+}
+
+func resourceCategoryGetAssetSourceDimensions(s map[string]interface{}) commercetools.AssetDimensions {
+	var dimensions commercetools.AssetDimensions
+	for _, item := range s["dimensions"].(map[string]interface{}) {
+		d := item.(map[string]interface{})
+
+		dimensions = commercetools.AssetDimensions{
+			W: d["w"].(float64),
+			H: d["h"].(float64),
+		}
+	}
+	return dimensions
 }
