@@ -22,6 +22,19 @@ resource "commercetools_category" "example" {
   meta_title = {
     en = "Meta title"
   }
+  assets {
+    key = "some_key"
+    name = {
+      en = "Image name"
+    }
+    description = {
+      en = "Image description"
+    }
+    sources {
+      uri = "https://example.com/test.jpg"
+      key = "image"
+    }
+  }
 }
 ```
 
