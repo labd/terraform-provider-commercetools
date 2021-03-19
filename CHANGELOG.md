@@ -1,3 +1,7 @@
+Unreleased
+==========
+- **New resource:** `commercetools_category`
+
 v0.27.0 (2021-03-01)
 ====================
  - Resource Project: Add new `carts` field to documentation
