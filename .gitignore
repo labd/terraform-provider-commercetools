@@ -4,7 +4,6 @@ terraform-provider-commercetools
 coverage.txt
 
 // Terraform files
-*.tf
 .terraform/
 terraform.*
 crash.log
