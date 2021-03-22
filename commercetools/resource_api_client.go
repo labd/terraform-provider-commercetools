@@ -13,6 +13,10 @@ import (
 
 func resourceAPIClient() *schema.Resource {
 	return &schema.Resource{
+		Description: "Create a new API client. Note that Commercetools might return slightly different scopes, " +
+				"resulting in a new API client being created everytime Terraform is run. In this case, " +
+				"fix your scopes accordingly to match what is returned by Commercetools.\n\n" +
+				"Also see the [API client HTTP API documentation](https://docs.commercetools.com//http-api-projects-api-clients).",
 		Create: resourceAPIClientCreate,
 		Read:   resourceAPIClientRead,
 		Delete: resourceAPIClientDelete,
@@ -21,11 +25,13 @@ func resourceAPIClient() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
+				Description: "Name of the API client",
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 			"scope": {
+				Description: "A list of the [OAuth scopes](https://docs.commercetools.com/http-api-authorization.html#scopes)",
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
