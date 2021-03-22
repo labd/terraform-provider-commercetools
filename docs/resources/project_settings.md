@@ -17,6 +17,7 @@ description: |-
 
 ### Optional
 
+- **carts** (Map of String)
 - **countries** (List of String)
 - **currencies** (List of String)
 - **external_oauth** (Map of String)

@@ -1,3 +1,5 @@
+.PHONY: docs
+
 build:
 	go build
 
