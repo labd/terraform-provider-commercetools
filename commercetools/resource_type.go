@@ -99,9 +99,6 @@ func resourceType() *schema.Resource {
 					newType := newF["type"].([]interface{})[0].(map[string]interface{})
 
 					if oldType["name"] != newType["name"] {
-						if oldType["name"] != "" || newType["name"] == "" {
-							continue
-						}
 						return fmt.Errorf(
 							"Field '%s' type changed from %s to %s. Changing types is not supported; please remove the field first and re-define it later",
 							name, oldType["name"], newType["name"])
