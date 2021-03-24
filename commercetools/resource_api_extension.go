@@ -15,17 +15,23 @@ import (
 
 func resourceAPIExtension() *schema.Resource {
 	return &schema.Resource{
+		Description: "Create a new API extension to extend the bevahiour of an API with business logic. " +
+			"Note that API extensions affect the performance of the API it is extending. If it fails, the whole API " +
+			"call fails \n\n" +
+			"Also see the [API Extension API Documentation](https://docs.commercetools.com/api/projects/api-extensions)",
 		Create: resourceAPIExtensionCreate,
 		Read:   resourceAPIExtensionRead,
 		Update: resourceAPIExtensionUpdate,
 		Delete: resourceAPIExtensionDelete,
-
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for the extension",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"destination": {
+				Description: "[Destination](https://docs.commercetools.com/api/projects/api-extensions#destination) " +
+					"Details where the extension can be reached",
 				Type:     schema.TypeMap,
 				Required: true,
 				Elem: &schema.Resource{
@@ -66,25 +72,30 @@ func resourceAPIExtension() *schema.Resource {
 				},
 			},
 			"trigger": {
+				Description: "Array of [Trigger](https://docs.commercetools.com/api/projects/api-extensions#trigger) " +
+					"Describes what triggers the extension",
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"resource_type_id": {
-							Type:     schema.TypeString,
-							Required: true,
+							Description: "Currently, cart, order, payment, and customer are supported",
+							Type:        schema.TypeString,
+							Required:    true,
 						},
 						"actions": {
-							Type:     schema.TypeList,
-							Required: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Description: "Currently, Create and Update are supported",
+							Type:        schema.TypeList,
+							Required:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 					},
 				},
 			},
 			"timeout_in_ms": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Description: "Extension timeout in milliseconds",
+				Type:        schema.TypeInt,
+				Optional:    true,
 			},
 			"version": {
 				Type:     schema.TypeInt,

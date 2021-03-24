@@ -12,6 +12,9 @@ import (
 
 func resourceShippingMethod() *schema.Resource {
 	return &schema.Resource{
+		Description: "With Shipping Methods you can specify which shipping services you want to provide to your " +
+			"customers for deliveries to different areas of the world at rates you can define.\n\n" +
+			"See also the [Shipping Methods API Documentation](https://docs.commercetools.com/api/projects/shippingMethods)",
 		Create: resourceShippingMethodCreate,
 		Read:   resourceShippingMethodRead,
 		Update: resourceShippingMethodUpdate,
@@ -21,8 +24,9 @@ func resourceShippingMethod() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for the shipping method",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"name": {
 				Type:     schema.TypeString,
@@ -33,20 +37,23 @@ func resourceShippingMethod() *schema.Resource {
 				Optional: true,
 			},
 			"is_default": {
-				Type:     schema.TypeBool,
-				Optional: true,
+				Description: "One shipping method in a project can be default",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 			"tax_category_id": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "ID of a [Tax Category](https://docs.commercetools.com/api/projects/taxCategories#taxcategory)",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"predicate": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "A Cart predicate which can be used to more precisely select a shipping method for a cart",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 		},
 	}

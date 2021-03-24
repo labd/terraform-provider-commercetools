@@ -11,6 +11,9 @@ import (
 
 func resourceChannel() *schema.Resource {
 	return &schema.Resource{
+		Description: "Channels represent a source or destination of different entities. They can be used to model " +
+			"warehouses or stores.\n\n" +
+			"See also the [Channels API Documentation](https://docs.commercetools.com/api/projects/channels)",
 		Create: resourceChannelCreate,
 		Read:   resourceChannelRead,
 		Update: resourceChannelUpdate,
@@ -20,21 +23,26 @@ func resourceChannel() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "Any arbitrary string key that uniquely identifies this channel within the project",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"roles": {
+				Description: "The [roles](https://docs.commercetools.com/api/projects/channels#channelroleenum) " +
+					"of this channel. Each channel must have at least one role",
 				Type:     schema.TypeList,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"name": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
 			},
 			"description": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
 			},
 			"version": {
 				Type:     schema.TypeInt,

@@ -30,15 +30,19 @@ func resourceShippingZone() *schema.Resource {
 				Optional: true,
 			},
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for a zone. Must be unique across a project",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"location": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Description: "[Location](https://docs.commercetools.com/api/projects/zones#location)",
+				Type:        schema.TypeList,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"country": {
+							Description: "A two-digit country code as per " +
+								"[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
 							Type:     schema.TypeString,
 							Required: true,
 						},

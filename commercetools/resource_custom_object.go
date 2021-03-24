@@ -11,6 +11,11 @@ import (
 
 func resourceCustomObject() *schema.Resource {
 	return &schema.Resource{
+		Description: "Custom objects are a way to store arbitrary JSON-formatted data on the commercetools platform. " +
+			"It allows you to persist data that does not fit the standard data model. This frees your application " +
+			"completely from any third-party persistence solution and means that all your data stays on the " +
+			"commercetools platform.\n\n" +
+			"See also the [Custom Object API Documentation](https://docs.commercetools.com/api/projects/custom-objects)",
 		Create: resourceCustomObjectCreate,
 		Read:   resourceCustomObjectRead,
 		Update: resourceCustomObjectUpdate,
@@ -20,16 +25,19 @@ func resourceCustomObject() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"container": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "A namespace to group custom objects matching the pattern '[-_~.a-zA-Z0-9]+'",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"key": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "String matching the pattern '[-_~.a-zA-Z0-9]+'",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"value": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "JSON types Number, String, Boolean, Array, Object",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"version": {
 				Type:     schema.TypeInt,

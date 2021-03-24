@@ -13,6 +13,9 @@ import (
 
 func resourceStore() *schema.Resource {
 	return &schema.Resource{
+		Description: "Stores can be used to model, for example, physical retail locations, brand stores, " +
+			"or country-specific stores.\n\n" +
+			"See also the [Stores API Documentation](https://docs.commercetools.com/api/projects/stores)",
 		Create: resourceStoreCreate,
 		Read:   resourceStoreRead,
 		Update: resourceStoreUpdate,
@@ -22,32 +25,38 @@ func resourceStore() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
+				Description: "User-specific unique identifier for the store. The key is mandatory and immutable. " +
+					"It is used to reference the store",
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 			"name": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
 			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 			"languages": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "[IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"distribution_channels": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "Set of ResourceIdentifier to a Channel with ProductDistribution",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"supply_channels": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "Set of ResourceIdentifier of Channels with InventorySupply",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}

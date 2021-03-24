@@ -12,6 +12,10 @@ import (
 
 func resourceState() *schema.Resource {
 	return &schema.Resource{
+		Description: "The commercetools platform allows you to model states of certain objects, such as orders, line " +
+			"items, products, reviews, and payments to define finite state machines reflecting the business " +
+			"logic you'd like to implement.\n\n" +
+			"See also the [State API Documentation](https://docs.commercetools.com/api/projects/states)",
 		Create: resourceStateCreate,
 		Read:   resourceStateRead,
 		Update: resourceStateUpdate,
@@ -21,16 +25,18 @@ func resourceState() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "A unique identifier for the state",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 			"type": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "[StateType](https://docs.commercetools.com/api/projects/states#statetype)",
+				Type:        schema.TypeString,
+				Required:    true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(commercetools.StateTypeEnumOrderState),
 					string(commercetools.StateTypeEnumLineItemState),
@@ -40,20 +46,25 @@ func resourceState() *schema.Resource {
 				}, false),
 			},
 			"name": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
 			},
 			"description": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
 			},
 			"initial": {
+				Description: "A state can be declared as an initial state for any state machine. When a workflow " +
+					"starts, this first state must be an initial state",
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 			"roles": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Description: "Array of [State Role](https://docs.commercetools.com/api/projects/states#staterole)",
+				Type:        schema.TypeList,
+				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 					ValidateFunc: validation.StringInSlice([]string{
@@ -63,6 +74,12 @@ func resourceState() *schema.Resource {
 				},
 			},
 			"transitions": {
+				Description: "Transitions are a way to describe possible transformations of the current state to other " +
+					"states of the same type (for example: Initial -> Shipped). When performing a transitionState update " +
+					"action and transitions is set, the currently referenced state must have a transition to the new state.\n" +
+					"If transitions is an empty list, it means the current state is a final state and no further " +
+					"transitions are allowed.\nIf transitions is not set, the validation is turned off. When " +
+					"performing a transitionState update action, any other state of the same type can be transitioned to",
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{

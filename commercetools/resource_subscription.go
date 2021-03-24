@@ -58,6 +58,12 @@ var formatFields = map[string][]string{
 
 func resourceSubscription() *schema.Resource {
 	return &schema.Resource{
+		Description: "Subscriptions allow you to be notified of new messages or changes via a Message Queue of your " +
+			"choice. Subscriptions are used to trigger an asynchronous background process in response to an event on " +
+			"the commercetools platform. Common use cases include sending an Order Confirmation Email, charging a " +
+			"Credit Card after the delivery has been made, or synchronizing customer accounts to a Customer " +
+			"Relationship Management (CRM) system.\n\n" +
+			"See also the [Subscriptions API Documentation](https://docs.commercetools.com/api/projects/subscriptions)",
 		Create: resourceSubscriptionCreate,
 		Read:   resourceSubscriptionRead,
 		Update: resourceSubscriptionUpdate,
@@ -67,10 +73,13 @@ func resourceSubscription() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for the subscription",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"destination": {
+				Description: "The Message Queue into which the notifications are to be sent" +
+					"See also the [Destination API Docs](https://docs.commercetools.com/api/projects/subscriptions#destination)",
 				Type:         schema.TypeMap,
 				Optional:     true,
 				ValidateFunc: validateDestination,
@@ -80,16 +89,14 @@ func resourceSubscription() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-
-						// AWS SNS
 						"topic_arn": {
+							Description:      "For AWS SNS",
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSNS),
 						},
-
-						// AWS SQS
 						"queue_url": {
+							Description:      "For AWS SQS",
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
@@ -99,43 +106,40 @@ func resourceSubscription() *schema.Resource {
 							Optional:         false,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
 						},
-
-						// AWS SNS / SQS / Azure Event Grid
 						"access_key": {
+							Description:      "For AWS SNS / SQS / Azure Event Grid",
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS, subAzureEventGrid),
 						},
-						// AWS SNS / SQS
 						"access_secret": {
+							Description:      "For AWS SNS / SQS",
 							Type:             schema.TypeString,
 							Optional:         true,
 							ForceNew:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
 						},
-
-						//	Azure Event Grid
 						"uri": {
+							Description:      "For Azure Event Grid",
 							Type:             schema.TypeString,
 							Optional:         false,
 							DiffSuppressFunc: suppressIfNotDestinationType(subAzureEventGrid),
 						},
-
-						// Azure Service Bus
 						"connection_string": {
+							Description:      "For Azure Service Bus",
 							Type:             schema.TypeString,
 							Optional:         true,
 							ForceNew:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subAzureServiceBus),
 						},
-
-						// Google Pub Sub
 						"project_id": {
+							Description:      "For Google Pub Sub",
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
 						},
 						"topic": {
+							Description:      "For Google Pub Sub",
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
@@ -144,6 +148,8 @@ func resourceSubscription() *schema.Resource {
 				},
 			},
 			"format": {
+				Description: "The [format](https://docs.commercetools.com/api/projects/subscriptions#format) " +
+					"in which the payload is delivered",
 				Type:         schema.TypeMap,
 				Optional:     true,
 				ValidateFunc: validateFormat,
@@ -153,9 +159,8 @@ func resourceSubscription() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-
-						// CloudEvents
 						"cloud_events_version": {
+							Description:      "For CloudEvents",
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotFormatType(cloudEvents),
@@ -164,28 +169,35 @@ func resourceSubscription() *schema.Resource {
 				},
 			},
 			"changes": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Description: "The change notifications subscribed to",
+				Type:        schema.TypeList,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"resource_type_ids": {
-							Type:     schema.TypeList,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Description: "[Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 					},
 				},
 			},
 			"message": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Description: "The messages subscribed to",
+				Type:        schema.TypeList,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"resource_type_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Description: "[Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)",
+							Type:        schema.TypeString,
+							Optional:    true,
 						},
 						"types": {
+							Description: "types must contain valid message types for this resource, for example for " +
+								"resource type product the message type ProductPublished is valid. If no types of " +
+								"messages are given, the subscription is valid for all messages of this resource",
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
