@@ -1,3 +1,7 @@
+Unreleased
+==========
+ - Resource API Extension: Removed unused `azure_functions` type
+
 v0.27.0 (2021-03-01)
 ====================
  - Resource project: Add `carts` field with countryTaxRateFallBackEnabled setting 

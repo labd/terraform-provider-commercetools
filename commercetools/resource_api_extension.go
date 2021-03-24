@@ -100,8 +100,7 @@ func validateDestinationType(val interface{}, key string) (warns []string, errs 
 	switch v {
 	case
 		"http",
-		"awslambda",
-		"azurefunctions":
+		"awslambda":
 		return
 	default:
 		errs = append(errs, fmt.Errorf("%q not a valid value for %q", val, key))
