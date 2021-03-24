@@ -3,12 +3,15 @@
 page_title: "commercetools_store Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  Stores can be used to model, for example, physical retail locations, brand stores, or country-specific stores.
+  See also the Stores API Documentation https://docs.commercetools.com/api/projects/stores
 ---
 
 # commercetools_store (Resource)
 
+Stores can be used to model, for example, physical retail locations, brand stores, or country-specific stores.
 
+See also the [Stores API Documentation](https://docs.commercetools.com/api/projects/stores)
 
 ## Example Usage
 
@@ -31,15 +34,15 @@ resource "commercetools_store" "standard" {
 
 ### Required
 
-- **key** (String)
+- **key** (String) User-specific unique identifier for the store. The key is mandatory and immutable. It is used to reference the store
 
 ### Optional
 
-- **distribution_channels** (List of String)
+- **distribution_channels** (List of String) Set of ResourceIdentifier to a Channel with ProductDistribution
 - **id** (String) The ID of this resource.
-- **languages** (List of String)
-- **name** (Map of String)
-- **supply_channels** (List of String)
+- **languages** (List of String) [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)
+- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- **supply_channels** (List of String) Set of ResourceIdentifier of Channels with InventorySupply
 
 ### Read-Only
 

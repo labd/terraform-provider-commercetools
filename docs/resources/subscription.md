@@ -3,12 +3,15 @@
 page_title: "commercetools_subscription Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  Subscriptions allow you to be notified of new messages or changes via a Message Queue of your choice. Subscriptions are used to trigger an asynchronous background process in response to an event on the commercetools platform. Common use cases include sending an Order Confirmation Email, charging a Credit Card after the delivery has been made, or synchronizing customer accounts to a Customer Relationship Management (CRM) system.
+  See also the Subscriptions API Documentation https://docs.commercetools.com/api/projects/subscriptions
 ---
 
 # commercetools_subscription (Resource)
 
+Subscriptions allow you to be notified of new messages or changes via a Message Queue of your choice. Subscriptions are used to trigger an asynchronous background process in response to an event on the commercetools platform. Common use cases include sending an Order Confirmation Email, charging a Credit Card after the delivery has been made, or synchronizing customer accounts to a Customer Relationship Management (CRM) system.
 
+See also the [Subscriptions API Documentation](https://docs.commercetools.com/api/projects/subscriptions)
 
 ## Example Usage
 
@@ -40,12 +43,12 @@ resource "commercetools_subscription" "my-sqs-subscription" {
 
 ### Optional
 
-- **changes** (Block List) (see [below for nested schema](#nestedblock--changes))
-- **destination** (Map of String)
-- **format** (Map of String)
+- **changes** (Block List) The change notifications subscribed to (see [below for nested schema](#nestedblock--changes))
+- **destination** (Map of String) The Message Queue into which the notifications are to be sentSee also the [Destination API Docs](https://docs.commercetools.com/api/projects/subscriptions#destination)
+- **format** (Map of String) The [format](https://docs.commercetools.com/api/projects/subscriptions#format) in which the payload is delivered
 - **id** (String) The ID of this resource.
-- **key** (String)
-- **message** (Block List) (see [below for nested schema](#nestedblock--message))
+- **key** (String) User-specific unique identifier for the subscription
+- **message** (Block List) The messages subscribed to (see [below for nested schema](#nestedblock--message))
 
 ### Read-Only
 
@@ -56,7 +59,7 @@ resource "commercetools_subscription" "my-sqs-subscription" {
 
 Optional:
 
-- **resource_type_ids** (List of String)
+- **resource_type_ids** (List of String) [Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)
 
 
 <a id="nestedblock--message"></a>
@@ -64,7 +67,7 @@ Optional:
 
 Optional:
 
-- **resource_type_id** (String)
-- **types** (List of String)
+- **resource_type_id** (String) [Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)
+- **types** (List of String) types must contain valid message types for this resource, for example for resource type product the message type ProductPublished is valid. If no types of messages are given, the subscription is valid for all messages of this resource
 
 

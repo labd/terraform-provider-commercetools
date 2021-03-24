@@ -3,12 +3,15 @@
 page_title: "commercetools_product_type Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  Product types are used to describe common characteristics, most importantly common custom attributes, of many concrete products. Please note: to customize other resources than products, please refer to resource_type.
+  See also the Product Type API Documentation https://docs.commercetools.com/api/projects/productTypes
 ---
 
 # commercetools_product_type (Resource)
 
+Product types are used to describe common characteristics, most importantly common custom attributes, of many concrete products. Please note: to customize other resources than products, please refer to resource_type.
 
+See also the [Product Type API Documentation](https://docs.commercetools.com/api/projects/productTypes)
 
 ## Example Usage
 
@@ -100,10 +103,10 @@ resource "commercetools_product_type" "my-product-type" {
 
 ### Optional
 
-- **attribute** (Block List) (see [below for nested schema](#nestedblock--attribute))
+- **attribute** (Block List) [Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition) (see [below for nested schema](#nestedblock--attribute))
 - **description** (String)
 - **id** (String) The ID of this resource.
-- **key** (String)
+- **key** (String) User-specific unique identifier for the product type (max. 256 characters)
 
 ### Read-Only
 
@@ -114,17 +117,18 @@ resource "commercetools_product_type" "my-product-type" {
 
 Required:
 
-- **label** (Map of String)
-- **name** (String)
-- **type** (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--attribute--type))
+- **label** (Map of String) A human-readable label for the attribute
+- **name** (String) The unique name of the attribute used in the API. The name must be between two and 256 characters long and can contain the ASCII letters A to Z in lowercase or uppercase, digits, underscores (_) and the hyphen-minus (-).
+When using the same name for an attribute in two or more product types all fields of the AttributeDefinition of this attribute need to be the same across the product types, otherwise an AttributeDefinitionAlreadyExists error code will be returned. An exception to this are the values of an enum or lenum type and sets thereof
+- **type** (Block List, Min: 1, Max: 1) [AttributeType](https://docs.commercetools.com/api/projects/productTypes#attributetype) (see [below for nested schema](#nestedblock--attribute--type))
 
 Optional:
 
-- **constraint** (String)
-- **input_hint** (String)
-- **input_tip** (Map of String)
-- **required** (Boolean)
-- **searchable** (Boolean)
+- **constraint** (String) Describes how an attribute or a set of attributes should be validated across all variants of a product. See also [Attribute Constraint](https://docs.commercetools.com/api/projects/productTypes#attributeconstraint-enum)
+- **input_hint** (String) Provides a visual representation type for this attribute. only relevant for text-based attribute types like TextType and LocalizableTextType
+- **input_tip** (Map of String) Additional information about the attribute that aids content managers when setting product details
+- **required** (Boolean) Whether the attribute is required to have a value
+- **searchable** (Boolean) Whether the attribute's values should generally be activated in product search
 
 <a id="nestedblock--attribute--type"></a>
 ### Nested Schema for `attribute.type`

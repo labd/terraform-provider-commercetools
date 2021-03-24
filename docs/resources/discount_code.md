@@ -3,12 +3,15 @@
 page_title: "commercetools_discount_code Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  With discount codes it is possible to give specific cart discounts to an eligible set of users. They are defined by a string value which can be added to a cart so that specific cart discounts can be applied to the cart.
+  See also the Discount Code Api Documentation https://docs.commercetools.com/api/projects/discountCodes
 ---
 
 # commercetools_discount_code (Resource)
 
+With discount codes it is possible to give specific cart discounts to an eligible set of users. They are defined by a string value which can be added to a cart so that specific cart discounts can be applied to the cart.
 
+See also the [Discount Code Api Documentation](https://docs.commercetools.com/api/projects/discountCodes)
 
 ## Example Usage
 
@@ -42,21 +45,21 @@ resource "commercetools_discount_code" "my_discount_code" {
 
 ### Required
 
-- **cart_discounts** (List of String)
-- **code** (String)
+- **cart_discounts** (List of String) The referenced matching cart discounts can be applied to the cart once the DiscountCode is added
+- **code** (String) Unique identifier of this discount code. This value is added to the cart to enable the related cart discounts in the cart
 
 ### Optional
 
-- **description** (Map of String)
-- **groups** (List of String)
+- **description** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- **groups** (List of String) The groups to which this discount code belong
 - **id** (String) The ID of this resource.
 - **is_active** (Boolean)
-- **max_applications** (Number)
-- **max_applications_per_customer** (Number)
-- **name** (Map of String)
-- **predicate** (String)
-- **valid_from** (String)
-- **valid_until** (String)
+- **max_applications** (Number) The discount code can only be applied maxApplications times
+- **max_applications_per_customer** (Number) The discount code can only be applied maxApplicationsPerCustomer times per customer
+- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- **predicate** (String) [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)
+- **valid_from** (String) The time from which the discount can be applied on a cart. Before that time the code is invalid
+- **valid_until** (String) The time until the discount can be applied on a cart. After that time the code is invalid
 
 ### Read-Only
 

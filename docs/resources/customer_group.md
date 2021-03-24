@@ -3,12 +3,15 @@
 page_title: "commercetools_customer_group Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  A Customer can be a member of a customer group (for example reseller, gold member). Special prices can be assigned to specific products based on a customer group.
+  See also the Custome Group API Documentation https://docs.commercetools.com/api/projects/customerGroups
 ---
 
 # commercetools_customer_group (Resource)
 
+A Customer can be a member of a customer group (for example reseller, gold member). Special prices can be assigned to specific products based on a customer group.
 
+See also the [Custome Group API Documentation](https://docs.commercetools.com/api/projects/customerGroups)
 
 ## Example Usage
 
@@ -29,12 +32,12 @@ resource "commercetools_customer_group" "golden" {
 
 ### Required
 
-- **name** (String)
+- **name** (String) Unique within the project
 
 ### Optional
 
 - **id** (String) The ID of this resource.
-- **key** (String)
+- **key** (String) User-specific unique identifier for the customer group
 
 ### Read-Only
 

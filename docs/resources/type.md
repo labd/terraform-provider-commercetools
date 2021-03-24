@@ -3,12 +3,18 @@
 page_title: "commercetools_type Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  Types define custom fields that are used to enhance resources as you need. Use Types to model your own CustomFields on resources, like Category and Customer.
+  In case you want to customize products, please use product types instead that serve a similar purpose, but tailored to products.
+  See also the Types Api Documentation https://docs.commercetools.com/api/projects/types
 ---
 
 # commercetools_type (Resource)
 
+Types define custom fields that are used to enhance resources as you need. Use Types to model your own CustomFields on resources, like Category and Customer.
 
+In case you want to customize products, please use product types instead that serve a similar purpose, but tailored to products.
+
+See also the [Types Api Documentation](https://docs.commercetools.com/api/projects/types)
 
 ## Example Usage
 
@@ -99,14 +105,14 @@ resource "commercetools_type" "my-custom-type" {
 
 ### Required
 
-- **key** (String)
-- **name** (Map of String)
-- **resource_type_ids** (List of String)
+- **key** (String) Identifier for the type (max. 256 characters)
+- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- **resource_type_ids** (List of String) Defines for which [resources](https://docs.commercetools.com/api/projects/custom-fields#customizable-resources) the type is valid
 
 ### Optional
 
-- **description** (Map of String)
-- **field** (Block List) (see [below for nested schema](#nestedblock--field))
+- **description** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- **field** (Block List) [Field definition](https://docs.commercetools.com/api/projects/types#fielddefinition) (see [below for nested schema](#nestedblock--field))
 - **id** (String) The ID of this resource.
 
 ### Read-Only
@@ -118,14 +124,16 @@ resource "commercetools_type" "my-custom-type" {
 
 Required:
 
-- **label** (Map of String)
-- **name** (String)
-- **type** (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--field--type))
+- **label** (Map of String) A human-readable label for the field
+- **name** (String) The name of the field.
+The name must be between two and 36 characters long and can contain the ASCII letters A to Z in lowercase or uppercase, digits, underscores (_) and the hyphen-minus (-).
+The name must be unique for a given resource type ID. In case there is a field with the same name in another type it has to have the same FieldType also
+- **type** (Block List, Min: 1, Max: 1) Describes the [type](https://docs.commercetools.com/api/projects/types#fieldtype) of the field (see [below for nested schema](#nestedblock--field--type))
 
 Optional:
 
-- **input_hint** (String)
-- **required** (Boolean)
+- **input_hint** (String) [TextInputHint](https://docs.commercetools.com/api/projects/types#textinputhint) Provides a visual representation type for this field. It is only relevant for string-based field types like StringType and LocalizedStringType
+- **required** (Boolean) Whether the field is required to have a value
 
 <a id="nestedblock--field--type"></a>
 ### Nested Schema for `field.type`

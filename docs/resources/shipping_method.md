@@ -3,12 +3,15 @@
 page_title: "commercetools_shipping_method Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  With Shipping Methods you can specify which shipping services you want to provide to your customers for deliveries to different areas of the world at rates you can define.
+  See also the Shipping Methods API Documentation https://docs.commercetools.com/api/projects/shippingMethods
 ---
 
 # commercetools_shipping_method (Resource)
 
+With Shipping Methods you can specify which shipping services you want to provide to your customers for deliveries to different areas of the world at rates you can define.
 
+See also the [Shipping Methods API Documentation](https://docs.commercetools.com/api/projects/shippingMethods)
 
 ## Example Usage
 
@@ -34,10 +37,10 @@ resource "commercetools_shipping_method" "standard" {
 
 - **description** (String)
 - **id** (String) The ID of this resource.
-- **is_default** (Boolean)
-- **key** (String)
-- **predicate** (String)
-- **tax_category_id** (String)
+- **is_default** (Boolean) One shipping method in a project can be default
+- **key** (String) User-specific unique identifier for the shipping method
+- **predicate** (String) A Cart predicate which can be used to more precisely select a shipping method for a cart
+- **tax_category_id** (String) ID of a [Tax Category](https://docs.commercetools.com/api/projects/taxCategories#taxcategory)
 
 ### Read-Only
 
