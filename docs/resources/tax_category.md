@@ -3,12 +3,15 @@
 page_title: "commercetools_tax_category Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  Tax Categories define how products are to be taxed in different countries.
+  See also the Tax Category API Documentation https://docs.commercetools.com/api/projects/taxCategories
 ---
 
 # commercetools_tax_category (Resource)
 
+Tax Categories define how products are to be taxed in different countries.
 
+See also the [Tax Category API Documentation](https://docs.commercetools.com/api/projects/taxCategories)
 
 ## Example Usage
 
@@ -29,7 +32,7 @@ resource "commercetools_tax_category" "standard" {
 
 - **description** (String)
 - **id** (String) The ID of this resource.
-- **key** (String)
+- **key** (String) User-specific unique identifier for the category
 
 ### Read-Only
 

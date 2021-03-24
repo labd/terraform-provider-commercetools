@@ -3,12 +3,15 @@
 page_title: "commercetools_shipping_zone_rate Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  Defines shipping rates (prices) for a specific zone.
+  See also ZoneRate API Documentation https://docs.commercetools.com/api/projects/shippingMethods#zonerate
 ---
 
 # commercetools_shipping_zone_rate (Resource)
 
+Defines shipping rates (prices) for a specific zone.
 
+See also [ZoneRate API Documentation](https://docs.commercetools.com/api/projects/shippingMethods#zonerate)
 
 
 
@@ -23,7 +26,7 @@ description: |-
 
 ### Optional
 
-- **free_above** (Block List, Max: 1) (see [below for nested schema](#nestedblock--free_above))
+- **free_above** (Block List, Max: 1) The shipping is free if the sum of the (custom) line item prices reaches the freeAbove value (see [below for nested schema](#nestedblock--free_above))
 - **id** (String) The ID of this resource.
 
 <a id="nestedblock--price"></a>
@@ -40,7 +43,7 @@ Required:
 
 Required:
 
-- **cent_amount** (Number)
-- **currency_code** (String)
+- **cent_amount** (Number) The amount in cents (the smallest indivisible unit of the currency)
+- **currency_code** (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
 
 

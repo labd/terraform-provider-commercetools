@@ -3,12 +3,15 @@
 page_title: "commercetools_custom_object Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  Custom objects are a way to store arbitrary JSON-formatted data on the commercetools platform. It allows you to persist data that does not fit the standard data model. This frees your application completely from any third-party persistence solution and means that all your data stays on the commercetools platform.
+  See also the Custom Object API Documentation https://docs.commercetools.com/api/projects/custom-objects
 ---
 
 # commercetools_custom_object (Resource)
 
+Custom objects are a way to store arbitrary JSON-formatted data on the commercetools platform. It allows you to persist data that does not fit the standard data model. This frees your application completely from any third-party persistence solution and means that all your data stays on the commercetools platform.
 
+See also the [Custom Object API Documentation](https://docs.commercetools.com/api/projects/custom-objects)
 
 ## Example Usage
 
@@ -25,9 +28,9 @@ resource "commercetools_custom_object" "my-value" {
 
 ### Required
 
-- **container** (String)
-- **key** (String)
-- **value** (String)
+- **container** (String) A namespace to group custom objects matching the pattern '[-_~.a-zA-Z0-9]+'
+- **key** (String) String matching the pattern '[-_~.a-zA-Z0-9]+'
+- **value** (String) JSON types Number, String, Boolean, Array, Object
 
 ### Optional
 

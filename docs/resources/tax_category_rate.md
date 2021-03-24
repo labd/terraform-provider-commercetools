@@ -3,12 +3,15 @@
 page_title: "commercetools_tax_category_rate Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  Tax rate for Tax Category.
+  See also Tax Rate API Documentation https://docs.commercetools.com/api/projects/taxCategories#taxrate
 ---
 
 # commercetools_tax_category_rate (Resource)
 
+Tax rate for Tax Category. 
 
+See also [Tax Rate API Documentation](https://docs.commercetools.com/api/projects/taxCategories#taxrate)
 
 ## Example Usage
 
@@ -40,24 +43,24 @@ resource "commercetools_tax_category_rate" "standard-tax-category-NL" {
 
 ### Required
 
-- **country** (String)
+- **country** (String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 - **included_in_price** (Boolean)
 - **name** (String)
 - **tax_category_id** (String)
 
 ### Optional
 
-- **amount** (Number)
+- **amount** (Number) Number Percentage in the range of [0..1]. The sum of the amounts of all subRates, if there are any
 - **id** (String) The ID of this resource.
-- **state** (String)
-- **sub_rate** (Block List) (see [below for nested schema](#nestedblock--sub_rate))
+- **state** (String) The state in the country
+- **sub_rate** (Block List) For countries (for example the US) where the total tax is a combination of multiple taxes (for example state and local taxes) (see [below for nested schema](#nestedblock--sub_rate))
 
 <a id="nestedblock--sub_rate"></a>
 ### Nested Schema for `sub_rate`
 
 Required:
 
-- **amount** (Number)
+- **amount** (Number) Number Percentage in the range of [0..1]
 - **name** (String)
 
 

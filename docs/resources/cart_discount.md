@@ -3,12 +3,15 @@
 page_title: "commercetools_cart_discount Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  Cart discounts are used to change the prices of different elements within a cart.
+  See also the Cart Discount API Documentation https://docs.commercetools.com/api/projects/cartDiscounts
 ---
 
 # commercetools_cart_discount (Resource)
 
+Cart discounts are used to change the prices of different elements within a cart.
 
+See also the [Cart Discount API Documentation](https://docs.commercetools.com/api/projects/cartDiscounts)
 
 ## Example Usage
 
@@ -91,20 +94,20 @@ resource "commercetools_cart_discount" "my-cart-discount" {
 
 ### Required
 
-- **name** (Map of String)
-- **predicate** (String)
-- **sort_order** (String)
-- **value** (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--value))
+- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- **predicate** (String) A valid [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)
+- **sort_order** (String) The string must contain a number between 0 and 1. All matching cart discounts are applied to a cart in the order defined by this field. A discount with greater sort order is prioritized higher than a discount with lower sort order. The sort order is unambiguous among all cart discounts
+- **value** (Block List, Min: 1, Max: 1) Defines the effect the discount will have. [CartDiscountValue](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscountvalue) (see [below for nested schema](#nestedblock--value))
 
 ### Optional
 
-- **description** (Map of String)
+- **description** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - **id** (String) The ID of this resource.
-- **is_active** (Boolean)
-- **key** (String)
-- **requires_discount_code** (Boolean)
-- **stacking_mode** (String)
-- **target** (Map of String)
+- **is_active** (Boolean) Only active discount can be applied to the cart
+- **key** (String) User-specific unique identifier for a cart discount. Must be unique across a project
+- **requires_discount_code** (Boolean) States whether the discount can only be used in a connection with a [DiscountCode](https://docs.commercetools.com/api/projects/discountCodes#discountcode)
+- **stacking_mode** (String) Specifies whether the application of this discount causes the following discounts to be ignored
+- **target** (Map of String) Empty when the value has type giftLineItem, otherwise a [CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget)
 - **valid_from** (String)
 - **valid_until** (String)
 
@@ -117,23 +120,23 @@ resource "commercetools_cart_discount" "my-cart-discount" {
 
 Required:
 
-- **type** (String)
+- **type** (String) Currently supports absolute/relative/giftLineItem
 
 Optional:
 
-- **distribution_channel_id** (String)
-- **money** (Block List) (see [below for nested schema](#nestedblock--value--money))
-- **permyriad** (Number)
-- **product_id** (String)
-- **supply_channel_id** (String)
-- **variant** (Number)
+- **distribution_channel_id** (String) Gift Line Item discount specific field
+- **money** (Block List) Absolute discount specific fields (see [below for nested schema](#nestedblock--value--money))
+- **permyriad** (Number) Relative discount specific fields
+- **product_id** (String) Gift Line Item discount specific field
+- **supply_channel_id** (String) Gift Line Item discount specific field
+- **variant** (Number) Gift Line Item discount specific field
 
 <a id="nestedblock--value--money"></a>
 ### Nested Schema for `value.money`
 
 Required:
 
-- **cent_amount** (Number)
-- **currency_code** (String)
+- **cent_amount** (Number) The amount in cents (the smallest indivisible unit of the currency)
+- **currency_code** (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
 
 

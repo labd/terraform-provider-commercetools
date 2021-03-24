@@ -3,12 +3,15 @@
 page_title: "commercetools_api_extension Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  
+  Create a new API extension to extend the bevahiour of an API with business logic. Note that API extensions affect the performance of the API it is extending. If it fails, the whole API call fails
+  Also see the API Extension API Documentation https://docs.commercetools.com/api/projects/api-extensions
 ---
 
 # commercetools_api_extension (Resource)
 
+Create a new API extension to extend the bevahiour of an API with business logic. Note that API extensions affect the performance of the API it is extending. If it fails, the whole API call fails 
 
+Also see the [API Extension API Documentation](https://docs.commercetools.com/api/projects/api-extensions)
 
 ## Example Usage
 
@@ -81,14 +84,14 @@ resource "commercetools_api_extension" "my-extension" {
 
 ### Required
 
-- **destination** (Map of String)
-- **trigger** (Block List, Min: 1) (see [below for nested schema](#nestedblock--trigger))
+- **destination** (Map of String) [Destination](https://docs.commercetools.com/api/projects/api-extensions#destination) Details where the extension can be reached
+- **trigger** (Block List, Min: 1) Array of [Trigger](https://docs.commercetools.com/api/projects/api-extensions#trigger) Describes what triggers the extension (see [below for nested schema](#nestedblock--trigger))
 
 ### Optional
 
 - **id** (String) The ID of this resource.
-- **key** (String)
-- **timeout_in_ms** (Number)
+- **key** (String) User-specific unique identifier for the extension
+- **timeout_in_ms** (Number) Extension timeout in milliseconds
 
 ### Read-Only
 
@@ -99,7 +102,7 @@ resource "commercetools_api_extension" "my-extension" {
 
 Required:
 
-- **actions** (List of String)
-- **resource_type_id** (String)
+- **actions** (List of String) Currently, Create and Update are supported
+- **resource_type_id** (String) Currently, cart, order, payment, and customer are supported
 
 

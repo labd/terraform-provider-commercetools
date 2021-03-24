@@ -33,8 +33,8 @@ resource "commercetools_shipping_zone" "de-us" {
 
 - **description** (String)
 - **id** (String) The ID of this resource.
-- **key** (String)
-- **location** (Block List) (see [below for nested schema](#nestedblock--location))
+- **key** (String) User-specific unique identifier for a zone. Must be unique across a project
+- **location** (Block List) [Location](https://docs.commercetools.com/api/projects/zones#location) (see [below for nested schema](#nestedblock--location))
 - **name** (String)
 
 ### Read-Only
@@ -46,7 +46,7 @@ resource "commercetools_shipping_zone" "de-us" {
 
 Required:
 
-- **country** (String)
+- **country** (String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 
 Optional:
 
