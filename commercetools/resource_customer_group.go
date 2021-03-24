@@ -12,6 +12,9 @@ import (
 
 func resourceCustomerGroup() *schema.Resource {
 	return &schema.Resource{
+		Description: "A Customer can be a member of a customer group (for example reseller, gold member). " +
+			"Special prices can be assigned to specific products based on a customer group.\n\n" +
+			"See also the [Custome Group API Documentation](https://docs.commercetools.com/api/projects/customerGroups)",
 		Create: resourceCustomerGroupCreate,
 		Read:   resourceCustomerGroupRead,
 		Update: resourceCustomerGroupUpdate,
@@ -21,16 +24,18 @@ func resourceCustomerGroup() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for the customer group",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "Unique within the project",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 		},
 	}

@@ -22,6 +22,10 @@ var constraintMap = map[string]commercetools.AttributeConstraintEnum{
 
 func resourceProductType() *schema.Resource {
 	return &schema.Resource{
+		Description: "Product types are used to describe common characteristics, most importantly common custom " +
+			"attributes, of many concrete products. Please note: to customize other resources than products, " +
+			"please refer to resource_type.\n\n" +
+			"See also the [Product Type API Documentation](https://docs.commercetools.com/api/projects/productTypes)",
 		Create: resourceProductTypeCreate,
 		Read:   resourceProductTypeRead,
 		Update: resourceProductTypeUpdate,
@@ -39,34 +43,49 @@ func resourceProductType() *schema.Resource {
 				Optional: true,
 			},
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for the product type (max. 256 characters)",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"attribute": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Description: "[Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition)",
+				Type:        schema.TypeList,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Type:     schema.TypeList,
-							MaxItems: 1,
-							Required: true,
-							Elem:     attributeTypeElement(true),
+							Description: "[AttributeType](https://docs.commercetools.com/api/projects/productTypes#attributetype)",
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Required:    true,
+							Elem:        attributeTypeElement(true),
 						},
 						"name": {
+							Description: "The unique name of the attribute used in the API. The name must be between " +
+								"two and 256 characters long and can contain the ASCII letters A to Z in lowercase or " +
+								"uppercase, digits, underscores (_) and the hyphen-minus (-).\n" +
+								"When using the same name for an attribute in two or more product types all fields " +
+								"of the AttributeDefinition of this attribute need to be the same across the product " +
+								"types, otherwise an AttributeDefinitionAlreadyExists error code will be returned. " +
+								"An exception to this are the values of an enum or lenum type and sets thereof",
 							Type:     schema.TypeString,
 							Required: true,
 						},
 						"label": {
-							Type:     TypeLocalizedString,
-							Required: true,
+							Description: "A human-readable label for the attribute",
+							Type:        TypeLocalizedString,
+							Required:    true,
 						},
 						"required": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
+							Description: "Whether the attribute is required to have a value",
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
 						},
 						"constraint": {
+							Description: "Describes how an attribute or a set of attributes should be validated " +
+								"across all variants of a product. " +
+								"See also [Attribute Constraint](https://docs.commercetools.com/api/projects/productTypes#attributeconstraint-enum)",
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  commercetools.AttributeConstraintEnumNone,
@@ -85,18 +104,23 @@ func resourceProductType() *schema.Resource {
 							},
 						},
 						"input_tip": {
+							Description: "Additional information about the attribute that aids content managers " +
+								"when setting product details",
 							Type:     TypeLocalizedString,
 							Optional: true,
 						},
 						"input_hint": {
+							Description: "Provides a visual representation type for this attribute. " +
+								"only relevant for text-based attribute types like TextType and LocalizableTextType",
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  commercetools.TextInputHintSingleLine,
 						},
 						"searchable": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
+							Description: "Whether the attribute's values should generally be activated in product search",
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
 						},
 					},
 				},

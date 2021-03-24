@@ -14,6 +14,8 @@ import (
 
 func resourceShippingZoneRate() *schema.Resource {
 	return &schema.Resource{
+		Description: "Defines shipping rates (prices) for a specific zone.\n\n" +
+			"See also [ZoneRate API Documentation](https://docs.commercetools.com/api/projects/shippingMethods#zonerate)",
 		Create: resourceShippingZoneRateCreate,
 		Read:   resourceShippingZoneRateRead,
 		Update: resourceShippingZoneRateUpdate,
@@ -53,21 +55,24 @@ func resourceShippingZoneRate() *schema.Resource {
 				},
 			},
 			"free_above": {
-				Type:     schema.TypeList,
-				MinItems: 1,
-				MaxItems: 1,
-				Optional: true,
+				Description: "The shipping is free if the sum of the (custom) line item prices reaches the freeAbove value",
+				Type:        schema.TypeList,
+				MinItems:    1,
+				MaxItems:    1,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"currency_code": {
+							Description:  "The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
 							Type:         schema.TypeString,
 							Required:     true,
 							ForceNew:     true,
 							ValidateFunc: ValidateCurrencyCode,
 						},
 						"cent_amount": {
-							Type:     schema.TypeInt,
-							Required: true,
+							Description: "The amount in cents (the smallest indivisible unit of the currency)",
+							Type:        schema.TypeInt,
+							Required:    true,
 						},
 					},
 				},

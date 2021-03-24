@@ -14,6 +14,8 @@ import (
 
 func resourceCartDiscount() *schema.Resource {
 	return &schema.Resource{
+		Description: "Cart discounts are used to change the prices of different elements within a cart.\n\n" +
+			"See also the [Cart Discount API Documentation](https://docs.commercetools.com/api/projects/cartDiscounts)",
 		Create: resourceCartDiscountCreate,
 		Read:   resourceCartDiscountRead,
 		Update: resourceCartDiscountUpdate,
@@ -23,101 +25,120 @@ func resourceCartDiscount() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for a cart discount. Must be unique across a project",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"name": {
-				Type:     TypeLocalizedString,
-				Required: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Required:    true,
 			},
 			"description": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
 			},
 			"value": {
+				Description: "Defines the effect the discount will have. " +
+					"[CartDiscountValue](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscountvalue)",
 				Type:     schema.TypeList,
 				MaxItems: 1,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
+							Description:  "Currently supports absolute/relative/giftLineItem",
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateValueType,
 						},
-						// Relative discount specific fields
 						"permyriad": {
-							Type:     schema.TypeInt,
-							Optional: true,
+							Description: "Relative discount specific fields",
+							Type:        schema.TypeInt,
+							Optional:    true,
 						},
-						// Absolute discount specific fields
 						"money": {
-							Type:     schema.TypeList,
-							Optional: true,
+							Description: "Absolute discount specific fields",
+							Type:        schema.TypeList,
+							Optional:    true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"currency_code": {
+										Description:  "The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
 										Type:         schema.TypeString,
 										Required:     true,
 										ValidateFunc: ValidateCurrencyCode,
 									},
 									"cent_amount": {
-										Type:     schema.TypeInt,
-										Required: true,
+										Description: "The amount in cents (the smallest indivisible unit of the currency)",
+										Type:        schema.TypeInt,
+										Required:    true,
 									},
 								},
 							},
 						},
-						// Gift Line Item discount specific fields
 						"product_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Description: "Gift Line Item discount specific field",
+							Type:        schema.TypeString,
+							Optional:    true,
 						},
 						"variant": {
-							Type:     schema.TypeInt,
-							Optional: true,
+							Description: "Gift Line Item discount specific field",
+							Type:        schema.TypeInt,
+							Optional:    true,
 						},
 						"supply_channel_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Description: "Gift Line Item discount specific field",
+							Type:        schema.TypeString,
+							Optional:    true,
 						},
 						"distribution_channel_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Description: "Gift Line Item discount specific field",
+							Type:        schema.TypeString,
+							Optional:    true,
 						},
 					},
 				},
 			},
 			"predicate": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "A valid [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"target": {
+				Description: "Empty when the value has type giftLineItem, otherwise a " +
+					"[CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget)",
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
+							Description:  "Supports lineItems/customLineItems/shipping",
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateTargetType,
 						},
-						// LineItems/CustomLineItems target specific fields
 						"predicate": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Description: "LineItems/CustomLineItems target specific fields",
+							Type:        schema.TypeString,
+							Optional:    true,
 						},
 					},
 				},
 			},
 			"sort_order": {
+				Description: "The string must contain a number between 0 and 1. All matching cart discounts are " +
+					"applied to a cart in the order defined by this field. A discount with greater sort order is " +
+					"prioritized higher than a discount with lower sort order. The sort order is unambiguous among all cart discounts",
 				Type:     schema.TypeString,
 				Required: true,
 			},
 			"is_active": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
+				Description: "Only active discount can be applied to the cart",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
 			},
 			"valid_from": {
 				Type:     schema.TypeString,
@@ -128,11 +149,14 @@ func resourceCartDiscount() *schema.Resource {
 				Optional: true,
 			},
 			"requires_discount_code": {
+				Description: "States whether the discount can only be used in a connection with a " +
+					"[DiscountCode](https://docs.commercetools.com/api/projects/discountCodes#discountcode)",
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 			"stacking_mode": {
+				Description:  "Specifies whether the application of this discount causes the following discounts to be ignored",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateStackingMode,

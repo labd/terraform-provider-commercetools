@@ -12,6 +12,10 @@ import (
 
 func resourceDiscountCode() *schema.Resource {
 	return &schema.Resource{
+		Description: "With discount codes it is possible to give specific cart discounts to an eligible set of users. " +
+			"They are defined by a string value which can be added to a cart so that specific cart discounts " +
+			"can be applied to the cart.\n\n" +
+			"See also the [Discount Code Api Documentation](https://docs.commercetools.com/api/projects/discountCodes)",
 		Create: resourceDiscountCodeCreate,
 		Read:   resourceDiscountCodeRead,
 		Update: resourceDiscountCodeUpdate,
@@ -21,24 +25,30 @@ func resourceDiscountCode() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
 			},
 			"description": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
 			},
 			"code": {
+				Description: "Unique identifier of this discount code. This value is added to the cart to enable " +
+					"the related cart discounts in the cart",
 				Type:     schema.TypeString,
 				Required: true,
 			},
 			"valid_from": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The time from which the discount can be applied on a cart. Before that time the code is invalid",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"valid_until": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The time until the discount can be applied on a cart. After that time the code is invalid",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"is_active": {
 				Type:     schema.TypeBool,
@@ -46,26 +56,31 @@ func resourceDiscountCode() *schema.Resource {
 				Default:  true,
 			},
 			"predicate": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "[Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"max_applications_per_customer": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Description: "The discount code can only be applied maxApplicationsPerCustomer times per customer",
+				Type:        schema.TypeInt,
+				Optional:    true,
 			},
 			"max_applications": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Description: "The discount code can only be applied maxApplications times",
+				Type:        schema.TypeInt,
+				Optional:    true,
 			},
 			"groups": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "The groups to which this discount code belong",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"cart_discounts": {
-				Type:     schema.TypeList,
-				Required: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "The referenced matching cart discounts can be applied to the cart once the DiscountCode is added",
+				Type:        schema.TypeList,
+				Required:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"version": {
 				Type:     schema.TypeInt,

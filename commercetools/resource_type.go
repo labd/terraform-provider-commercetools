@@ -15,6 +15,11 @@ import (
 
 func resourceType() *schema.Resource {
 	return &schema.Resource{
+		Description: "Types define custom fields that are used to enhance resources as you need. Use Types to model " +
+			"your own CustomFields on resources, like Category and Customer.\n\n" +
+			"In case you want to customize products, please use product types instead that serve a similar purpose, " +
+			"but tailored to products.\n\n" +
+			"See also the [Types Api Documentation](https://docs.commercetools.com/api/projects/types)",
 		Create: resourceTypeCreate,
 		Read:   resourceTypeRead,
 		Update: resourceTypeUpdate,
@@ -24,48 +29,66 @@ func resourceType() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "Identifier for the type (max. 256 characters)",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"name": {
-				Type:     TypeLocalizedString,
-				Required: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Required:    true,
 			},
 			"description": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
 			},
 			"resource_type_ids": {
+				Description: "Defines for which [resources](https://docs.commercetools.com/api/projects/custom-fields#customizable-resources)" +
+					" the type is valid",
 				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"field": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Description: "[Field definition](https://docs.commercetools.com/api/projects/types#fielddefinition)",
+				Type:        schema.TypeList,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
+							Description: "Describes the [type](https://docs.commercetools.com/api/projects/types#fieldtype)" +
+								" of the field",
 							Type:     schema.TypeList,
 							MaxItems: 1,
 							Required: true,
 							Elem:     fieldTypeElement(true),
 						},
 						"name": {
+							Description: "The name of the field.\nThe name must be between two and 36 characters long " +
+								"and can contain the ASCII letters A to Z in lowercase or uppercase, digits, " +
+								"underscores (_) and the hyphen-minus (-).\nThe name must be unique for a given " +
+								"resource type ID. In case there is a field with the same name in another type it has " +
+								"to have the same FieldType also",
 							Type:     schema.TypeString,
 							Required: true,
 						},
 						"label": {
-							Type:     TypeLocalizedString,
-							Required: true,
+							Description: "A human-readable label for the field",
+							Type:        TypeLocalizedString,
+							Required:    true,
 						},
 						"required": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
+							Description: "Whether the field is required to have a value",
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
 						},
 						"input_hint": {
+							Description: "[TextInputHint](https://docs.commercetools.com/api/projects/types#textinputhint)" +
+								" Provides a visual representation type for this field. It is only relevant for " +
+								"string-based field types like StringType and LocalizedStringType",
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  commercetools.TextInputHintSingleLine,

@@ -13,6 +13,10 @@ import (
 // considering whether to align the optional/required status of the fields in the provider with that of the API itself
 func resourceProjectSettings() *schema.Resource {
 	return &schema.Resource{
+		Description: "The project endpoint provides a limited set of information about settings and configuration of " +
+			"the project. Updating the settings is eventually consistent, it may take up to a minute before " +
+			"a change becomes fully active.\n\n" +
+			"See also the [Project Settings API Documentation](https://docs.commercetools.com/api/projects/project)",
 		Create: resourceProjectCreate,
 		Read:   resourceProjectRead,
 		Update: resourceProjectUpdate,
@@ -23,43 +27,51 @@ func resourceProjectSettings() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Description: "The unique key of the project",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The name of the project",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"currencies": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"countries": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"languages": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Description: "[IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"messages": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Description: "[Messages Configuration](https://docs.commercetools.com/api/projects/project#messages-configuration)",
+				Type:        schema.TypeMap,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"enabled": {
-							Type:     schema.TypeBool,
-							Required: true,
+							Description: "When true the creation of messages on the Messages Query HTTP API is enabled",
+							Type:        schema.TypeBool,
+							Required:    true,
 						},
 					},
 				},
 			},
 			"external_oauth": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Description: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
+				Type:        schema.TypeMap,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"url": {
@@ -67,18 +79,23 @@ func resourceProjectSettings() *schema.Resource {
 							Required: true,
 						},
 						"authorization_header": {
-							Type:     schema.TypeString,
-							Required: true,
+							Description: "Partially hidden on retrieval",
+							Type:        schema.TypeString,
+							Required:    true,
 						},
 					},
 				},
 			},
 			"carts": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Description: "[Carts Configuration](https://docs.commercetools.com/api/projects/project#carts-configuration)",
+				Type:        schema.TypeMap,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"country_tax_rate_fallback_enabled": {
+							Description: "Indicates if country - no state tax rate fallback should be used when a " +
+								"shipping address state is not explicitly covered in the rates lists of all tax " +
+								"categories of a cart line items",
 							Type:     schema.TypeBool,
 							Required: true,
 						},

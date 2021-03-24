@@ -13,6 +13,8 @@ import (
 
 func resourceTaxCategoryRate() *schema.Resource {
 	return &schema.Resource{
+		Description: "Tax rate for Tax Category. \n\n" +
+			"See also [Tax Rate API Documentation](https://docs.commercetools.com/api/projects/taxCategories#taxrate)",
 		Create: resourceTaxCategoryRateCreate,
 		Read:   resourceTaxCategoryRateRead,
 		Update: resourceTaxCategoryRateUpdate,
@@ -30,6 +32,8 @@ func resourceTaxCategoryRate() *schema.Resource {
 				Required: true,
 			},
 			"amount": {
+				Description: "Number Percentage in the range of [0..1]. The sum of the amounts of all subRates, " +
+					"if there are any",
 				Type:         schema.TypeFloat,
 				Optional:     true,
 				ValidateFunc: validateTaxRateAmount,
@@ -39,14 +43,18 @@ func resourceTaxCategoryRate() *schema.Resource {
 				Required: true,
 			},
 			"country": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"state": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "The state in the country",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"sub_rate": {
+				Description: "For countries (for example the US) where the total tax is a combination of multiple " +
+					"taxes (for example state and local taxes)",
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -56,6 +64,7 @@ func resourceTaxCategoryRate() *schema.Resource {
 							Required: true,
 						},
 						"amount": {
+							Description:  "Number Percentage in the range of [0..1]",
 							Type:         schema.TypeFloat,
 							Required:     true,
 							ValidateFunc: validateTaxRateAmount,

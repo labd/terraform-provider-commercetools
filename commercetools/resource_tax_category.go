@@ -13,6 +13,8 @@ import (
 
 func resourceTaxCategory() *schema.Resource {
 	return &schema.Resource{
+		Description: "Tax Categories define how products are to be taxed in different countries.\n\n" +
+			"See also the [Tax Category API Documentation](https://docs.commercetools.com/api/projects/taxCategories)",
 		Create: resourceTaxCategoryCreate,
 		Read:   resourceTaxCategoryRead,
 		Update: resourceTaxCategoryUpdate,
@@ -22,8 +24,9 @@ func resourceTaxCategory() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for the category",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"name": {
 				Type:     schema.TypeString,
