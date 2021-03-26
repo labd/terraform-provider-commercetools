@@ -23,7 +23,7 @@ func TestAccTaxCategoryRate_createAndUpdateWithID(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTaxCategoryDestroy,
+		CheckDestroy: testAccCheckTaxCategoryRateDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTaxCategoryRateConfig(name, amount, true, country),
@@ -213,7 +213,7 @@ func TestAccTaxCategoryRate_createAndUpdateBothRateAndTaxCategory(t *testing.T) 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTaxCategoryDestroy,
+		CheckDestroy: testAccCheckTaxCategoryRateDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTaxCategoryRateDualUpdateConfig("foo", name, amount, true, country),
@@ -310,7 +310,7 @@ func testAccCheckTaxCategoryRateDestroy(s *terraform.State) error {
 		}
 
 		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") {
+		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
 			return err
 		}
 	}

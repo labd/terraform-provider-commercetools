@@ -131,7 +131,7 @@ func testAccCheckSubscriptionDestroy(s *terraform.State) error {
 			return nil
 		}
 		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") {
+		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
 			return err
 		}
 	}
