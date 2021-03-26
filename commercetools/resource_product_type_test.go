@@ -1,7 +1,9 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -348,6 +350,23 @@ resource "commercetools_product_type" "acctest_product_type" {
 }
 
 func testAccCheckProductTypesDestroy(s *terraform.State) error {
-	// TODO: Implement
+	conn := testAccProvider.Meta().(*commercetools.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_product_type" {
+			continue
+		}
+		response, err := conn.ProductTypeGetWithID(context.Background(), rs.Primary.ID)
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("product type (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+		if !strings.Contains(err.Error(), "was not found") {
+			return err
+		}
+	}
 	return nil
 }

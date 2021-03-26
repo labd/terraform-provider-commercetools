@@ -1,7 +1,12 @@
 package commercetools
 
 import (
+	"context"
+	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -242,5 +247,23 @@ func testAccCartDiscountRemoveProperties() string {
 }
 
 func testAccCheckCartDiscountDestroy(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*commercetools.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_cart_discount" {
+			continue
+		}
+		response, err := conn.CartDiscountGetWithID(context.Background(), rs.Primary.ID)
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("cart discount (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+		if !strings.Contains(err.Error(), "was not found") {
+			return err
+		}
+	}
 	return nil
 }

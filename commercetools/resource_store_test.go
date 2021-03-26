@@ -1,8 +1,12 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -186,5 +190,42 @@ func testAccNewStoreConfigWithoutChannels(name string, key string, languages []s
 }
 
 func testAccCheckStoreDestroy(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*commercetools.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		switch rs.Type {
+		case "commercetools_store":
+			{
+				response, err := conn.StoreGetWithID(context.Background(), rs.Primary.ID)
+				if err == nil {
+					if response != nil && response.ID == rs.Primary.ID {
+						return fmt.Errorf("store (%s) still exists", rs.Primary.ID)
+					}
+					continue
+				}
+
+				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+				if !strings.Contains(err.Error(), "was not found") {
+					return err
+				}
+			}
+		case "commercetools_channel":
+			{
+				response, err := conn.ChannelGetWithID(context.Background(), rs.Primary.ID)
+				if err == nil {
+					if response != nil && response.ID == rs.Primary.ID {
+						return fmt.Errorf("supply channel (%s) still exists", rs.Primary.ID)
+					}
+					continue
+				}
+				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+				if !strings.Contains(err.Error(), "was not found") {
+					return err
+				}
+			}
+		default:
+			continue
+		}
+	}
 	return nil
 }

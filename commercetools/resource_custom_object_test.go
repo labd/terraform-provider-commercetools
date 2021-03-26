@@ -1,7 +1,13 @@
 package commercetools
 
 import (
+	"context"
+	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
@@ -11,7 +17,7 @@ func TestAccCustomObjectCreate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: nil,
+		CheckDestroy: testAccCheckCustomObjectDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCustomObjectNumber(),
@@ -165,4 +171,27 @@ func testAccCustomObjectNestedData() string {
 			}
 		})
 	  }`
+}
+
+func testAccCheckCustomObjectDestroy(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*commercetools.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_custom_object" {
+			continue
+		}
+		container := rs.Primary.Attributes["container"]
+		response, err := conn.CustomObjectGetWithContainer(context.Background(), container)
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("custom object container (%s) still exists", container)
+			}
+			return nil
+		}
+		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+		if !strings.Contains(err.Error(), "was not found") {
+			return err
+		}
+	}
+	return nil
 }

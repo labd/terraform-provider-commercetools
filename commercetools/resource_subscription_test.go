@@ -1,9 +1,13 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
+
+	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -113,6 +117,23 @@ resource "commercetools_subscription" "subscription_%[1]s" {
 }
 
 func testAccCheckSubscriptionDestroy(s *terraform.State) error {
-	// TODO: Implement
+	conn := testAccProvider.Meta().(*commercetools.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_subscription" {
+			continue
+		}
+		response, err := conn.SubscriptionGetWithID(context.Background(), rs.Primary.ID)
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("subscription (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+		if !strings.Contains(err.Error(), "was not found") {
+			return err
+		}
+	}
 	return nil
 }

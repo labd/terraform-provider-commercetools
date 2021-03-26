@@ -1,7 +1,13 @@
 package commercetools
 
 import (
+	"context"
+	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
@@ -11,7 +17,7 @@ func TestAccDiscountCodeCreate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: nil,
+		CheckDestroy: testAccCheckDiscountCodeDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDiscountCodeConfig(),
@@ -314,4 +320,45 @@ func testAccDiscountCodeRemoveProperties() string {
 		code           = "2"
 		cart_discounts = [commercetools_cart_discount.standard.id]
 	  }  `
+}
+
+func testAccCheckDiscountCodeDestroy(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*commercetools.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		switch rs.Type {
+		case "commercetools_cart_discount":
+			{
+				response, err := conn.CartDiscountGetWithID(context.Background(), rs.Primary.ID)
+				if err == nil {
+					if response != nil && response.ID == rs.Primary.ID {
+						return fmt.Errorf("cart discount (%s) still exists", rs.Primary.ID)
+					}
+					continue
+				}
+
+				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+				if !strings.Contains(err.Error(), "was not found") {
+					return err
+				}
+			}
+		case "commercetools_discount_code":
+			{
+				response, err := conn.DiscountCodeGetWithID(context.Background(), rs.Primary.ID)
+				if err == nil {
+					if response != nil && response.ID == rs.Primary.ID {
+						return fmt.Errorf("discount code (%s) still exists", rs.Primary.ID)
+					}
+					continue
+				}
+				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+				if !strings.Contains(err.Error(), "was not found") {
+					return err
+				}
+			}
+		default:
+			continue
+		}
+	}
+	return nil
 }
