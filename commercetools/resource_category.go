@@ -75,17 +75,17 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	name := commercetools.LocalizedString(expandStringMap(d.Get("name").(map[string]interface{})))
 	desc := commercetools.LocalizedString(expandStringMap(d.Get("description").(map[string]interface{})))
 	slug := commercetools.LocalizedString(expandStringMap(d.Get("slug").(map[string]interface{})))
-	metaTitle := commercetools.LocalizedString(expandStringMap(d.Get("metaTitle").(map[string]interface{})))
-	metaDescription := commercetools.LocalizedString(expandStringMap(d.Get("metaDescription").(map[string]interface{})))
-	metaKeywords := commercetools.LocalizedString(expandStringMap(d.Get("metaKeywords").(map[string]interface{})))
+	metaTitle := commercetools.LocalizedString(expandStringMap(d.Get("meta_title").(map[string]interface{})))
+	metaDescription := commercetools.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
+	metaKeywords := commercetools.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
 
 	draft := &commercetools.CategoryDraft{
 		Key: d.Get("key").(string),
 		Name:        &name,
 		Description: &desc,
 		Slug:        &slug,
-		OrderHint:  d.Get("orderHint").(string),
-		ExternalID:  d.Get("externalId").(string),
+		OrderHint:  d.Get("order_hint").(string),
+		ExternalID:  d.Get("external_id").(string),
 		MetaTitle: &metaTitle,
 		MetaDescription: &metaDescription,
 		MetaKeywords: &metaKeywords,
@@ -142,11 +142,18 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("key", category.Key)
 		d.Set("name", *category.Name)
 		d.Set("description", *category.Description)
-		d.Set("orderHint", category.OrderHint)
-		d.Set("externalId", category.ExternalID)
-		d.Set("metaTitle", *category.MetaTitle)
-		d.Set("metaDescription", *category.MetaDescription)
-		d.Set("metaKeywords", *category.MetaKeywords)
+		d.Set("order_hint", category.OrderHint)
+		d.Set("external_id", category.ExternalID)
+		if  category.MetaTitle != nil {
+			d.Set("meta_title", *category.MetaTitle)
+		}
+		if category.MetaDescription != nil {
+			d.Set("meta_description", *category.MetaDescription)
+		}
+		if category.MetaKeywords != nil {
+			d.Set("meta_keywords", *category.MetaKeywords)
+		}
+
 	}
 	return nil
 }
@@ -188,18 +195,15 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.CategorySetKeyAction{Key: newKey})
 	}
 
-	if d.HasChange("orderHint") {
-		newVal := d.Get("orderHint").(string)
-		input.Actions = append(
-			input.Actions,
-			&commercetools.CategorySetKeyAction{Key: newVal})
+	if d.HasChange("order_hint") {
+		// cant update order once created
 	}
 
-	if d.HasChange("externalId") {
-		newVal := d.Get("externalId").(string)
+	if d.HasChange("external_id") {
+		newVal := d.Get("external_id").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategorySetKeyAction{Key: newVal})
+			&commercetools.CategorySetExternalIDAction{ExternalID: newVal})
 	}
 
 	if d.HasChange("description") {
@@ -209,25 +213,25 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 			&commercetools.CategorySetDescriptionAction{Description: &newDescription})
 	}
 
-	if d.HasChange("metaTitle") {
-		newMetaTitle := commercetools.LocalizedString(expandStringMap(d.Get("metaTitle").(map[string]interface{})))
+	if d.HasChange("meta_title") {
+		newMetaTitle := commercetools.LocalizedString(expandStringMap(d.Get("meta_title").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategorySetDescriptionAction{Description: &newMetaTitle})
+			&commercetools.CategorySetMetaTitleAction{MetaTitle: &newMetaTitle})
 	}
 
-	if d.HasChange("metaDescription") {
-		newMetaDescription := commercetools.LocalizedString(expandStringMap(d.Get("metaDescription").(map[string]interface{})))
+	if d.HasChange("meta_description") {
+		newMetaDescription := commercetools.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategorySetDescriptionAction{Description: &newMetaDescription})
+			&commercetools.CategorySetMetaDescriptionAction{MetaDescription: &newMetaDescription})
 	}
 
-	if d.HasChange("metaKeywords") {
-		newMetaKeywords := commercetools.LocalizedString(expandStringMap(d.Get("metaKeywords").(map[string]interface{})))
+	if d.HasChange("meta_keywords") {
+		newMetaKeywords := commercetools.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategorySetDescriptionAction{Description: &newMetaKeywords})
+			&commercetools.CategorySetMetaKeywordsAction{MetaKeywords: &newMetaKeywords})
 	}
 
 	log.Printf(
