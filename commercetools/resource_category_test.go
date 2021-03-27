@@ -17,7 +17,6 @@ func testCategory() string {
 			slug = {
 				en = "bananas_accessories"
 			}
-			order_hint = "0.001"
 			external_id = "iddqd"
 			meta_title = { en = "foo" }
 			meta_description = { en = "bar" }
@@ -37,7 +36,6 @@ func testCategoryUpdate() string {
 			slug = {
 				en = "bananas_accessories"
 			}
-			order_hint = "0.001"
 			external_id = "idclip"
 			meta_title = { en = "baz" }
 			meta_description = { en = "foo" }
@@ -60,7 +58,6 @@ func TestCategoryCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "key", "bananas123"),
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "description.en", "da"),
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "slug.en", "bananas_accessories"),
-					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "order_hint", "0.001"),
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "external_id", "iddqd"),
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "meta_title.en", "foo"),
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "meta_description.en", "bar"),
@@ -74,7 +71,6 @@ func TestCategoryCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "key", "bananas123"),
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "description.en", "vi very viniversum vivus vicy"),
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "slug.en", "bananas_accessories"),
-					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "order_hint", "0.001"),
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "external_id", "idclip"),
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "meta_title.en", "baz"),
 					resource.TestCheckResourceAttr("commercetools_category.accessoriesz", "meta_description.en", "foo"),
