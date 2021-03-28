@@ -3,8 +3,8 @@ package commercetools
 import (
 	"context"
 	"log"
+	"net/url"
 	"time"
-
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
@@ -38,8 +38,10 @@ func resourceCategory() *schema.Resource {
 				Type:     schema.TypeMap,
 				Required: true,
 			},
-			//parent
-			//order_hint
+			"parent_key": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"order_hint": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -81,15 +83,16 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	metaKeywords := commercetools.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
 
 	draft := &commercetools.CategoryDraft{
-		Key: d.Get("key").(string),
-		Name:        &name,
-		Description: &desc,
-		Slug:        &slug,
-		OrderHint:  d.Get("order_hint").(string),
-		ExternalID:  d.Get("external_id").(string),
-		MetaTitle: &metaTitle,
+		Key:             d.Get("key").(string),
+		Name:            &name,
+		Description:     &desc,
+		Slug:            &slug,
+		OrderHint:       d.Get("order_hint").(string),
+		ExternalID:      d.Get("external_id").(string),
+		MetaTitle:       &metaTitle,
 		MetaDescription: &metaDescription,
-		MetaKeywords: &metaKeywords,
+		MetaKeywords:    &metaKeywords,
+		Parent: getParentRef(d),
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -116,11 +119,21 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceCategoryRead(d, m)
 }
 
+func getParentRef(d *schema.ResourceData) *commercetools.CategoryResourceIdentifier {
+	parentKey :=  d.Get("parent_key").(string)
+	if parentKey != "" {
+		return &commercetools.CategoryResourceIdentifier{Key: parentKey}
+	}
+	return nil
+}
+
 func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] Reading category from commercetools, with category id: %s", d.Id())
 	client := getClient(m)
 
-	category, err := client.CategoryGetWithID(context.Background(), d.Id())
+	category, err := client.CategoryGetWithID(context.Background(), d.Id(), func(v *url.Values) {
+		v.Add("expand","parent")
+	})
 
 	if err != nil {
 		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
@@ -144,6 +157,9 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("name", *category.Name)
 		d.Set("description", *category.Description)
 		d.Set("order_hint", category.OrderHint)
+		if category.Parent != nil {
+			d.Set("parent_key", category.Parent.Obj.Key)
+		}
 		d.Set("external_id", category.ExternalID)
 		if  category.MetaTitle != nil {
 			d.Set("meta_title", *category.MetaTitle)
@@ -236,6 +252,14 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 		input.Actions = append(
 			input.Actions,
 			&commercetools.CategorySetMetaKeywordsAction{MetaKeywords: &newMetaKeywords})
+	}
+
+	if d.HasChange("parent_key") {
+		newVal := d.Get("parent_key").(string)
+		input.Actions = append(
+			input.Actions,
+			&commercetools.CategoryChangeParentAction{Parent: &commercetools.CategoryResourceIdentifier{
+				Key: newVal	}})
 	}
 
 	log.Printf(
