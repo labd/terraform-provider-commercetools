@@ -61,6 +61,37 @@ func TestCategoryCreate_basic(t *testing.T) {
 	})
 }
 
+func TestCategoryCreate_withAssets(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: nil,
+		Steps: []resource.TestStep{
+			{
+				Config: testAddAssets(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "key", "accessoriesz_with_assets"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.name.en", "ass1"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.key", "it_a_nice"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.sources.0.uri", "http://google.com"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.sources.0.key", "keywest"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.sources.0.dimensions.w", "240"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.sources.0.dimensions.h", "240"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.sources.0.content_type", "png"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.sources.1.uri", "http://tapuz.com"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.description.en", "terraform is so much fun"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.tags.0", "banana"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.0.tags.1", "tapuz"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.1.name.en", "ass2"),
+					resource.TestCheckResourceAttr("commercetools_category.accessoriesz_with_assets", "assets.1.sources.0.uri", "http://nice.com"),
+				),
+			},
+		},
+	})
+}
+
+
 
 func testCategory() string {
 	return `resource "commercetools_category" "accessoriesz" {
@@ -177,3 +208,54 @@ resource "commercetools_category" "bracelets" {
 }
 `
 }
+
+func testAddAssets() string {
+	return `
+
+resource "commercetools_category" "accessoriesz_with_assets" {
+			name = {
+				en = "banana"
+			}
+			key = "accessoriesz_with_assets"
+			description = {
+				en = "accessoriesz_with_assets"
+			}
+			slug = {
+				en = "accessoriesz_with_assets"
+			}
+			order_hint = "0.002"
+			assets {
+				name = {
+					en = "ass1"
+				}
+				key = "it_a_nice"
+				sources {
+					uri = "http://google.com"
+					key = "keywest"
+					content_type = "png"
+					dimensions = {
+						w = 240
+						h = 240
+					}
+				}
+				sources {
+					uri = "http://tapuz.com"
+				}
+				description = {
+					en = "terraform is so much fun"
+				}
+				tags = ["banana","tapuz"]
+			}
+			assets {
+				name = {
+					en = "ass2"
+				}
+				sources {
+					uri = "http://nice.com"
+				}
+			}
+}
+
+`
+}
+

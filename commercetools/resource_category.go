@@ -2,12 +2,12 @@ package commercetools
 
 import (
 	"context"
-	"log"
-	"net/url"
-	"time"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
+	"log"
+	"net/url"
+	"time"
 )
 
 func resourceCategory() *schema.Resource {
@@ -62,11 +62,75 @@ func resourceCategory() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
-			//custom
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"assets": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"sources": {
+							Type:     schema.TypeList,
+							MinItems: 1,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"uri": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"key": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"content_type": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"dimensions": {
+										Type:     schema.TypeMap,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"w": {
+													Type:     schema.TypeInt,
+													Required: true,
+												},
+												"h": {
+													Type:     schema.TypeInt,
+													Required: true,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						"name": {
+							Type:     schema.TypeMap,
+							Required: true,
+						},
+						"description": {
+							Type:     schema.TypeMap,
+							Optional: true,
+						},
+						"tags": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MinItems: 1,
+							Elem: &schema.Schema{Type: schema.TypeString},
+						},
+						//custom - CustomFieldsDraft - Optional
+					},
+				},
+			},
+
 		},
 	}
 }
@@ -82,6 +146,7 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	metaDescription := commercetools.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
 	metaKeywords := commercetools.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
 
+
 	draft := &commercetools.CategoryDraft{
 		Key:             d.Get("key").(string),
 		Name:            &name,
@@ -92,7 +157,11 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 		MetaTitle:       &metaTitle,
 		MetaDescription: &metaDescription,
 		MetaKeywords:    &metaKeywords,
-		Parent: getParentRef(d),
+		Parent:          getParentRef(d),
+	}
+	assets := getAssets(d)
+	if assets != nil{
+		draft.Assets = *assets
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -117,6 +186,39 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	d.Set("version", category.Version)
 
 	return resourceCategoryRead(d, m)
+}
+
+func getAssets(d *schema.ResourceData) *[]commercetools.AssetDraft {
+	input := d.Get("assets").([]interface{})
+	if len(input) == 0 {
+		return nil
+	}
+	var assets []commercetools.AssetDraft
+	for _, raw := range input {
+		sources := getAssetSources(raw)
+		name := toLocalizedString(raw, "name")
+		assetDraft := commercetools.AssetDraft{
+			Name:    &name,
+			Sources: sources,
+		}
+		assets = append(assets, assetDraft)
+	}
+
+	return &assets
+}
+
+func getAssetSources(raw interface{}) []commercetools.AssetSource {
+	var sources []commercetools.AssetSource
+	for _, rawSource := range raw.(map[string]interface{})["sources"].([]interface{}) {
+		sources = append(sources, commercetools.AssetSource{
+			URI: rawSource.(map[string]interface{})["uri"].(string),
+		})
+	}
+	return sources
+}
+
+func toLocalizedString(raw interface{}, s string) commercetools.LocalizedString {
+	return expandStringMap(raw.(map[string]interface{})[s].(map[string]interface{}))
 }
 
 func getParentRef(d *schema.ResourceData) *commercetools.CategoryResourceIdentifier {
@@ -169,6 +271,9 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 		}
 		if category.MetaKeywords != nil {
 			d.Set("meta_keywords", *category.MetaKeywords)
+		}
+		if len(category.Assets) != 0 {
+			d.Set("asset",category.Assets)
 		}
 
 	}
