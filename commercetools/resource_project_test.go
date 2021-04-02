@@ -105,8 +105,6 @@ func TestAccProjectCreate_basic(t *testing.T) {
 	})
 }
 
-// TODO: We can't destroy a project resource but we could make an explicit check that all settings are returned to default
-// at the end of testing
 func testAccCheckProjectDestroy(s *terraform.State) error {
 	return nil
 }
