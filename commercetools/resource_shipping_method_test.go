@@ -1,8 +1,12 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -95,5 +99,42 @@ resource "commercetools_shipping_method" "standard" {
 }
 
 func testAccCheckShippingMethodDestroy(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*commercetools.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		switch rs.Type {
+		case "commercetools_tax_category":
+			{
+				response, err := conn.TaxCategoryGetWithID(context.Background(), rs.Primary.ID)
+				if err == nil {
+					if response != nil && response.ID == rs.Primary.ID {
+						return fmt.Errorf("tax category (%s) still exists", rs.Primary.ID)
+					}
+					continue
+				}
+
+				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+				if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
+					return err
+				}
+			}
+		case "commercetools_shipping_method":
+			{
+				response, err := conn.ShippingMethodGetWithID(context.Background(), rs.Primary.ID)
+				if err == nil {
+					if response != nil && response.ID == rs.Primary.ID {
+						return fmt.Errorf("shipping method (%s) still exists", rs.Primary.ID)
+					}
+					continue
+				}
+				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+				if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
+					return err
+				}
+			}
+		default:
+			continue
+		}
+	}
 	return nil
 }

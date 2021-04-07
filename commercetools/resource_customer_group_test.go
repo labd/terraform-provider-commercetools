@@ -1,7 +1,13 @@
 package commercetools
 
 import (
+	"context"
+	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
@@ -11,7 +17,7 @@ func TestAccCustomerGroupCreate_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: nil,
+		CheckDestroy: testAccCheckCustomerGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCustomerGroupConfig(),
@@ -74,4 +80,26 @@ resource "commercetools_customer_group" "standard" {
 	name = "Standard name new"
 }
 `
+}
+
+func testAccCheckCustomerGroupDestroy(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*commercetools.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_customer_group" {
+			continue
+		}
+		response, err := conn.CustomerGroupGetWithID(context.Background(), rs.Primary.ID)
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("customer group (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
+			return err
+		}
+	}
+	return nil
 }

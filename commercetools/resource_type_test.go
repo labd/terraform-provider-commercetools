@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -377,6 +378,23 @@ func testAccTypeExists(n string) resource.TestCheckFunc {
 }
 
 func testAccCheckTypesDestroy(s *terraform.State) error {
-	// TODO: Implement
+	conn := testAccProvider.Meta().(*commercetools.Client)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_type" {
+			continue
+		}
+		response, err := conn.TypeGetWithID(context.Background(), rs.Primary.ID)
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("type (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
+			return err
+		}
+	}
 	return nil
 }

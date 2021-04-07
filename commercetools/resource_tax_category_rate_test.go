@@ -1,8 +1,12 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 
@@ -19,7 +23,7 @@ func TestAccTaxCategoryRate_createAndUpdateWithID(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTaxCategoryDestroy,
+		CheckDestroy: testAccCheckTaxCategoryRateDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTaxCategoryRateConfig(name, amount, true, country),
@@ -104,7 +108,7 @@ func TestAccTaxCategoryRate_createAndUpdateSubRates(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTaxCategoryDestroy,
+		CheckDestroy: testAccCheckTaxCategoryRateDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTaxCategoryRateSubRatesConfig(name, subRateAmount, true, country, true),
@@ -209,7 +213,7 @@ func TestAccTaxCategoryRate_createAndUpdateBothRateAndTaxCategory(t *testing.T) 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTaxCategoryDestroy,
+		CheckDestroy: testAccCheckTaxCategoryRateDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTaxCategoryRateDualUpdateConfig("foo", name, amount, true, country),
@@ -274,5 +278,41 @@ resource "commercetools_tax_category_rate" "test_rate" {
 }
 
 func testAccCheckTaxCategoryRateDestroy(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*commercetools.Client)
+	var rateIDs []string
+	// Because we can't directly query for Tax Categories, we are going to loop over the resources twice. Once to store
+	// the tax rate IDs of any rates present, and once to check the categories and their rates
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_tax_category_rate" {
+			continue
+		}
+		rateIDs = append(rateIDs, rs.Primary.ID)
+	}
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_tax_category" {
+			continue
+		}
+		response, err := conn.TaxCategoryGetWithID(context.Background(), rs.Primary.ID)
+		if err == nil {
+			if response != nil && len(response.Rates) > 0 && response.ID == rs.Primary.ID {
+				var trailingTestRates []string
+				for _, rate := range response.Rates {
+					if stringInSlice(rate.ID, rateIDs) {
+						trailingTestRates = append(trailingTestRates, rate.ID)
+					}
+				}
+				return fmt.Errorf("tax category %s still exists with rates (%v)", rs.Primary.ID, trailingTestRates)
+			}
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("tax category (%s) still exists", rs.Primary.ID)
+			}
+			continue
+		}
+
+		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
+		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
+			return err
+		}
+	}
 	return nil
 }
