@@ -3,6 +3,7 @@ package commercetools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -68,6 +69,33 @@ func resourceCustomObjectCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceCustomObjectRead(d *schema.ResourceData, m interface{}) error {
+	container := d.Get("container").(string)
+	key := d.Get("key").(string)
+	log.Printf("[DEBUG] Reading custom object from commercetools with following values\n Container: %s \n Key: %s", container, key)
+	client := getClient(m)
+
+	customObject, err := client.CustomObjectGetWithContainerAndKey(context.Background(), container, key)
+	if err != nil {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+			if ctErr.StatusCode == 404 {
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
+	}
+
+	if customObject == nil {
+		log.Print("[DEBUG] No custom object found")
+		d.SetId("")
+	} else {
+		log.Print("[DEBUG] Found following custom object:")
+		log.Print(stringFormatObject(customObject))
+		d.Set("container", customObject.Container)
+		d.Set("key", customObject.Key)
+		d.Set("value", customObject.Value)
+		d.Set("version", customObject.Version)
+	}
 	return nil
 }
 
@@ -128,6 +156,23 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceCustomObjectDelete(d *schema.ResourceData, m interface{}) error {
+	container := d.Get("container").(string)
+	key := d.Get("key").(string)
+
+	client := getClient(m)
+
+	// Lock to prevent concurrent updates due to Version number conflicts
+	ctMutexKV.Lock(d.Id())
+	defer ctMutexKV.Unlock(d.Id())
+
+	customObject, err := client.CustomObjectGetWithContainerAndKey(context.Background(), container, key)
+	if err != nil {
+		return fmt.Errorf("could not get custom object with container %s and key %s: %w", container, key, err)
+	}
+	_, err = client.CustomObjectDeleteWithContainerAndKey(context.Background(), container, key, customObject.Version, false)
+	if err != nil {
+		return fmt.Errorf("could not delete custom object with container %s and key %s: %w", container, key, err)
+	}
 	return nil
 }
 
