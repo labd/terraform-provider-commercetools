@@ -30,7 +30,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 		CheckDestroy: testAccCheckShippingMethodDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingMethodConfig(name, key, description, false, true, predicate),
+				Config: testAccShippingMethodConfig(name, key, description, description, false, true, predicate),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "name", name,
@@ -42,6 +42,9 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 						"commercetools_shipping_method.standard", "description", description,
 					),
 					resource.TestCheckResourceAttr(
+						"commercetools_shipping_method.standard", "localized_description.en", description,
+					),
+					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "is_default", "false",
 					),
 					resource.TestCheckResourceAttr(
@@ -50,7 +53,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccShippingMethodConfig(newName, newKey, newDescription, true, true, newPredicate),
+				Config: testAccShippingMethodConfig(newName, newKey, newDescription, newDescription, true, true, newPredicate),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "name", newName,
@@ -60,6 +63,9 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "description", newDescription,
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_method.standard", "localized_description.en", newDescription,
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_method.standard", "is_default", "true",
@@ -76,7 +82,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 	})
 }
 
-func testAccShippingMethodConfig(name string, key string, description string, isDefault bool, setTaxCategory bool, predicate string) string {
+func testAccShippingMethodConfig(name string, key string, description string, localizedDescription string, isDefault bool, setTaxCategory bool, predicate string) string {
 	taxCategoryReference := ""
 	if setTaxCategory {
 		taxCategoryReference = "tax_category_id = \"${commercetools_tax_category.test.id}\""
@@ -92,10 +98,14 @@ resource "commercetools_shipping_method" "standard" {
 	name = "%s"
 	key = "%s"
 	description = "%s"
+	localized_description = {
+		en = "%s"
+	}
 	is_default = "%t"
 	predicate = "%s"
+
 	%s
-	`, name, key, description, isDefault, predicate, taxCategoryReference) + "\n}\n"
+	`, name, key, description, localizedDescription, isDefault, predicate, taxCategoryReference) + "\n}\n"
 }
 
 func testAccCheckShippingMethodDestroy(s *terraform.State) error {
