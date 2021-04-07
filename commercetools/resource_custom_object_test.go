@@ -29,7 +29,7 @@ func TestAccCustomObjectCreate_basic(t *testing.T) {
 						"commercetools_custom_object.test_number", "key", "value",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_custom_object.test_number", "value", "10",
+						"commercetools_custom_object.test_number", "value", "{\"number\":10}",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_custom_object.test_number", "version", "1",
@@ -46,7 +46,7 @@ func TestAccCustomObjectCreate_basic(t *testing.T) {
 						"commercetools_custom_object.test_number", "key", "value",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_custom_object.test_number", "value", "20",
+						"commercetools_custom_object.test_number", "value", "{\"number\":20}",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_custom_object.test_number", "version", "2",
@@ -63,7 +63,7 @@ func TestAccCustomObjectCreate_basic(t *testing.T) {
 						"commercetools_custom_object.test_number", "key", "newvalue",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_custom_object.test_number", "value", "20",
+						"commercetools_custom_object.test_number", "value", "{\"number\":20}",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_custom_object.test_number", "version", "1",
@@ -80,7 +80,7 @@ func TestAccCustomObjectCreate_basic(t *testing.T) {
 						"commercetools_custom_object.test_number", "key", "newvalue",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_custom_object.test_number", "value", "20",
+						"commercetools_custom_object.test_number", "value", "{\"number\":20}",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_custom_object.test_number", "version", "1",
@@ -96,7 +96,7 @@ func TestAccCustomObjectCreate_object(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: nil,
+		CheckDestroy: testAccCheckCustomObjectDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCustomObjectNestedData(),
@@ -124,7 +124,9 @@ func testAccCustomObjectNumber() string {
 	resource "commercetools_custom_object" "test_number" {
 		container = "foobar"
 		key = "value"
-		value = jsonencode(10)
+		value = jsonencode({
+			number = 10			
+		})
 	  }`
 }
 
@@ -133,7 +135,9 @@ func testAccCustomObjectNumberUpdateValue() string {
 	resource "commercetools_custom_object" "test_number" {
 		container = "foobar"
 		key = "value"
-		value = jsonencode(20)
+		value = jsonencode({
+			number = 20			
+		})
 	  }`
 }
 
@@ -142,7 +146,9 @@ func testAccCustomObjectNumberUpdateKey() string {
 	resource "commercetools_custom_object" "test_number" {
 		container = "foobar"
 		key = "newvalue"
-		value = jsonencode(20)
+		value = jsonencode({
+			number = 20			
+		})
 	  }`
 }
 
@@ -151,7 +157,9 @@ func testAccCustomObjectNumberUpdateContainer() string {
 	resource "commercetools_custom_object" "test_number" {
 		container = "newbar"
 		key = "newvalue"
-		value = jsonencode(20)
+		value = jsonencode({
+			number = 20			
+		})
 	  }`
 }
 
