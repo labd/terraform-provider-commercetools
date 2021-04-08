@@ -1,5 +1,6 @@
 Unreleased
 ==========
+ - **New resource:** `commercetools_category`
  - Resource API Extension: Removed unused `azure_functions` type
 
 v0.27.0 (2021-03-01)
