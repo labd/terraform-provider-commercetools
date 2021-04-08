@@ -73,7 +73,7 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	localizedDescription := commercetools.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+		expandStringMap(d.Get("localized_description").(map[string]interface{})))
 
 	draft := &commercetools.ShippingMethodDraft{
 		Key:         d.Get("key").(string),
