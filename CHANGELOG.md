@@ -1,7 +1,9 @@
-Unreleased
+v0.28.0 (2021-04-08)
 ==========
  - **New resource:** `commercetools_category`
  - Resource API Extension: Removed unused `azure_functions` type
+ - Add CheckDestroy funcs to all tests
+ - Add TFDocs documentation parallel to readthedocs documentation
 
 v0.27.0 (2021-03-01)
 ====================
