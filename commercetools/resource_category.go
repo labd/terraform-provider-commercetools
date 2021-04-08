@@ -12,6 +12,8 @@ import (
 
 func resourceCategory() *schema.Resource {
 	return &schema.Resource{
+		Description: "Categories allow you to organize products into hierarchical structures.\n\n" +
+			"Also see the [Categories HTTP API documentation](https://docs.commercetools.com/api/projects/categories).",
 		Create: resourceCategoryCreate,
 		Read:   resourceCategoryRead,
 		Update: resourceCategoryUpdate,
@@ -21,9 +23,10 @@ func resourceCategory() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Category-specific unique identifier. Must be unique across a project",
 			},
 			"name": {
 				Type:     TypeLocalizedString,
@@ -35,16 +38,19 @@ func resourceCategory() *schema.Resource {
 				Optional: true,
 			},
 			"slug": {
-				Type:     TypeLocalizedString,
-				Required: true,
+				Type:        TypeLocalizedString,
+				Required:    true,
+				Description: "Human readable identifiers, needs to be unique",
 			},
 			"parent": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A category that is the parent of this category in the category tree",
 			},
 			"order_hint": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "An attribute as base for a custom category order in one level, filled with random value when left empty",
 			},
 			"meta_title": {
 				Type:     TypeLocalizedString,
@@ -59,13 +65,15 @@ func resourceCategory() *schema.Resource {
 				Optional: true,
 			},
 			"assets": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Can be used to store images, icons or movies related to this category",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Optional User-defined identifier for the asset. Asset keys are unique inside their container (in this case the category)",
 						},
 						"name": {
 							Type:     TypeLocalizedString,
@@ -76,9 +84,10 @@ func resourceCategory() *schema.Resource {
 							Optional: true,
 						},
 						"sources": {
-							Type:     schema.TypeList,
-							Optional: true,
-							MinItems: 1,
+							Type:        schema.TypeList,
+							Optional:    true,
+							MinItems:    1,
+							Description: "Array of AssetSource, Has at least one entry",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"uri": {
@@ -86,8 +95,9 @@ func resourceCategory() *schema.Resource {
 										Required: true,
 									},
 									"key": {
-										Type:     schema.TypeString,
-										Optional: true,
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Unique identifier, must be unique within the Asset",
 									},
 									"dimensions": {
 										Type:     schema.TypeMap,
@@ -95,12 +105,14 @@ func resourceCategory() *schema.Resource {
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"w": {
-													Type:     schema.TypeInt,
-													Required: true,
+													Type:        schema.TypeInt,
+													Required:    true,
+													Description: "The width of the asset source",
 												},
 												"h": {
-													Type:     schema.TypeInt,
-													Required: true,
+													Type:        schema.TypeInt,
+													Required:    true,
+													Description: "The height of the asset source",
 												},
 											},
 										},
