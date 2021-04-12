@@ -76,13 +76,13 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 		expandStringMap(d.Get("localized_description").(map[string]interface{})))
 
 	draft := &commercetools.ShippingMethodDraft{
-		Key:         d.Get("key").(string),
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
+		Key:                  d.Get("key").(string),
+		Name:                 d.Get("name").(string),
+		Description:          d.Get("description").(string),
 		LocalizedDescription: &localizedDescription,
-		IsDefault:   d.Get("is_default").(bool),
-		TaxCategory: &taxCategory,
-		Predicate:   d.Get("predicate").(string),
+		IsDefault:            d.Get("is_default").(bool),
+		TaxCategory:          &taxCategory,
+		Predicate:            d.Get("predicate").(string),
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -188,7 +188,7 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 			expandStringMap(d.Get("localized_description").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ShippingMethodSetLocalizedDescriptionAction{LocalizedDescription: newLocalizedDescription}
+			&commercetools.ShippingMethodSetLocalizedDescriptionAction{LocalizedDescription: &newLocalizedDescription})
 	}
 
 	if d.HasChange("is_default") {
