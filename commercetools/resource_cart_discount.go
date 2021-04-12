@@ -502,13 +502,13 @@ func resourceCartDiscountGetValue(d *schema.ResourceData) (commercetools.CartDis
 		draft := &commercetools.CartDiscountValueGiftLineItemDraft{}
 
 		if val := value["supply_channel_id"].(string); len(val) > 0 {
-			draft.SupplyChannel = &commercetools.ChannelReference{ID: val}
+			draft.SupplyChannel = &commercetools.ChannelResourceIdentifier{ID: val}
 		}
 		if val := value["product_id"].(string); len(val) > 0 {
-			draft.Product = &commercetools.ProductReference{ID: val}
+			draft.Product = &commercetools.ProductResourceIdentifier{ID: val}
 		}
 		if val := value["distribution_channel_id"].(string); len(val) > 0 {
-			draft.DistributionChannel = &commercetools.ChannelReference{ID: val}
+			draft.DistributionChannel = &commercetools.ChannelResourceIdentifier{ID: val}
 		}
 
 		draft.VariantID = value["variant"].(int)

@@ -179,7 +179,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 		// set action replaces current values
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StoresSetDistributionChannelsAction{
+			&commercetools.StoreSetDistributionChannelsAction{
 				DistributionChannels: dcIdentifiers,
 			},
 		)
@@ -193,7 +193,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 		// set action replaces current values
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StoresSetSupplyChannelsAction{
+			&commercetools.StoreSetSupplyChannelsAction{
 				SupplyChannels: scIdentifiers,
 			},
 		)
