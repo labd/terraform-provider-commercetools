@@ -41,6 +41,8 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "carts.country_tax_rate_fallback_enabled", "true",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.delete_days_after_last_modification", "7"),
 				),
 			},
 			{
@@ -70,6 +72,9 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "carts.country_tax_rate_fallback_enabled", "false",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.delete_days_after_last_modification", "21",
+					),
 				),
 			},
 			{
@@ -97,7 +102,10 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						"commercetools_project_settings.acctest_project_settings", "external_oauth.authorization_header",
 					),
 					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.country_tax_rate_fallback_enabled",
+						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled",
+					),
+					resource.TestCheckNoResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification",
 					),
 				),
 			},
@@ -125,6 +133,7 @@ func testAccProjectConfig() string {
 			}
 			carts = {
               country_tax_rate_fallback_enabled = true
+              delete_days_after_last_modification = 7
             }
 		}`
 }
@@ -145,6 +154,7 @@ func testAccProjectConfigUpdate() string {
 			}
 			carts = {
               country_tax_rate_fallback_enabled = false
+              delete_days_after_last_modification = 21
             }
 		}`
 }
