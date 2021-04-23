@@ -308,7 +308,7 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 
 		var deleteDaysAfterLastModification int
 		if carts["delete_days_after_last_modification"] != nil {
-			// boolean value is somehow interface{} | string so....
+			// int value is somehow interface{} | string so we have to convert the value
 			var err error
 			deleteDaysAfterLastModification, err = strconv.Atoi(carts["delete_days_after_last_modification"].(string))
 			if err != nil {
