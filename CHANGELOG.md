@@ -1,5 +1,9 @@
+v0.29.0 (2021-04-23)
+====================
+ - Resource Project: Add project level cart `delete_days_after_last_modification` setting
+
 v0.28.0 (2021-04-08)
-==========
+====================
  - **New resource:** `commercetools_category`
  - Resource API Extension: Removed unused `azure_functions` type
  - Add CheckDestroy funcs to all tests

@@ -178,13 +178,10 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("languages", project.Languages)
 	d.Set("external_oauth", project.ExternalOAuth)
 	d.Set("carts", project.Carts)
-	// d.Set("createdAt", project.CreatedAt)
-	// d.Set("trialUntil", project.TrialUntil)
 	log.Print("[DEBUG] Logging messages enabled")
 	log.Print(stringFormatObject(project.Messages))
 	d.Set("messages", project.Messages)
 	log.Print(stringFormatObject(d))
-	// d.Set("shippingRateInputType", project.ShippingRateInputType)
 	return nil
 }
 
@@ -248,7 +245,7 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 	if d.HasChange("messages") {
 		messages := d.Get("messages").(map[string]interface{})
 		if messages["enabled"] != nil {
-			// boolean value is somehow interface{} | string so....
+			// boolean value is somehow interface{} | string so we have to convert it
 			var enabled bool
 			switch messages["enabled"] {
 			case "true":
@@ -290,7 +287,7 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 		carts := d.Get("carts").(map[string]interface{})
 		var fallbackEnabled bool = false
 		if carts["country_tax_rate_fallback_enabled"] != nil {
-			// boolean value is somehow interface{} | string so....
+			// boolean value is somehow interface{} | string so we have to convert it
 			switch carts["country_tax_rate_fallback_enabled"] {
 			case "true":
 				fallbackEnabled = true
