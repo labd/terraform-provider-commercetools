@@ -36,6 +36,11 @@ func resourceShippingMethod() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"localized_description": {
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
+			},
 			"is_default": {
 				Description: "One shipping method in a project can be default",
 				Type:        schema.TypeBool,
@@ -67,13 +72,17 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 		taxCategory.ID = taxCategoryID.(string)
 	}
 
+	localizedDescription := commercetools.LocalizedString(
+		expandStringMap(d.Get("localized_description").(map[string]interface{})))
+
 	draft := &commercetools.ShippingMethodDraft{
-		Key:         d.Get("key").(string),
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
-		IsDefault:   d.Get("is_default").(bool),
-		TaxCategory: &taxCategory,
-		Predicate:   d.Get("predicate").(string),
+		Key:                  d.Get("key").(string),
+		Name:                 d.Get("name").(string),
+		Description:          d.Get("description").(string),
+		LocalizedDescription: &localizedDescription,
+		IsDefault:            d.Get("is_default").(bool),
+		TaxCategory:          &taxCategory,
+		Predicate:            d.Get("predicate").(string),
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -128,6 +137,7 @@ func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("key", shippingMethod.Key)
 		d.Set("name", shippingMethod.Name)
 		d.Set("description", shippingMethod.Description)
+		d.Set("localized_description", shippingMethod.LocalizedDescription)
 		d.Set("is_default", shippingMethod.IsDefault)
 		d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
 		d.Set("predicate", shippingMethod.Predicate)
@@ -171,6 +181,14 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 		input.Actions = append(
 			input.Actions,
 			&commercetools.ShippingMethodSetDescriptionAction{Description: newDescription})
+	}
+
+	if d.HasChange("localized_description") {
+		newLocalizedDescription := commercetools.LocalizedString(
+			expandStringMap(d.Get("localized_description").(map[string]interface{})))
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ShippingMethodSetLocalizedDescriptionAction{LocalizedDescription: &newLocalizedDescription})
 	}
 
 	if d.HasChange("is_default") {
