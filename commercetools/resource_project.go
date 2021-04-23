@@ -3,6 +3,7 @@ package commercetools
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/labd/commercetools-go-sdk/commercetools"
@@ -98,6 +99,13 @@ func resourceProjectSettings() *schema.Resource {
 								"categories of a cart line items",
 							Type:     schema.TypeBool,
 							Required: true,
+						},
+						"delete_days_after_last_modification": {
+							Description: "Number - Optional The default value for the " +
+								"deleteDaysAfterLastModification parameter of the CartDraft. Initially set to 90 for " +
+								"projects created after December 2019.",
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 					}},
 			},
@@ -280,31 +288,41 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 
 	if d.HasChange("carts") {
 		carts := d.Get("carts").(map[string]interface{})
+		var fallbackEnabled bool = false
 		if carts["country_tax_rate_fallback_enabled"] != nil {
 			// boolean value is somehow interface{} | string so....
-			var fallbackEnabled bool
 			switch carts["country_tax_rate_fallback_enabled"] {
 			case "true":
 				fallbackEnabled = true
 			case "false":
-				fallbackEnabled = false
 			default:
 				return fmt.Errorf("invalid value for carts[\"country_tax_rate_fallback_enabled\"]: %s", carts["country_tax_rate_fallback_enabled"])
 			}
-			input.Actions = append(
-				input.Actions,
-				&commercetools.ProjectChangeCountryTaxRateFallbackEnabledAction{
-					CountryTaxRateFallbackEnabled: fallbackEnabled,
-				})
-		} else {
-			// To commercetools this field is not optional, so when deleting we revert to the default: false:
-			input.Actions = append(
-				input.Actions,
-				&commercetools.ProjectChangeCountryTaxRateFallbackEnabledAction{
-					CountryTaxRateFallbackEnabled: false,
-				})
 		}
 
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ProjectChangeCountryTaxRateFallbackEnabledAction{
+				CountryTaxRateFallbackEnabled: fallbackEnabled,
+			})
+
+		var deleteDaysAfterLastModification int
+		if carts["delete_days_after_last_modification"] != nil {
+			// int value is somehow interface{} | string so we have to convert the value
+			var err error
+			deleteDaysAfterLastModification, err = strconv.Atoi(carts["delete_days_after_last_modification"].(string))
+			if err != nil {
+				return fmt.Errorf("invalid value for carts[\"delete_days_after_last_modification\"]: %s", carts["delete_days_after_last_modification"])
+			}
+		}
+
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ProjectChangeCartsConfiguration{
+				CartsConfiguration: &commercetools.CartsConfiguration{
+					DeleteDaysAfterLastModification: deleteDaysAfterLastModification,
+				},
+			})
 	}
 
 	_, err := client.ProjectUpdate(input)
