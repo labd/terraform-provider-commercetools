@@ -1,3 +1,7 @@
+v0.29.1 (2021-05-19)
+====================
+- Fix category create not working with only name and slug filled in
+
 v0.29.0 (2021-04-23)
 ====================
  - Resource Project: Add project level cart `delete_days_after_last_modification` setting
