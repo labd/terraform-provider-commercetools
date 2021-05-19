@@ -145,21 +145,33 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	var category *commercetools.Category
 
 	name := commercetools.LocalizedString(expandStringMap(d.Get("name").(map[string]interface{})))
-	desc := commercetools.LocalizedString(expandStringMap(d.Get("description").(map[string]interface{})))
 	slug := commercetools.LocalizedString(expandStringMap(d.Get("slug").(map[string]interface{})))
-	metaTitle := commercetools.LocalizedString(expandStringMap(d.Get("meta_title").(map[string]interface{})))
-	metaDescription := commercetools.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
-	metaKeywords := commercetools.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
 
 	draft := &commercetools.CategoryDraft{
-		Key:             d.Get("key").(string),
-		Name:            &name,
-		Description:     &desc,
-		Slug:            &slug,
-		OrderHint:       d.Get("order_hint").(string),
-		MetaTitle:       &metaTitle,
-		MetaDescription: &metaDescription,
-		MetaKeywords:    &metaKeywords,
+		Key:       d.Get("key").(string),
+		Name:      &name,
+		Slug:      &slug,
+		OrderHint: d.Get("order_hint").(string),
+	}
+
+	if d.Get("description") != nil {
+		desc := commercetools.LocalizedString(expandStringMap(d.Get("description").(map[string]interface{})))
+		draft.Description = &desc
+	}
+
+	if d.Get("meta_title") != nil {
+		metaTitle := commercetools.LocalizedString(expandStringMap(d.Get("meta_title").(map[string]interface{})))
+		draft.MetaTitle = &metaTitle
+	}
+
+	if d.Get("meta_description") != nil {
+		metaDescription := commercetools.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
+		draft.MetaDescription = &metaDescription
+	}
+
+	if d.Get("meta_keywords") != nil {
+		metaKeywords := commercetools.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
+		draft.MetaKeywords = &metaKeywords
 	}
 
 	if d.Get("parent").(string) != "" {
@@ -224,9 +236,11 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("version", category.Version)
 		d.Set("key", category.Key)
 		d.Set("name", *category.Name)
-		d.Set("description", *category.Description)
 		d.Set("parent", category.Parent)
 		d.Set("order_hint", category.OrderHint)
+		if category.MetaTitle != nil {
+			d.Set("description", *category.Description)
+		}
 		if category.MetaTitle != nil {
 			d.Set("meta_title", *category.MetaTitle)
 		}
