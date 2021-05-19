@@ -3,10 +3,11 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
@@ -21,6 +22,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 			{
 				Config: testAccCategoryConfig(),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories_minimal", "name.en", "accessories_m",
+					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "name.en", "accessories",
 					),
@@ -155,6 +159,15 @@ func testAccCategoryConfig() string {
 		order_hint = "0.00001614336548703960465522"
 	}
 
+	resource "commercetools_category" "accessories_minimal" {
+		name = {
+			en = "accessories_m"
+		}
+		slug = {
+			en = "accessories_m"
+		}
+	}
+
 	resource "commercetools_category" "accessories" {
 		name = {
 			en = "accessories"
@@ -208,6 +221,15 @@ func testAccCategoryUpdate() string {
 			en = "accessories_b"
 		}
 		order_hint = "0.00001614336548703960465522"
+	}
+
+	resource "commercetools_category" "accessories_minimal" {
+		name = {
+			en = "accessories_m"
+		}
+		slug = {
+			en = "accessories_m"
+		}
 	}
 
 	resource "commercetools_category" "accessories" {
