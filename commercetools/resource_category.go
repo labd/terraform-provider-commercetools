@@ -238,7 +238,7 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("name", *category.Name)
 		d.Set("parent", category.Parent)
 		d.Set("order_hint", category.OrderHint)
-		if category.MetaTitle != nil {
+		if category.Description != nil {
 			d.Set("description", *category.Description)
 		}
 		if category.MetaTitle != nil {
