@@ -296,7 +296,7 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 		newVal := d.Get("order_hint").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategorySetKeyAction{Key: newVal})
+			&commercetools.CategoryChangeOrderHintAction{OrderHint: newVal})
 	}
 
 	if d.HasChange("description") {

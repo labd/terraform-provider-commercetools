@@ -1,3 +1,7 @@
+v0.29.2 (2021-05-19)
+====================
+- Fix orderHint not being set but key on category being cleared. Note this will clear orderHint if it's not set.
+
 v0.29.1 (2021-05-19)
 ====================
 - Fix category create not working with only name and slug filled in
