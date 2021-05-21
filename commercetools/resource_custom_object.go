@@ -103,6 +103,9 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	value := _decodeCustomObjectValue(d.Get("value").(string))
 	ctx := context.Background()
+	originalKey, _ := d.GetChange("key")
+	originalContainer, _ := d.GetChange("container")
+	originalVersion, _ := d.GetChange("version")
 
 	if d.HasChange("container") || d.HasChange("key") {
 		// If the container or key has changed we need to delete the old object
@@ -122,15 +125,14 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 
 		_, err = client.CustomObjectDeleteWithContainerAndKey(
 			ctx,
-			d.Get("container").(string),
-			d.Get("key").(string),
-			d.Get("version").(int),
+			originalContainer.(string),
+			originalKey.(string),
+			originalVersion.(int),
 			true,
 		)
 
-		// Do we care? Just log an error for now
 		if err != nil {
-			log.Printf("Failed to remove old custom object")
+			return err
 		}
 	} else {
 
