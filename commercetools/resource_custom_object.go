@@ -135,7 +135,6 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 			return err
 		}
 	} else {
-
 		// Update the value by creating an object with the same key/value.
 		// Commercetools will then update the value of the object if it already
 		// exists
