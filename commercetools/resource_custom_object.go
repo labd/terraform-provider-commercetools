@@ -3,6 +3,7 @@ package commercetools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -68,6 +69,33 @@ func resourceCustomObjectCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceCustomObjectRead(d *schema.ResourceData, m interface{}) error {
+	container := d.Get("container").(string)
+	key := d.Get("key").(string)
+	log.Printf("[DEBUG] Reading custom object from commercetools with following values\n Container: %s \n Key: %s", container, key)
+	client := getClient(m)
+
+	customObject, err := client.CustomObjectGetWithContainerAndKey(context.Background(), container, key)
+	if err != nil {
+		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+			if ctErr.StatusCode == 404 {
+				d.SetId("")
+				return nil
+			}
+		}
+		return err
+	}
+
+	if customObject == nil {
+		log.Print("[DEBUG] No custom object found")
+		d.SetId("")
+	} else {
+		log.Print("[DEBUG] Found following custom object:")
+		log.Print(stringFormatObject(customObject))
+		d.Set("container", customObject.Container)
+		d.Set("key", customObject.Key)
+		d.Set("value", customObject.Value)
+		d.Set("version", customObject.Version)
+	}
 	return nil
 }
 
@@ -75,14 +103,17 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	value := _decodeCustomObjectValue(d.Get("value").(string))
 	ctx := context.Background()
+	originalKey, newKey := d.GetChange("key")
+	originalContainer, newContainer := d.GetChange("container")
+	originalVersion, _ := d.GetChange("version")
 
 	if d.HasChange("container") || d.HasChange("key") {
 		// If the container or key has changed we need to delete the old object
 		// and create the new object. We first want to create the new vlaue and
 		// then the old one
 		draft := commercetools.CustomObjectDraft{
-			Container: d.Get("container").(string),
-			Key:       d.Get("key").(string),
+			Container: newContainer.(string),
+			Key:       newKey.(string),
 			Value:     value,
 		}
 		customObject, err := client.CustomObjectCreate(ctx, &draft)
@@ -94,18 +125,16 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 
 		_, err = client.CustomObjectDeleteWithContainerAndKey(
 			ctx,
-			d.Get("container").(string),
-			d.Get("key").(string),
-			d.Get("version").(int),
+			originalContainer.(string),
+			originalKey.(string),
+			originalVersion.(int),
 			true,
 		)
 
-		// Do we care? Just log an error for now
 		if err != nil {
-			log.Printf("Failed to remove old custom object")
+			return err
 		}
 	} else {
-
 		// Update the value by creating an object with the same key/value.
 		// Commercetools will then update the value of the object if it already
 		// exists
@@ -128,6 +157,23 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceCustomObjectDelete(d *schema.ResourceData, m interface{}) error {
+	container := d.Get("container").(string)
+	key := d.Get("key").(string)
+
+	client := getClient(m)
+
+	// Lock to prevent concurrent updates due to Version number conflicts
+	ctMutexKV.Lock(d.Id())
+	defer ctMutexKV.Unlock(d.Id())
+
+	customObject, err := client.CustomObjectGetWithContainerAndKey(context.Background(), container, key)
+	if err != nil {
+		return fmt.Errorf("could not get custom object with container %s and key %s: %w", container, key, err)
+	}
+	_, err = client.CustomObjectDeleteWithContainerAndKey(context.Background(), container, key, customObject.Version, false)
+	if err != nil {
+		return fmt.Errorf("could not delete custom object with container %s and key %s: %w", container, key, err)
+	}
 	return nil
 }
 

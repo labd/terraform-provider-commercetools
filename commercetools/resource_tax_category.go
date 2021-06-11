@@ -2,7 +2,6 @@ package commercetools
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -42,14 +41,6 @@ func resourceTaxCategory() *schema.Resource {
 			},
 		},
 	}
-}
-
-func resourceTaxCategoryValidateAmount(val interface{}, key string) (warns []string, errs []error) {
-	v := val.(float64)
-	if v < 0 || v > 1 {
-		errs = append(errs, fmt.Errorf("%q must be between 0 and 1 inclusive, got: %f", key, v))
-	}
-	return
 }
 
 func resourceTaxCategoryCreate(d *schema.ResourceData, m interface{}) error {
