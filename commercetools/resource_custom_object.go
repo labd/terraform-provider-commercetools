@@ -103,8 +103,8 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	value := _decodeCustomObjectValue(d.Get("value").(string))
 	ctx := context.Background()
-	originalKey, _ := d.GetChange("key")
-	originalContainer, _ := d.GetChange("container")
+	originalKey, newKey := d.GetChange("key")
+	originalContainer, newContainer := d.GetChange("container")
 	originalVersion, _ := d.GetChange("version")
 
 	if d.HasChange("container") || d.HasChange("key") {
@@ -112,8 +112,8 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 		// and create the new object. We first want to create the new vlaue and
 		// then the old one
 		draft := commercetools.CustomObjectDraft{
-			Container: d.Get("container").(string),
-			Key:       d.Get("key").(string),
+			Container: newContainer.(string),
+			Key:       newKey.(string),
 			Value:     value,
 		}
 		customObject, err := client.CustomObjectCreate(ctx, &draft)
