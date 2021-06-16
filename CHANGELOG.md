@@ -1,3 +1,7 @@
+v0.29.3 (2021-06-16)
+====================
+- Fix custom object not being read / updated correctly
+
 v0.29.2 (2021-05-19)
 ====================
 - Fix orderHint not being set but key on category being cleared. Note this will clear orderHint if it's not set.
