@@ -109,6 +109,33 @@ func resourceProjectSettings() *schema.Resource {
 						},
 					}},
 			},
+			"shipping_rate_input_type": {
+				Description: "Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses " +
+					"the sum of all line item prices, whereas CartClassification and CartScore use the " +
+					"shippingRateInput field on the cart to select a tier",
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"shipping_rate_cart_classification_value": {
+				Description: "If shipping_rate_input_type is set to CartClassification these values are used to create " +
+					"tiers\n. Only a key defined inside the values array can be used to create a tier, or to set a value " +
+					"for the shippingRateInput on the cart. The keys are checked for uniqueness and the request is " +
+					"rejected if keys are not unique",
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"label": {
+							Type:     TypeLocalizedString,
+							Optional: true,
+						},
+					},
+				},
+			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -176,6 +203,7 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("currencies", project.Currencies)
 	d.Set("countries", project.Countries)
 	d.Set("languages", project.Languages)
+	d.Set("shipping_rate_input_type", project.ShippingRateInputType)
 	d.Set("external_oauth", project.ExternalOAuth)
 	d.Set("carts", project.Carts)
 	log.Print("[DEBUG] Logging messages enabled")
@@ -268,6 +296,16 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 
 	}
 
+	if d.HasChange("shipping_rate_input_type") || d.HasChange("shipping_rate_cart_classification_value") {
+		newShippingRateInputType, err := getShippingRateInputType(d)
+		if err != nil {
+			return err
+		}
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ProjectSetShippingRateInputTypeAction{ShippingRateInputType: newShippingRateInputType})
+	}
+
 	if d.HasChange("external_oauth") {
 		externalOAuth := d.Get("external_oauth").(map[string]interface{})
 		if externalOAuth["url"] != nil && externalOAuth["authorization_header"] != nil {
@@ -334,4 +372,35 @@ func getStringSlice(d *schema.ResourceData, field string) []string {
 	}
 
 	return currencyObjects
+}
+
+func getShippingRateInputType(d *schema.ResourceData) (commercetools.ShippingRateInputType, error) {
+	switch d.Get("shipping_rate_input_type").(string) {
+	case "CartValue":
+		return commercetools.CartValueType{}, nil
+	case "CartScore":
+		return commercetools.CartScoreType{}, nil
+	case "CartClassification":
+		values, err := getCartClassificationValues(d)
+		if err != nil {
+			return "", fmt.Errorf("invalid cart classification value: %v, %w", values, err)
+		}
+		return commercetools.CartClassificationType{Values: values}, nil
+	default:
+		return "", fmt.Errorf("shipping rate input type %s not implemented", d.Get("shipping_rate_input_type").(string))
+	}
+}
+
+func getCartClassificationValues(d *schema.ResourceData) ([]commercetools.CustomFieldLocalizedEnumValue, error) {
+	var values []commercetools.CustomFieldLocalizedEnumValue
+	data := d.Get("shipping_rate_cart_classification_value").([]interface{})
+	for _, item := range data {
+		itemMap := item.(map[string]interface{})
+		label := commercetools.LocalizedString(expandStringMap(itemMap["label"].(map[string]interface{})))
+		values = append(values, commercetools.CustomFieldLocalizedEnumValue{
+			Label: &label,
+			Key:   itemMap["key"].(string),
+		})
+	}
+	return values, nil
 }

@@ -38,6 +38,8 @@ These can have the following arguments:
 * `shipping_zone_id` - Id of the shipping zone.
 * `price` - Single entry configuring the price of the shipping cost to the specified zone.
 * `free_above` - Single entry configuring the threshold for free shipping to the specified zone.
+* `shipping_rate_price_tier` - If price tiers are enabled on the project. This field can be used to set a price tier which 
+  is selected instead of the default price when a certain threshold or specific cart value is reached
 
 ## Example Usage
 
@@ -71,6 +73,26 @@ resource "commercetools_shipping_zone_rate" "standard-de" {
   free_above {
     cent_amount   = 50000
     currency_code = "EUR"
+  }
+
+  shipping_rate_price_tier {
+    type                = "CartScore"
+    score               = 10
+
+    price {
+      cent_amount      = 5000
+      currency_code    = "%[3]s"
+    }
+  }
+
+  shipping_rate_price_tier {
+    type                = "CartScore"
+    score               = 20
+
+    price {
+      cent_amount      = 2000
+      currency_code    = "%[3]s"
+    }
   }
 }
 ```
