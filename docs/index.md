@@ -48,10 +48,9 @@ provider "commercetools" {
   client_id     = "<your client id>"
   client_secret = "<your client secret>"
   project_key   = "<your project key>"
-  project_key   = "<your project key>"
   scopes        = "<space seperated list of scopes>"
   api_url       = "<api url>"
-  token_url     = "<token url>"
+  auth_url      = "<auth url>"
 }
 ```
 
@@ -78,7 +77,7 @@ docker build . -t terraform-with-provider-commercetools:latest
 ```
 Then you can run a terraform command on files in the current directory with:
 ```sh
-docker run -v${pwd}:/config terraform-with-provider-commercetools:latest <CMD>
+docker run -v "$(pwd)":/config terraform-with-provider-commercetools:latest <CMD>
 ```
 ## Authors
 This project is developed by [Lab Digital](https://www.labdigital.nl). We
