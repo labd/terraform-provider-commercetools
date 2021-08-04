@@ -1,3 +1,9 @@
+v0.30.0 (2021-08-04)
+====================
+- Resource project: Add `shipping_rate_input_type` setting to enable tiered pricing for a project
+- Resource shipping_zone_rate: Add `shipping_rate_price_tier` setting to set up tiered pricing
+
+
 v0.29.3 (2021-06-16)
 ====================
 - Fix custom object not being read / updated correctly
@@ -23,8 +29,8 @@ v0.28.0 (2021-04-08)
 
 v0.27.0 (2021-03-01)
 ====================
- - Resource project: Add `carts` field with countryTaxRateFallBackEnabled setting 
- - Resource project: Fix updating of `messages` field to explicitly set `false` when deleted or set to false in terraform instead of relying on commercetools default settings for project in these scenarios 
+ - Resource project: Add `carts` field with countryTaxRateFallBackEnabled setting
+ - Resource project: Fix updating of `messages` field to explicitly set `false` when deleted or set to false in terraform instead of relying on commercetools default settings for project in these scenarios
 
 v0.26.1 (2021-01-21)
 ====================
