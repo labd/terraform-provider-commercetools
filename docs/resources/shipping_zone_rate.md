@@ -47,3 +47,16 @@ Required:
 - **currency_code** (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
 
 
+
+<a id="nestedblock--shipping_rate_price_tier"></a>
+### Nested Schema for `shipping_rate_price_tier`
+
+Required:
+
+- **type** (String) CartValue
+- **minimum_cent_amount** (Number) The amout of cents which triggers this tier
+- **price**
+  - **cent_amount** (Number) The amount in cents (the smallest indivisible unit of the currency)
+  - **currency_code** (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
+
+
