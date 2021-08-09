@@ -530,7 +530,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		if enumType, ok := newFieldType.(platform.AttributeSetType); ok {
 
 			myOldFieldType := oldFieldType["element_type"].([]interface{})[0].(map[string]interface{})
-			actions = handlePlainEnumTypeChanges(newFieldType, oldFieldType, actions, name)
+			actions = handlePlainEnumTypeChanges(enumType.ElementType, myOldFieldType, actions, name)
 			actions = handleLocalizedEnumTypeChanges(enumType.ElementType, myOldFieldType, actions, name)
 
 			log.Printf("[DEBUG] Set detected: %s", name)
@@ -563,21 +563,21 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 	return actions, nil
 }
 
-func removeEnumValues(oldEnumKeys []map[string]interface{}, newEnumKeys []platform.AttributeLocalizedEnumValue, name string) *platform.ProductTypeRemoveEnumValuesAction {
+func removeEnumValues(oldEnumKeys []string, newEnumKeys []string, name string) *platform.ProductTypeRemoveEnumValuesAction {
 	var removeEnumKeys []string
-	for _, value := range oldEnumKeys {
+	for _, oldEnumKey := range oldEnumKeys {
 
 		idx := -1
 
-		for key, newValue := range newEnumKeys {
-			if newValue.Key == value["key"] {
+		for key, newEnumValueKey := range newEnumKeys {
+			if newEnumValueKey == oldEnumKey {
 				idx = key
 				break
 			}
 		}
 
 		if idx == -1 {
-			removeEnumKeys = append(removeEnumKeys, value["key"].(string))
+			removeEnumKeys = append(removeEnumKeys, oldEnumKey)
 		}
 	}
 
@@ -593,10 +593,19 @@ func removeEnumValues(oldEnumKeys []map[string]interface{}, newEnumKeys []platfo
 func handlePlainEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map[string]interface{}, actions []platform.ProductTypeUpdateAction, name string) []platform.ProductTypeUpdateAction {
 	if enumType, ok := newFieldType.(platform.AttributeEnumType); ok {
 		oldEnumV := oldFieldType["values"].(map[string]interface{})
+		oldEnumKeys := make([]string, 0)
+		newEnumKeys := make([]string, 0)
+		addRemoveEnumValue := false
+
+		for key := range oldEnumV {
+			oldEnumKeys = append(oldEnumKeys, key)
+		}
 
 		for i, enumValue := range enumType.Values {
+			newEnumKeys = append(newEnumKeys, enumValue.Key)
 			if _, ok := oldEnumV[enumValue.Key]; !ok {
 				// Key does not appear in old enum values, so we'll add it
+				addRemoveEnumValue = true
 				actions = append(
 					actions,
 					platform.ProductTypeAddPlainEnumValueAction{
@@ -606,32 +615,52 @@ func handlePlainEnumTypeChanges(newFieldType platform.AttributeType, oldFieldTyp
 			}
 		}
 
-		// Action: changePlainEnumValueOrder
-		// TODO: Change the order of EnumValues: https://docs.commercetools.com/http-api-projects-productTypes.html#change-the-order-of-enumvalues
+		action := removeEnumValues(oldEnumKeys, newEnumKeys, name)
 
+		if action != nil {
+			addRemoveEnumValue = true
+			actions = append(actions, action)
+		}
+
+		//if we remove enum values from the list and add at the same new ones, we should not try to change also the order at the same point
+		if addRemoveEnumValue {
+			return actions
+		}
+
+		// todo that this works we need to move away from typemap for enumvalues to use typelist
+		if len(oldEnumKeys) == len(newEnumKeys) && orderChanged(newEnumKeys, oldEnumKeys) {
+			actions = append(
+				actions,
+				platform.ProductTypeChangePlainEnumValueOrderAction{Values: enumType.Values, AttributeName: name})
+		}
+
+		return actions
 	}
 
 	return actions
 }
 
 func handleLocalizedEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map[string]interface{}, actions []platform.ProductTypeUpdateAction, name string) []platform.ProductTypeUpdateAction {
-	oldEnumKeys := make([]map[string]interface{}, 0)
-	newEnumKeys := make([]platform.AttributeLocalizedEnumValue, 0)
-	addRemoveEnumValue := false
 	if enumType, ok := newFieldType.(platform.AttributeLocalizedEnumType); ok {
 		oldEnumV := oldFieldType["localized_value"].([]interface{})
+		oldEnumKeys := make([]string, 0)
+		oldEnumValues := make([]map[string]interface{}, 0)
+		newEnumKeys := make([]string, 0)
+		addRemoveEnumValue := false
 
 		for _, value := range oldEnumV {
-			oldEnumKeys = append(oldEnumKeys, value.(map[string]interface{}))
+			v := value.(map[string]interface{})
+			oldEnumKeys = append(oldEnumKeys, v["key"].(string))
+			oldEnumValues = append(oldEnumValues, v)
 		}
 
 		for i, enumValue := range enumType.Values {
-			newEnumKeys = append(newEnumKeys, enumValue)
+			newEnumKeys = append(newEnumKeys, enumValue.Key)
 
 			idx := -1
 
-			for key, value := range oldEnumKeys {
-				if value["key"].(string) == enumValue.Key {
+			for key, oldEnumKey := range oldEnumKeys {
+				if oldEnumKey == enumValue.Key {
 					idx = key
 					break
 				}
@@ -647,7 +676,7 @@ func handleLocalizedEnumTypeChanges(newFieldType platform.AttributeType, oldFiel
 						Value:         enumType.Values[i],
 					})
 			} else {
-				labelChanged := !localizedStringCompare(enumValue.Label, oldEnumKeys[idx]["label"].(map[string]interface{}))
+				labelChanged := !localizedStringCompare(*enumValue.Label, oldEnumValues[idx]["label"].(map[string]interface{}))
 				if labelChanged {
 					actions = append(
 						actions,
@@ -671,21 +700,10 @@ func handleLocalizedEnumTypeChanges(newFieldType platform.AttributeType, oldFiel
 			return actions
 		}
 
-		listOfOldKeys := make([]string, 0)
-		listOfNewEnumKeys := make([]string, 0)
-
-		for _, value := range oldEnumKeys {
-			listOfOldKeys = append(listOfOldKeys, value["key"].(string))
-		}
-
-		for _, value := range newEnumKeys {
-			listOfNewEnumKeys = append(listOfNewEnumKeys, value.Key)
-		}
-
-		if len(listOfOldKeys) == len(listOfNewEnumKeys) && orderChanged(listOfNewEnumKeys, listOfOldKeys) {
+		if len(oldEnumKeys) == len(newEnumKeys) && orderChanged(newEnumKeys, oldEnumKeys) {
 			actions = append(
 				actions,
-				platform.ProductTypeChangeLocalizedEnumValueOrderAction{Values: newFieldType.(platform.AttributeLocalizedEnumType).Values, AttributeName: name})
+				platform.ProductTypeChangeLocalizedEnumValueOrderAction{Values: enumType.Values, AttributeName: name})
 		}
 
 		return actions
