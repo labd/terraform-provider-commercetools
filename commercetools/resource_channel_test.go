@@ -3,6 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -10,7 +11,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+func skipMockServer(t *testing.T) {
+	if os.Getenv("CTP_CLIENT_ID") == "unittest" {
+		t.Skip("Skipping testing with mock server as the implementation can not handle custom fields with key reference instead of id reference")
+	}
+}
+
 func TestAccChannelCreate_basic(t *testing.T) {
+
+	skipMockServer(t)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -74,6 +83,8 @@ func TestAccChannelCreate_basic(t *testing.T) {
 }
 
 func TestAccChannelCreate_updateCustom(t *testing.T) {
+
+	skipMockServer(t)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
