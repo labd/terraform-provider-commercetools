@@ -41,13 +41,13 @@ func TestAccChannelCreate_basic(t *testing.T) {
 						"commercetools_channel.standard", "custom.0.type_key", "channel-test",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_channel.standard", "custom.0.field.0.key", "carrier",
+						"commercetools_channel.standard", "custom.0.field.0.name", "carrier",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_channel.standard", "custom.0.field.0.value", "\"example\"",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_channel.standard", "custom.0.field.1.key", "meal",
+						"commercetools_channel.standard", "custom.0.field.1.name", "meal",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_channel.standard", "custom.0.field.1.value", "{\"en-GB\":\"lunch\"}",
@@ -67,16 +67,16 @@ func TestAccChannelCreate_basic(t *testing.T) {
 						"commercetools_channel.standard", "custom.0.type_key", "channel-test",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_channel.standard", "custom.0.field.0.key", "carrier",
+						"commercetools_channel.standard", "custom.0.field.1.name", "carrier",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_channel.standard", "custom.0.field.0.value", "\"dhl\"",
+						"commercetools_channel.standard", "custom.0.field.1.value", "\"dhl\"",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_channel.standard", "custom.0.field.1.key", "meal",
+						"commercetools_channel.standard", "custom.0.field.0.name", "meal",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_channel.standard", "custom.0.field.1.value", "{\"de-DE\":\"Mittag\",\"en-GB\":\"lunch\"}",
+						"commercetools_channel.standard", "custom.0.field.0.value", "{\"de-DE\":\"Mittag\",\"en-GB\":\"lunch\"}",
 					),
 				),
 			},
@@ -117,16 +117,16 @@ func TestAccChannelCreate_updateCustom(t *testing.T) {
 						"commercetools_channel.standard", "custom.0.type_key", "channel-test",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_channel.standard", "custom.0.field.0.key", "carrier",
+						"commercetools_channel.standard", "custom.0.field.1.name", "carrier",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_channel.standard", "custom.0.field.0.value", "\"dhl\"",
+						"commercetools_channel.standard", "custom.0.field.1.value", "\"dhl\"",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_channel.standard", "custom.0.field.1.key", "meal",
+						"commercetools_channel.standard", "custom.0.field.0.name", "meal",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_channel.standard", "custom.0.field.1.value", "{\"de-DE\":\"Mittag\",\"en-GB\":\"lunch\"}",
+						"commercetools_channel.standard", "custom.0.field.0.value", "{\"de-DE\":\"Mittag\",\"en-GB\":\"lunch\"}",
 					),
 				),
 			},
@@ -183,12 +183,12 @@ resource "commercetools_channel" "standard" {
  	custom {
 		type_key = "channel-test"
 		field {
-		  key = "carrier"
+		  name = "carrier"
 		  value = jsonencode("example")
 		}
 
 		field {
-		  key = "meal"
+		  name = "meal"
 		  value = jsonencode({
 			"en-GB": "lunch",
 		  })
@@ -298,16 +298,16 @@ resource "commercetools_channel" "standard" {
 		type_key = "channel-test"
 
 		field {
-		  key = "carrier"
-		  value = jsonencode("dhl")
-		}
-
-		field {
-		  key = "meal"
+		  name = "meal"
 		  value = jsonencode({
 			"en-GB": "lunch",
 			"de-DE": "Mittag",
 		  })
+		}
+
+		field {
+		  name = "carrier"
+		  value = jsonencode("dhl")
 		}
 	}
 }

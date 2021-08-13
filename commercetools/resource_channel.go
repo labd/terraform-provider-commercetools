@@ -65,14 +65,15 @@ func resourceChannel() *schema.Resource {
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"key": {
-										Type:     schema.TypeString,
-										Required: true,
+									"name": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The field name of a custom field (https://docs.commercetools.com/api/projects/channels#set-customfield)",
 									},
 									"value": {
 										Type:        schema.TypeString,
 										Optional:    true,
-										Description: "The value of a custom field (https://docs.commercetools.com/api/projects/channels#set-customfield)",
+										Description: "The value of a custom field (https://docs.commercetools.com/api/projects/channels#set-customfield) expected as json encoded field to handle all different cases",
 									},
 								},
 							},
@@ -146,7 +147,7 @@ func getCustomFieldsData(d *schema.ResourceData) (*commercetools.TypeResourceIde
 	fields := &commercetools.FieldContainer{}
 
 	for _, fieldDef := range custom["field"].([]interface{}) {
-		key := fieldDef.(map[string]interface{})["key"].(string)
+		key := fieldDef.(map[string]interface{})["name"].(string)
 		value := fieldDef.(map[string]interface{})["value"].(string)
 		decodedValue := _decodeCustomFieldValue(value)
 
@@ -204,18 +205,46 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 	if channel.Custom != nil {
 		data := _decodeCustomFieldValue(_encodeCustomFieldValue(channel.Custom.Fields))
 
-		customFields := make([]interface{}, 0)
+		customStateFields := make([]interface{}, 0)
+
+		//if the length would be 0 we are reading from a remote channel which has already custom fields set
+		//but the terraform state does not match it yet
+		//for the case that we read from the remote channel and the state has custom fields we will use the order of the
+		//existing terraform state all additional fields will be added to the state at then end of the list
+		if len(d.Get("custom").([]interface{})) != 0 {
+			customState := d.Get("custom").([]interface{})[0].(map[string]interface{})
+
+			customStateFields = customState["field"].([]interface{})
+		}
 
 		for fieldKey, fieldValue := range data.(map[string]interface{}) {
-			customFields = append(customFields, map[string]interface{}{
-				"key":   fieldKey,
-				"value": _encodeCustomFieldValue(fieldValue),
-			})
+
+			idx := -1
+
+			for i := range customStateFields {
+				if customStateFields[i].(map[string]interface{})["name"] == fieldKey {
+					idx = i
+					break
+				}
+			}
+
+			//add to list of fields as the state does not know about this field but remote it exists
+			if idx == -1 {
+
+				customStateFields = append(customStateFields, map[string]interface{}{
+					"name":  fieldKey,
+					"value": _encodeCustomFieldValue(fieldValue),
+				})
+				continue
+			}
+
+			//update field value
+			customStateFields[idx].(map[string]interface{})["value"] = _encodeCustomFieldValue(fieldValue)
 		}
 
 		customBase := []interface{}{map[string]interface{}{
 			"type_key": channel.Custom.Type.Obj.Key,
-			"field":    customFields,
+			"field":    customStateFields,
 		}}
 
 		if err := d.Set("custom", customBase); err != nil {
