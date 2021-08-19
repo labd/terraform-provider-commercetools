@@ -38,8 +38,9 @@ func resourceAPIClient() *schema.Resource {
 				ForceNew:    true,
 			},
 			"secret": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
 			},
 		},
 	}
