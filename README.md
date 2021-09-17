@@ -63,7 +63,7 @@ $ make build
 To then locally test:
 
 ```sh
-$ cp terraform-provider-commercetools ~/.terraform.d/plugins/darwin_amd64/terraform-provider-commercetools
+$ cp terraform-provider-commercetools_${LOCAL_TEST_VERSION} ~/.terraform.d/plugins/local/labd/commercetools/${LOCAL_TEST_VERSION}/${OS_ARCH}/terraform-provider-commercetools_${LOCAL_TEST_VERSION}
 ```
 
 ### Update commercetools-go-sdk
