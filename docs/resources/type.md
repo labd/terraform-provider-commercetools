@@ -68,7 +68,7 @@ resource "commercetools_type" "my-custom-type" {
 
     type {
       name = "Set"
-      element_type {
+      element_type = {
         name = "String"
       }
     }
