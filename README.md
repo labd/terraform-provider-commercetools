@@ -4,20 +4,21 @@
 [![codecov](https://codecov.io/gh/LabD/terraform-provider-commercetools/branch/master/graph/badge.svg)](https://codecov.io/gh/LabD/terraform-provider-commercetools)
 [![Go Report Card](https://goreportcard.com/badge/github.com/labd/terraform-provider-commercetools)](https://goreportcard.com/report/github.com/labd/terraform-provider-commercetools)
 
-# Status
 
-This is the Terraform provider for commercetools. It allows you to configure
+The Terraform commercetools provider allows you to configure 
 your [commercetools](https://commercetools.com/) project with
-infrastructure-as-code principles. The project is in development and it might
-not support the complete commercetools API yet, but it can be considered
-'production' ready for the resource it does support.
+infrastructure-as-code principles. 
 
 # Commercial support
 
 Need support implementing this terraform module in your organization? We are
 able to offer support. Please contact us at opensource@labdigital.nl
 
-# Installation
+# Quick start
+
+[Read our documentation](https://registry.terraform.io/providers/labd/commercetools/latest/docs)
+and check out the [examples](https://registry.terraform.io/providers/labd/commercetools/latest/docs/guides/examples).
+
 
 ## Terraform registry
 
@@ -34,17 +35,12 @@ terraform {
 }
 ```
 
-## Binaries
+# Binaries
 
 Packages of the releases are available at
 https://github.com/labd/terraform-provider-commercetools/releases See the
 [terraform documentation](https://www.terraform.io/docs/configuration/providers.html#third-party-plugins)
 for more information about installing third-party providers.
-
-# Getting started
-
-[Read our documentation](https://registry.terraform.io/providers/labd/commercetools/latest/docs)
-and check out the [examples](https://registry.terraform.io/providers/labd/commercetools/latest/docs/guides/examples).
 
 # Contributing
 
