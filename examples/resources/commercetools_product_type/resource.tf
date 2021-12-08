@@ -55,7 +55,7 @@ resource "commercetools_product_type" "my-product-type" {
             en = "Previous model"
             nl = "Vorig model"
         }
-        type = {
+        type {
             name = "reference"
             reference_type_id = "product"
         }

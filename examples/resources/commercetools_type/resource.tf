@@ -44,7 +44,7 @@ resource "commercetools_type" "my-custom-type" {
       nl = "Emails"
     }
 
-    type = {
+    type {
       name = "Set"
       element_type {
         name = "String"

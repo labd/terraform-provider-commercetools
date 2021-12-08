@@ -65,7 +65,7 @@ resource "commercetools_type" "my-custom-type" {
       nl = "Emails"
     }
 
-    type = {
+    type {
       name = "Set"
       element_type {
         name = "String"
@@ -225,7 +225,7 @@ element_type {
 So a `set` would look like this:
 
 ```hcl
-type = {
+type {
   name = "Set"
   element_type {
     name = "String"
