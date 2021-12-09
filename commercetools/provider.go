@@ -1,14 +1,13 @@
 package commercetools
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/mutexkv"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 	"golang.org/x/oauth2/clientcredentials"
 )
 
@@ -97,18 +96,18 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Scopes:       oauthScopes,
 		TokenURL:     fmt.Sprintf("%s/oauth/token", authURL),
 	}
-	httpClient := oauth2Config.Client(context.TODO())
 
-	client := commercetools.New(&commercetools.Config{
-		ProjectKey:   projectKey,
-		URL:          apiURL,
-		HTTPClient:   httpClient,
-		LibraryName:  "terraform-provider-commercetools",
-		ContactURL:   "https://labdigital.nl",
-		ContactEmail: "opensource@labdigital.nl",
+	client, err := platform.NewClient(&platform.ClientConfig{
+		URL:         apiURL,
+		Credentials: oauth2Config,
+		UserAgent:   fmt.Sprintf("%s (terraform-provider-commercetools)", platform.GetUserAgent()),
 	})
 
-	return client, nil
+	if err != nil {
+		return nil, err
+	}
+
+	return client.WithProjectKey(projectKey), err
 }
 
 // This is a global MutexKV for use within this plugin.

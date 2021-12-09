@@ -1,15 +1,16 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
-// TODO: A lot of fields are optional in this schema that are not optional in commercetools. When not set via terraform
+// TODO: A lot of fields are optional in this schema that are not optional in platform. When not set via terraform
 // commercetools simply sets the default values for these fields. This works but can be a little confusing. It is worth
 // considering whether to align the optional/required status of the fields in the provider with that of the API itself
 func resourceProjectSettings() *schema.Resource {
@@ -147,9 +148,9 @@ func resourceProjectSettings() *schema.Resource {
 func resourceProjectExists(d *schema.ResourceData, m interface{}) (bool, error) {
 	client := getClient(m)
 
-	_, err := client.ProjectGet()
+	_, err := client.Get().Execute(context.Background())
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				return false, nil
 			}
@@ -161,10 +162,10 @@ func resourceProjectExists(d *schema.ResourceData, m interface{}) (bool, error) 
 
 func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	project, err := client.ProjectGet()
+	project, err := client.Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				return nil
 			}
@@ -183,10 +184,10 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading projects from commercetools")
 	client := getClient(m)
 
-	project, err := client.ProjectGet()
+	project, err := client.Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				return nil
 			}
@@ -228,46 +229,46 @@ func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version int) error {
-	input := &commercetools.ProjectUpdateInput{
+func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestBuilder, version int) error {
+	input := platform.ProjectUpdate{
 		Version: version,
-		Actions: []commercetools.ProjectUpdateAction{},
+		Actions: []platform.ProjectUpdateAction{},
 	}
 
 	if d.HasChange("name") {
-		input.Actions = append(input.Actions, &commercetools.ProjectChangeNameAction{Name: d.Get("name").(string)})
+		input.Actions = append(input.Actions, &platform.ProjectChangeNameAction{Name: d.Get("name").(string)})
 	}
 
 	if d.HasChange("currencies") {
-		newCurrencies := []commercetools.CurrencyCode{}
+		newCurrencies := []string{}
 		for _, item := range getStringSlice(d, "currencies") {
-			newCurrencies = append(newCurrencies, commercetools.CurrencyCode(item))
+			newCurrencies = append(newCurrencies, item)
 		}
 
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProjectChangeCurrenciesAction{Currencies: newCurrencies})
+			&platform.ProjectChangeCurrenciesAction{Currencies: newCurrencies})
 	}
 
 	if d.HasChange("countries") {
-		newCountries := []commercetools.CountryCode{}
+		newCountries := []string{}
 		for _, item := range getStringSlice(d, "countries") {
-			newCountries = append(newCountries, commercetools.CountryCode(item))
+			newCountries = append(newCountries, item)
 		}
 
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProjectChangeCountriesAction{Countries: newCountries})
+			&platform.ProjectChangeCountriesAction{Countries: newCountries})
 	}
 
 	if d.HasChange("languages") {
-		newLanguages := []commercetools.Locale{}
+		newLanguages := []string{}
 		for _, item := range getStringSlice(d, "languages") {
-			newLanguages = append(newLanguages, commercetools.Locale(item))
+			newLanguages = append(newLanguages, item)
 		}
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProjectChangeLanguagesAction{Languages: newLanguages})
+			&platform.ProjectChangeLanguagesAction{Languages: newLanguages})
 	}
 
 	if d.HasChange("messages") {
@@ -286,12 +287,12 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 
 			input.Actions = append(
 				input.Actions,
-				&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: enabled})
+				&platform.ProjectChangeMessagesEnabledAction{MessagesEnabled: enabled})
 		} else {
 			// To commercetools this field is not optional, so when deleting we revert to the default: false:
 			input.Actions = append(
 				input.Actions,
-				&commercetools.ProjectChangeMessagesEnabledAction{MessagesEnabled: false})
+				&platform.ProjectChangeMessagesEnabledAction{MessagesEnabled: false})
 		}
 
 	}
@@ -303,21 +304,21 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 		}
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProjectSetShippingRateInputTypeAction{ShippingRateInputType: newShippingRateInputType})
+			&platform.ProjectSetShippingRateInputTypeAction{ShippingRateInputType: &newShippingRateInputType})
 	}
 
 	if d.HasChange("external_oauth") {
 		externalOAuth := d.Get("external_oauth").(map[string]interface{})
 		if externalOAuth["url"] != nil && externalOAuth["authorization_header"] != nil {
-			newExternalOAuth := commercetools.ExternalOAuth{
-				URL:                 externalOAuth["url"].(string),
+			newExternalOAuth := platform.ExternalOAuth{
+				Url:                 externalOAuth["url"].(string),
 				AuthorizationHeader: externalOAuth["authorization_header"].(string),
 			}
 			input.Actions = append(
 				input.Actions,
-				&commercetools.ProjectSetExternalOAuthAction{ExternalOAuth: &newExternalOAuth})
+				&platform.ProjectSetExternalOAuthAction{ExternalOAuth: &newExternalOAuth})
 		} else {
-			input.Actions = append(input.Actions, &commercetools.ProjectSetExternalOAuthAction{ExternalOAuth: nil})
+			input.Actions = append(input.Actions, &platform.ProjectSetExternalOAuthAction{ExternalOAuth: nil})
 		}
 	}
 
@@ -337,7 +338,7 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProjectChangeCountryTaxRateFallbackEnabledAction{
+			&platform.ProjectChangeCountryTaxRateFallbackEnabledAction{
 				CountryTaxRateFallbackEnabled: fallbackEnabled,
 			})
 
@@ -353,14 +354,14 @@ func projectUpdate(d *schema.ResourceData, client *commercetools.Client, version
 
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProjectChangeCartsConfiguration{
-				CartsConfiguration: &commercetools.CartsConfiguration{
-					DeleteDaysAfterLastModification: deleteDaysAfterLastModification,
+			&platform.ProjectChangeCartsConfiguration{
+				CartsConfiguration: &platform.CartsConfiguration{
+					DeleteDaysAfterLastModification: intRef(deleteDaysAfterLastModification),
 				},
 			})
 	}
 
-	_, err := client.ProjectUpdate(input)
+	_, err := client.Post(input).Execute(context.Background())
 	return err
 }
 
@@ -374,31 +375,31 @@ func getStringSlice(d *schema.ResourceData, field string) []string {
 	return currencyObjects
 }
 
-func getShippingRateInputType(d *schema.ResourceData) (commercetools.ShippingRateInputType, error) {
+func getShippingRateInputType(d *schema.ResourceData) (platform.ShippingRateInputType, error) {
 	switch d.Get("shipping_rate_input_type").(string) {
 	case "CartValue":
-		return commercetools.CartValueType{}, nil
+		return platform.CartValueType{}, nil
 	case "CartScore":
-		return commercetools.CartScoreType{}, nil
+		return platform.CartScoreType{}, nil
 	case "CartClassification":
 		values, err := getCartClassificationValues(d)
 		if err != nil {
 			return "", fmt.Errorf("invalid cart classification value: %v, %w", values, err)
 		}
-		return commercetools.CartClassificationType{Values: values}, nil
+		return platform.CartClassificationType{Values: values}, nil
 	default:
 		return "", fmt.Errorf("shipping rate input type %s not implemented", d.Get("shipping_rate_input_type").(string))
 	}
 }
 
-func getCartClassificationValues(d *schema.ResourceData) ([]commercetools.CustomFieldLocalizedEnumValue, error) {
-	var values []commercetools.CustomFieldLocalizedEnumValue
+func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomFieldLocalizedEnumValue, error) {
+	var values []platform.CustomFieldLocalizedEnumValue
 	data := d.Get("shipping_rate_cart_classification_value").([]interface{})
 	for _, item := range data {
 		itemMap := item.(map[string]interface{})
-		label := commercetools.LocalizedString(expandStringMap(itemMap["label"].(map[string]interface{})))
-		values = append(values, commercetools.CustomFieldLocalizedEnumValue{
-			Label: &label,
+		label := platform.LocalizedString(expandStringMap(itemMap["label"].(map[string]interface{})))
+		values = append(values, platform.CustomFieldLocalizedEnumValue{
+			Label: label,
 			Key:   itemMap["key"].(string),
 		})
 	}

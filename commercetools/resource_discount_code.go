@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceDiscountCode() *schema.Resource {
@@ -92,21 +92,21 @@ func resourceDiscountCode() *schema.Resource {
 
 func resourceDiscountCodeCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	var discountCode *commercetools.DiscountCode
+	var discountCode *platform.DiscountCode
 
-	name := commercetools.LocalizedString(
+	name := platform.LocalizedString(
 		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := commercetools.LocalizedString(
+	description := platform.LocalizedString(
 		expandStringMap(d.Get("description").(map[string]interface{})))
 
-	draft := &commercetools.DiscountCodeDraft{
+	draft := platform.DiscountCodeDraft{
 		Name:                       &name,
 		Description:                &description,
 		Code:                       d.Get("code").(string),
-		CartPredicate:              d.Get("predicate").(string),
-		IsActive:                   d.Get("is_active").(bool),
-		MaxApplicationsPerCustomer: d.Get("max_applications_per_customer").(int),
-		MaxApplications:            d.Get("max_applications").(int),
+		CartPredicate:              stringRef(d.Get("predicate")),
+		IsActive:                   boolRef(d.Get("is_active")),
+		MaxApplicationsPerCustomer: intRef(d.Get("max_applications_per_customer")),
+		MaxApplications:            intRef(d.Get("max_applications")),
 		Groups:                     resourceDiscountCodeGetGroups(d),
 		CartDiscounts:              resourceDiscountCodeGetCartDiscounts(d),
 	}
@@ -129,7 +129,7 @@ func resourceDiscountCodeCreate(d *schema.ResourceData, m interface{}) error {
 	errorResponse := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		discountCode, err = client.DiscountCodeCreate(context.Background(), draft)
+		discountCode, err = client.DiscountCodes().Post(draft).Execute(context.Background())
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -156,10 +156,10 @@ func resourceDiscountCodeRead(d *schema.ResourceData, m interface{}) error {
 
 	client := getClient(m)
 
-	discountCode, err := client.DiscountCodeGetWithID(context.Background(), d.Id())
+	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -194,59 +194,58 @@ func resourceDiscountCodeRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	discountCode, err := client.DiscountCodeGetWithID(context.Background(), d.Id())
+	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(context.Background())
 	if err != nil {
 		return err
 	}
 
-	input := &commercetools.DiscountCodeUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.DiscountCodeUpdate{
 		Version: discountCode.Version,
-		Actions: []commercetools.DiscountCodeUpdateAction{},
+		Actions: []platform.DiscountCodeUpdateAction{},
 	}
 
 	if d.HasChange("name") {
-		newName := commercetools.LocalizedString(
+		newName := platform.LocalizedString(
 			expandStringMap(d.Get("name").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.DiscountCodeSetNameAction{Name: &newName})
+			&platform.DiscountCodeSetNameAction{Name: &newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := commercetools.LocalizedString(
+		newDescription := platform.LocalizedString(
 			expandStringMap(d.Get("description").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.DiscountCodeSetDescriptionAction{Description: &newDescription})
+			&platform.DiscountCodeSetDescriptionAction{Description: &newDescription})
 	}
 
 	if d.HasChange("predicate") {
 		newPredicate := d.Get("predicate").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.DiscountCodeSetCartPredicateAction{CartPredicate: newPredicate})
+			&platform.DiscountCodeSetCartPredicateAction{CartPredicate: &newPredicate})
 	}
 
 	if d.HasChange("max_applications") {
 		newMaxApplications := d.Get("max_applications").(int)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.DiscountCodeSetMaxApplicationsAction{MaxApplications: newMaxApplications})
+			&platform.DiscountCodeSetMaxApplicationsAction{MaxApplications: &newMaxApplications})
 	}
 
 	if d.HasChange("max_applications_per_customer") {
 		newMaxApplications := d.Get("max_applications_per_customer").(int)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.DiscountCodeSetMaxApplicationsPerCustomerAction{MaxApplicationsPerCustomer: newMaxApplications})
+			&platform.DiscountCodeSetMaxApplicationsPerCustomerAction{MaxApplicationsPerCustomer: &newMaxApplications})
 	}
 
 	if d.HasChange("cart_discounts") {
 		newCartDiscounts := resourceDiscountCodeGetCartDiscounts(d)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.DiscountCodeChangeCartDiscountsAction{CartDiscounts: newCartDiscounts})
+			&platform.DiscountCodeChangeCartDiscountsAction{CartDiscounts: newCartDiscounts})
 	}
 
 	if d.HasChange("groups") {
@@ -254,11 +253,11 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 		if len(newGroups) > 0 {
 			input.Actions = append(
 				input.Actions,
-				&commercetools.DiscountCodeChangeGroupsAction{Groups: newGroups})
+				&platform.DiscountCodeChangeGroupsAction{Groups: newGroups})
 		} else {
 			input.Actions = append(
 				input.Actions,
-				&commercetools.DiscountCodeChangeGroupsAction{Groups: []string{}})
+				&platform.DiscountCodeChangeGroupsAction{Groups: []string{}})
 		}
 	}
 
@@ -266,7 +265,7 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 		newIsActive := d.Get("is_active").(bool)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.DiscountCodeChangeIsActiveAction{IsActive: newIsActive})
+			&platform.DiscountCodeChangeIsActiveAction{IsActive: newIsActive})
 	}
 
 	if d.HasChange("valid_from") {
@@ -277,11 +276,11 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 			}
 			input.Actions = append(
 				input.Actions,
-				&commercetools.DiscountCodeSetValidFromAction{ValidFrom: &newValidFrom})
+				&platform.DiscountCodeSetValidFromAction{ValidFrom: &newValidFrom})
 		} else {
 			input.Actions = append(
 				input.Actions,
-				&commercetools.DiscountCodeSetValidFromAction{})
+				&platform.DiscountCodeSetValidFromAction{})
 		}
 	}
 
@@ -293,11 +292,11 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 			}
 			input.Actions = append(
 				input.Actions,
-				&commercetools.DiscountCodeSetValidUntilAction{ValidUntil: &newValidUntil})
+				&platform.DiscountCodeSetValidUntilAction{ValidUntil: &newValidUntil})
 		} else {
 			input.Actions = append(
 				input.Actions,
-				&commercetools.DiscountCodeSetValidUntilAction{})
+				&platform.DiscountCodeSetValidUntilAction{})
 		}
 	}
 
@@ -305,9 +304,9 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.DiscountCodeUpdateWithID(context.Background(), input)
+	_, err = client.DiscountCodes().WithId(discountCode.ID).Post(input).Execute(context.Background())
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
 		return err
@@ -319,7 +318,11 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceDiscountCodeDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.DiscountCodeDeleteWithID(context.Background(), d.Id(), version, false)
+	_, err := client.DiscountCodes().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyDiscountCodesByIDRequestMethodDeleteInput{
+		Version:     version,
+		DataErasure: boolRef(true),
+	}).Execute(context.Background())
+
 	if err != nil {
 		log.Printf("[ERROR] Error during deleting discount code resource %s", err)
 		return nil
@@ -335,10 +338,10 @@ func resourceDiscountCodeGetGroups(d *schema.ResourceData) []string {
 	return groups
 }
 
-func resourceDiscountCodeGetCartDiscounts(d *schema.ResourceData) []commercetools.CartDiscountResourceIdentifier {
-	var cartDiscounts []commercetools.CartDiscountResourceIdentifier
+func resourceDiscountCodeGetCartDiscounts(d *schema.ResourceData) []platform.CartDiscountResourceIdentifier {
+	var cartDiscounts []platform.CartDiscountResourceIdentifier
 	for _, cartDiscount := range expandStringArray(d.Get("cart_discounts").([]interface{})) {
-		cartDiscounts = append(cartDiscounts, commercetools.CartDiscountResourceIdentifier{ID: cartDiscount})
+		cartDiscounts = append(cartDiscounts, platform.CartDiscountResourceIdentifier{ID: &cartDiscount})
 	}
 	return cartDiscounts
 }

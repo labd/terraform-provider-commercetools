@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceChannel() *schema.Resource {
@@ -53,17 +53,17 @@ func resourceChannel() *schema.Resource {
 }
 
 func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
-	name := commercetools.LocalizedString(
+	name := platform.LocalizedString(
 		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := commercetools.LocalizedString(
+	description := platform.LocalizedString(
 		expandStringMap(d.Get("description").(map[string]interface{})))
 
-	roles := []commercetools.ChannelRoleEnum{}
+	roles := []platform.ChannelRoleEnum{}
 	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
-		roles = append(roles, commercetools.ChannelRoleEnum(value))
+		roles = append(roles, platform.ChannelRoleEnum(value))
 	}
 
-	draft := &commercetools.ChannelDraft{
+	draft := platform.ChannelDraft{
 		Key:         d.Get("key").(string),
 		Roles:       roles,
 		Name:        &name,
@@ -71,12 +71,12 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	client := getClient(m)
-	var channel *commercetools.Channel
+	var channel *platform.Channel
 
 	err := resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
-		channel, err = client.ChannelCreate(context.Background(), draft)
+		channel, err = client.Channels().Post(draft).Execute(context.Background())
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -94,10 +94,10 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	channel, err := client.ChannelGetWithID(context.Background(), d.Id())
+	channel, err := client.Channels().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -122,46 +122,45 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	input := &commercetools.ChannelUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.ChannelUpdate{
 		Version: d.Get("version").(int),
-		Actions: []commercetools.ChannelUpdateAction{},
+		Actions: []platform.ChannelUpdateAction{},
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ChannelChangeKeyAction{Key: newKey})
+			&platform.ChannelChangeKeyAction{Key: newKey})
 	}
 
 	if d.HasChange("name") {
-		newName := commercetools.LocalizedString(
+		newName := platform.LocalizedString(
 			expandStringMap(d.Get("name").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ChannelChangeNameAction{Name: &newName})
+			&platform.ChannelChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := commercetools.LocalizedString(
+		newDescription := platform.LocalizedString(
 			expandStringMap(d.Get("description").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ChannelChangeDescriptionAction{Description: &newDescription})
+			&platform.ChannelChangeDescriptionAction{Description: newDescription})
 	}
 
 	if d.HasChange("roles") {
-		roles := []commercetools.ChannelRoleEnum{}
+		roles := []platform.ChannelRoleEnum{}
 		for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
-			roles = append(roles, commercetools.ChannelRoleEnum(value))
+			roles = append(roles, platform.ChannelRoleEnum(value))
 		}
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ChannelSetRolesAction{Roles: roles})
+			&platform.ChannelSetRolesAction{Roles: roles})
 	}
 
-	_, err := client.ChannelUpdateWithID(context.Background(), input)
+	_, err := client.Channels().WithId(d.Id()).Post(input).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -172,7 +171,9 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceChannelDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ChannelDeleteWithID(context.Background(), d.Id(), version)
+	_, err := client.Channels().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyChannelsByIDRequestMethodDeleteInput{
+		Version: version,
+	}).Execute(context.Background())
 	if err != nil {
 		return err
 	}

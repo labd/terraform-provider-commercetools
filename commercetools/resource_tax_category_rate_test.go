@@ -3,10 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
-
-	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 
@@ -278,7 +275,7 @@ resource "commercetools_tax_category_rate" "test_rate" {
 }
 
 func testAccCheckTaxCategoryRateDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 	var rateIDs []string
 	// Because we can't directly query for Tax Categories, we are going to loop over the resources twice. Once to store
 	// the tax rate IDs of any rates present, and once to check the categories and their rates
@@ -292,13 +289,13 @@ func testAccCheckTaxCategoryRateDestroy(s *terraform.State) error {
 		if rs.Type != "commercetools_tax_category" {
 			continue
 		}
-		response, err := conn.TaxCategoryGetWithID(context.Background(), rs.Primary.ID)
+		response, err := client.TaxCategories().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && len(response.Rates) > 0 && response.ID == rs.Primary.ID {
 				var trailingTestRates []string
 				for _, rate := range response.Rates {
-					if stringInSlice(rate.ID, rateIDs) {
-						trailingTestRates = append(trailingTestRates, rate.ID)
+					if stringInSlice(*rate.ID, rateIDs) {
+						trailingTestRates = append(trailingTestRates, *rate.ID)
 					}
 				}
 				return fmt.Errorf("tax category %s still exists with rates (%v)", rs.Primary.ID, trailingTestRates)
@@ -309,9 +306,8 @@ func testAccCheckTaxCategoryRateDestroy(s *terraform.State) error {
 			continue
 		}
 
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

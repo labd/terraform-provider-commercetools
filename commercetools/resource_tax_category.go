@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceTaxCategory() *schema.Resource {
@@ -45,20 +45,20 @@ func resourceTaxCategory() *schema.Resource {
 
 func resourceTaxCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	var taxCategory *commercetools.TaxCategory
-	emptyTaxRates := []commercetools.TaxRateDraft{}
+	var taxCategory *platform.TaxCategory
+	emptyTaxRates := []platform.TaxRateDraft{}
 
-	draft := &commercetools.TaxCategoryDraft{
-		Key:         d.Get("key").(string),
+	draft := platform.TaxCategoryDraft{
+		Key:         stringRef(d.Get("key")),
 		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
+		Description: stringRef(d.Get("description")),
 		Rates:       emptyTaxRates,
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		taxCategory, err = client.TaxCategoryCreate(context.Background(), draft)
+		taxCategory, err = client.TaxCategories().Post(draft).Execute(context.Background())
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -83,10 +83,10 @@ func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] Reading tax category from commercetools, with taxCategory id: %s", d.Id())
 	client := getClient(m)
 
-	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), d.Id())
+	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -116,45 +116,44 @@ func resourceTaxCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
-	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), d.Id())
+	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(context.Background())
 	if err != nil {
 		return err
 	}
 
-	input := &commercetools.TaxCategoryUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.TaxCategoryUpdate{
 		Version: taxCategory.Version,
-		Actions: []commercetools.TaxCategoryUpdateAction{},
+		Actions: []platform.TaxCategoryUpdateAction{},
 	}
 
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.TaxCategoryChangeNameAction{Name: newName})
+			&platform.TaxCategoryChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.TaxCategorySetKeyAction{Key: newKey})
+			&platform.TaxCategorySetKeyAction{Key: &newKey})
 	}
 
 	if d.HasChange("description") {
 		newDescription := d.Get("description").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.TaxCategorySetDescriptionAction{Description: newDescription})
+			&platform.TaxCategorySetDescriptionAction{Description: &newDescription})
 	}
 
 	log.Printf(
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.TaxCategoryUpdateWithID(context.Background(), input)
+	_, err = client.TaxCategories().WithId(d.Id()).Post(input).Execute(context.Background())
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
 		return err
@@ -170,11 +169,13 @@ func resourceTaxCategoryDelete(d *schema.ResourceData, m interface{}) error {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), d.Id())
+	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(context.Background())
 	if err != nil {
 		return err
 	}
-	_, err = client.TaxCategoryDeleteWithID(context.Background(), d.Id(), taxCategory.Version)
+	_, err = client.TaxCategories().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyTaxCategoriesByIDRequestMethodDeleteInput{
+		Version: taxCategory.Version,
+	}).Execute(context.Background())
 	if err != nil {
 		return err
 	}

@@ -3,10 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
-
-	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -190,13 +187,13 @@ func testAccNewStoreConfigWithoutChannels(name string, key string, languages []s
 }
 
 func testAccCheckStoreDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		switch rs.Type {
 		case "commercetools_store":
 			{
-				response, err := conn.StoreGetWithID(context.Background(), rs.Primary.ID)
+				response, err := client.Stores().WithId(rs.Primary.ID).Get().Execute(context.Background())
 				if err == nil {
 					if response != nil && response.ID == rs.Primary.ID {
 						return fmt.Errorf("store (%s) still exists", rs.Primary.ID)
@@ -204,23 +201,21 @@ func testAccCheckStoreDestroy(s *terraform.State) error {
 					continue
 				}
 
-				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-				if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-					return err
+				if newErr := checkApiResult(err); newErr != nil {
+					return newErr
 				}
 			}
 		case "commercetools_channel":
 			{
-				response, err := conn.ChannelGetWithID(context.Background(), rs.Primary.ID)
+				response, err := client.Channels().WithId(rs.Primary.ID).Get().Execute(context.Background())
 				if err == nil {
 					if response != nil && response.ID == rs.Primary.ID {
 						return fmt.Errorf("supply channel (%s) still exists", rs.Primary.ID)
 					}
 					continue
 				}
-				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-				if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-					return err
+				if newErr := checkApiResult(err); newErr != nil {
+					return newErr
 				}
 			}
 		default:

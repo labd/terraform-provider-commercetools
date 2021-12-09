@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labd/commercetools-go-sdk/commercetools"
-
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceAPIExtension() *schema.Resource {
@@ -121,7 +120,7 @@ func validateDestinationType(val interface{}, key string) (warns []string, errs 
 
 func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	var extension *commercetools.Extension
+	var extension *platform.Extension
 
 	triggers := resourceAPIExtensionGetTriggers(d)
 	destination, err := resourceAPIExtensionGetDestination(d)
@@ -129,17 +128,17 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	draft := &commercetools.ExtensionDraft{
-		Key:         d.Get("key").(string),
+	draft := platform.ExtensionDraft{
+		Key:         stringRef(d.Get("key")),
 		Destination: destination,
 		Triggers:    triggers,
-		TimeoutInMs: d.Get("timeout_in_ms").(int),
+		TimeoutInMs: intRef(d.Get("timeout_in_ms")),
 	}
 
 	err = resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
-		extension, err = client.ExtensionCreate(context.Background(), draft)
+		extension, err = client.Extensions().Post(draft).Execute(context.Background())
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -164,10 +163,10 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading extensions from commercetools")
 	client := getClient(m)
 
-	extension, err := client.ExtensionGetWithID(context.Background(), d.Id())
+	extension, err := client.Extensions().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -195,24 +194,23 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	input := &commercetools.ExtensionUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.ExtensionUpdate{
 		Version: d.Get("version").(int),
-		Actions: []commercetools.ExtensionUpdateAction{},
+		Actions: []platform.ExtensionUpdateAction{},
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ExtensionSetKeyAction{Key: newKey})
+			&platform.ExtensionSetKeyAction{Key: &newKey})
 	}
 
 	if d.HasChange("trigger") {
 		triggers := resourceAPIExtensionGetTriggers(d)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ExtensionChangeTriggersAction{Triggers: triggers})
+			&platform.ExtensionChangeTriggersAction{Triggers: triggers})
 	}
 
 	if d.HasChange("destination") {
@@ -222,17 +220,17 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ExtensionChangeDestinationAction{Destination: destination})
+			&platform.ExtensionChangeDestinationAction{Destination: destination})
 	}
 
 	if d.HasChange("timeout_in_ms") {
 		newTimeout := d.Get("timeout_in_ms").(int)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ExtensionSetTimeoutInMsAction{TimeoutInMs: newTimeout})
+			&platform.ExtensionSetTimeoutInMsAction{TimeoutInMs: &newTimeout})
 	}
 
-	_, err := client.ExtensionUpdateWithID(context.Background(), input)
+	_, err := client.Extensions().WithId(d.Id()).Post(input).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -243,7 +241,9 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceAPIExtensionDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ExtensionDeleteWithID(context.Background(), d.Id(), version)
+	_, err := client.Extensions().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyExtensionsByIDRequestMethodDeleteInput{
+		Version: version,
+	}).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func resourceAPIExtensionDelete(d *schema.ResourceData, m interface{}) error {
 // Helper methods
 //
 
-func resourceAPIExtensionGetDestination(d *schema.ResourceData) (commercetools.Destination, error) {
+func resourceAPIExtensionGetDestination(d *schema.ResourceData) (platform.Destination, error) {
 	input := d.Get("destination").(map[string]interface{})
 	switch strings.ToLower(input["type"].(string)) {
 	case "http":
@@ -263,12 +263,12 @@ func resourceAPIExtensionGetDestination(d *schema.ResourceData) (commercetools.D
 			return nil, err
 		}
 
-		return commercetools.ExtensionHTTPDestination{
-			URL:            input["url"].(string),
-			Authentication: auth,
+		return platform.ExtensionHttpDestination{
+			Url:            input["url"].(string),
+			Authentication: &auth,
 		}, nil
 	case "awslambda":
-		return commercetools.ExtensionAWSLambdaDestination{
+		return platform.ExtensionAWSLambdaDestination{
 			Arn:          input["arn"].(string),
 			AccessKey:    input["access_key"].(string),
 			AccessSecret: input["access_secret"].(string),
@@ -278,7 +278,7 @@ func resourceAPIExtensionGetDestination(d *schema.ResourceData) (commercetools.D
 	}
 }
 
-func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (commercetools.ExtensionHTTPDestinationAuthentication, error) {
+func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (platform.ExtensionHttpDestinationAuthentication, error) {
 	authKeys := [2]string{"authorization_header", "azure_authentication"}
 	count := 0
 	for _, key := range authKeys {
@@ -292,12 +292,12 @@ func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (co
 	}
 
 	if authVal, ok := destInput["authorization_header"]; ok {
-		return &commercetools.ExtensionAuthorizationHeaderAuthentication{
+		return &platform.ExtensionAuthorizationHeaderAuthentication{
 			HeaderValue: authVal.(string),
 		}, nil
 	}
 	if authVal, ok := destInput["azure_authentication"]; ok {
-		return &commercetools.ExtensionAzureFunctionsAuthentication{
+		return &platform.ExtensionAzureFunctionsAuthentication{
 			Key: authVal.(string),
 		}, nil
 	}
@@ -305,21 +305,21 @@ func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (co
 	return nil, nil
 }
 
-func resourceAPIExtensionGetTriggers(d *schema.ResourceData) []commercetools.ExtensionTrigger {
+func resourceAPIExtensionGetTriggers(d *schema.ResourceData) []platform.ExtensionTrigger {
 	input := d.Get("trigger").([]interface{})
-	var result []commercetools.ExtensionTrigger
+	var result []platform.ExtensionTrigger
 
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
 		typeID := i["resource_type_id"].(string)
 
-		actions := []commercetools.ExtensionAction{}
+		actions := []platform.ExtensionAction{}
 		for _, item := range expandStringArray(i["actions"].([]interface{})) {
-			actions = append(actions, commercetools.ExtensionAction(item))
+			actions = append(actions, platform.ExtensionAction(item))
 		}
 
-		result = append(result, commercetools.ExtensionTrigger{
-			ResourceTypeID: commercetools.ExtensionResourceTypeID(typeID),
+		result = append(result, platform.ExtensionTrigger{
+			ResourceTypeId: platform.ExtensionResourceTypeId(typeID),
 			Actions:        actions,
 		})
 	}

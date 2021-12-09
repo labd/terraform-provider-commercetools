@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +32,7 @@ func TestAPIExtensionGetDestination(t *testing.T) {
 
 	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
 	destination, _ := resourceAPIExtensionGetDestination(d)
-	lambdaDestination, ok := destination.(commercetools.ExtensionAWSLambdaDestination)
+	lambdaDestination, ok := destination.(platform.ExtensionAWSLambdaDestination)
 
 	assert.True(t, ok)
 	assert.Equal(t, lambdaDestination.Arn, "arn:aws:lambda:eu-west-1:111111111:function:api_extensions")
@@ -57,7 +56,7 @@ func TestAPIExtensionGetAuthentication(t *testing.T) {
 	}
 
 	auth, err = resourceAPIExtensionGetAuthentication(input)
-	httpAuth, ok := auth.(*commercetools.ExtensionAuthorizationHeaderAuthentication)
+	httpAuth, ok := auth.(*platform.ExtensionAuthorizationHeaderAuthentication)
 	assert.True(t, ok)
 	assert.Equal(t, "12345", httpAuth.HeaderValue)
 	assert.NotNil(t, auth)
@@ -159,7 +158,7 @@ func testAccAPIExtensionExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No Extension ID is set")
 		}
 		client := getClient(testAccProvider.Meta())
-		result, err := client.ExtensionGetWithID(context.Background(), rs.Primary.ID)
+		result, err := client.Extensions().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err != nil {
 			return err
 		}
@@ -172,22 +171,21 @@ func testAccAPIExtensionExists(n string) resource.TestCheckFunc {
 }
 
 func testAccCheckAPIExtensionDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_api_extension" {
 			continue
 		}
-		response, err := conn.ExtensionGetWithID(context.Background(), rs.Primary.ID)
+		response, err := client.Extensions().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("api extension (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

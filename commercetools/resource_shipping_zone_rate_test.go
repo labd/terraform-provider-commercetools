@@ -3,10 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
-
-	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -140,7 +137,7 @@ func testAccShippingZoneRateConfig(taxCategoryName string, shippingMethodName st
 		    cent_amount   = 50000
 		    currency_code = "%[3]s"
 		}
-		
+
 		shipping_rate_price_tier {
             type                = "CartValue"
             minimum_cent_amount = 5000
@@ -202,7 +199,7 @@ func testAccShippingZoneRateUpdate(taxCategoryName string, shippingMethodName st
 		    cent_amount   = 12345
 		    currency_code = "%[3]s"
 		}
-		
+
         shipping_rate_price_tier {
             type                = "CartScore"
             score               = 10
@@ -228,28 +225,27 @@ func testAccShippingZoneRateUpdate(taxCategoryName string, shippingMethodName st
 }
 
 func testAccCheckShippingZoneRateDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 	// TODO: Do we want to check trailing rates separately? Similar to resource_tax_category_test_rate.go
 
 	for _, rs := range s.RootModule().Resources {
 		switch rs.Type {
 		case "commercetools_tax_category":
 			{
-				response, err := conn.TaxCategoryGetWithID(context.Background(), rs.Primary.ID)
+				response, err := client.TaxCategories().WithId(rs.Primary.ID).Get().Execute(context.Background())
 				if err == nil {
 					if response != nil && response.ID == rs.Primary.ID {
 						return fmt.Errorf("tax category (%s) still exists", rs.Primary.ID)
 					}
 					continue
 				}
-				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-				if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-					return err
+				if newErr := checkApiResult(err); newErr != nil {
+					return newErr
 				}
 			}
 		case "commercetools_shipping_method":
 			{
-				response, err := conn.ShippingMethodGetWithID(context.Background(), rs.Primary.ID)
+				response, err := client.TaxCategories().WithId(rs.Primary.ID).Get().Execute(context.Background())
 				if err == nil {
 					if response != nil && response.ID == rs.Primary.ID {
 
@@ -257,23 +253,21 @@ func testAccCheckShippingZoneRateDestroy(s *terraform.State) error {
 					}
 					continue
 				}
-				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-				if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-					return err
+				if newErr := checkApiResult(err); newErr != nil {
+					return newErr
 				}
 			}
 		case "commercetools_shipping_zone":
 			{
-				response, err := conn.ZoneGetWithID(context.Background(), rs.Primary.ID)
+				response, err := client.Zones().WithId(rs.Primary.ID).Get().Execute(context.Background())
 				if err == nil {
 					if response != nil && response.ID == rs.Primary.ID {
 						return fmt.Errorf("shipping zone (%s) still exists", rs.Primary.ID)
 					}
 					continue
 				}
-				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-				if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-					return err
+				if newErr := checkApiResult(err); newErr != nil {
+					return newErr
 				}
 			}
 		default:
