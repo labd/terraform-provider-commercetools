@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 const (
@@ -21,7 +21,7 @@ const (
 
 	// Formats
 	cloudEvents = "cloud_events"
-	platform    = "platform"
+	fmtPlatform = "platform"
 )
 
 var destinationFields = map[string][]string{
@@ -53,7 +53,7 @@ var formatFields = map[string][]string{
 	cloudEvents: {
 		"cloud_events_version",
 	},
-	platform: {},
+	fmtPlatform: {},
 }
 
 func resourceSubscription() *schema.Resource {
@@ -215,7 +215,7 @@ func resourceSubscription() *schema.Resource {
 
 func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	var subscription *commercetools.Subscription
+	var subscription *platform.Subscription
 
 	messages := resourceSubscriptionGetMessages(d)
 	changes := resourceSubscriptionGetChanges(d)
@@ -228,10 +228,10 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	draft := &commercetools.SubscriptionDraft{
-		Key:         d.Get("key").(string),
+	draft := platform.SubscriptionDraft{
+		Key:         stringRef(d.Get("key")),
 		Destination: destination,
-		Format:      format,
+		Format:      &format,
 		Messages:    messages,
 		Changes:     changes,
 	}
@@ -239,7 +239,7 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
-		subscription, err = client.SubscriptionCreate(context.Background(), draft)
+		subscription, err = client.Subscriptions().Post(draft).Execute(context.Background())
 		if err != nil {
 			// Some subscription resources might not be ready yet, always keep retrying
 			return resource.RetryableError(err)
@@ -265,10 +265,10 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading subscriptions from commercetools")
 	client := getClient(m)
 
-	subscription, err := client.SubscriptionGetWithID(context.Background(), d.Id())
+	subscription, err := client.Subscriptions().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -297,10 +297,9 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	input := &commercetools.SubscriptionUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.SubscriptionUpdate{
 		Version: d.Get("version").(int),
-		Actions: []commercetools.SubscriptionUpdateAction{},
+		Actions: []platform.SubscriptionUpdateAction{},
 	}
 
 	if d.HasChange("destination") {
@@ -311,31 +310,31 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionChangeDestinationAction{Destination: destination})
+			&platform.SubscriptionChangeDestinationAction{Destination: destination})
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionSetKeyAction{Key: newKey})
+			&platform.SubscriptionSetKeyAction{Key: &newKey})
 	}
 
 	if d.HasChange("message") {
 		messages := resourceSubscriptionGetMessages(d)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionSetMessagesAction{Messages: messages})
+			&platform.SubscriptionSetMessagesAction{Messages: messages})
 	}
 
 	if d.HasChange("changes") {
 		changes := resourceSubscriptionGetChanges(d)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionSetChangesAction{Changes: changes})
+			&platform.SubscriptionSetChangesAction{Changes: changes})
 	}
 
-	_, err := client.SubscriptionUpdateWithID(context.Background(), input)
+	_, err := client.Subscriptions().WithId(d.Id()).Post(input).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -346,7 +345,10 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.SubscriptionDeleteWithID(context.Background(), d.Id(), version)
+	_, err := client.Subscriptions().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeySubscriptionsByIDRequestMethodDeleteInput{
+		Version: version,
+	}).Execute(context.Background())
+
 	if err != nil {
 		return err
 	}
@@ -354,35 +356,35 @@ func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceSubscriptionGetDestination(d *schema.ResourceData) (commercetools.Destination, error) {
+func resourceSubscriptionGetDestination(d *schema.ResourceData) (platform.Destination, error) {
 	input := d.Get("destination").(map[string]interface{})
 
 	switch input["type"] {
 	case subSNS:
-		return commercetools.SnsDestination{
+		return platform.SnsDestination{
 			TopicArn:     input["topic_arn"].(string),
 			AccessKey:    input["access_key"].(string),
 			AccessSecret: input["access_secret"].(string),
 		}, nil
 	case subSQS:
-		return commercetools.SqsDestination{
-			QueueURL:     input["queue_url"].(string),
+		return platform.SqsDestination{
+			QueueUrl:     input["queue_url"].(string),
 			AccessKey:    input["access_key"].(string),
 			AccessSecret: input["access_secret"].(string),
 			Region:       input["region"].(string),
 		}, nil
 	case subAzureEventGrid:
-		return commercetools.AzureEventGridDestination{
-			URI:       input["uri"].(string),
+		return platform.AzureEventGridDestination{
+			Uri:       input["uri"].(string),
 			AccessKey: input["access_key"].(string),
 		}, nil
 	case subAzureServiceBus:
-		return commercetools.AzureServiceBusDestination{
+		return platform.AzureServiceBusDestination{
 			ConnectionString: input["connection_string"].(string),
 		}, nil
 	case subGooglePubSub:
-		return commercetools.GoogleCloudPubSubDestination{
-			ProjectID: input["project_id"].(string),
+		return platform.GoogleCloudPubSubDestination{
+			ProjectId: input["project_id"].(string),
 			Topic:     input["topic"].(string),
 		}, nil
 	default:
@@ -390,23 +392,23 @@ func resourceSubscriptionGetDestination(d *schema.ResourceData) (commercetools.D
 	}
 }
 
-func resourceSubscriptionGetFormat(d *schema.ResourceData) (commercetools.DeliveryFormat, error) {
+func resourceSubscriptionGetFormat(d *schema.ResourceData) (platform.DeliveryFormat, error) {
 	input := d.Get("format").(map[string]interface{})
 
 	switch input["type"] {
 	case cloudEvents:
-		return commercetools.DeliveryCloudEventsFormat{
+		return platform.DeliveryCloudEventsFormat{
 			CloudEventsVersion: input["cloud_events_version"].(string),
 		}, nil
-	case platform:
-		return commercetools.DeliveryPlatformFormat{}, nil
+	case fmtPlatform:
+		return platform.DeliveryPlatformFormat{}, nil
 	}
 
 	return nil, nil
 }
 
-func resourceSubscriptionGetChanges(d *schema.ResourceData) []commercetools.ChangeSubscription {
-	var result []commercetools.ChangeSubscription
+func resourceSubscriptionGetChanges(d *schema.ResourceData) []platform.ChangeSubscription {
+	var result []platform.ChangeSubscription
 	input := d.Get("changes").([]interface{})
 	if len(input) > 0 {
 		for _, raw := range input {
@@ -414,8 +416,8 @@ func resourceSubscriptionGetChanges(d *schema.ResourceData) []commercetools.Chan
 			rawTypeIds := expandStringArray(i["resource_type_ids"].([]interface{}))
 
 			for _, item := range rawTypeIds {
-				result = append(result, commercetools.ChangeSubscription{
-					ResourceTypeID: item,
+				result = append(result, platform.ChangeSubscription{
+					ResourceTypeId: item,
 				})
 			}
 		}
@@ -423,13 +425,13 @@ func resourceSubscriptionGetChanges(d *schema.ResourceData) []commercetools.Chan
 	return result
 }
 
-func resourceSubscriptionGetMessages(d *schema.ResourceData) []commercetools.MessageSubscription {
+func resourceSubscriptionGetMessages(d *schema.ResourceData) []platform.MessageSubscription {
 	input := d.Get("message").([]interface{})
-	var messageObjects []commercetools.MessageSubscription
+	var messageObjects []platform.MessageSubscription
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
-		messageObjects = append(messageObjects, commercetools.MessageSubscription{
-			ResourceTypeID: i["resource_type_id"].(string),
+		messageObjects = append(messageObjects, platform.MessageSubscription{
+			ResourceTypeId: i["resource_type_id"].(string),
 			Types:          expandStringArray(i["types"].([]interface{})),
 		})
 	}

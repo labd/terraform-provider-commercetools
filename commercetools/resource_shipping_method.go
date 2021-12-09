@@ -7,14 +7,14 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceShippingMethod() *schema.Resource {
 	return &schema.Resource{
 		Description: "With Shipping Methods you can specify which shipping services you want to provide to your " +
 			"customers for deliveries to different areas of the world at rates you can define.\n\n" +
-			"See also the [Shipping Methods API Documentation](https://docs.commercetools.com/api/projects/shippingMethods)",
+			"See also the [Shipping Methods API Documentation](https://docs.commercetoolstools.com/api/projects/shippingMethods)",
 		Create: resourceShippingMethodCreate,
 		Read:   resourceShippingMethodRead,
 		Update: resourceShippingMethodUpdate,
@@ -37,7 +37,7 @@ func resourceShippingMethod() *schema.Resource {
 				Optional: true,
 			},
 			"localized_description": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Description: "[LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)",
 				Type:        TypeLocalizedString,
 				Optional:    true,
 			},
@@ -51,7 +51,7 @@ func resourceShippingMethod() *schema.Resource {
 				Computed: true,
 			},
 			"tax_category_id": {
-				Description: "ID of a [Tax Category](https://docs.commercetools.com/api/projects/taxCategories#taxcategory)",
+				Description: "ID of a [Tax Category](https://docs.commercetoolstools.com/api/projects/taxCategories#taxcategory)",
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
@@ -66,29 +66,29 @@ func resourceShippingMethod() *schema.Resource {
 
 func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	var shippingMethod *commercetools.ShippingMethod
-	taxCategory := commercetools.TaxCategoryResourceIdentifier{}
+	var shippingMethod *platform.ShippingMethod
+	taxCategory := platform.TaxCategoryResourceIdentifier{}
 	if taxCategoryID, ok := d.GetOk("tax_category_id"); ok {
-		taxCategory.ID = taxCategoryID.(string)
+		taxCategory.ID = stringRef(taxCategoryID)
 	}
 
-	localizedDescription := commercetools.LocalizedString(
+	localizedDescription := platform.LocalizedString(
 		expandStringMap(d.Get("localized_description").(map[string]interface{})))
 
-	draft := &commercetools.ShippingMethodDraft{
-		Key:                  d.Get("key").(string),
+	draft := platform.ShippingMethodDraft{
+		Key:                  stringRef(d.Get("key")),
 		Name:                 d.Get("name").(string),
-		Description:          d.Get("description").(string),
+		Description:          stringRef(d.Get("description")),
 		LocalizedDescription: &localizedDescription,
 		IsDefault:            d.Get("is_default").(bool),
-		TaxCategory:          &taxCategory,
-		Predicate:            d.Get("predicate").(string),
+		TaxCategory:          taxCategory,
+		Predicate:            stringRef(d.Get("predicate")),
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		shippingMethod, err = client.ShippingMethodCreate(context.Background(), draft)
+		shippingMethod, err = client.ShippingMethods().Post(draft).Execute(context.Background())
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -114,10 +114,10 @@ func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
 
 	client := getClient(m)
 
-	shippingMethod, err := client.ShippingMethodGetWithID(context.Background(), d.Id())
+	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -151,74 +151,73 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
-	shippingMethod, err := client.ShippingMethodGetWithID(context.Background(), d.Id())
+	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(context.Background())
 	if err != nil {
 		return err
 	}
 
-	input := &commercetools.ShippingMethodUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.ShippingMethodUpdate{
 		Version: shippingMethod.Version,
-		Actions: []commercetools.ShippingMethodUpdateAction{},
+		Actions: []platform.ShippingMethodUpdateAction{},
 	}
 
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ShippingMethodChangeNameAction{Name: newName})
+			&platform.ShippingMethodChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ShippingMethodSetKeyAction{Key: newKey})
+			&platform.ShippingMethodSetKeyAction{Key: &newKey})
 	}
 
 	if d.HasChange("description") {
 		newDescription := d.Get("description").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ShippingMethodSetDescriptionAction{Description: newDescription})
+			&platform.ShippingMethodSetDescriptionAction{Description: &newDescription})
 	}
 
 	if d.HasChange("localized_description") {
-		newLocalizedDescription := commercetools.LocalizedString(
+		newLocalizedDescription := platform.LocalizedString(
 			expandStringMap(d.Get("localized_description").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ShippingMethodSetLocalizedDescriptionAction{LocalizedDescription: &newLocalizedDescription})
+			&platform.ShippingMethodSetLocalizedDescriptionAction{LocalizedDescription: &newLocalizedDescription})
 	}
 
 	if d.HasChange("is_default") {
 		newIsDefault := d.Get("is_default").(bool)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ShippingMethodChangeIsDefaultAction{IsDefault: newIsDefault})
+			&platform.ShippingMethodChangeIsDefaultAction{IsDefault: newIsDefault})
 	}
 
 	if d.HasChange("tax_category_id") {
 		taxCategoryID := d.Get("tax_category_id").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ShippingMethodChangeTaxCategoryAction{TaxCategory: &commercetools.TaxCategoryResourceIdentifier{ID: taxCategoryID}})
+			&platform.ShippingMethodChangeTaxCategoryAction{TaxCategory: platform.TaxCategoryResourceIdentifier{ID: &taxCategoryID}})
 	}
 
 	if d.HasChange("predicate") {
 		newPredicate := d.Get("predicate").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ShippingMethodSetPredicateAction{Predicate: newPredicate})
+			&platform.ShippingMethodSetPredicateAction{Predicate: &newPredicate})
 	}
 
 	log.Printf(
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.ShippingMethodUpdateWithID(context.Background(), input)
+	_, err = client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(context.Background())
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
 		return err
@@ -233,12 +232,14 @@ func resourceShippingMethodDelete(d *schema.ResourceData, m interface{}) error {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	shippingMethod, err := client.ShippingMethodGetWithID(context.Background(), d.Id())
+	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(context.Background())
 	if err != nil {
 		return err
 	}
 
-	_, err = client.ShippingMethodDeleteWithID(context.Background(), d.Id(), shippingMethod.Version)
+	_, err = client.ShippingMethods().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyShippingMethodsByIDRequestMethodDeleteInput{
+		Version: shippingMethod.Version,
+	}).Execute(context.Background())
 	if err != nil {
 		return err
 	}

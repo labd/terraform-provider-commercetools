@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
+	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
 )
 
 func TestFieldTypeElement(t *testing.T) {
@@ -66,7 +65,7 @@ func TestGetFieldType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if _, ok := result.(commercetools.CustomFieldBooleanType); !ok {
+	if _, ok := result.(platform.CustomFieldBooleanType); !ok {
 		t.Error("Expected Boolean type")
 	}
 
@@ -89,8 +88,8 @@ func TestGetFieldType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(commercetools.CustomFieldEnumType); ok {
-		assert.ElementsMatch(t, field.Values, []commercetools.CustomFieldEnumValue{
+	if field, ok := result.(platform.CustomFieldEnumType); ok {
+		assert.ElementsMatch(t, field.Values, []platform.CustomFieldEnumValue{
 			{Key: "value1", Label: "Value 1"},
 			{Key: "value2", Label: "Value 2"},
 		})
@@ -114,8 +113,8 @@ func TestGetFieldType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(commercetools.CustomFieldReferenceType); ok {
-		assert.EqualValues(t, field.ReferenceTypeID, "product")
+	if field, ok := result.(platform.CustomFieldReferenceType); ok {
+		assert.EqualValues(t, field.ReferenceTypeId, "product")
 	} else {
 		t.Error("Expected Reference type")
 	}
@@ -221,7 +220,7 @@ resource "commercetools_type" "%s" {
 			de = "existierendes enum"
 		}
 		type {
-			name = "Set" 
+			name = "Set"
 			element_type {
 				name = "Enum"
 				values = {
@@ -310,7 +309,7 @@ resource "commercetools_type" "%s" {
 			de = "existierendes enum"
 		}
 		type {
-			name = "Set" 
+			name = "Set"
 			element_type {
 				name = "Enum"
 				values = {
@@ -365,7 +364,7 @@ func testAccTypeExists(n string) resource.TestCheckFunc {
 		}
 
 		client := getClient(testAccProvider.Meta())
-		result, err := client.TypeGetWithID(context.Background(), rs.Primary.ID)
+		result, err := client.Types().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err != nil {
 			return err
 		}
@@ -378,22 +377,21 @@ func testAccTypeExists(n string) resource.TestCheckFunc {
 }
 
 func testAccCheckTypesDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_type" {
 			continue
 		}
-		response, err := conn.TypeGetWithID(context.Background(), rs.Primary.ID)
+		response, err := client.Types().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("type (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

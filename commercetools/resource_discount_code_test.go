@@ -3,11 +3,9 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
@@ -323,37 +321,34 @@ func testAccDiscountCodeRemoveProperties() string {
 }
 
 func testAccCheckDiscountCodeDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		switch rs.Type {
 		case "commercetools_cart_discount":
 			{
-				response, err := conn.CartDiscountGetWithID(context.Background(), rs.Primary.ID)
+				response, err := client.CartDiscounts().WithId(rs.Primary.ID).Get().Execute(context.Background())
 				if err == nil {
 					if response != nil && response.ID == rs.Primary.ID {
 						return fmt.Errorf("cart discount (%s) still exists", rs.Primary.ID)
 					}
 					continue
 				}
-
-				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-				if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-					return err
+				if newErr := checkApiResult(err); newErr != nil {
+					return newErr
 				}
 			}
 		case "commercetools_discount_code":
 			{
-				response, err := conn.DiscountCodeGetWithID(context.Background(), rs.Primary.ID)
+				response, err := client.CartDiscounts().WithId(rs.Primary.ID).Get().Execute(context.Background())
 				if err == nil {
 					if response != nil && response.ID == rs.Primary.ID {
 						return fmt.Errorf("discount code (%s) still exists", rs.Primary.ID)
 					}
 					continue
 				}
-				// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-				if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-					return err
+				if newErr := checkApiResult(err); newErr != nil {
+					return newErr
 				}
 			}
 		default:

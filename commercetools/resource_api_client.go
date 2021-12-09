@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceAPIClient() *schema.Resource {
@@ -55,19 +55,19 @@ func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 		scopeParts = append(scopeParts, scopes[i].(string))
 	}
 
-	draft := &commercetools.APIClientDraft{
+	draft := platform.ApiClientDraft{
 		Name:  name,
 		Scope: strings.Join(scopeParts, " "),
 	}
 
 	client := getClient(m)
 
-	var apiClient *commercetools.APIClient
+	var apiClient *platform.ApiClient
 
 	err := resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
-		apiClient, err = client.APIClientCreate(context.Background(), draft)
+		apiClient, err = client.ApiClients().Post(draft).Execute(context.Background())
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -86,10 +86,10 @@ func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	apiClient, err := client.APIClientGetWithID(context.Background(), d.Id())
+	apiClient, err := client.ApiClients().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -109,7 +109,7 @@ func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
 func resourceAPIClientDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	_, err := client.APIClientDeleteWithID(context.Background(), d.Id())
+	_, err := client.ApiClients().WithId(d.Id()).Delete().Execute(context.Background())
 	if err != nil {
 		return err
 	}

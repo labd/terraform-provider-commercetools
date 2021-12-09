@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceStore() *schema.Resource {
@@ -63,11 +63,11 @@ func resourceStore() *schema.Resource {
 }
 
 func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
-	name := commercetools.LocalizedString(
+	name := platform.LocalizedString(
 		expandStringMap(d.Get("name").(map[string]interface{})))
 	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
 
-	draft := &commercetools.StoreDraft{
+	draft := platform.StoreDraft{
 		Key:                  d.Get("key").(string),
 		Name:                 &name,
 		Languages:            expandStringArray(d.Get("languages").([]interface{})),
@@ -76,11 +76,11 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 
 	client := getClient(m)
 
-	var store *commercetools.Store
+	var store *platform.Store
 
 	err := resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
-		store, err = client.StoreCreate(context.Background(), draft)
+		store, err = client.Stores().Post(draft).Execute(context.Background())
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -100,14 +100,12 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	store, err := client.StoreGetWithID(
-		context.Background(), d.Id(),
-		commercetools.WithReferenceExpansion("distributionChannels[*]"),
-		commercetools.WithReferenceExpansion("supplyChannels[*]"),
-	)
+	store, err := client.Stores().WithId(d.Id()).Get().WithQueryParams(platform.ByProjectKeyStoresByIDRequestMethodGetInput{
+		Expand: []string{"distributionChannels[*]", "supplyChannels[*]"},
+	}).Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -149,18 +147,17 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	input := &commercetools.StoreUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.StoreUpdate{
 		Version: d.Get("version").(int),
-		Actions: []commercetools.StoreUpdateAction{},
+		Actions: []platform.StoreUpdateAction{},
 	}
 
 	if d.HasChange("name") {
-		newName := commercetools.LocalizedString(
+		newName := platform.LocalizedString(
 			expandStringMap(d.Get("name").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StoreSetNameAction{Name: &newName})
+			&platform.StoreSetNameAction{Name: &newName})
 	}
 
 	if d.HasChange("languages") {
@@ -168,7 +165,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StoreSetLanguagesAction{Languages: languages})
+			&platform.StoreSetLanguagesAction{Languages: languages})
 	}
 
 	if d.HasChange("distribution_channels") {
@@ -179,7 +176,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 		// set action replaces current values
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StoreSetDistributionChannelsAction{
+			&platform.StoreSetDistributionChannelsAction{
 				DistributionChannels: dcIdentifiers,
 			},
 		)
@@ -193,13 +190,13 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 		// set action replaces current values
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StoreSetSupplyChannelsAction{
+			&platform.StoreSetSupplyChannelsAction{
 				SupplyChannels: scIdentifiers,
 			},
 		)
 	}
 
-	_, err := client.StoreUpdateWithID(context.Background(), input)
+	_, err := client.Stores().WithId(d.Id()).Post(input).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -210,7 +207,9 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceStoreDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.StoreDeleteWithID(context.Background(), d.Id(), version)
+	_, err := client.Stores().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyStoresByIDRequestMethodDeleteInput{
+		Version: version,
+	}).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -218,11 +217,11 @@ func resourceStoreDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func convertChannelKeysToIdentifiers(channelKeys []string) []commercetools.ChannelResourceIdentifier {
-	identifiers := make([]commercetools.ChannelResourceIdentifier, 0)
+func convertChannelKeysToIdentifiers(channelKeys []string) []platform.ChannelResourceIdentifier {
+	identifiers := make([]platform.ChannelResourceIdentifier, 0)
 	for i := 0; i < len(channelKeys); i++ {
-		channelIdentifier := commercetools.ChannelResourceIdentifier{
-			Key: channelKeys[i],
+		channelIdentifier := platform.ChannelResourceIdentifier{
+			Key: &channelKeys[i],
 		}
 		identifiers = append(identifiers, channelIdentifier)
 	}
@@ -231,14 +230,14 @@ func convertChannelKeysToIdentifiers(channelKeys []string) []commercetools.Chann
 	return identifiers
 }
 
-func expandStoreChannels(channelData interface{}) []commercetools.ChannelResourceIdentifier {
+func expandStoreChannels(channelData interface{}) []platform.ChannelResourceIdentifier {
 	log.Printf("[DEBUG] Expanding store channels: %v", channelData)
 	channelKeys := expandStringArray(channelData.([]interface{}))
 	log.Printf("[DEBUG] Expanding store channels, got keys: %v", channelKeys)
 	return convertChannelKeysToIdentifiers(channelKeys)
 }
 
-func flattenStoreChannels(channels []commercetools.ChannelReference) ([]string, error) {
+func flattenStoreChannels(channels []platform.ChannelReference) ([]string, error) {
 	log.Printf("[DEBUG] flattening: %+v", channels)
 	channelKeys := make([]string, 0)
 	for i := 0; i < len(channels); i++ {

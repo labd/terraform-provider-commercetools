@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 // TypeLocalizedString defined merely for documentation,
@@ -17,13 +17,28 @@ import (
 // it should be used to store a LocalizedString
 const TypeLocalizedString = schema.TypeMap
 
-func getClient(m interface{}) *commercetools.Client {
-	client := m.(*commercetools.Client)
+func getClient(m interface{}) *platform.ByProjectKeyRequestBuilder {
+	client := m.(*platform.ByProjectKeyRequestBuilder)
 	return client
 }
 
+func stringRef(value interface{}) *string {
+	result := value.(string)
+	return &result
+}
+
+func intRef(value interface{}) *int {
+	result := value.(int)
+	return &result
+}
+
+func boolRef(value interface{}) *bool {
+	result := value.(bool)
+	return &result
+}
+
 func handleCommercetoolsError(err error) *resource.RetryError {
-	if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+	if ctErr, ok := err.(platform.ErrorResponse); ok {
 		return resource.NonRetryableError(ctErr)
 	}
 
@@ -47,7 +62,7 @@ func expandStringMap(input map[string]interface{}) map[string]string {
 	return s
 }
 
-func localizedStringCompare(a commercetools.LocalizedString, b map[string]interface{}) bool {
+func localizedStringCompare(a platform.LocalizedString, b map[string]interface{}) bool {
 	for i, v := range a {
 		if v != b[i] {
 			return false
@@ -56,7 +71,7 @@ func localizedStringCompare(a commercetools.LocalizedString, b map[string]interf
 	return true
 }
 
-func localizedStringToMap(input commercetools.LocalizedString) map[string]string {
+func localizedStringToMap(input platform.LocalizedString) map[string]string {
 	result := make(map[string]string, len(input))
 	for k, v := range input {
 		result[k] = v
@@ -73,7 +88,7 @@ func stringFormatObject(object interface{}) string {
 	return string(append(data, '\n'))
 }
 
-func stringFormatErrorExtras(err commercetools.ErrorResponse) string {
+func stringFormatErrorExtras(err platform.ErrorResponse) string {
 	switch len(err.Errors) {
 	case 0:
 		return ""

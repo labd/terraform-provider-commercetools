@@ -7,7 +7,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceCustomObject() *schema.Resource {
@@ -52,12 +52,12 @@ func resourceCustomObjectCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	value := _decodeCustomObjectValue(d.Get("value").(string))
 
-	draft := commercetools.CustomObjectDraft{
+	draft := platform.CustomObjectDraft{
 		Container: d.Get("container").(string),
 		Key:       d.Get("key").(string),
 		Value:     value,
 	}
-	customObject, err := client.CustomObjectCreate(context.Background(), &draft)
+	customObject, err := client.CustomObjects().Post(draft).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -74,9 +74,9 @@ func resourceCustomObjectRead(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] Reading custom object from commercetools with following values\n Container: %s \n Key: %s", container, key)
 	client := getClient(m)
 
-	customObject, err := client.CustomObjectGetWithContainerAndKey(context.Background(), container, key)
+	customObject, err := client.CustomObjects().WithContainerAndKey(container, key).Get().Execute(context.Background())
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -111,25 +111,25 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 		// If the container or key has changed we need to delete the old object
 		// and create the new object. We first want to create the new vlaue and
 		// then the old one
-		draft := commercetools.CustomObjectDraft{
+		draft := platform.CustomObjectDraft{
 			Container: newContainer.(string),
 			Key:       newKey.(string),
 			Value:     value,
 		}
-		customObject, err := client.CustomObjectCreate(ctx, &draft)
+		customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
 		if err != nil {
 			return err
 		}
 		d.SetId(customObject.ID)
 		d.Set("version", customObject.Version)
 
-		_, err = client.CustomObjectDeleteWithContainerAndKey(
-			ctx,
-			originalContainer.(string),
-			originalKey.(string),
-			originalVersion.(int),
-			true,
-		)
+		_, err = client.
+			CustomObjects().
+			WithContainerAndKey(originalContainer.(string), originalKey.(string)).
+			Delete().
+			Version(originalVersion.(int)).
+			DataErasure(true).
+			Execute(ctx)
 
 		if err != nil {
 			return err
@@ -138,13 +138,13 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 		// Update the value by creating an object with the same key/value.
 		// Commercetools will then update the value of the object if it already
 		// exists
-		draft := commercetools.CustomObjectDraft{
+		draft := platform.CustomObjectDraft{
 			Container: d.Get("container").(string),
 			Key:       d.Get("key").(string),
 			Value:     value,
-			Version:   d.Get("version").(int),
+			Version:   intRef(d.Get("version")),
 		}
-		customObject, err := client.CustomObjectCreate(ctx, &draft)
+		customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
 		if err != nil {
 			return err
 		}
@@ -166,11 +166,22 @@ func resourceCustomObjectDelete(d *schema.ResourceData, m interface{}) error {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	customObject, err := client.CustomObjectGetWithContainerAndKey(context.Background(), container, key)
+	customObject, err := client.
+		CustomObjects().
+		WithContainerAndKey(container, key).
+		Get().
+		Execute(context.Background())
 	if err != nil {
 		return fmt.Errorf("could not get custom object with container %s and key %s: %w", container, key, err)
 	}
-	_, err = client.CustomObjectDeleteWithContainerAndKey(context.Background(), container, key, customObject.Version, false)
+
+	_, err = client.
+		CustomObjects().
+		WithContainerAndKey(container, key).
+		Delete().
+		Version(customObject.Version).
+		DataErasure(false).
+		Execute(context.Background())
 	if err != nil {
 		return fmt.Errorf("could not delete custom object with container %s and key %s: %w", container, key, err)
 	}

@@ -3,10 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
-
-	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -220,22 +217,21 @@ resource "commercetools_shipping_zone" "standard" {
 }
 
 func testAccCheckShippingZoneDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	conn := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_shipping_zone" {
 			continue
 		}
-		response, err := conn.ZoneGetWithID(context.Background(), rs.Primary.ID)
+		response, err := conn.Zones().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("shipping zone (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

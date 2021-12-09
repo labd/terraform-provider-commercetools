@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceCustomerGroup() *schema.Resource {
@@ -43,17 +43,17 @@ func resourceCustomerGroup() *schema.Resource {
 
 func resourceCustomerGroupCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	var customerGroup *commercetools.CustomerGroup
+	var customerGroup *platform.CustomerGroup
 
-	draft := &commercetools.CustomerGroupDraft{
+	draft := platform.CustomerGroupDraft{
 		GroupName: d.Get("name").(string),
-		Key:       d.Get("key").(string),
+		Key:       stringRef(d.Get("key")),
 	}
 
 	errorResponse := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		customerGroup, err = client.CustomerGroupCreate(context.Background(), draft)
+		customerGroup, err = client.CustomerGroups().Post(draft).Execute(context.Background())
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -80,10 +80,10 @@ func resourceCustomerGroupRead(d *schema.ResourceData, m interface{}) error {
 
 	client := getClient(m)
 
-	customerGroup, err := client.CustomerGroupGetWithID(context.Background(), d.Id())
+	customerGroup, err := client.CustomerGroups().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -109,38 +109,37 @@ func resourceCustomerGroupRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceCustomerGroupUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	customerGroup, err := client.CustomerGroupGetWithID(context.Background(), d.Id())
+	customerGroup, err := client.CustomerGroups().WithId(d.Id()).Get().Execute(context.Background())
 	if err != nil {
 		return err
 	}
 
-	input := &commercetools.CustomerGroupUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.CustomerGroupUpdate{
 		Version: customerGroup.Version,
-		Actions: []commercetools.CustomerGroupUpdateAction{},
+		Actions: []platform.CustomerGroupUpdateAction{},
 	}
 
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CustomerGroupChangeNameAction{Name: newName})
+			&platform.CustomerGroupChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CustomerGroupSetKeyAction{Key: newKey})
+			&platform.CustomerGroupSetKeyAction{Key: &newKey})
 	}
 
 	log.Printf(
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.CustomerGroupUpdateWithID(context.Background(), input)
+	_, err = client.CustomerGroups().WithId(d.Id()).Post(input).Execute(context.Background())
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
 		return err
@@ -152,7 +151,9 @@ func resourceCustomerGroupUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceCustomerGroupDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.CustomerGroupDeleteWithID(context.Background(), d.Id(), version)
+	_, err := client.CustomerGroups().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyCustomerGroupsByIDRequestMethodDeleteInput{
+		Version: version,
+	}).Execute(context.Background())
 	if err != nil {
 		log.Printf("[ERROR] Error during deleting customer group resource %s", err)
 		return nil
