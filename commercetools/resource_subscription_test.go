@@ -34,6 +34,11 @@ func TestValidateDestination(t *testing.T) {
 			"project_id": "<project_id>",
 			"topic":      "<topic>",
 		},
+		{
+			"type":       "event_bridge",
+			"region":     "<region>",
+			"account_id": "<account_id>",
+		},
 	}
 	for _, validDestination := range validDestinations {
 		_, errs := validateDestination(validDestination, "destination")
