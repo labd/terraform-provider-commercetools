@@ -15,6 +15,7 @@ const (
 	// Destinations
 	subSQS             = "SQS"
 	subSNS             = "SNS"
+	subEventBridge     = "event_bridge"
 	subAzureEventGrid  = "azure_eventgrid"
 	subAzureServiceBus = "azure_servicebus"
 	subGooglePubSub    = "google_pubsub"
@@ -35,6 +36,10 @@ var destinationFields = map[string][]string{
 		"topic_arn",
 		"access_key",
 		"access_secret",
+	},
+	subEventBridge: {
+		"region",
+		"account_id",
 	},
 	subAzureEventGrid: {
 		"uri",
@@ -104,7 +109,12 @@ func resourceSubscription() *schema.Resource {
 						"region": {
 							Type:             schema.TypeString,
 							Optional:         false,
-							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subEventBridge),
+						},
+						"account_id": {
+							Type:             schema.TypeString,
+							Optional:         false,
+							DiffSuppressFunc: suppressIfNotDestinationType(subEventBridge),
 						},
 						"access_key": {
 							Description:      "For AWS SNS / SQS / Azure Event Grid",
@@ -386,6 +396,11 @@ func resourceSubscriptionGetDestination(d *schema.ResourceData) (platform.Destin
 		return platform.GoogleCloudPubSubDestination{
 			ProjectId: input["project_id"].(string),
 			Topic:     input["topic"].(string),
+		}, nil
+	case subEventBridge:
+		return platform.EventBridgeDestination{
+			Region:    input["region"].(string),
+			AccountId: input["account_id"].(string),
 		}, nil
 	default:
 		return nil, fmt.Errorf("Destination type %s not implemented", input["type"])

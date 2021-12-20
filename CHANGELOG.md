@@ -1,3 +1,7 @@
+unreleased
+==========
+- add support for AWS EventBridge subscription
+
 v0.30.0 (2021-08-04)
 ====================
 - Resource project: Add `shipping_rate_input_type` setting to enable tiered pricing for a project
