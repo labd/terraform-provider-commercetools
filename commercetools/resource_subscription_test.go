@@ -63,6 +63,10 @@ func TestValidateDestination(t *testing.T) {
 			"type":  "google_pubsub",
 			"topic": "<topic>",
 		},
+		{
+			"type":  "event_bridge",
+			"topic": "<region>",
+		},
 	}
 	for _, validDestination := range invalidDestinations {
 		_, errs := validateDestination(validDestination, "destination")
