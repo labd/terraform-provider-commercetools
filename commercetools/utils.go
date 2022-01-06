@@ -324,6 +324,37 @@ func ValidateCurrencyCode(val interface{}, key string) (warns []string, errs []e
 	return
 }
 
+// Replaced by unmarshallTime
 func expandDate(input string) (time.Time, error) {
 	return time.Parse(time.RFC3339, input)
+}
+
+func transformToList(data map[string]interface{}, key string) {
+	newDestination := make([]interface{}, 1, 1)
+	if data[key] != nil {
+		newDestination[0] = data[key]
+	}
+	data[key] = newDestination
+}
+
+func elementFromList(d *schema.ResourceData, key string) (map[string]interface{}, error) {
+	data := d.Get(key).([]interface{})
+
+	if len(data) > 0 {
+		result := data[0].(map[string]interface{})
+		return result, nil
+	}
+	return nil, nil
+}
+
+func isNotEmpty(d map[string]interface{}, key string) (interface{}, bool) {
+	val, ok := d[key]
+	if !ok {
+		return nil, false
+	}
+
+	if val != "" {
+		return val, true
+	}
+	return nil, false
 }
