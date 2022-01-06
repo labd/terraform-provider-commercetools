@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/customdiff"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
 
@@ -102,7 +102,7 @@ func resourceType() *schema.Resource {
 			},
 		},
 		CustomizeDiff: customdiff.All(
-			customdiff.ValidateChange("field", func(old, new, meta interface{}) error {
+			customdiff.ValidateChange("field", func(ctx context.Context, old, new, meta interface{}) error {
 				log.Printf("[DEBUG] Start field validation")
 				oldLookup := createLookup(old.([]interface{}), "name")
 				newV := new.([]interface{})
