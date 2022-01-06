@@ -30,10 +30,10 @@ func TestAccDiscountCodeCreate_basic(t *testing.T) {
 						"commercetools_discount_code.standard", "code", "2",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_discount_code.standard", "valid_from", "2020-01-02T15:04:05.000Z",
+						"commercetools_discount_code.standard", "valid_from", "2020-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_discount_code.standard", "valid_until", "2021-01-02T15:04:05.000Z",
+						"commercetools_discount_code.standard", "valid_until", "2021-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_discount_code.standard", "is_active", "true",
@@ -62,10 +62,10 @@ func TestAccDiscountCodeCreate_basic(t *testing.T) {
 						"commercetools_discount_code.standard", "code", "2",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_discount_code.standard", "valid_from", "2018-01-02T15:04:05.000Z",
+						"commercetools_discount_code.standard", "valid_from", "2018-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_discount_code.standard", "valid_until", "2019-01-02T15:04:05.000Z",
+						"commercetools_discount_code.standard", "valid_until", "2019-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_discount_code.standard", "is_active", "false",
@@ -128,20 +128,21 @@ func testAccDiscountCodeConfig() string {
 	resource "commercetools_cart_discount" "standard" {
 		key = "test_key"
 		name = {
-		  en = "best cart discount"
+			en = "best cart discount"
 		}
 		description = {
 			en = "Standard description"
-		  }
+		}
 		sort_order             = "0.9123"
 		predicate              = "1=1"
 		stacking_mode          = "Stacking"
 		requires_discount_code = true
-		valid_from             = "2020-01-02T15:04:05.000Z"
-		valid_until            = "2021-01-02T15:04:05.000Z"
-		target = {
-		  type      = "lineItems"
-		  predicate = "1=1"
+		valid_from             = "2020-01-02T15:04:05Z"
+		valid_until            = "2021-01-02T15:04:05Z"
+
+		target {
+			type      = "lineItems"
+			predicate = "1=1"
 		}
 
 		value {
@@ -153,20 +154,21 @@ func testAccDiscountCodeConfig() string {
 	resource "commercetools_cart_discount" "standard_2" {
 		key = "another_test_key"
 		name = {
-		  en = "best cart discount the second"
+			en = "best cart discount the second"
 		}
 		description = {
 			en = "Standard description"
-		  }
+		}
 		sort_order             = "0.9321"
 		predicate              = "1=1"
 		stacking_mode          = "Stacking"
 		requires_discount_code = true
-		valid_from             = "2020-01-02T15:04:05.000Z"
-		valid_until            = "2021-01-02T15:04:05.000Z"
-		target = {
-		  type      = "lineItems"
-		  predicate = "1=1"
+		valid_from             = "2020-01-02T15:04:05Z"
+		valid_until            = "2021-01-02T15:04:05Z"
+
+		target {
+			type      = "lineItems"
+			predicate = "1=1"
 		}
 
 		value {
@@ -177,20 +179,22 @@ func testAccDiscountCodeConfig() string {
 
 	resource "commercetools_discount_code" "standard" {
 		name = {
-		  en = "Standard name"
+			en = "Standard name"
 		}
 		description = {
 			en = "Standard description"
-		  }
-		code           = "2"
-		valid_from             = "2020-01-02T15:04:05.000Z"
-		valid_until            = "2021-01-02T15:04:05.000Z"
-		is_active      = true
-        predicate      = "1=1"
+		}
+		code        = "2"
+		valid_from  = "2020-01-02T15:04:05Z"
+		valid_until = "2021-01-02T15:04:05Z"
+		is_active   = true
+        predicate   = "1=1"
+
         max_applications_per_customer = 10
-        max_applications    = 100
+        max_applications              = 100
+
 		cart_discounts = [commercetools_cart_discount.standard.id, commercetools_cart_discount.standard_2.id]
-	  }  `
+	  }`
 }
 
 func testAccDiscountCodeUpdate() string {
@@ -198,18 +202,18 @@ func testAccDiscountCodeUpdate() string {
 	resource "commercetools_cart_discount" "standard" {
 		key = "test_key"
 		name = {
-		  en = "best cart discount"
+			en = "best cart discount"
 		}
 		description = {
 			en = "Standard description"
-		  }
+		}
 		sort_order             = "0.9123"
 		predicate              = "1=1"
 		stacking_mode          = "Stacking"
 		requires_discount_code = true
-		valid_from             = "2020-01-02T15:04:05.000Z"
-		valid_until            = "2021-01-02T15:04:05.000Z"
-		target = {
+		valid_from             = "2020-01-02T15:04:05Z"
+		valid_until            = "2021-01-02T15:04:05Z"
+		target {
 		  type      = "lineItems"
 		  predicate = "1=1"
 		}
@@ -218,46 +222,50 @@ func testAccDiscountCodeUpdate() string {
 			type      = "relative"
 			permyriad = 1000
 		}
-	  }
+	}
+
 	resource "commercetools_cart_discount" "standard_2" {
 		key = "another_test_key"
 		name = {
-		  en = "best cart discount the second"
+			en = "best cart discount the second"
 		}
 		description = {
 			en = "Standard description"
-		  }
+		}
 		sort_order             = "0.9321"
 		predicate              = "1=1"
 		stacking_mode          = "Stacking"
 		requires_discount_code = true
-		valid_from             = "2020-01-02T15:04:05.000Z"
-		valid_until            = "2021-01-02T15:04:05.000Z"
-		target = {
-		  type      = "lineItems"
-		  predicate = "1=1"
+		valid_from             = "2020-01-02T15:04:05Z"
+		valid_until            = "2021-01-02T15:04:05Z"
+
+		target {
+			type      = "lineItems"
+			predicate = "1=1"
 		}
 
 		value {
 			type      = "relative"
 			permyriad = 1000
 		}
-	  }
+	}
 
 	resource "commercetools_discount_code" "standard" {
 		name = {
-		  en = "Standard name new"
+			en = "Standard name new"
 		}
 		description = {
 			en = "Standard description new"
-		  }
+		}
 		code           = "2"
-		valid_from             = "2018-01-02T15:04:05.000Z"
-		valid_until            = "2019-01-02T15:04:05.000Z"
+		valid_from     = "2018-01-02T15:04:05Z"
+		valid_until    = "2019-01-02T15:04:05Z"
 		is_active      = false
         predicate      = "1=2"
+
         max_applications_per_customer = 5
-        max_applications    = 50
+        max_applications              = 50
+
 		cart_discounts = [commercetools_cart_discount.standard.id]
 	  }  `
 }
@@ -267,18 +275,19 @@ func testAccDiscountCodeRemoveProperties() string {
 		resource "commercetools_cart_discount" "standard" {
 		key = "test_key"
 		name = {
-		  en = "best cart discount"
+			en = "best cart discount"
 		}
 		description = {
 			en = "Standard description"
-		  }
+		}
 		sort_order             = "0.9123"
 		predicate              = "1=1"
 		stacking_mode          = "Stacking"
 		requires_discount_code = true
-		valid_from             = "2020-01-02T15:04:05.000Z"
-		valid_until            = "2021-01-02T15:04:05.000Z"
-		target = {
+		valid_from             = "2020-01-02T15:04:05Z"
+		valid_until            = "2021-01-02T15:04:05Z"
+
+		target {
 		  type      = "lineItems"
 		  predicate = "1=1"
 		}
@@ -292,18 +301,19 @@ func testAccDiscountCodeRemoveProperties() string {
 	resource "commercetools_cart_discount" "standard_2" {
 		key = "another_test_key"
 		name = {
-		  en = "best cart discount the second"
+			en = "best cart discount the second"
 		}
 		description = {
 			en = "Standard description"
-		  }
+		}
 		sort_order             = "0.9321"
 		predicate              = "1=1"
 		stacking_mode          = "Stacking"
 		requires_discount_code = true
-		valid_from             = "2020-01-02T15:04:05.000Z"
-		valid_until            = "2021-01-02T15:04:05.000Z"
-		target = {
+		valid_from             = "2020-01-02T15:04:05Z"
+		valid_until            = "2021-01-02T15:04:05Z"
+
+		target {
 		  type      = "lineItems"
 		  predicate = "1=1"
 		}
@@ -317,7 +327,7 @@ func testAccDiscountCodeRemoveProperties() string {
 	resource "commercetools_discount_code" "standard" {
 		code           = "2"
 		cart_discounts = [commercetools_cart_discount.standard.id]
-	  }  `
+	  }`
 }
 
 func testAccCheckDiscountCodeDestroy(s *terraform.State) error {

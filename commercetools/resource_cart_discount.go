@@ -24,6 +24,14 @@ func resourceCartDiscount() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceCartDiscountResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: migrateCartDiscountStateV0toV1,
+				Version: 0,
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"key": {
 				Description: "User-specific unique identifier for a cart discount. Must be unique across a project",
@@ -110,7 +118,8 @@ func resourceCartDiscount() *schema.Resource {
 			"target": {
 				Description: "Empty when the value has type giftLineItem, otherwise a " +
 					"[CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget)",
-				Type:     schema.TypeMap,
+				Type:     schema.TypeList,
+				MaxItems: 1,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -218,12 +227,12 @@ func resourceCartDiscountCreate(d *schema.ResourceData, m interface{}) error {
 	description := platform.LocalizedString(
 		expandStringMap(d.Get("description").(map[string]interface{})))
 
-	value, err := resourceCartDiscountGetValue(d)
+	value, err := unmarshallCartDiscountValue(d)
 	if err != nil {
 		return err
 	}
 
-	stackingMode, err := resourceCartDiscountGetStackingMode(d)
+	stackingMode, err := unmarshallCartDiscountStackingMode(d)
 	if err != nil {
 		return err
 	}
@@ -240,12 +249,10 @@ func resourceCartDiscountCreate(d *schema.ResourceData, m interface{}) error {
 		StackingMode:         &stackingMode,
 	}
 
-	if val := d.Get("target").(map[string]interface{}); len(val) > 0 {
-		target, err := resourceCartDiscountGetTarget(d)
-		if err != nil {
-			return err
-		}
-		draft.Target = &target
+	if val, err := unmarshallCartDiscountTarget(d); err == nil {
+		draft.Target = val
+	} else {
+		return err
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
@@ -316,13 +323,13 @@ func resourceCartDiscountRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("key", cartDiscount.Key)
 		d.Set("name", cartDiscount.Name)
 		d.Set("description", cartDiscount.Description)
-		d.Set("value", cartDiscount.Value)
+		d.Set("value", marshallCartDiscountValue(cartDiscount.Value))
 		d.Set("predicate", cartDiscount.CartPredicate)
-		d.Set("target", cartDiscount.Target)
+		d.Set("target", marshallCartDiscountTarget(cartDiscount.Target))
 		d.Set("sort_order", cartDiscount.SortOrder)
 		d.Set("is_active", cartDiscount.IsActive)
-		d.Set("valid_from", cartDiscount.ValidFrom)
-		d.Set("valid_until", cartDiscount.ValidUntil)
+		d.Set("valid_from", marshallTime(cartDiscount.ValidFrom))
+		d.Set("valid_until", marshallTime(cartDiscount.ValidUntil))
 		d.Set("requires_discount_code", cartDiscount.RequiresDiscountCode)
 		d.Set("stacking_mode", cartDiscount.StackingMode)
 	}
@@ -366,7 +373,7 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("value") {
-		value, err := resourceCartDiscountGetValue(d)
+		value, err := unmarshallCartDiscountValue(d)
 		if err != nil {
 			return err
 		}
@@ -383,16 +390,16 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("target") {
-		if val := d.Get("target").(map[string]interface{}); len(val) > 0 {
-			target, err := resourceCartDiscountGetTarget(d)
-			if err != nil {
-				return err
+		if val, err := unmarshallCartDiscountTarget(d); err == nil {
+			if val != nil {
+				input.Actions = append(
+					input.Actions,
+					&platform.CartDiscountChangeTargetAction{Target: val})
+			} else {
+				return errors.New("Cannot change target to empty")
 			}
-			input.Actions = append(
-				input.Actions,
-				&platform.CartDiscountChangeTargetAction{Target: target})
 		} else {
-			return errors.New("Cannot change target to empty")
+			return err
 		}
 
 	}
@@ -451,7 +458,7 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("stacking_mode") {
-		newStackingMode, err := resourceCartDiscountGetStackingMode(d)
+		newStackingMode, err := unmarshallCartDiscountStackingMode(d)
 		if err != nil {
 			return err
 		}
@@ -487,7 +494,39 @@ func resourceCartDiscountDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceCartDiscountGetValue(d *schema.ResourceData) (platform.CartDiscountValueDraft, error) {
+func marshallCartDiscountValue(val platform.CartDiscountValue) []map[string]interface{} {
+	if val == nil {
+		return []map[string]interface{}{}
+	}
+
+	switch v := val.(type) {
+	case platform.CartDiscountValueAbsolute:
+		return []map[string]interface{}{{
+			"type":  "absolute",
+			"money": marshallTypedMoney(v.Money),
+		}}
+	case platform.CartDiscountValueFixed:
+		return []map[string]interface{}{{
+			"type":  "fixed",
+			"money": marshallTypedMoney(v.Money),
+		}}
+	case platform.CartDiscountValueGiftLineItem:
+		return []map[string]interface{}{{
+			"type":                    "giftLineItem",
+			"supply_channel_id":       v.SupplyChannel.ID,
+			"distribution_channel_id": v.DistributionChannel.ID,
+			"product_id":              v.Product.ID,
+		}}
+	case platform.CartDiscountValueRelative:
+		return []map[string]interface{}{{
+			"type":      "relative",
+			"permyriad": v.Permyriad,
+		}}
+	}
+	panic("Unable to marshall cart discount value")
+}
+
+func unmarshallCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValueDraft, error) {
 	value := d.Get("value").([]interface{})[0].(map[string]interface{})
 	switch value["type"].(string) {
 	case "relative":
@@ -495,7 +534,7 @@ func resourceCartDiscountGetValue(d *schema.ResourceData) (platform.CartDiscount
 			Permyriad: value["permyriad"].(int),
 		}, nil
 	case "absolute":
-		money := resourceCartDiscountGetMoney(value)
+		money := unmarshallTypedMoney(value)
 		return platform.CartDiscountValueAbsoluteDraft{
 			Money: money,
 		}, nil
@@ -521,25 +560,36 @@ func resourceCartDiscountGetValue(d *schema.ResourceData) (platform.CartDiscount
 	}
 }
 
-func resourceCartDiscountGetMoney(d map[string]interface{}) []platform.Money {
-	input := d["money"].([]interface{})
-	var result []platform.Money
-
-	for _, raw := range input {
-		i := raw.(map[string]interface{})
-		priceCurrencyCode := i["currency_code"].(string)
-
-		result = append(result, platform.Money{
-			CurrencyCode: priceCurrencyCode,
-			CentAmount:   i["cent_amount"].(int),
-		})
+func marshallCartDiscountTarget(val platform.CartDiscountTarget) []map[string]interface{} {
+	switch v := val.(type) {
+	case platform.CartDiscountLineItemsTarget:
+		return []map[string]interface{}{{
+			"type":      "lineItems",
+			"predicate": v.Predicate,
+		}}
+	case platform.CartDiscountCustomLineItemsTarget:
+		return []map[string]interface{}{{
+			"type":      "customLineItems",
+			"predicate": v.Predicate,
+		}}
+	case platform.CartDiscountShippingCostTarget:
+		return []map[string]interface{}{{
+			"type": "shipping",
+		}}
 	}
 
-	return result
+	panic("Unable to marshall cart discount target")
 }
 
-func resourceCartDiscountGetTarget(d *schema.ResourceData) (platform.CartDiscountTarget, error) {
-	input := d.Get("target").(map[string]interface{})
+func unmarshallCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscountTarget, error) {
+	input, err := elementFromList(d, "target")
+	if err != nil {
+		return nil, err
+	}
+
+	if input == nil {
+		return nil, nil
+	}
 
 	switch input["type"].(string) {
 	case "lineItems":
@@ -558,7 +608,7 @@ func resourceCartDiscountGetTarget(d *schema.ResourceData) (platform.CartDiscoun
 
 }
 
-func resourceCartDiscountGetStackingMode(d *schema.ResourceData) (platform.StackingMode, error) {
+func unmarshallCartDiscountStackingMode(d *schema.ResourceData) (platform.StackingMode, error) {
 	switch d.Get("stacking_mode").(string) {
 	case "Stacking":
 		return platform.StackingModeStacking, nil
@@ -567,4 +617,146 @@ func resourceCartDiscountGetStackingMode(d *schema.ResourceData) (platform.Stack
 	default:
 		return "", fmt.Errorf("Stacking mode %s not implemented", d.Get("stacking_mode").(string))
 	}
+}
+
+func resourceCartDiscountResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"key": {
+				Description: "User-specific unique identifier for a cart discount. Must be unique across a project",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"name": {
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Required:    true,
+			},
+			"description": {
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
+			},
+			"value": {
+				Description: "Defines the effect the discount will have. " +
+					"[CartDiscountValue](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscountvalue)",
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Description:  "Currently supports absolute/relative/giftLineItem",
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateValueType,
+						},
+						"permyriad": {
+							Description: "Relative discount specific fields",
+							Type:        schema.TypeInt,
+							Optional:    true,
+						},
+						"money": {
+							Description: "Absolute discount specific fields",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"currency_code": {
+										Description:  "The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: ValidateCurrencyCode,
+									},
+									"cent_amount": {
+										Description: "The amount in cents (the smallest indivisible unit of the currency)",
+										Type:        schema.TypeInt,
+										Required:    true,
+									},
+								},
+							},
+						},
+						"product_id": {
+							Description: "Gift Line Item discount specific field",
+							Type:        schema.TypeString,
+							Optional:    true,
+						},
+						"variant": {
+							Description: "Gift Line Item discount specific field",
+							Type:        schema.TypeInt,
+							Optional:    true,
+						},
+						"supply_channel_id": {
+							Description: "Gift Line Item discount specific field",
+							Type:        schema.TypeString,
+							Optional:    true,
+						},
+						"distribution_channel_id": {
+							Description: "Gift Line Item discount specific field",
+							Type:        schema.TypeString,
+							Optional:    true,
+						},
+					},
+				},
+			},
+			"predicate": {
+				Description: "A valid [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+			"target": {
+				Description: "Empty when the value has type giftLineItem, otherwise a " +
+					"[CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget)",
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"sort_order": {
+				Description: "The string must contain a number between 0 and 1. All matching cart discounts are " +
+					"applied to a cart in the order defined by this field. A discount with greater sort order is " +
+					"prioritized higher than a discount with lower sort order. The sort order is unambiguous among all cart discounts",
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"is_active": {
+				Description: "Only active discount can be applied to the cart",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+			},
+			"valid_from": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"valid_until": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"requires_discount_code": {
+				Description: "States whether the discount can only be used in a connection with a " +
+					"[DiscountCode](https://docs.commercetools.com/api/projects/discountCodes#discountcode)",
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"stacking_mode": {
+				Description:  "Specifies whether the application of this discount causes the following discounts to be ignored",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateStackingMode,
+				Default:      "Stacking",
+			},
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func migrateCartDiscountStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	transformToList(rawState, "target")
+	return rawState, nil
 }

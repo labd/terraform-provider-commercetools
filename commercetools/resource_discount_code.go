@@ -107,8 +107,8 @@ func resourceDiscountCodeCreate(d *schema.ResourceData, m interface{}) error {
 		IsActive:                   boolRef(d.Get("is_active")),
 		MaxApplicationsPerCustomer: intRef(d.Get("max_applications_per_customer")),
 		MaxApplications:            intRef(d.Get("max_applications")),
-		Groups:                     resourceDiscountCodeGetGroups(d),
-		CartDiscounts:              resourceDiscountCodeGetCartDiscounts(d),
+		Groups:                     unmarshallDiscountCodeGroups(d),
+		CartDiscounts:              unmarshallDiscountCodeCartDiscounts(d),
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
@@ -180,11 +180,11 @@ func resourceDiscountCodeRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("name", discountCode.Name)
 		d.Set("description", discountCode.Description)
 		d.Set("predicate", discountCode.CartPredicate)
-		d.Set("cart_discounts", discountCode.CartDiscounts)
+		d.Set("cart_discounts", marshallDiscountCodeCartDiscounts(discountCode.CartDiscounts))
 		d.Set("groups", discountCode.Groups)
 		d.Set("is_active", discountCode.IsActive)
-		d.Set("valid_from", discountCode.ValidFrom)
-		d.Set("valid_until", discountCode.ValidUntil)
+		d.Set("valid_from", marshallTime(discountCode.ValidFrom))
+		d.Set("valid_until", marshallTime(discountCode.ValidUntil))
 		d.Set("max_applications_per_customer", discountCode.MaxApplicationsPerCustomer)
 		d.Set("max_applications", discountCode.MaxApplications)
 	}
@@ -242,14 +242,14 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("cart_discounts") {
-		newCartDiscounts := resourceDiscountCodeGetCartDiscounts(d)
+		newCartDiscounts := unmarshallDiscountCodeCartDiscounts(d)
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeChangeCartDiscountsAction{CartDiscounts: newCartDiscounts})
 	}
 
 	if d.HasChange("groups") {
-		newGroups := resourceDiscountCodeGetGroups(d)
+		newGroups := unmarshallDiscountCodeGroups(d)
 		if len(newGroups) > 0 {
 			input.Actions = append(
 				input.Actions,
@@ -330,7 +330,7 @@ func resourceDiscountCodeDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceDiscountCodeGetGroups(d *schema.ResourceData) []string {
+func unmarshallDiscountCodeGroups(d *schema.ResourceData) []string {
 	var groups []string
 	for _, group := range expandStringArray(d.Get("groups").([]interface{})) {
 		groups = append(groups, group)
@@ -338,10 +338,21 @@ func resourceDiscountCodeGetGroups(d *schema.ResourceData) []string {
 	return groups
 }
 
-func resourceDiscountCodeGetCartDiscounts(d *schema.ResourceData) []platform.CartDiscountResourceIdentifier {
-	var cartDiscounts []platform.CartDiscountResourceIdentifier
-	for _, cartDiscount := range expandStringArray(d.Get("cart_discounts").([]interface{})) {
-		cartDiscounts = append(cartDiscounts, platform.CartDiscountResourceIdentifier{ID: &cartDiscount})
+func unmarshallDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.CartDiscountResourceIdentifier {
+	discounts := d.Get("cart_discounts").([]interface{})
+
+	cartDiscounts := make([]platform.CartDiscountResourceIdentifier, len(discounts))
+	for i := range discounts {
+		id := discounts[i].(string)
+		cartDiscounts[i] = platform.CartDiscountResourceIdentifier{ID: &id}
 	}
 	return cartDiscounts
+}
+
+func marshallDiscountCodeCartDiscounts(values []platform.CartDiscountReference) []string {
+	result := make([]string, 0, len(values))
+	for _, obj := range values {
+		result = append(result, string(obj.ID))
+	}
+	return result
 }
