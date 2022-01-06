@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -26,6 +25,14 @@ func resourceProjectSettings() *schema.Resource {
 		Exists: resourceProjectExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceProjectSettingsResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: migrateResourceProjectSettingsStateV0toV1,
+				Version: 0,
+			},
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -58,7 +65,8 @@ func resourceProjectSettings() *schema.Resource {
 			},
 			"messages": {
 				Description: "[Messages Configuration](https://docs.commercetools.com/api/projects/project#messages-configuration)",
-				Type:        schema.TypeMap,
+				Type:        schema.TypeList,
+				MaxItems:    1,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -72,7 +80,8 @@ func resourceProjectSettings() *schema.Resource {
 			},
 			"external_oauth": {
 				Description: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
-				Type:        schema.TypeMap,
+				Type:        schema.TypeList,
+				MaxItems:    1,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -90,7 +99,8 @@ func resourceProjectSettings() *schema.Resource {
 			},
 			"carts": {
 				Description: "[Carts Configuration](https://docs.commercetools.com/api/projects/project#carts-configuration)",
-				Type:        schema.TypeMap,
+				Type:        schema.TypeList,
+				MaxItems:    1,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -108,7 +118,8 @@ func resourceProjectSettings() *schema.Resource {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-					}},
+					},
+				},
 			},
 			"shipping_rate_input_type": {
 				Description: "Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses " +
@@ -204,13 +215,10 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("currencies", project.Currencies)
 	d.Set("countries", project.Countries)
 	d.Set("languages", project.Languages)
-	d.Set("shipping_rate_input_type", project.ShippingRateInputType)
-	d.Set("external_oauth", project.ExternalOAuth)
-	d.Set("carts", project.Carts)
-	log.Print("[DEBUG] Logging messages enabled")
-	log.Print(stringFormatObject(project.Messages))
-	d.Set("messages", project.Messages)
-	log.Print(stringFormatObject(d))
+	d.Set("shipping_rate_input_type", marshallProjectShippingRateInputType(project.ShippingRateInputType))
+	d.Set("external_oauth", marshallProjectExternalOAuth(project.ExternalOAuth))
+	d.Set("carts", marshallProjectCarts(project.Carts))
+	d.Set("messages", marshallProjectMessages(project.Messages))
 	return nil
 }
 
@@ -272,22 +280,14 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	}
 
 	if d.HasChange("messages") {
-		messages := d.Get("messages").(map[string]interface{})
+		messages, err := elementFromList(d, "messages")
+		if err != nil {
+			return err
+		}
 		if messages["enabled"] != nil {
-			// boolean value is somehow interface{} | string so we have to convert it
-			var enabled bool
-			switch messages["enabled"] {
-			case "true":
-				enabled = true
-			case "false":
-				enabled = false
-			default:
-				return fmt.Errorf("invalid value for messages[\"enabled\"]: %t", messages["enabled"])
-			}
-
 			input.Actions = append(
 				input.Actions,
-				&platform.ProjectChangeMessagesEnabledAction{MessagesEnabled: enabled})
+				&platform.ProjectChangeMessagesEnabledAction{MessagesEnabled: messages["enabled"].(bool)})
 		} else {
 			// To commercetools this field is not optional, so when deleting we revert to the default: false:
 			input.Actions = append(
@@ -308,7 +308,10 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	}
 
 	if d.HasChange("external_oauth") {
-		externalOAuth := d.Get("external_oauth").(map[string]interface{})
+		externalOAuth, err := elementFromList(d, "external_oauth")
+		if err != nil {
+			return err
+		}
 		if externalOAuth["url"] != nil && externalOAuth["authorization_header"] != nil {
 			newExternalOAuth := platform.ExternalOAuth{
 				Url:                 externalOAuth["url"].(string),
@@ -323,40 +326,27 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	}
 
 	if d.HasChange("carts") {
-		carts := d.Get("carts").(map[string]interface{})
-		var fallbackEnabled bool = false
+		carts, err := elementFromList(d, "carts")
+		if err != nil {
+			return err
+		}
+		fallbackEnabled := false
 		if carts["country_tax_rate_fallback_enabled"] != nil {
-			// boolean value is somehow interface{} | string so we have to convert it
-			switch carts["country_tax_rate_fallback_enabled"] {
-			case "true":
-				fallbackEnabled = true
-			case "false":
-			default:
-				return fmt.Errorf("invalid value for carts[\"country_tax_rate_fallback_enabled\"]: %s", carts["country_tax_rate_fallback_enabled"])
-			}
+			fallbackEnabled = carts["country_tax_rate_fallback_enabled"].(bool)
 		}
 
-		input.Actions = append(
-			input.Actions,
-			&platform.ProjectChangeCountryTaxRateFallbackEnabledAction{
-				CountryTaxRateFallbackEnabled: fallbackEnabled,
-			})
-
-		var deleteDaysAfterLastModification int
+		var deleteDaysAfterLastModification *int
 		if carts["delete_days_after_last_modification"] != nil {
-			// int value is somehow interface{} | string so we have to convert the value
-			var err error
-			deleteDaysAfterLastModification, err = strconv.Atoi(carts["delete_days_after_last_modification"].(string))
-			if err != nil {
-				return fmt.Errorf("invalid value for carts[\"delete_days_after_last_modification\"]: %s", carts["delete_days_after_last_modification"])
-			}
+			val := carts["delete_days_after_last_modification"].(int)
+			deleteDaysAfterLastModification = &val
 		}
 
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeCartsConfiguration{
 				CartsConfiguration: &platform.CartsConfiguration{
-					DeleteDaysAfterLastModification: intRef(deleteDaysAfterLastModification),
+					CountryTaxRateFallbackEnabled:   boolRef(fallbackEnabled),
+					DeleteDaysAfterLastModification: deleteDaysAfterLastModification,
 				},
 			})
 	}
@@ -404,4 +394,142 @@ func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomField
 		})
 	}
 	return values, nil
+}
+
+func marshallProjectCarts(val platform.CartsConfiguration) []map[string]interface{} {
+	return []map[string]interface{}{
+		{
+			"country_tax_rate_fallback_enabled":   val.CountryTaxRateFallbackEnabled,
+			"delete_days_after_last_modification": val.DeleteDaysAfterLastModification,
+		},
+	}
+}
+
+func marshallProjectExternalOAuth(val *platform.ExternalOAuth) []map[string]interface{} {
+	if val == nil {
+		return []map[string]interface{}{}
+	}
+	return []map[string]interface{}{
+		{
+			"url":                  val.Url,
+			"authorization_header": val.AuthorizationHeader,
+		},
+	}
+}
+
+func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) string {
+	switch val.(type) {
+	case platform.CartScoreType:
+		return "CartScore"
+	case platform.CartValueType:
+		return "CartValue"
+	case platform.CartClassificationType:
+		return "CartClassification"
+	}
+	return ""
+}
+
+func marshallProjectMessages(val platform.MessageConfiguration) []map[string]interface{} {
+	return []map[string]interface{}{
+		{
+			"enabled": val.Enabled,
+		},
+	}
+}
+
+func resourceProjectSettingsResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"key": {
+				Description: "The unique key of the project",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"name": {
+				Description: "The name of the project",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"currencies": {
+				Description: "A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+			"countries": {
+				Description: "A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+			"languages": {
+				Description: "[IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+			"messages": {
+				Description: "[Messages Configuration](https://docs.commercetools.com/api/projects/project#messages-configuration)",
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeBool,
+				},
+			},
+			"external_oauth": {
+				Description: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"carts": {
+				Description: "[Carts Configuration](https://docs.commercetools.com/api/projects/project#carts-configuration)",
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"shipping_rate_input_type": {
+				Description: "Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses " +
+					"the sum of all line item prices, whereas CartClassification and CartScore use the " +
+					"shippingRateInput field on the cart to select a tier",
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"shipping_rate_cart_classification_value": {
+				Description: "If shipping_rate_input_type is set to CartClassification these values are used to create " +
+					"tiers\n. Only a key defined inside the values array can be used to create a tier, or to set a value " +
+					"for the shippingRateInput on the cart. The keys are checked for uniqueness and the request is " +
+					"rejected if keys are not unique",
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"label": {
+							Type:     TypeLocalizedString,
+							Optional: true,
+						},
+					},
+				},
+			},
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func migrateResourceProjectSettingsStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	transformToList(rawState, "messages")
+	transformToList(rawState, "external_oauth")
+	transformToList(rawState, "carts")
+	return rawState, nil
 }

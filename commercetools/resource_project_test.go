@@ -30,22 +30,22 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						"commercetools_project_settings.acctest_project_settings", "languages.#", "4",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "messages.enabled", "true",
+						"commercetools_project_settings.acctest_project_settings", "messages.0.enabled", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.url", "https://example.com/oauth/token",
+						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.url", "https://example.com/oauth/token",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.authorization_header", "Bearer secret",
+						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.authorization_header", "Bearer secret",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "shipping_rate_input_type", "CartValue",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.country_tax_rate_fallback_enabled", "true",
+						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.delete_days_after_last_modification", "7"),
+						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification", "7"),
 				),
 			},
 			{
@@ -64,13 +64,13 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						"commercetools_project_settings.acctest_project_settings", "languages.#", "5",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "messages.enabled", "false",
+						"commercetools_project_settings.acctest_project_settings", "messages.0.enabled", "false",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.url", "https://new-example.com/oauth/token",
+						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.url", "https://new-example.com/oauth/token",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.authorization_header", "Bearer new-secret",
+						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.authorization_header", "Bearer new-secret",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "shipping_rate_input_type", "CartClassification",
@@ -97,10 +97,10 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.1.label.nl", "Middel",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.country_tax_rate_fallback_enabled", "false",
+						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled", "false",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.delete_days_after_last_modification", "21",
+						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification", "21",
 					),
 				),
 			},
@@ -120,13 +120,13 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						"commercetools_project_settings.acctest_project_settings", "languages.#", "5",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "messages.enabled", "false",
+						"commercetools_project_settings.acctest_project_settings", "messages.0.enabled", "false",
 					),
 					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.url",
+						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.url",
 					),
 					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.authorization_header",
+						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.authorization_header",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "shipping_rate_input_type", "CartClassification",
@@ -143,11 +143,11 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.0.label.nl", "Klein",
 					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled",
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled", "false",
 					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification",
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification", "0",
 					),
 				),
 			},
@@ -168,7 +168,7 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						"commercetools_project_settings.acctest_project_settings", "languages.#", "4",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "messages.enabled", "true",
+						"commercetools_project_settings.acctest_project_settings", "messages.0.enabled", "true",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "external_oauth.url", "https://example.com/oauth/token",
@@ -199,22 +199,21 @@ func testAccProjectConfig() string {
 			countries  = ["NL", "DE", "US"]
 			currencies = ["EUR", "USD"]
 			languages  = ["nl", "de", "en", "en-US"]
-			external_oauth = {
+
+			external_oauth {
 				url = "https://example.com/oauth/token"
 				authorization_header = "Bearer secret"
 			}
-			messages = {
+			messages {
 			  enabled = true
 			}
 
-			carts = {
+			carts {
               country_tax_rate_fallback_enabled = true
               delete_days_after_last_modification = 7
             }
 
 			shipping_rate_input_type = "CartValue"
-                        
-
 		}`
 }
 
@@ -225,15 +224,15 @@ func testAccProjectConfigUpdate() string {
 			countries  = ["NL", "DE", "US", "GB"]
 			currencies = ["EUR", "USD", "GBP"]
 			languages  = ["nl", "de", "en", "en-US", "fr"]
-			external_oauth = {
+			external_oauth {
 				url = "https://new-example.com/oauth/token"
 				authorization_header = "Bearer new-secret"
 			}
-			messages = {
+			messages {
 			  enabled = false
 			}
 
-			carts = {
+			carts {
               country_tax_rate_fallback_enabled = false
               delete_days_after_last_modification = 21
             }
@@ -264,7 +263,7 @@ func testAccProjectConfigDeleteOAuthAndCarts() string {
 			countries  = ["NL", "DE", "US", "GB"]
 			currencies = ["EUR", "USD", "GBP"]
 			languages  = ["nl", "de", "en", "en-US", "fr"]
-			messages = {
+			messages {
 			  enabled = false
 			}
 
