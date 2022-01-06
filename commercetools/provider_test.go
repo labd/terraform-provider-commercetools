@@ -2,6 +2,7 @@ package commercetools
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -52,6 +53,7 @@ func testAccPreCheck(t *testing.T) {
 
 	err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(cfg))
 	if err != nil {
+		fmt.Println("FATAAL")
 		t.Fatal(err)
 	}
 }
