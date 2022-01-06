@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -76,6 +77,14 @@ func resourceSubscription() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceSubscriptionResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: migrateSubscriptionStateV0toV1,
+				Version: 0,
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"key": {
 				Description: "User-specific unique identifier for the subscription",
@@ -85,14 +94,34 @@ func resourceSubscription() *schema.Resource {
 			"destination": {
 				Description: "The Message Queue into which the notifications are to be sent" +
 					"See also the [Destination API Docs](https://docs.commercetools.com/api/projects/subscriptions#destination)",
-				Type:         schema.TypeMap,
-				Optional:     true,
-				ValidateFunc: validateDestination,
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:     schema.TypeString,
 							Required: true,
+							ValidateFunc: func(d interface{}, v string) ([]string, []error) {
+								allowed := []string{
+									subSQS,
+									subSNS,
+									subEventBridge,
+									subAzureEventGrid,
+									subAzureServiceBus,
+									subGooglePubSub,
+								}
+
+								if !stringInSlice(d.(string), allowed) {
+									return []string{}, []error{
+										fmt.Errorf("Invalid destination type %s. Accepted are %s",
+											d.(string), strings.Join(allowed, ", "),
+										),
+									}
+								}
+
+								return []string{}, []error{}
+							},
 						},
 						"topic_arn": {
 							Description:      "For AWS SNS",
@@ -108,12 +137,12 @@ func resourceSubscription() *schema.Resource {
 						},
 						"region": {
 							Type:             schema.TypeString,
-							Optional:         false,
+							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subEventBridge),
 						},
 						"account_id": {
 							Type:             schema.TypeString,
-							Optional:         false,
+							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subEventBridge),
 						},
 						"access_key": {
@@ -126,13 +155,13 @@ func resourceSubscription() *schema.Resource {
 							Description:      "For AWS SNS / SQS",
 							Type:             schema.TypeString,
 							Optional:         true,
-							ForceNew:         true,
+							Sensitive:        true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
 						},
 						"uri": {
 							Description:      "For Azure Event Grid",
 							Type:             schema.TypeString,
-							Optional:         false,
+							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subAzureEventGrid),
 						},
 						"connection_string": {
@@ -160,9 +189,27 @@ func resourceSubscription() *schema.Resource {
 			"format": {
 				Description: "The [format](https://docs.commercetools.com/api/projects/subscriptions#format) " +
 					"in which the payload is delivered",
-				Type:         schema.TypeMap,
-				Optional:     true,
-				ValidateFunc: validateFormat,
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if k == "format.#" && old == "1" && new == "0" {
+						fmt := d.Get("format.0.type").(string)
+						if strings.ToLower(fmt) == "platform" {
+							return true
+						}
+					}
+					if k == "format.0.type" && strings.ToLower(old) == "platform" && new == "" {
+						return true
+					}
+
+					return false
+				},
+				DefaultFunc: func() (interface{}, error) {
+					return []map[string]string{{
+						"type": "Platform",
+					}}, nil
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
@@ -227,13 +274,20 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	var subscription *platform.Subscription
 
-	messages := resourceSubscriptionGetMessages(d)
-	changes := resourceSubscriptionGetChanges(d)
-	destination, err := resourceSubscriptionGetDestination(d)
+	if err := validateDestination(d); err != nil {
+		return err
+	}
+	if err := validateFormat(d); err != nil {
+		return err
+	}
+
+	messages := unmarshallSubscriptionMessages(d)
+	changes := unmarshallSubscriptionChanges(d)
+	destination, err := unmarshallSubscriptionDestination(d)
 	if err != nil {
 		return err
 	}
-	format, err := resourceSubscriptionGetFormat(d)
+	format, err := unmarshallSubscriptionFormat(d)
 	if err != nil {
 		return err
 	}
@@ -296,10 +350,10 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 
 		d.Set("version", subscription.Version)
 		d.Set("key", subscription.Key)
-		d.Set("destination", subscription.Destination)
-		d.Set("format", subscription.Format)
-		d.Set("message", subscription.Messages)
-		d.Set("changes", subscription.Changes)
+		d.Set("destination", marshallSubscriptionDestination(subscription.Destination, d))
+		d.Set("format", marshallSubscriptionFormat(subscription.Format))
+		d.Set("message", marshallSubscriptionMessages(subscription.Messages))
+		d.Set("changes", marshallSubscriptionChanges(subscription.Changes))
 	}
 	return nil
 }
@@ -307,13 +361,20 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
+	if err := validateDestination(d); err != nil {
+		return err
+	}
+	if err := validateFormat(d); err != nil {
+		return err
+	}
+
 	input := platform.SubscriptionUpdate{
 		Version: d.Get("version").(int),
 		Actions: []platform.SubscriptionUpdateAction{},
 	}
 
 	if d.HasChange("destination") {
-		destination, err := resourceSubscriptionGetDestination(d)
+		destination, err := unmarshallSubscriptionDestination(d)
 		if err != nil {
 			return err
 		}
@@ -331,20 +392,30 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("message") {
-		messages := resourceSubscriptionGetMessages(d)
+		messages := unmarshallSubscriptionMessages(d)
 		input.Actions = append(
 			input.Actions,
 			&platform.SubscriptionSetMessagesAction{Messages: messages})
 	}
 
 	if d.HasChange("changes") {
-		changes := resourceSubscriptionGetChanges(d)
+		changes := unmarshallSubscriptionChanges(d)
 		input.Actions = append(
 			input.Actions,
 			&platform.SubscriptionSetChangesAction{Changes: changes})
 	}
 
-	_, err := client.Subscriptions().WithId(d.Id()).Post(input).Execute(context.Background())
+	err := resource.Retry(5*time.Second, func() *resource.RetryError {
+		var err error
+
+		_, err = client.Subscriptions().WithId(d.Id()).Post(input).Execute(context.Background())
+		if err != nil {
+			// Some subscription resources might not be ready yet, always keep retrying
+			return resource.RetryableError(err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
@@ -366,63 +437,155 @@ func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceSubscriptionGetDestination(d *schema.ResourceData) (platform.Destination, error) {
-	input := d.Get("destination").(map[string]interface{})
+func unmarshallSubscriptionDestination(d *schema.ResourceData) (platform.Destination, error) {
+	dst, err := elementFromList(d, "destination")
+	if err != nil {
+		return nil, err
+	}
+	if dst == nil {
+		return nil, fmt.Errorf("Destination is missing")
+	}
 
-	switch input["type"] {
+	switch dst["type"] {
 	case subSNS:
 		return platform.SnsDestination{
-			TopicArn:     input["topic_arn"].(string),
-			AccessKey:    input["access_key"].(string),
-			AccessSecret: input["access_secret"].(string),
+			TopicArn:     dst["topic_arn"].(string),
+			AccessKey:    dst["access_key"].(string),
+			AccessSecret: dst["access_secret"].(string),
 		}, nil
 	case subSQS:
 		return platform.SqsDestination{
-			QueueUrl:     input["queue_url"].(string),
-			AccessKey:    input["access_key"].(string),
-			AccessSecret: input["access_secret"].(string),
-			Region:       input["region"].(string),
+			QueueUrl:     dst["queue_url"].(string),
+			AccessKey:    dst["access_key"].(string),
+			AccessSecret: dst["access_secret"].(string),
+			Region:       dst["region"].(string),
 		}, nil
 	case subAzureEventGrid:
 		return platform.AzureEventGridDestination{
-			Uri:       input["uri"].(string),
-			AccessKey: input["access_key"].(string),
+			Uri:       dst["uri"].(string),
+			AccessKey: dst["access_key"].(string),
 		}, nil
 	case subAzureServiceBus:
 		return platform.AzureServiceBusDestination{
-			ConnectionString: input["connection_string"].(string),
+			ConnectionString: dst["connection_string"].(string),
 		}, nil
 	case subGooglePubSub:
 		return platform.GoogleCloudPubSubDestination{
-			ProjectId: input["project_id"].(string),
-			Topic:     input["topic"].(string),
+			ProjectId: dst["project_id"].(string),
+			Topic:     dst["topic"].(string),
 		}, nil
 	case subEventBridge:
 		return platform.EventBridgeDestination{
-			Region:    input["region"].(string),
-			AccountId: input["account_id"].(string),
+			Region:    dst["region"].(string),
+			AccountId: dst["account_id"].(string),
 		}, nil
 	default:
-		return nil, fmt.Errorf("Destination type %s not implemented", input["type"])
+		return nil, fmt.Errorf("Destination type %s not implemented", dst["type"])
 	}
 }
 
-func resourceSubscriptionGetFormat(d *schema.ResourceData) (platform.DeliveryFormat, error) {
-	input := d.Get("format").(map[string]interface{})
+func marshallSubscriptionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
 
-	switch input["type"] {
-	case cloudEvents:
-		return platform.DeliveryCloudEventsFormat{
-			CloudEventsVersion: input["cloud_events_version"].(string),
-		}, nil
-	case fmtPlatform:
-		return platform.DeliveryPlatformFormat{}, nil
+	// Read the access secret from the current resource data
+	c, _ := unmarshallSubscriptionDestination(d)
+	accessSecret := ""
+	switch current := c.(type) {
+	case platform.SnsDestination:
+		accessSecret = current.AccessSecret
+	case platform.SqsDestination:
+		accessSecret = current.AccessSecret
+	}
+
+	switch v := dst.(type) {
+	case platform.SnsDestination:
+		d.Get("destination")
+		return []map[string]string{{
+			"type":          subSNS,
+			"topic_arn":     v.TopicArn,
+			"access_key":    v.AccessKey,
+			"access_secret": accessSecret,
+		}}
+	case platform.SqsDestination:
+		return []map[string]string{{
+			"type":          subSQS,
+			"queue_url":     v.QueueUrl,
+			"access_key":    v.AccessKey,
+			"access_secret": accessSecret,
+			"region":        v.Region,
+		}}
+	case platform.AzureEventGridDestination:
+		return []map[string]string{{
+			"type":       subAzureEventGrid,
+			"uri":        v.Uri,
+			"access_key": v.AccessKey,
+		}}
+	case platform.AzureServiceBusDestination:
+		return []map[string]string{{
+			"type":              subAzureServiceBus,
+			"connection_string": v.ConnectionString,
+		}}
+	case platform.GoogleCloudPubSubDestination:
+		return []map[string]string{{
+			"type":       subGooglePubSub,
+			"project_id": v.ProjectId,
+			"topic":      v.Topic,
+		}}
+	case platform.EventBridgeDestination:
+		return []map[string]string{{
+			"type":       subEventBridge,
+			"region":     v.Region,
+			"account_id": v.AccountId,
+		}}
+	}
+	return []map[string]string{}
+}
+
+func marshallSubscriptionFormat(f platform.DeliveryFormat) []map[string]string {
+	switch v := f.(type) {
+	case platform.DeliveryPlatformFormat:
+		return []map[string]string{{
+			"type": "Platform",
+		}}
+	case platform.DeliveryCloudEventsFormat:
+		return []map[string]string{{
+			"type":                 "CloudEvents",
+			"cloud_events_version": v.CloudEventsVersion,
+		}}
+	}
+	return []map[string]string{}
+}
+
+func unmarshallSubscriptionFormat(d *schema.ResourceData) (platform.DeliveryFormat, error) {
+	input := d.Get("format").([]interface{})
+
+	if len(input) == 1 {
+		format := input[0].(map[string]interface{})
+
+		switch format["type"] {
+		case cloudEvents:
+			return platform.DeliveryCloudEventsFormat{
+				CloudEventsVersion: format["cloud_events_version"].(string),
+			}, nil
+		case fmtPlatform:
+			return platform.DeliveryPlatformFormat{}, nil
+		}
 	}
 
 	return nil, nil
 }
 
-func resourceSubscriptionGetChanges(d *schema.ResourceData) []platform.ChangeSubscription {
+func marshallSubscriptionChanges(m []platform.ChangeSubscription) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	for _, raw := range m {
+		result = append(result, map[string]interface{}{
+			"resource_type_ids": raw.ResourceTypeId,
+		})
+	}
+	return result
+}
+
+func unmarshallSubscriptionChanges(d *schema.ResourceData) []platform.ChangeSubscription {
 	var result []platform.ChangeSubscription
 	input := d.Get("changes").([]interface{})
 	if len(input) > 0 {
@@ -440,7 +603,18 @@ func resourceSubscriptionGetChanges(d *schema.ResourceData) []platform.ChangeSub
 	return result
 }
 
-func resourceSubscriptionGetMessages(d *schema.ResourceData) []platform.MessageSubscription {
+func marshallSubscriptionMessages(m []platform.MessageSubscription) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(m))
+	for _, raw := range m {
+		result = append(result, map[string]interface{}{
+			"resource_type_id": raw.ResourceTypeId,
+			"types":            raw.Types,
+		})
+	}
+	return result
+}
+
+func unmarshallSubscriptionMessages(d *schema.ResourceData) []platform.MessageSubscription {
 	input := d.Get("message").([]interface{})
 	var messageObjects []platform.MessageSubscription
 	for _, raw := range input {
@@ -454,53 +628,74 @@ func resourceSubscriptionGetMessages(d *schema.ResourceData) []platform.MessageS
 	return messageObjects
 }
 
-func validateTypeAttribute(val interface{}, key string, attributeFields map[string][]string) (warns []string, errs []error) {
-	valueAsMap := val.(map[string]interface{})
+func validateDestination(d *schema.ResourceData) error {
+	input := d.Get("destination").([]interface{})
 
-	attributeType, ok := valueAsMap["type"]
-
-	if !ok {
-		errs = append(errs, fmt.Errorf("Property 'type' missing"))
-		return warns, errs
+	if len(input) != 1 {
+		return fmt.Errorf("Destination is missing")
 	}
 
-	attributeTypeAsString, ok := attributeType.(string)
+	dst := input[0].(map[string]interface{})
+
+	dstType := dst["type"].(string)
+	requiredFields, ok := destinationFields[dstType]
 	if !ok {
-		errs = append(errs, fmt.Errorf("Property 'type' has wrong type"))
-		return warns, errs
-	}
-	fields, ok := attributeFields[attributeTypeAsString]
-	if !ok {
-		errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", attributeTypeAsString))
-		return warns, errs
+		return fmt.Errorf("Invalid type for destination: '%v'", dstType)
 	}
 
-	for _, field := range fields {
-		value, ok := valueAsMap[field].(string)
+	for _, field := range requiredFields {
+		value, ok := dst[field].(string)
 		if !ok {
-			errs = append(errs, fmt.Errorf("Required property '%v' missing", field))
+			return fmt.Errorf("Required property '%v' missing", field)
 		} else if len(value) == 0 {
-			errs = append(errs, fmt.Errorf("Required property '%v' is empty", field))
+			return fmt.Errorf("Required property '%v' is empty", field)
 		}
 	}
-
-	return warns, errs
+	return nil
 }
 
-func validateDestination(val interface{}, key string) (warns []string, errs []error) {
-	return validateTypeAttribute(val, key, destinationFields)
-}
+func validateFormat(d *schema.ResourceData) error {
+	input := d.Get("format").([]interface{})
+	if len(input) < 1 {
+		return nil
+	}
 
-func validateFormat(val interface{}, key string) (warns []string, errs []error) {
-	return validateTypeAttribute(val, key, formatFields)
+	dst := input[0].(map[string]interface{})
+
+	dstType := dst["type"].(string)
+	requiredFields, ok := formatFields[dstType]
+	if !ok {
+		return fmt.Errorf("Invalid type for format: '%v'", dstType)
+	}
+
+	for _, field := range requiredFields {
+		value, ok := dst[field].(string)
+		if !ok {
+			return fmt.Errorf("Required property '%v' missing", field)
+		} else if len(value) == 0 {
+			return fmt.Errorf("Required property '%v' is empty", field)
+		}
+	}
+	return nil
+
 }
 
 func suppressFuncForAttribute(attribute string, t ...string) schema.SchemaDiffSuppressFunc {
 	return func(k string, old string, new string, d *schema.ResourceData) bool {
-		input := d.Get(attribute).(map[string]interface{})
-		for _, val := range t {
-			if val == input["type"] {
-				return false
+		switch input := d.Get(attribute).(type) {
+		case []interface{}:
+			for _, dest := range input {
+				for _, val := range t {
+					if val == dest.(map[string]interface{})["type"] {
+						return false
+					}
+				}
+			}
+		case map[string]interface{}:
+			for _, val := range t {
+				if val == input["type"] {
+					return false
+				}
 			}
 		}
 		return true
@@ -513,4 +708,82 @@ func suppressIfNotDestinationType(t ...string) schema.SchemaDiffSuppressFunc {
 
 func suppressIfNotFormatType(t ...string) schema.SchemaDiffSuppressFunc {
 	return suppressFuncForAttribute("format", t...)
+}
+
+func resourceSubscriptionResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"key": {
+				Description: "User-specific unique identifier for the subscription",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"destination": {
+				Description: "The Message Queue into which the notifications are to be sent" +
+					"See also the [Destination API Docs](https://docs.commercetools.com/api/projects/subscriptions#destination)",
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{},
+				},
+			},
+			"format": {
+				Description: "The [format](https://docs.commercetools.com/api/projects/subscriptions#format) " +
+					"in which the payload is delivered",
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"changes": {
+				Description: "The change notifications subscribed to",
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"resource_type_ids": {
+							Description: "[Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+			"message": {
+				Description: "The messages subscribed to",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"resource_type_id": {
+							Description: "[Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)",
+							Type:        schema.TypeString,
+							Optional:    true,
+						},
+						"types": {
+							Description: "types must contain valid message types for this resource, for example for " +
+								"resource type product the message type ProductPublished is valid. If no types of " +
+								"messages are given, the subscription is valid for all messages of this resource",
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func migrateSubscriptionStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	transformToList(rawState, "destination")
+	transformToList(rawState, "format")
+	return rawState, nil
 }

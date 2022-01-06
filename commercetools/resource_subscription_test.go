@@ -8,10 +8,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestValidateDestination(t *testing.T) {
+	resource := resourceSubscription()
 	validDestinations := []map[string]interface{}{
 		{
 			"type":          "SQS",
@@ -41,9 +43,13 @@ func TestValidateDestination(t *testing.T) {
 		},
 	}
 	for _, validDestination := range validDestinations {
-		_, errs := validateDestination(validDestination, "destination")
-		if len(errs) > 0 {
-			t.Error("Expected no validation errors, but got ", errs)
+		rawData := map[string]interface{}{
+			"destination": []interface{}{validDestination},
+		}
+		data := schema.TestResourceDataRaw(t, resource.Schema, rawData)
+		err := validateDestination(data)
+		if err != nil {
+			t.Error("Expected no validation errors, but got ", err)
 		}
 	}
 	invalidDestinations := []map[string]interface{}{
@@ -69,8 +75,12 @@ func TestValidateDestination(t *testing.T) {
 		},
 	}
 	for _, validDestination := range invalidDestinations {
-		_, errs := validateDestination(validDestination, "destination")
-		if len(errs) == 0 {
+		rawData := map[string]interface{}{
+			"destination": []interface{}{validDestination},
+		}
+		data := schema.TestResourceDataRaw(t, resource.Schema, rawData)
+		err := validateDestination(data)
+		if err == nil {
 			t.Error("Expected validation errors, but none was reported")
 		}
 	}
@@ -101,7 +111,7 @@ func testAccSubscriptionConfig(rName string) string {
 resource "commercetools_subscription" "subscription_%[1]s" {
 	key = "commercetools-acc-%[1]s"
 
-	destination = {
+	destination {
 		type          = "SQS"
 		queue_url     = "%[2]s"
 		access_key    = "%[3]s"
