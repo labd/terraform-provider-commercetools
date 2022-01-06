@@ -347,6 +347,20 @@ func elementFromList(d *schema.ResourceData, key string) (map[string]interface{}
 	return nil, nil
 }
 
+func elementFromSlice(d map[string]interface{}, key string) (map[string]interface{}, error) {
+	data, ok := d[key]
+	if !ok {
+		return nil, nil
+	}
+
+	items := data.([]interface{})
+	if len(items) > 0 {
+		result := items[0].(map[string]interface{})
+		return result, nil
+	}
+	return nil, nil
+}
+
 func isNotEmpty(d map[string]interface{}, key string) (interface{}, bool) {
 	val, ok := d[key]
 	if !ok {

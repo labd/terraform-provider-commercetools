@@ -21,6 +21,14 @@ func resourceCategory() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceCategoryResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: migrateCategoryStateV0toV1,
+				Version: 0,
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"key": {
 				Type:        schema.TypeString,
@@ -100,7 +108,8 @@ func resourceCategory() *schema.Resource {
 										Description: "Unique identifier, must be unique within the Asset",
 									},
 									"dimensions": {
-										Type:     schema.TypeMap,
+										Type:     schema.TypeList,
+										MaxItems: 1,
 										Optional: true,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
@@ -181,7 +190,7 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if len(d.Get("assets").([]interface{})) != 0 {
-		assets := resourceCategoryGetAssets(d)
+		assets := unmarshallCategoryAssets(d)
 		draft.Assets = assets
 	}
 
@@ -236,7 +245,11 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("version", category.Version)
 		d.Set("key", category.Key)
 		d.Set("name", category.Name)
-		d.Set("parent", category.Parent)
+		if category.Parent != nil {
+			d.Set("parent", category.Parent.ID)
+		} else {
+			d.Set("parent", "")
+		}
 		d.Set("order_hint", category.OrderHint)
 		if category.Description != nil {
 			d.Set("description", *category.Description)
@@ -335,7 +348,7 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("assets") {
-		assets := resourceCategoryGetAssets(d)
+		assets := unmarshallCategoryAssets(d)
 		for _, asset := range assets {
 			input.Actions = append(
 				input.Actions,
@@ -381,7 +394,7 @@ func resourceCategoryDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceCategoryGetAssets(d *schema.ResourceData) []platform.AssetDraft {
+func unmarshallCategoryAssets(d *schema.ResourceData) []platform.AssetDraft {
 	input := d.Get("assets").([]interface{})
 	var result []platform.AssetDraft
 
@@ -390,7 +403,7 @@ func resourceCategoryGetAssets(d *schema.ResourceData) []platform.AssetDraft {
 
 		name := platform.LocalizedString(expandStringMap(i["name"].(map[string]interface{})))
 		description := platform.LocalizedString(expandStringMap(i["description"].(map[string]interface{})))
-		sources := resourceCategoryGetAssetSources(i)
+		sources := unmarshallCategoryAssetSources(i)
 
 		key := i["key"].(string)
 		result = append(result, platform.AssetDraft{
@@ -404,7 +417,7 @@ func resourceCategoryGetAssets(d *schema.ResourceData) []platform.AssetDraft {
 	return result
 }
 
-func resourceCategoryGetAssetSources(i map[string]interface{}) []platform.AssetSource {
+func unmarshallCategoryAssetSources(i map[string]interface{}) []platform.AssetSource {
 	var sources []platform.AssetSource
 	for _, item := range i["sources"].([]interface{}) {
 		s := item.(map[string]interface{})
@@ -418,7 +431,7 @@ func resourceCategoryGetAssetSources(i map[string]interface{}) []platform.AssetS
 		}
 
 		if _, ok := s["dimensions"]; ok {
-			assetDimensions := resourceCategoryGetAssetSourceDimensions(s)
+			assetDimensions := unmarshallCategoryAssetSourceDimensions(s)
 			source.Dimensions = &assetDimensions
 		}
 
@@ -427,9 +440,14 @@ func resourceCategoryGetAssetSources(i map[string]interface{}) []platform.AssetS
 	return sources
 }
 
-func resourceCategoryGetAssetSourceDimensions(s map[string]interface{}) platform.AssetDimensions {
+func unmarshallCategoryAssetSourceDimensions(s map[string]interface{}) platform.AssetDimensions {
 	var dimensions platform.AssetDimensions
-	for _, item := range s["dimensions"].(map[string]interface{}) {
+	data, err := elementFromSlice(s, "dimensions")
+	if err != nil {
+		return dimensions
+	}
+
+	for _, item := range data {
 		d := item.(map[string]interface{})
 
 		dimensions = platform.AssetDimensions{
@@ -438,4 +456,124 @@ func resourceCategoryGetAssetSourceDimensions(s map[string]interface{}) platform
 		}
 	}
 	return dimensions
+}
+
+func resourceCategoryResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Category-specific unique identifier. Must be unique across a project",
+			},
+			"name": {
+				Type:     TypeLocalizedString,
+				Required: true,
+				ForceNew: true,
+			},
+			"description": {
+				Type:     TypeLocalizedString,
+				Optional: true,
+			},
+			"slug": {
+				Type:        TypeLocalizedString,
+				Required:    true,
+				Description: "Human readable identifiers, needs to be unique",
+			},
+			"parent": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A category that is the parent of this category in the category tree",
+			},
+			"order_hint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "An attribute as base for a custom category order in one level, filled with random value when left empty",
+			},
+			"meta_title": {
+				Type:     TypeLocalizedString,
+				Optional: true,
+			},
+			"meta_description": {
+				Type:     TypeLocalizedString,
+				Optional: true,
+			},
+			"meta_keywords": {
+				Type:     TypeLocalizedString,
+				Optional: true,
+			},
+			"assets": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Can be used to store images, icons or movies related to this category",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Optional User-defined identifier for the asset. Asset keys are unique inside their container (in this case the category)",
+						},
+						"name": {
+							Type:     TypeLocalizedString,
+							Required: true,
+						},
+						"description": {
+							Type:     TypeLocalizedString,
+							Optional: true,
+						},
+						"sources": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MinItems:    1,
+							Description: "Array of AssetSource, Has at least one entry",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"uri": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"key": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Unique identifier, must be unique within the Asset",
+									},
+									"dimensions": {
+										Type:     schema.TypeMap,
+										Optional: true,
+										Elem: &schema.Schema{
+											Type: schema.TypeInt,
+										},
+									},
+									"content_type": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+						"tags": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func migrateCategoryStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	for _, asset := range rawState["assets"].([]interface{}) {
+		sources := asset.(map[string]interface{})["sources"]
+		for _, source := range sources.([]interface{}) {
+			transformToList(source.(map[string]interface{}), "dimensions")
+		}
+	}
+	return rawState, nil
 }
