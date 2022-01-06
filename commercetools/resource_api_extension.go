@@ -18,10 +18,18 @@ func resourceAPIExtension() *schema.Resource {
 			"Note that API extensions affect the performance of the API it is extending. If it fails, the whole API " +
 			"call fails \n\n" +
 			"Also see the [API Extension API Documentation](https://docs.commercetools.com/api/projects/api-extensions)",
-		Create: resourceAPIExtensionCreate,
-		Read:   resourceAPIExtensionRead,
-		Update: resourceAPIExtensionUpdate,
-		Delete: resourceAPIExtensionDelete,
+		Create:        resourceAPIExtensionCreate,
+		Read:          resourceAPIExtensionRead,
+		Update:        resourceAPIExtensionUpdate,
+		Delete:        resourceAPIExtensionDelete,
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceAPIExtensionResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: migrateAPIExtensionStateV0toV1,
+				Version: 0,
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"key": {
 				Description: "User-specific unique identifier for the extension",
@@ -31,7 +39,8 @@ func resourceAPIExtension() *schema.Resource {
 			"destination": {
 				Description: "[Destination](https://docs.commercetools.com/api/projects/api-extensions#destination) " +
 					"Details where the extension can be reached",
-				Type:     schema.TypeMap,
+				Type:     schema.TypeList,
+				MaxItems: 1,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -122,8 +131,8 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	var extension *platform.Extension
 
-	triggers := resourceAPIExtensionGetTriggers(d)
-	destination, err := resourceAPIExtensionGetDestination(d)
+	triggers := unmarshallExtensionTriggers(d)
+	destination, err := unmarshallExtensionDestination(d)
 	if err != nil {
 		return err
 	}
@@ -184,8 +193,8 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 
 		d.Set("version", extension.Version)
 		d.Set("key", extension.Key)
-		d.Set("destination", extension.Destination)
-		d.Set("trigger", extension.Triggers)
+		d.Set("destination", marshallExtensionDestination(extension.Destination))
+		d.Set("trigger", marshallExtensionTriggers(extension.Triggers))
 		d.Set("timeout_in_ms", extension.TimeoutInMs)
 	}
 	return nil
@@ -207,14 +216,14 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("trigger") {
-		triggers := resourceAPIExtensionGetTriggers(d)
+		triggers := unmarshallExtensionTriggers(d)
 		input.Actions = append(
 			input.Actions,
 			&platform.ExtensionChangeTriggersAction{Triggers: triggers})
 	}
 
 	if d.HasChange("destination") {
-		destination, err := resourceAPIExtensionGetDestination(d)
+		destination, err := unmarshallExtensionDestination(d)
 		if err != nil {
 			return err
 		}
@@ -254,11 +263,15 @@ func resourceAPIExtensionDelete(d *schema.ResourceData, m interface{}) error {
 // Helper methods
 //
 
-func resourceAPIExtensionGetDestination(d *schema.ResourceData) (platform.Destination, error) {
-	input := d.Get("destination").(map[string]interface{})
+func unmarshallExtensionDestination(d *schema.ResourceData) (platform.Destination, error) {
+	input, err := elementFromList(d, "destination")
+	if err != nil {
+		return nil, err
+	}
+
 	switch strings.ToLower(input["type"].(string)) {
 	case "http":
-		auth, err := resourceAPIExtensionGetAuthentication(input)
+		auth, err := unmarshallExtensionDestinationAuthentication(input)
 		if err != nil {
 			return nil, err
 		}
@@ -278,12 +291,14 @@ func resourceAPIExtensionGetDestination(d *schema.ResourceData) (platform.Destin
 	}
 }
 
-func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (platform.ExtensionHttpDestinationAuthentication, error) {
+func unmarshallExtensionDestinationAuthentication(destInput map[string]interface{}) (platform.ExtensionHttpDestinationAuthentication, error) {
 	authKeys := [2]string{"authorization_header", "azure_authentication"}
 	count := 0
 	for _, key := range authKeys {
-		if _, ok := destInput[key]; ok {
-			count++
+		if value, ok := destInput[key]; ok {
+			if value != "" {
+				count++
+			}
 		}
 	}
 	if count > 1 {
@@ -291,38 +306,153 @@ func resourceAPIExtensionGetAuthentication(destInput map[string]interface{}) (pl
 			"In the destination only one of the auth values should be definied: %q", authKeys)
 	}
 
-	if authVal, ok := destInput["authorization_header"]; ok {
+	if val, ok := isNotEmpty(destInput, "authorization_header"); ok {
 		return &platform.ExtensionAuthorizationHeaderAuthentication{
-			HeaderValue: authVal.(string),
+			HeaderValue: val.(string),
 		}, nil
 	}
-	if authVal, ok := destInput["azure_authentication"]; ok {
+	if val, ok := isNotEmpty(destInput, "azure_authentication"); ok {
 		return &platform.ExtensionAzureFunctionsAuthentication{
-			Key: authVal.(string),
+			Key: val.(string),
 		}, nil
 	}
 
 	return nil, nil
 }
 
-func resourceAPIExtensionGetTriggers(d *schema.ResourceData) []platform.ExtensionTrigger {
+func marshallExtensionDestination(d platform.Destination) []map[string]string {
+	switch v := d.(type) {
+	case platform.ExtensionHttpDestination:
+		switch a := v.Authentication.(type) {
+		case platform.ExtensionAuthorizationHeaderAuthentication:
+			return []map[string]string{{
+				"type":                 "HTTP",
+				"url":                  v.Url,
+				"authorization_header": a.HeaderValue,
+			}}
+		case platform.ExtensionAzureFunctionsAuthentication:
+			return []map[string]string{{
+				"type":                 "HTTP",
+				"url":                  v.Url,
+				"azure_authentication": a.Key,
+			}}
+		}
+		return []map[string]string{{
+			"type": "HTTP",
+			"url":  v.Url,
+		}}
+
+	case platform.ExtensionAWSLambdaDestination:
+		return []map[string]string{{
+			"type":          "awslambda",
+			"access_key":    v.AccessKey,
+			"access_secret": v.AccessSecret,
+			"arn":           v.Arn,
+		}}
+
+	}
+	return []map[string]string{}
+}
+
+func marshallExtensionTriggers(triggers []platform.ExtensionTrigger) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(triggers))
+
+	for _, t := range triggers {
+		result = append(result, map[string]interface{}{
+			"resource_type_id": t.ResourceTypeId,
+			"actions":          t.Actions,
+		})
+	}
+
+	return result
+}
+
+func unmarshallExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger {
 	input := d.Get("trigger").([]interface{})
 	var result []platform.ExtensionTrigger
 
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
-		typeID := i["resource_type_id"].(string)
+		var typeId platform.ExtensionResourceTypeId
 
-		actions := []platform.ExtensionAction{}
-		for _, item := range expandStringArray(i["actions"].([]interface{})) {
-			actions = append(actions, platform.ExtensionAction(item))
+		switch i["resource_type_id"].(string) {
+		case "cart":
+			typeId = platform.ExtensionResourceTypeIdCart
+		case "order":
+			typeId = platform.ExtensionResourceTypeIdOrder
+		case "payment":
+			typeId = platform.ExtensionResourceTypeIdPayment
+		case "customer":
+			typeId = platform.ExtensionResourceTypeIdCustomer
+		}
+
+		rawActions := i["actions"].([]interface{})
+		actions := make([]platform.ExtensionAction, 0, len(rawActions))
+		for _, item := range rawActions {
+			actions = append(actions, platform.ExtensionAction(item.(string)))
 		}
 
 		result = append(result, platform.ExtensionTrigger{
-			ResourceTypeId: platform.ExtensionResourceTypeId(typeID),
+			ResourceTypeId: typeId,
 			Actions:        actions,
 		})
 	}
-
 	return result
+}
+
+func resourceAPIExtensionResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"key": {
+				Description: "User-specific unique identifier for the extension",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"destination": {
+				Description: "[Destination](https://docs.commercetools.com/api/projects/api-extensions#destination) " +
+					"Details where the extension can be reached",
+				Type:     schema.TypeSet,
+				MaxItems: 1,
+				Required: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"trigger": {
+				Description: "Array of [Trigger](https://docs.commercetools.com/api/projects/api-extensions#trigger) " +
+					"Describes what triggers the extension",
+				Type:     schema.TypeList,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"resource_type_id": {
+							Description: "Currently, cart, order, payment, and customer are supported",
+							Type:        schema.TypeString,
+							Required:    true,
+						},
+						"actions": {
+							Description: "Currently, Create and Update are supported",
+							Type:        schema.TypeList,
+							Required:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+			"timeout_in_ms": {
+				Description: "Extension timeout in milliseconds",
+				Type:        schema.TypeInt,
+				Optional:    true,
+			},
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func migrateAPIExtensionStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	transformToList(rawState, "destination")
+	return rawState, nil
 }

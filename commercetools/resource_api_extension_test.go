@@ -14,24 +14,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIExtensionGetDestination(t *testing.T) {
+func TestAPIExtensionUnmarshallExtensionDestination(t *testing.T) {
+	rawDestination := map[string]interface{}{
+		"type":          "AWSLambda",
+		"arn":           "arn:aws:lambda:eu-west-1:111111111:function:api_extensions",
+		"access_key":    "ABCSDF123123123",
+		"access_secret": "****abc/",
+	}
+
 	resourceDataMap := map[string]interface{}{
 		"id":             "2845b936-e407-4f29-957b-f8deb0fcba97",
 		"version":        1,
 		"createdAt":      "2018-12-03T16:13:03.969Z",
 		"lastModifiedAt": "2018-12-04T09:06:59.491Z",
-		"destination": map[string]interface{}{
-			"type":          "AWSLambda",
-			"arn":           "arn:aws:lambda:eu-west-1:111111111:function:api_extensions",
-			"access_key":    "ABCSDF123123123",
-			"access_secret": "****abc/",
+		"destination":    []interface{}{rawDestination},
+		"triggers": []interface{}{
+			map[string]interface{}{
+				"triggers": []interface{}{"Create", "Update"},
+			},
 		},
 		"timeout_in_ms": 1,
 		"key":           "create-order",
 	}
 
 	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
-	destination, _ := resourceAPIExtensionGetDestination(d)
+	destination, _ := unmarshallExtensionDestination(d)
 	lambdaDestination, ok := destination.(platform.ExtensionAWSLambdaDestination)
 
 	assert.True(t, ok)
@@ -40,14 +47,13 @@ func TestAPIExtensionGetDestination(t *testing.T) {
 	assert.Equal(t, lambdaDestination.AccessSecret, "****abc/")
 }
 
-func TestAPIExtensionGetAuthentication(t *testing.T) {
-	var input map[string]interface{}
-	input = map[string]interface{}{
+func TestAPIExtensionUnmarshallExtensionDestinationAuthentication(t *testing.T) {
+	var input = map[string]interface{}{
 		"authorization_header": "12345",
 		"azure_authentication": "AzureKey",
 	}
 
-	auth, err := resourceAPIExtensionGetAuthentication(input)
+	auth, err := unmarshallExtensionDestinationAuthentication(input)
 	assert.Nil(t, auth)
 	assert.NotNil(t, err)
 
@@ -55,7 +61,7 @@ func TestAPIExtensionGetAuthentication(t *testing.T) {
 		"authorization_header": "12345",
 	}
 
-	auth, err = resourceAPIExtensionGetAuthentication(input)
+	auth, err = unmarshallExtensionDestinationAuthentication(input)
 	httpAuth, ok := auth.(*platform.ExtensionAuthorizationHeaderAuthentication)
 	assert.True(t, ok)
 	assert.Equal(t, "12345", httpAuth.HeaderValue)
@@ -63,7 +69,32 @@ func TestAPIExtensionGetAuthentication(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestUnmarshallExtensionTriggers(t *testing.T) {
+	resourceDataMap := map[string]interface{}{
+		"id":             "2845b936-e407-4f29-957b-f8deb0fcba97",
+		"version":        1,
+		"createdAt":      "2018-12-03T16:13:03.969Z",
+		"lastModifiedAt": "2018-12-04T09:06:59.491Z",
+		"trigger": []interface{}{
+			map[string]interface{}{
+				"resource_type_id": "cart",
+				"actions":          []interface{}{"Create", "Update"},
+			},
+		},
+		"timeout_in_ms": 1,
+		"key":           "create-order",
+	}
+
+	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
+	triggers := unmarshallExtensionTriggers(d)
+
+	assert.Len(t, triggers, 1)
+	assert.Equal(t, triggers[0].ResourceTypeId, platform.ExtensionResourceTypeIdCart)
+	assert.Len(t, triggers[0].Actions, 2)
+}
+
 func TestAccAPIExtension_basic(t *testing.T) {
+	fmt.Println("RUN IT")
 	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
 	timeoutInMs := acctest.RandIntRange(200, 1800)
 
@@ -112,7 +143,7 @@ resource "commercetools_api_extension" "ext" {
   key = "%s"
   timeout_in_ms = %d
 
-  destination = {
+  destination {
     type                 = "HTTP"
     url                  = "https://example.com"
     authorization_header = "Basic 12345"
@@ -132,7 +163,7 @@ resource "commercetools_api_extension" "ext" {
   key = "%s"
   timeout_in_ms = %d
 
-  destination = {
+  destination {
     type                 = "HTTP"
     url                  = "https://example.com"
     authorization_header = "Basic 12345"
