@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/mutexkv"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -111,4 +110,4 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 }
 
 // This is a global MutexKV for use within this plugin.
-var ctMutexKV = mutexkv.NewMutexKV()
+var ctMutexKV = NewMutexKV()
