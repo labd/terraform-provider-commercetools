@@ -2,15 +2,16 @@ package commercetools
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
+	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestFieldTypeElement(t *testing.T) {
@@ -64,7 +65,7 @@ func TestGetFieldType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if _, ok := result.(commercetools.CustomFieldBooleanType); !ok {
+	if _, ok := result.(platform.CustomFieldBooleanType); !ok {
 		t.Error("Expected Boolean type")
 	}
 
@@ -87,8 +88,8 @@ func TestGetFieldType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(commercetools.CustomFieldEnumType); ok {
-		assert.ElementsMatch(t, field.Values, []commercetools.CustomFieldEnumValue{
+	if field, ok := result.(platform.CustomFieldEnumType); ok {
+		assert.ElementsMatch(t, field.Values, []platform.CustomFieldEnumValue{
 			{Key: "value1", Label: "Value 1"},
 			{Key: "value2", Label: "Value 2"},
 		})
@@ -112,8 +113,8 @@ func TestGetFieldType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(commercetools.CustomFieldReferenceType); ok {
-		assert.EqualValues(t, field.ReferenceTypeID, "product")
+	if field, ok := result.(platform.CustomFieldReferenceType); ok {
+		assert.EqualValues(t, field.ReferenceTypeId, "product")
 	} else {
 		t.Error("Expected Reference type")
 	}
@@ -160,6 +161,10 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 					testAccTypeExists("acctest_type"),
 					resource.TestCheckResourceAttr(
 						"commercetools_type.acctest_type", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.1.name", "existing_enum"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.1.type.0.element_type.0.values.%", "2"),
 				),
 			},
 			{
@@ -168,6 +173,14 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 					testAccTypeExists("acctest_type"),
 					resource.TestCheckResourceAttr(
 						"commercetools_type.acctest_type", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.#", "11"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.2.name", "existing_enum"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.2.type.0.element_type.0.values.%", "3"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.2.type.0.element_type.0.values.evening", "Evening Changed"),
 				),
 			},
 		},
@@ -199,6 +212,25 @@ resource "commercetools_type" "%s" {
 			name = "String"
 		}
 	}
+
+	field {
+		name = "existing_enum"
+		label = {
+			en = "existing enum"
+			de = "existierendes enum"
+		}
+		type {
+			name = "Set"
+			element_type {
+				name = "Enum"
+				values = {
+					day = "Daytime"
+					evening = "Evening"
+				}
+			}
+		}
+	}
+
 }`, name, name)
 }
 
@@ -271,7 +303,27 @@ resource "commercetools_type" "%s" {
 	}
 
 	field {
+		name = "existing_enum"
+		label = {
+			en = "existing enum"
+			de = "existierendes enum"
+		}
+		type {
+			name = "Set"
+			element_type {
+				name = "Enum"
+				values = {
+					day = "Daytime"
+					evening = "Evening Changed"
+					later   = "later"
+				}
+			}
+		}
+	}
+
+	field {
 		name = "new_localized_enum"
+		input_hint = "MultiLine"
 		label = {
 			en = "New localized enum"
 			nl = "Nieuwe localized enum"
@@ -312,7 +364,7 @@ func testAccTypeExists(n string) resource.TestCheckFunc {
 		}
 
 		client := getClient(testAccProvider.Meta())
-		result, err := client.TypeGetWithID(rs.Primary.ID)
+		result, err := client.Types().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err != nil {
 			return err
 		}
@@ -325,6 +377,22 @@ func testAccTypeExists(n string) resource.TestCheckFunc {
 }
 
 func testAccCheckTypesDestroy(s *terraform.State) error {
-	// TODO: Implement
+	client := getClient(testAccProvider.Meta())
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_type" {
+			continue
+		}
+		response, err := client.Types().WithId(rs.Primary.ID).Get().Execute(context.Background())
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("type (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
+		}
+	}
 	return nil
 }

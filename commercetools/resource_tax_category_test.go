@@ -1,11 +1,12 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccTaxCategory_createAndUpdateWithID(t *testing.T) {
@@ -65,5 +66,22 @@ resource "commercetools_tax_category" "standard" {
 }
 
 func testAccCheckTaxCategoryDestroy(s *terraform.State) error {
+	client := getClient(testAccProvider.Meta())
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_tax_category" {
+			continue
+		}
+		response, err := client.TaxCategories().WithId(rs.Primary.ID).Get().Execute(context.Background())
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("tax category (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
+		}
+	}
 	return nil
 }

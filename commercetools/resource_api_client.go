@@ -1,35 +1,46 @@
 package commercetools
 
 import (
+	"context"
 	"sort"
 	"strings"
+	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceAPIClient() *schema.Resource {
 	return &schema.Resource{
+		Description: "Create a new API client. Note that Commercetools might return slightly different scopes, " +
+			"resulting in a new API client being created everytime Terraform is run. In this case, " +
+			"fix your scopes accordingly to match what is returned by Commercetools.\n\n" +
+			"Also see the [API client HTTP API documentation](https://docs.commercetools.com//http-api-projects-api-clients).",
 		Create: resourceAPIClientCreate,
 		Read:   resourceAPIClientRead,
-		Update: resourceAPIClientUpdate,
 		Delete: resourceAPIClientDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "Name of the API client",
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
 			},
 			"scope": {
-				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Required: true,
+				Description: "A list of the [OAuth scopes](https://docs.commercetools.com/http-api-authorization.html#scopes)",
+				Type:        schema.TypeSet,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Required:    true,
+				ForceNew:    true,
 			},
 			"secret": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
 			},
 		},
 	}
@@ -44,13 +55,25 @@ func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 		scopeParts = append(scopeParts, scopes[i].(string))
 	}
 
-	draft := &commercetools.APIClientDraft{
+	draft := platform.ApiClientDraft{
 		Name:  name,
 		Scope: strings.Join(scopeParts, " "),
 	}
 
 	client := getClient(m)
-	apiClient, err := client.APIClientCreate(draft)
+
+	var apiClient *platform.ApiClient
+
+	err := resource.Retry(20*time.Second, func() *resource.RetryError {
+		var err error
+
+		apiClient, err = client.ApiClients().Post(draft).Execute(context.Background())
+		if err != nil {
+			return handleCommercetoolsError(err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
@@ -63,10 +86,10 @@ func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	apiClient, err := client.APIClientGetWithID(d.Id())
+	apiClient, err := client.ApiClients().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -83,15 +106,10 @@ func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceAPIClientUpdate(d *schema.ResourceData, m interface{}) error {
-	// not supported
-	return nil
-}
-
 func resourceAPIClientDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	_, err := client.APIClientDeleteWithID(d.Id())
+	_, err := client.ApiClients().WithId(d.Id()).Delete().Execute(context.Background())
 	if err != nil {
 		return err
 	}

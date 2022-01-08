@@ -1,15 +1,16 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
+	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAttributeTypeElement(t *testing.T) {
@@ -41,7 +42,7 @@ func TestGetAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if _, ok := result.(commercetools.AttributeBooleanType); !ok {
+	if _, ok := result.(platform.AttributeBooleanType); !ok {
 		t.Error("Expected Boolean type")
 	}
 
@@ -64,8 +65,8 @@ func TestGetAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(commercetools.AttributeEnumType); ok {
-		assert.ElementsMatch(t, field.Values, []commercetools.AttributePlainEnumValue{
+	if field, ok := result.(platform.AttributeEnumType); ok {
+		assert.ElementsMatch(t, field.Values, []platform.AttributePlainEnumValue{
 			{Key: "value1", Label: "Value 1"},
 			{Key: "value2", Label: "Value 2"},
 		})
@@ -89,8 +90,8 @@ func TestGetAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(commercetools.AttributeReferenceType); ok {
-		assert.EqualValues(t, field.ReferenceTypeID, "product")
+	if field, ok := result.(platform.AttributeReferenceType); ok {
+		assert.EqualValues(t, field.ReferenceTypeId, "product")
 	} else {
 		t.Error("Expected Reference type")
 	}
@@ -125,7 +126,7 @@ func TestAccProductTypes_basic(t *testing.T) {
 						"commercetools_product_type.acctest_product_type", "description", "All things related shipping",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_product_type.acctest_product_type", "attribute.#", "2",
+						"commercetools_product_type.acctest_product_type", "attribute.#", "3",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.0.name", "location",
@@ -145,6 +146,12 @@ func TestAccProductTypes_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.1.type.0.localized_value.0.label.nl", "maaltijd",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.0.label.en", "Breakfast",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.1.label.en", "Lunch",
+					),
 				),
 			},
 			{
@@ -160,7 +167,7 @@ func TestAccProductTypes_basic(t *testing.T) {
 						"commercetools_product_type.acctest_product_type", "description", "All things related shipping",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_product_type.acctest_product_type", "attribute.#", "2",
+						"commercetools_product_type.acctest_product_type", "attribute.#", "3",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.0.name", "location",
@@ -173,6 +180,21 @@ func TestAccProductTypes_basic(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.1.type.0.localized_value.0.label.nl", "nomnom",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.1.type.0.localized_value.0.label.de", "happen",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.0.label.en", "Breakfast",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.1.label.en", "Lunch",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.0.label.de", "Frühstück",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.1.label.de", "Mittagessen",
 					),
 				),
 			},
@@ -214,10 +236,44 @@ resource "commercetools_product_type" "acctest_product_type" {
 			  label = {
 				en = "snack"
 				nl = "nomnom"
+				de = "happen"
 			  }
 			}
 		}
 	}
+
+	attribute {
+		name = "types"
+		label = {
+			en = "meal types"
+		}
+
+		type {
+			name = "set"
+			element_type {
+				name = "lenum"
+
+				localized_value {
+				  key = "breakfast"
+
+				  label = {
+					en = "Breakfast"
+					de = "Frühstück"
+				  }
+				}
+
+				localized_value {
+				  key = "lunch"
+
+				  label = {
+					en = "Lunch"
+					de = "Mittagessen"
+				  }
+				}
+			}
+		}
+	}
+
 }`, name)
 }
 
@@ -259,10 +315,56 @@ resource "commercetools_product_type" "acctest_product_type" {
 			}
 		}
 	}
+
+	attribute {
+		name = "types"
+		label = {
+			en = "meal types"
+		}
+
+		type {
+			name = "set"
+			element_type {
+				name = "lenum"
+
+				localized_value {
+				  key = "breakfast"
+
+				  label = {
+					en = "Breakfast"
+				  }
+				}
+
+				localized_value {
+				  key = "lunch"
+
+				  label = {
+					en = "Lunch"
+				  }
+				}
+			}
+		}
+	}
 }`, name)
 }
 
 func testAccCheckProductTypesDestroy(s *terraform.State) error {
-	// TODO: Implement
+	client := getClient(testAccProvider.Meta())
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_product_type" {
+			continue
+		}
+		response, err := client.ProductTypes().WithId(rs.Primary.ID).Get().Execute(context.Background())
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("product type (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
+		}
+	}
 	return nil
 }

@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider
@@ -43,6 +43,9 @@ func testAccPreCheck(t *testing.T) {
 		"CTP_CLIENT_ID",
 		"CTP_CLIENT_SECRET",
 		"CTP_PROJECT_KEY",
+		"CTP_SCOPES",
+		"CTP_API_URL",
+		"CTP_AUTH_URL",
 	}
 	for _, val := range requiredEnvs {
 		if os.Getenv(val) == "" {
@@ -50,7 +53,7 @@ func testAccPreCheck(t *testing.T) {
 		}
 	}
 
-	err := testAccProvider.Configure(terraform.NewResourceConfig(nil))
+	err := testAccProvider.Configure(terraform.NewResourceConfigRaw(nil))
 	if err != nil {
 		t.Fatal(err)
 	}

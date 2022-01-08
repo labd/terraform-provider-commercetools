@@ -1,10 +1,10 @@
 terraform-provider-commercetools
+terraform-provider-commercetools_*
 *.backup
 /dist/*
 coverage.txt
 
 // Terraform files
-*.tf
 .terraform/
 terraform.*
 crash.log

@@ -1,13 +1,14 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestValidateDestination(t *testing.T) {
@@ -20,6 +21,11 @@ func TestValidateDestination(t *testing.T) {
 			"region":        "<region>",
 		},
 		{
+			"type":       "azure_eventgrid",
+			"uri":        "<uri>",
+			"access_key": "<access_key>",
+		},
+		{
 			"type":              "azure_servicebus",
 			"connection_string": "<connection_string>",
 		},
@@ -27,6 +33,11 @@ func TestValidateDestination(t *testing.T) {
 			"type":       "google_pubsub",
 			"project_id": "<project_id>",
 			"topic":      "<topic>",
+		},
+		{
+			"type":       "event_bridge",
+			"region":     "<region>",
+			"account_id": "<account_id>",
 		},
 	}
 	for _, validDestination := range validDestinations {
@@ -51,6 +62,10 @@ func TestValidateDestination(t *testing.T) {
 		{
 			"type":  "google_pubsub",
 			"topic": "<topic>",
+		},
+		{
+			"type":  "event_bridge",
+			"topic": "<region>",
 		},
 	}
 	for _, validDestination := range invalidDestinations {
@@ -108,6 +123,22 @@ resource "commercetools_subscription" "subscription_%[1]s" {
 }
 
 func testAccCheckSubscriptionDestroy(s *terraform.State) error {
-	// TODO: Implement
+	conn := getClient(testAccProvider.Meta())
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_subscription" {
+			continue
+		}
+		response, err := conn.Subscriptions().WithId(rs.Primary.ID).Get().Execute(context.Background())
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("subscription (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
+		}
+	}
 	return nil
 }

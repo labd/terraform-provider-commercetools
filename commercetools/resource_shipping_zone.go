@@ -1,13 +1,14 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceShippingZone() *schema.Resource {
@@ -29,15 +30,19 @@ func resourceShippingZone() *schema.Resource {
 				Optional: true,
 			},
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for a zone. Must be unique across a project",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"location": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Description: "[Location](https://docs.commercetoolstools.pi/projects/zones#location)",
+				Type:        schema.TypeList,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"country": {
+							Description: "A two-digit country code as per " +
+								"[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -60,24 +65,24 @@ func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Creating shippingzones in commercetools")
 	client := getClient(m)
 
-	var shippingZone *commercetools.Zone
+	var shippingZone *platform.Zone
 
 	input := d.Get("location").([]interface{})
 	locations := resourceShippingZoneGetLocation(input)
 
-	draft := &commercetools.ZoneDraft{
-		Key:         d.Get("key").(string),
+	draft := platform.ZoneDraft{
+		Key:         stringRef(d.Get("key")),
 		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
+		Description: stringRef(d.Get("description")),
 		Locations:   locations,
 	}
 
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		shippingZone, err = client.ZoneCreate(draft)
+		shippingZone, err = client.Zones().Post(draft).Execute(context.Background())
 		if err != nil {
-			return resource.RetryableError(err)
+			return handleCommercetoolsError(err)
 		}
 		return nil
 	})
@@ -100,10 +105,10 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading shippingzones from commercetools")
 	client := getClient(m)
 
-	shippingZone, err := client.ZoneGetWithID(d.Id())
+	shippingZone, err := client.Zones().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -134,30 +139,29 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	input := &commercetools.ZoneUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.ZoneUpdate{
 		Version: d.Get("version").(int),
-		Actions: []commercetools.ZoneUpdateAction{},
+		Actions: []platform.ZoneUpdateAction{},
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ZoneSetKeyAction{Key: newKey})
+			&platform.ZoneSetKeyAction{Key: &newKey})
 	}
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ZoneChangeNameAction{Name: newName})
+			&platform.ZoneChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
 		newDescription := d.Get("description").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ZoneSetDescriptionAction{Description: newDescription})
+			&platform.ZoneSetDescriptionAction{Description: &newDescription})
 	}
 
 	if d.HasChange("location") {
@@ -170,19 +174,19 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 			if !_locationInSlice(location, newLocations) {
 				input.Actions = append(
 					input.Actions,
-					&commercetools.ZoneRemoveLocationAction{Location: &oldLocations[i]})
+					&platform.ZoneRemoveLocationAction{Location: oldLocations[i]})
 			}
 		}
 		for i, location := range newLocations {
 			if !_locationInSlice(location, oldLocations) {
 				input.Actions = append(
 					input.Actions,
-					&commercetools.ZoneAddLocationAction{Location: &newLocations[i]})
+					&platform.ZoneAddLocationAction{Location: newLocations[i]})
 			}
 		}
 	}
 
-	_, err := client.ZoneUpdateWithID(input)
+	_, err := client.Zones().WithId(d.Id()).Post(input).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -198,7 +202,9 @@ func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	version := d.Get("version").(int)
-	_, err := client.ZoneDeleteWithID(d.Id(), version)
+	_, err := client.Zones().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyZonesByIDRequestMethodDeleteInput{
+		Version: version,
+	}).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -206,9 +212,9 @@ func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceShippingZoneGetLocation(input interface{}) []commercetools.Location {
+func resourceShippingZoneGetLocation(input interface{}) []platform.Location {
 	inputSlice := input.([]interface{})
-	var result []commercetools.Location
+	var result []platform.Location
 
 	for _, raw := range inputSlice {
 		i := raw.(map[string]interface{})
@@ -223,16 +229,16 @@ func resourceShippingZoneGetLocation(input interface{}) []commercetools.Location
 			state = ""
 		}
 
-		result = append(result, commercetools.Location{
-			Country: commercetools.CountryCode(country),
-			State:   state,
+		result = append(result, platform.Location{
+			Country: country,
+			State:   &state,
 		})
 	}
 
 	return result
 }
 
-func _locationInSlice(needle commercetools.Location, haystack []commercetools.Location) bool {
+func _locationInSlice(needle platform.Location, haystack []platform.Location) bool {
 	for _, item := range haystack {
 		if item == needle {
 			return true

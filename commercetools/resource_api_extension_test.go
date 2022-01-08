@@ -1,14 +1,16 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,12 +26,13 @@ func TestAPIExtensionGetDestination(t *testing.T) {
 			"access_key":    "ABCSDF123123123",
 			"access_secret": "****abc/",
 		},
-		"key": "create-order",
+		"timeout_in_ms": 1,
+		"key":           "create-order",
 	}
 
 	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
 	destination, _ := resourceAPIExtensionGetDestination(d)
-	lambdaDestination, ok := destination.(commercetools.ExtensionAWSLambdaDestination)
+	lambdaDestination, ok := destination.(platform.ExtensionAWSLambdaDestination)
 
 	assert.True(t, ok)
 	assert.Equal(t, lambdaDestination.Arn, "arn:aws:lambda:eu-west-1:111111111:function:api_extensions")
@@ -53,7 +56,7 @@ func TestAPIExtensionGetAuthentication(t *testing.T) {
 	}
 
 	auth, err = resourceAPIExtensionGetAuthentication(input)
-	httpAuth, ok := auth.(*commercetools.ExtensionAuthorizationHeaderAuthentication)
+	httpAuth, ok := auth.(*platform.ExtensionAuthorizationHeaderAuthentication)
 	assert.True(t, ok)
 	assert.Equal(t, "12345", httpAuth.HeaderValue)
 	assert.NotNil(t, auth)
@@ -62,6 +65,7 @@ func TestAPIExtensionGetAuthentication(t *testing.T) {
 
 func TestAccAPIExtension_basic(t *testing.T) {
 	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
+	timeoutInMs := acctest.RandIntRange(200, 1800)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -69,21 +73,64 @@ func TestAccAPIExtension_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAPIExtensionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAPIExtensionConfig(name),
+				Config: testAccAPIExtensionConfig(name, timeoutInMs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAPIExtensionExists("ext"),
 					resource.TestCheckResourceAttr(
 						"commercetools_api_extension.ext", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.#", "1"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
+				),
+			},
+			{
+				Config: testAccAPIExtensionUpdate(name, timeoutInMs),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAPIExtensionExists("ext"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.#", "2"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.1", "Update"),
 				),
 			},
 		},
 	})
 }
 
-func testAccAPIExtensionConfig(name string) string {
+func testAccAPIExtensionConfig(name string, timeoutInMs int) string {
 	return fmt.Sprintf(`
 resource "commercetools_api_extension" "ext" {
-	key = "%s"
+  key = "%s"
+  timeout_in_ms = %d
+
+  destination = {
+    type                 = "HTTP"
+    url                  = "https://example.com"
+    authorization_header = "Basic 12345"
+  }
+
+  trigger {
+    resource_type_id = "customer"
+    actions = ["Create"]
+  }
+}
+`, name, timeoutInMs)
+}
+
+func testAccAPIExtensionUpdate(name string, timeoutInMs int) string {
+	return fmt.Sprintf(`
+resource "commercetools_api_extension" "ext" {
+  key = "%s"
+  timeout_in_ms = %d
 
   destination = {
     type                 = "HTTP"
@@ -96,7 +143,7 @@ resource "commercetools_api_extension" "ext" {
     actions = ["Create", "Update"]
   }
 }
-`, name)
+`, name, timeoutInMs)
 }
 
 func testAccAPIExtensionExists(n string) resource.TestCheckFunc {
@@ -111,7 +158,7 @@ func testAccAPIExtensionExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No Extension ID is set")
 		}
 		client := getClient(testAccProvider.Meta())
-		result, err := client.ExtensionGetWithID(rs.Primary.ID)
+		result, err := client.Extensions().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err != nil {
 			return err
 		}
@@ -124,6 +171,22 @@ func testAccAPIExtensionExists(n string) resource.TestCheckFunc {
 }
 
 func testAccCheckAPIExtensionDestroy(s *terraform.State) error {
-	// TODO: Implement
+	client := getClient(testAccProvider.Meta())
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_api_extension" {
+			continue
+		}
+		response, err := client.Extensions().WithId(rs.Primary.ID).Get().Execute(context.Background())
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("api extension (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
+		}
+	}
 	return nil
 }

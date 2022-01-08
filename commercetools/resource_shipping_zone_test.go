@@ -1,11 +1,12 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
@@ -14,7 +15,7 @@ func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 	name := "name"
 	description := "description"
 
-	newKey := "new key"
+	newKey := "new-key"
 	newName := "new name"
 	newDescription := "new description"
 
@@ -216,5 +217,22 @@ resource "commercetools_shipping_zone" "standard" {
 }
 
 func testAccCheckShippingZoneDestroy(s *terraform.State) error {
+	conn := getClient(testAccProvider.Meta())
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_shipping_zone" {
+			continue
+		}
+		response, err := conn.Zones().WithId(rs.Primary.ID).Get().Execute(context.Background())
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("shipping zone (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
+		}
+	}
 	return nil
 }

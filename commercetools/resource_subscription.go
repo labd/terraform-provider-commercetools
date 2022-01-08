@@ -1,20 +1,28 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 const (
+	// Destinations
 	subSQS             = "SQS"
 	subSNS             = "SNS"
+	subEventBridge     = "event_bridge"
+	subAzureEventGrid  = "azure_eventgrid"
 	subAzureServiceBus = "azure_servicebus"
 	subGooglePubSub    = "google_pubsub"
+
+	// Formats
+	cloudEvents = "cloud_events"
+	fmtPlatform = "platform"
 )
 
 var destinationFields = map[string][]string{
@@ -29,6 +37,14 @@ var destinationFields = map[string][]string{
 		"access_key",
 		"access_secret",
 	},
+	subEventBridge: {
+		"region",
+		"account_id",
+	},
+	subAzureEventGrid: {
+		"uri",
+		"access_key",
+	},
 	subAzureServiceBus: {
 		"connection_string",
 	},
@@ -38,8 +54,21 @@ var destinationFields = map[string][]string{
 	},
 }
 
+var formatFields = map[string][]string{
+	cloudEvents: {
+		"cloud_events_version",
+	},
+	fmtPlatform: {},
+}
+
 func resourceSubscription() *schema.Resource {
 	return &schema.Resource{
+		Description: "Subscriptions allow you to be notified of new messages or changes via a Message Queue of your " +
+			"choice. Subscriptions are used to trigger an asynchronous background process in response to an event on " +
+			"the commercetools platform. Common use cases include sending an Order Confirmation Email, charging a " +
+			"Credit Card after the delivery has been made, or synchronizing customer accounts to a Customer " +
+			"Relationship Management (CRM) system.\n\n" +
+			"See also the [Subscriptions API Documentation](https://docs.commercetools.com/api/projects/subscriptions)",
 		Create: resourceSubscriptionCreate,
 		Read:   resourceSubscriptionRead,
 		Update: resourceSubscriptionUpdate,
@@ -49,10 +78,13 @@ func resourceSubscription() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for the subscription",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"destination": {
+				Description: "The Message Queue into which the notifications are to be sent" +
+					"See also the [Destination API Docs](https://docs.commercetools.com/api/projects/subscriptions#destination)",
 				Type:         schema.TypeMap,
 				Optional:     true,
 				ValidateFunc: validateDestination,
@@ -62,16 +94,14 @@ func resourceSubscription() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-
-						// AWS SNS
 						"topic_arn": {
+							Description:      "For AWS SNS",
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSNS),
 						},
-
-						// AWS SQS
 						"queue_url": {
+							Description:      "For AWS SQS",
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
@@ -79,37 +109,47 @@ func resourceSubscription() *schema.Resource {
 						"region": {
 							Type:             schema.TypeString,
 							Optional:         false,
-							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subEventBridge),
 						},
-
-						// AWS SNS / SQS
+						"account_id": {
+							Type:             schema.TypeString,
+							Optional:         false,
+							DiffSuppressFunc: suppressIfNotDestinationType(subEventBridge),
+						},
 						"access_key": {
+							Description:      "For AWS SNS / SQS / Azure Event Grid",
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS, subAzureEventGrid),
 						},
 						"access_secret": {
+							Description:      "For AWS SNS / SQS",
 							Type:             schema.TypeString,
 							Optional:         true,
 							ForceNew:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
 						},
-
-						// Azure Service Bus
+						"uri": {
+							Description:      "For Azure Event Grid",
+							Type:             schema.TypeString,
+							Optional:         false,
+							DiffSuppressFunc: suppressIfNotDestinationType(subAzureEventGrid),
+						},
 						"connection_string": {
+							Description:      "For Azure Service Bus",
 							Type:             schema.TypeString,
 							Optional:         true,
 							ForceNew:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subAzureServiceBus),
 						},
-
-						// Google Pub Sub
 						"project_id": {
+							Description:      "For Google Pub Sub",
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
 						},
 						"topic": {
+							Description:      "For Google Pub Sub",
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
@@ -117,29 +157,57 @@ func resourceSubscription() *schema.Resource {
 					},
 				},
 			},
+			"format": {
+				Description: "The [format](https://docs.commercetools.com/api/projects/subscriptions#format) " +
+					"in which the payload is delivered",
+				Type:         schema.TypeMap,
+				Optional:     true,
+				ValidateFunc: validateFormat,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"cloud_events_version": {
+							Description:      "For CloudEvents",
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotFormatType(cloudEvents),
+						},
+					},
+				},
+			},
 			"changes": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Description: "The change notifications subscribed to",
+				Type:        schema.TypeList,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"resource_type_ids": {
-							Type:     schema.TypeList,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Description: "[Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
 					},
 				},
 			},
 			"message": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Description: "The messages subscribed to",
+				Type:        schema.TypeList,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"resource_type_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Description: "[Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)",
+							Type:        schema.TypeString,
+							Optional:    true,
 						},
 						"types": {
+							Description: "types must contain valid message types for this resource, for example for " +
+								"resource type product the message type ProductPublished is valid. If no types of " +
+								"messages are given, the subscription is valid for all messages of this resource",
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
@@ -157,7 +225,7 @@ func resourceSubscription() *schema.Resource {
 
 func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	var subscription *commercetools.Subscription
+	var subscription *platform.Subscription
 
 	messages := resourceSubscriptionGetMessages(d)
 	changes := resourceSubscriptionGetChanges(d)
@@ -165,10 +233,15 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
+	format, err := resourceSubscriptionGetFormat(d)
+	if err != nil {
+		return err
+	}
 
-	draft := &commercetools.SubscriptionDraft{
-		Key:         d.Get("key").(string),
+	draft := platform.SubscriptionDraft{
+		Key:         stringRef(d.Get("key")),
 		Destination: destination,
+		Format:      &format,
 		Messages:    messages,
 		Changes:     changes,
 	}
@@ -176,8 +249,9 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	err = resource.Retry(20*time.Second, func() *resource.RetryError {
 		var err error
 
-		subscription, err = client.SubscriptionCreate(draft)
+		subscription, err = client.Subscriptions().Post(draft).Execute(context.Background())
 		if err != nil {
+			// Some subscription resources might not be ready yet, always keep retrying
 			return resource.RetryableError(err)
 		}
 		return nil
@@ -201,10 +275,10 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 	log.Print("[DEBUG] Reading subscriptions from commercetools")
 	client := getClient(m)
 
-	subscription, err := client.SubscriptionGetWithID(d.Id())
+	subscription, err := client.Subscriptions().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -223,6 +297,7 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("version", subscription.Version)
 		d.Set("key", subscription.Key)
 		d.Set("destination", subscription.Destination)
+		d.Set("format", subscription.Format)
 		d.Set("message", subscription.Messages)
 		d.Set("changes", subscription.Changes)
 	}
@@ -232,10 +307,9 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	input := &commercetools.SubscriptionUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.SubscriptionUpdate{
 		Version: d.Get("version").(int),
-		Actions: []commercetools.SubscriptionUpdateAction{},
+		Actions: []platform.SubscriptionUpdateAction{},
 	}
 
 	if d.HasChange("destination") {
@@ -246,31 +320,31 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionChangeDestinationAction{Destination: destination})
+			&platform.SubscriptionChangeDestinationAction{Destination: destination})
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionSetKeyAction{Key: newKey})
+			&platform.SubscriptionSetKeyAction{Key: &newKey})
 	}
 
 	if d.HasChange("message") {
 		messages := resourceSubscriptionGetMessages(d)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionSetMessagesAction{Messages: messages})
+			&platform.SubscriptionSetMessagesAction{Messages: messages})
 	}
 
 	if d.HasChange("changes") {
 		changes := resourceSubscriptionGetChanges(d)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionSetChangesAction{Changes: changes})
+			&platform.SubscriptionSetChangesAction{Changes: changes})
 	}
 
-	_, err := client.SubscriptionUpdateWithID(input)
+	_, err := client.Subscriptions().WithId(d.Id()).Post(input).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -281,7 +355,10 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.SubscriptionDeleteWithID(d.Id(), version)
+	_, err := client.Subscriptions().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeySubscriptionsByIDRequestMethodDeleteInput{
+		Version: version,
+	}).Execute(context.Background())
+
 	if err != nil {
 		return err
 	}
@@ -289,62 +366,87 @@ func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceSubscriptionGetDestination(d *schema.ResourceData) (commercetools.Destination, error) {
+func resourceSubscriptionGetDestination(d *schema.ResourceData) (platform.Destination, error) {
 	input := d.Get("destination").(map[string]interface{})
 
 	switch input["type"] {
 	case subSNS:
-		return commercetools.SnsDestination{
+		return platform.SnsDestination{
 			TopicArn:     input["topic_arn"].(string),
 			AccessKey:    input["access_key"].(string),
 			AccessSecret: input["access_secret"].(string),
 		}, nil
 	case subSQS:
-		return commercetools.SqsDestination{
-			QueueURL:     input["queue_url"].(string),
+		return platform.SqsDestination{
+			QueueUrl:     input["queue_url"].(string),
 			AccessKey:    input["access_key"].(string),
 			AccessSecret: input["access_secret"].(string),
 			Region:       input["region"].(string),
 		}, nil
+	case subAzureEventGrid:
+		return platform.AzureEventGridDestination{
+			Uri:       input["uri"].(string),
+			AccessKey: input["access_key"].(string),
+		}, nil
 	case subAzureServiceBus:
-		return commercetools.AzureServiceBusDestination{
+		return platform.AzureServiceBusDestination{
 			ConnectionString: input["connection_string"].(string),
 		}, nil
 	case subGooglePubSub:
-		return commercetools.GoogleCloudPubSubDestination{
-			ProjectID: input["project_id"].(string),
+		return platform.GoogleCloudPubSubDestination{
+			ProjectId: input["project_id"].(string),
 			Topic:     input["topic"].(string),
+		}, nil
+	case subEventBridge:
+		return platform.EventBridgeDestination{
+			Region:    input["region"].(string),
+			AccountId: input["account_id"].(string),
 		}, nil
 	default:
 		return nil, fmt.Errorf("Destination type %s not implemented", input["type"])
 	}
 }
 
-func resourceSubscriptionGetChanges(d *schema.ResourceData) []commercetools.ChangeSubscription {
-	input := d.Get("changes").([]interface{})
-	var result []commercetools.ChangeSubscription
+func resourceSubscriptionGetFormat(d *schema.ResourceData) (platform.DeliveryFormat, error) {
+	input := d.Get("format").(map[string]interface{})
 
-	for _, raw := range input {
-		i := raw.(map[string]interface{})
-		rawTypeIds := expandStringArray(i["resource_type_ids"].([]interface{}))
-
-		for _, item := range rawTypeIds {
-			result = append(result, commercetools.ChangeSubscription{
-				ResourceTypeID: item,
-			})
-		}
+	switch input["type"] {
+	case cloudEvents:
+		return platform.DeliveryCloudEventsFormat{
+			CloudEventsVersion: input["cloud_events_version"].(string),
+		}, nil
+	case fmtPlatform:
+		return platform.DeliveryPlatformFormat{}, nil
 	}
 
+	return nil, nil
+}
+
+func resourceSubscriptionGetChanges(d *schema.ResourceData) []platform.ChangeSubscription {
+	var result []platform.ChangeSubscription
+	input := d.Get("changes").([]interface{})
+	if len(input) > 0 {
+		for _, raw := range input {
+			i := raw.(map[string]interface{})
+			rawTypeIds := expandStringArray(i["resource_type_ids"].([]interface{}))
+
+			for _, item := range rawTypeIds {
+				result = append(result, platform.ChangeSubscription{
+					ResourceTypeId: item,
+				})
+			}
+		}
+	}
 	return result
 }
 
-func resourceSubscriptionGetMessages(d *schema.ResourceData) []commercetools.MessageSubscription {
+func resourceSubscriptionGetMessages(d *schema.ResourceData) []platform.MessageSubscription {
 	input := d.Get("message").([]interface{})
-	var messageObjects []commercetools.MessageSubscription
+	var messageObjects []platform.MessageSubscription
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
-		messageObjects = append(messageObjects, commercetools.MessageSubscription{
-			ResourceTypeID: i["resource_type_id"].(string),
+		messageObjects = append(messageObjects, platform.MessageSubscription{
+			ResourceTypeId: i["resource_type_id"].(string),
 			Types:          expandStringArray(i["types"].([]interface{})),
 		})
 	}
@@ -352,24 +454,24 @@ func resourceSubscriptionGetMessages(d *schema.ResourceData) []commercetools.Mes
 	return messageObjects
 }
 
-func validateDestination(val interface{}, key string) (warns []string, errs []error) {
+func validateTypeAttribute(val interface{}, key string, attributeFields map[string][]string) (warns []string, errs []error) {
 	valueAsMap := val.(map[string]interface{})
 
-	destinationType, ok := valueAsMap["type"]
+	attributeType, ok := valueAsMap["type"]
 
 	if !ok {
 		errs = append(errs, fmt.Errorf("Property 'type' missing"))
 		return warns, errs
 	}
 
-	destinationTypeAsString, ok := destinationType.(string)
+	attributeTypeAsString, ok := attributeType.(string)
 	if !ok {
 		errs = append(errs, fmt.Errorf("Property 'type' has wrong type"))
 		return warns, errs
 	}
-	fields, ok := destinationFields[destinationTypeAsString]
+	fields, ok := attributeFields[attributeTypeAsString]
 	if !ok {
-		errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", destinationTypeAsString))
+		errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", attributeTypeAsString))
 		return warns, errs
 	}
 
@@ -385,9 +487,17 @@ func validateDestination(val interface{}, key string) (warns []string, errs []er
 	return warns, errs
 }
 
-func suppressIfNotDestinationType(t ...string) schema.SchemaDiffSuppressFunc {
+func validateDestination(val interface{}, key string) (warns []string, errs []error) {
+	return validateTypeAttribute(val, key, destinationFields)
+}
+
+func validateFormat(val interface{}, key string) (warns []string, errs []error) {
+	return validateTypeAttribute(val, key, formatFields)
+}
+
+func suppressFuncForAttribute(attribute string, t ...string) schema.SchemaDiffSuppressFunc {
 	return func(k string, old string, new string, d *schema.ResourceData) bool {
-		input := d.Get("destination").(map[string]interface{})
+		input := d.Get(attribute).(map[string]interface{})
 		for _, val := range t {
 			if val == input["type"] {
 				return false
@@ -395,4 +505,12 @@ func suppressIfNotDestinationType(t ...string) schema.SchemaDiffSuppressFunc {
 		}
 		return true
 	}
+}
+
+func suppressIfNotDestinationType(t ...string) schema.SchemaDiffSuppressFunc {
+	return suppressFuncForAttribute("destination", t...)
+}
+
+func suppressIfNotFormatType(t ...string) schema.SchemaDiffSuppressFunc {
+	return suppressFuncForAttribute("format", t...)
 }
