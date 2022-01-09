@@ -1,12 +1,11 @@
 package commercetools
 
 import (
+	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 	"log"
-	"time"
-
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
 )
 
 func resourceProductDiscount() *schema.Resource {
@@ -20,30 +19,38 @@ func resourceProductDiscount() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     TypeLocalizedString,
-				Required: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Required:    true,
 			},
 			"key": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Description: "User-specific unique identifier for a product discount. Must be unique across a project",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"description": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
 			},
 			"predicate": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "1=1",
+				Description: "A valid [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "1=1",
 			},
 			"sort_order": {
+				Description: "The string must contain a number between 0 and 1. All matching product discounts are " +
+					"applied to a cart in the order defined by this field. A discount with greater sort order is " +
+					"prioritized higher than a discount with lower sort order. The sort order is unambiguous among all product discounts",
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"is_active": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Description: "Only active discount can be applied to the product",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
 			},
 			"valid_from": {
 				Type:     schema.TypeString,
@@ -54,38 +61,43 @@ func resourceProductDiscount() *schema.Resource {
 				Optional: true,
 			},
 			"value": {
+				Description: "Defines the effect the discount will have. " +
+					"[ProductDiscountValue](https://docs.commercetools.com/api/projects/productDiscounts#productdiscountvalue)",
 				Type:     schema.TypeList,
 				MaxItems: 1,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
+							Description:  "Currently supports absolute/relative/external",
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateProductDiscountType,
 						},
-						// Absolute specific fields
 						"money": {
-							Type:     schema.TypeList,
-							Optional: true,
+							Description: "Absolute discount specific fields",
+							Type:        schema.TypeList,
+							Optional:    true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"cent_amount": {
-										Type:     schema.TypeInt,
-										Required: true,
-									},
 									"currency_code": {
+										Description:  "The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
 										Type:         schema.TypeString,
 										Required:     true,
 										ValidateFunc: ValidateCurrencyCode,
 									},
+									"cent_amount": {
+										Description: "The amount in cents (the smallest indivisible unit of the currency)",
+										Type:        schema.TypeInt,
+										Required:    true,
+									},
 								},
 							},
 						},
-						// Relative specific fields
 						"permyriad": {
-							Type:     schema.TypeInt,
-							Optional: true,
+							Description: "Relative discount specific fields",
+							Type:        schema.TypeInt,
+							Optional:    true,
 						},
 					},
 				},
@@ -116,15 +128,22 @@ func validateProductDiscountType(val interface{}, key string) (warns []string, e
 func resourceProductDiscountCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 
-	name := expandLocalizedString(d.Get("name"))
-	description := expandLocalizedString(d.Get("description"))
+	name := platform.LocalizedString(
+		expandStringMap(d.Get("name").(map[string]interface{})))
+	description := platform.LocalizedString(
+		expandStringMap(d.Get("description").(map[string]interface{})))
 
-	draft := &commercetools.ProductDiscountDraft{
-		Name:        &name,
-		Key:         d.Get("key").(string),
+	value, err := resourceProductDiscountGetValue(d)
+	if err != nil {
+		return err
+	}
+
+	draft := platform.ProductDiscountDraft{
+		Name:        name,
+		Key:         stringRef(d.Get("key")),
 		Description: &description,
 		Predicate:   d.Get("predicate").(string),
-		Value:       expandProductDiscountValue(d),
+		Value:       value,
 		SortOrder:   d.Get("sort_order").(string),
 		IsActive:    d.Get("is_active").(bool),
 	}
@@ -146,7 +165,7 @@ func resourceProductDiscountCreate(d *schema.ResourceData, m interface{}) error 
 
 	log.Printf("[DEBUG] Going to create draft: %#v", draft)
 
-	productDiscount, err := client.ProductDiscountCreate(draft)
+	productDiscount, err := client.ProductDiscounts().Post(draft).Execute(context.Background())
 	if err != nil {
 		return err
 	}
@@ -157,83 +176,54 @@ func resourceProductDiscountCreate(d *schema.ResourceData, m interface{}) error 
 	return resourceProductDiscountRead(d, m)
 }
 
-func expandLocalizedString(value interface{}) commercetools.LocalizedString {
-	return commercetools.LocalizedString(
-		expandStringMap(value.(map[string]interface{})))
-}
-
-func expandProductDiscountValue(d *schema.ResourceData) commercetools.ProductDiscountValue {
+func resourceProductDiscountGetValue(d *schema.ResourceData) (platform.ProductDiscountValue, error) {
 	value := d.Get("value").([]interface{})[0].(map[string]interface{})
 
 	log.Printf("[DEBUG] Product discount value: %#v", value)
 
 	switch value["type"].(string) {
 	case "external":
-		return commercetools.ProductDiscountValueExternal{}
+		return platform.ProductDiscountValueExternal{}, nil
 	case "absolute":
-		moneyData := value["money"].([]interface{})
-		moneyList := make([]commercetools.Money, 0)
-		for _, data := range moneyData {
-			mapData := data.(map[string]interface{})
-			currencyCode := mapData["currency_code"].(string)
-			centAmount := mapData["cent_amount"].(int)
-			money := commercetools.Money{
-				CurrencyCode: commercetools.CurrencyCode(currencyCode),
-				CentAmount:   centAmount,
-			}
-			moneyList = append(moneyList, money)
-		}
-
-		return commercetools.ProductDiscountValueAbsolute{
-			Money: moneyList,
-		}
+		money := resourceProductDiscountGetMoney(value)
+		return platform.ProductDiscountValueAbsolute{
+			Money: money,
+		}, nil
 	case "relative":
-		return commercetools.ProductDiscountValueRelative{
+		return platform.ProductDiscountValueRelative{
 			Permyriad: value["permyriad"].(int),
-		}
+		}, nil
 	default:
-		return fmt.Errorf("Unknown product discount type %s", value["type"])
+		return nil, fmt.Errorf("Value type %s not implemented", value["type"])
 	}
 }
 
-func flattenProductDiscountValue(productDiscount commercetools.ProductDiscountValue) (out map[string]interface{}) {
-	log.Printf("[DEBUG] Trying to flatten %#v", productDiscount)
-	out = make(map[string]interface{})
-	if discount, ok := productDiscount.(commercetools.ProductDiscountValueAbsolute); ok {
-		out["type"] = "absolute"
-		out["money"] = flattenProductDiscountAbsolute(discount.Money)
-		return out
-	} else if discount, ok := productDiscount.(commercetools.ProductDiscountValueRelative); ok {
-		out["type"] = "relative"
-		out["permyriad"] = discount.Permyriad
-		return out
-	} else if _, ok := productDiscount.(commercetools.ProductDiscountValueExternal); ok {
-		out["type"] = "external"
-		return out
+func resourceProductDiscountGetMoney(d map[string]interface{}) []platform.TypedMoney {
+	input := d["money"].([]interface{})
+	var result []platform.TypedMoney
+
+	for _, raw := range input {
+		i := raw.(map[string]interface{})
+		priceCurrencyCode := i["currency_code"].(string)
+
+		result = append(result, platform.Money{
+			CurrencyCode: priceCurrencyCode,
+			CentAmount:   i["cent_amount"].(int),
+		})
 	}
 
-	panic(fmt.Errorf("Failed to flatten product discount value"))
-}
-
-func flattenProductDiscountAbsolute(money []commercetools.Money) []map[string]interface{} {
-	var out = make([]map[string]interface{}, len(money), len(money))
-	for _, moneyEntry := range money {
-		m := make(map[string]interface{})
-		m["currency_code"] = string(moneyEntry.CurrencyCode)
-		m["cent_amount"] = moneyEntry.CentAmount
-		out = append(out, m)
-	}
-	return out
+	return result
 }
 
 func resourceProductDiscountRead(d *schema.ResourceData, m interface{}) error {
-	log.Print("[DEBUG] Reading product discount from commercetools")
+	log.Print("[DEBUG] Reading product discount from platform")
+
 	client := getClient(m)
 
-	productDiscount, err := client.ProductDiscountGetWithID(d.Id())
+	productDiscount, err := client.ProductDiscounts().WithId(d.Id()).Get().Execute(context.Background())
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
 				d.SetId("")
 				return nil
@@ -243,7 +233,7 @@ func resourceProductDiscountRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if productDiscount == nil {
-		log.Print("[DEBUG] No product type found")
+		log.Print("[DEBUG] No product discount found")
 		d.SetId("")
 	} else {
 		log.Printf("[DEBUG] Found following product discount: %#v", productDiscount)
@@ -253,119 +243,110 @@ func resourceProductDiscountRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("name", productDiscount.Name)
 		d.Set("key", productDiscount.Key)
 		d.Set("description", productDiscount.Description)
-		if err := d.Set("value", []interface{}{flattenProductDiscountValue(productDiscount.Value)}); err != nil {
-			return err
-		}
+		d.Set("value", productDiscount.Value)
 		d.Set("predicate", productDiscount.Predicate)
 		d.Set("sort_order", productDiscount.SortOrder)
 		d.Set("is_active", productDiscount.IsActive)
-		d.Set("valid_from", nil)
-		if productDiscount.ValidFrom != nil {
-			d.Set("valid_from", flattenDateToString(*productDiscount.ValidFrom))
-		}
-		d.Set("valid_until", nil)
-		if productDiscount.ValidUntil != nil {
-			d.Set("valid_until", flattenDateToString(*productDiscount.ValidUntil))
-		}
+		d.Set("valid_from", productDiscount.ValidFrom)
+		d.Set("valid_until", productDiscount.ValidUntil)
 	}
 
 	return nil
 }
 
-func expandDate(input string) (time.Time, error) {
-	return time.Parse("2006-01-02", input)
-}
-
-func flattenDateToString(input time.Time) string {
-	return input.Format("2006-01-02")
-}
-
 func resourceProductDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
+	productDiscount, err := client.ProductDiscounts().WithId(d.Id()).Get().Execute(context.Background())
+	if err != nil {
+		return err
+	}
 
-	input := &commercetools.ProductDiscountUpdateWithIDInput{
-		ID:      d.Id(),
-		Version: d.Get("version").(int),
-		Actions: []commercetools.ProductDiscountUpdateAction{},
+	input := platform.ProductDiscountUpdate{
+		Version: productDiscount.Version,
+		Actions: []platform.ProductDiscountUpdateAction{},
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProductDiscountSetKeyAction{Key: newKey})
+			&platform.ProductDiscountSetKeyAction{Key: &newKey})
 	}
 
-	if d.HasChange("is_active") {
-		isActive := d.Get("is_active").(bool)
+	if d.HasChange("name") {
+		newName := platform.LocalizedString(
+			expandStringMap(d.Get("name").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProductDiscountChangeIsActiveAction{IsActive: isActive})
+			&platform.ProductDiscountChangeNameAction{Name: newName})
+	}
+
+	if d.HasChange("description") {
+		newDescription := platform.LocalizedString(
+			expandStringMap(d.Get("description").(map[string]interface{})))
+		input.Actions = append(
+			input.Actions,
+			&platform.ProductDiscountSetDescriptionAction{Description: &newDescription})
+	}
+
+	if d.HasChange("value") {
+		newValue, err := resourceProductDiscountGetValue(d)
+		if err != nil {
+			return err
+		}
+		input.Actions = append(
+			input.Actions,
+			&platform.ProductDiscountChangeValueAction{Value: newValue})
 	}
 
 	if d.HasChange("predicate") {
 		newPredicate := d.Get("predicate").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProductDiscountChangePredicateAction{Predicate: newPredicate})
+			&platform.ProductDiscountChangePredicateAction{Predicate: newPredicate})
 	}
 
 	if d.HasChange("sort_order") {
 		newSortOrder := d.Get("sort_order").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ProductDiscountChangeSortOrderAction{SortOrder: newSortOrder})
+			&platform.ProductDiscountChangeSortOrderAction{SortOrder: newSortOrder})
 	}
 
-	if d.HasChange("valid_from") {
-		validFrom, err := expandDate(d.Get("valid_from").(string))
-		if err != nil {
-			return err
+	if d.HasChange("is_active") {
+		newIsActive := d.Get("is_active").(bool)
+		input.Actions = append(
+			input.Actions,
+			&platform.ProductDiscountChangeIsActiveAction{IsActive: newIsActive})
+	}
+
+	if d.HasChange("valid_from") || d.HasChange("valid_until") {
+		var action = &platform.ProductDiscountSetValidFromAndUntilAction{}
+		if val := d.Get("valid_from").(string); len(val) > 0 {
+			newValidFrom, err := expandDate(d.Get("valid_from").(string))
+			if err != nil {
+				return err
+			}
+			action.ValidFrom = &newValidFrom
 		}
-		input.Actions = append(
-			input.Actions,
-			&commercetools.ProductDiscountSetValidFromAction{ValidFrom: &validFrom})
-	}
-
-	if d.HasChange("valid_until") {
-		validUntil, err := expandDate(d.Get("valid_until").(string))
-		if err != nil {
-			return err
+		if val := d.Get("valid_until").(string); len(val) > 0 {
+			newValidUntil, err := expandDate(d.Get("valid_until").(string))
+			if err != nil {
+				return err
+			}
+			action.ValidUntil = &newValidUntil
 		}
-		input.Actions = append(
-			input.Actions,
-			&commercetools.ProductDiscountSetValidUntilAction{ValidUntil: &validUntil})
-	}
 
-	if d.HasChange("name") {
-		newName := expandLocalizedString(d.Get("name"))
-		input.Actions = append(
-			input.Actions,
-			&commercetools.ProductDiscountChangeNameAction{Name: &newName})
+		input.Actions = append(input.Actions, action)
 	}
-
-	if d.HasChange("description") {
-		newDescr := expandLocalizedString(d.Get("description"))
-		input.Actions = append(
-			input.Actions,
-			&commercetools.ProductDiscountSetDescriptionAction{Description: &newDescr})
-	}
-
-	if d.HasChange("value") {
-		newValue := expandProductDiscountValue(d)
-		input.Actions = append(
-			input.Actions,
-			&commercetools.ProductDiscountChangeValueAction{Value: newValue})
-	}
-
 
 	log.Printf(
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.ProductDiscountUpdateWithID(input)
+	_, err = client.ProductDiscounts().WithId(d.Id()).Post(input).Execute(context.Background())
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
+		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
 		return err
@@ -377,7 +358,7 @@ func resourceProductDiscountUpdate(d *schema.ResourceData, m interface{}) error 
 func resourceProductDiscountDelete(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ProductDiscountDeleteWithID(d.Id(), version)
+	_, err := client.ProductDiscounts().WithId(d.Id()).Delete().Version(version).Execute(context.Background())
 	if err != nil {
 		return err
 	}
