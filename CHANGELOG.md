@@ -1,3 +1,8 @@
+v0.30.1 (2022-01-13)
+====================
+- Resource shipping_zone: Add `localized_name` attribute
+
+
 v0.30.0 (2021-08-04)
 ====================
 - Resource project: Add `shipping_rate_input_type` setting to enable tiered pricing for a project
@@ -18,12 +23,12 @@ v0.29.1 (2021-05-19)
 
 v0.29.0 (2021-04-23)
 ====================
- - Resource Project: Add project level cart `delete_days_after_last_modification` setting
+ - Resource project: Add project level cart `delete_days_after_last_modification` setting
 
 v0.28.0 (2021-04-08)
 ====================
  - **New resource:** `commercetools_category`
- - Resource API Extension: Removed unused `azure_functions` type
+ - Resource api_extension: Removed unused `azure_functions` type
  - Add CheckDestroy funcs to all tests
  - Add TFDocs documentation parallel to readthedocs documentation
 
