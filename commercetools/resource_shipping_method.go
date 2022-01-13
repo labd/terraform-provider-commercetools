@@ -32,6 +32,11 @@ func resourceShippingMethod() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"localized_name": {
+				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:        TypeLocalizedString,
+				Optional:    true,
+			},
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -75,11 +80,15 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 	localizedDescription := commercetools.LocalizedString(
 		expandStringMap(d.Get("localized_description").(map[string]interface{})))
 
+	localizedName := commercetools.LocalizedString(
+		expandStringMap(d.Get("localized_name").(map[string]interface{})))
+
 	draft := &commercetools.ShippingMethodDraft{
 		Key:                  d.Get("key").(string),
 		Name:                 d.Get("name").(string),
 		Description:          d.Get("description").(string),
 		LocalizedDescription: &localizedDescription,
+		LocalizedName:        &localizedName,
 		IsDefault:            d.Get("is_default").(bool),
 		TaxCategory:          &taxCategory,
 		Predicate:            d.Get("predicate").(string),
@@ -136,6 +145,7 @@ func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("version", shippingMethod.Version)
 		d.Set("key", shippingMethod.Key)
 		d.Set("name", shippingMethod.Name)
+		d.Set("localized_name", shippingMethod.LocalizedName)
 		d.Set("description", shippingMethod.Description)
 		d.Set("localized_description", shippingMethod.LocalizedDescription)
 		d.Set("is_default", shippingMethod.IsDefault)
@@ -167,6 +177,14 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 		input.Actions = append(
 			input.Actions,
 			&commercetools.ShippingMethodChangeNameAction{Name: newName})
+	}
+
+	if d.HasChange("localized_name") {
+		newLocalizedName := commercetools.LocalizedString(
+			expandStringMap(d.Get("localized_name").(map[string]interface{})))
+		input.Actions = append(
+			input.Actions,
+			&commercetools.ShippingMethodSetLocalizedNameAction{LocalizedName: &newLocalizedName})
 	}
 
 	if d.HasChange("key") {
