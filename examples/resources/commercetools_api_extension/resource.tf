@@ -1,7 +1,7 @@
 resource "commercetools_api_extension" "my-extension" {
   key = "test-case"
 
-  destination {
+  destination = {
     type                 = "HTTP"
     url                  = "https://example.com"
     authorization_header = "Basic 12345"
