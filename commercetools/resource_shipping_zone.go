@@ -68,7 +68,7 @@ func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
 	var shippingZone *platform.Zone
 
 	input := d.Get("location").([]interface{})
-	locations := resourceShippingZoneGetLocation(input)
+	locations := unmarshallShippingZoneLocations(input)
 
 	draft := platform.ZoneDraft{
 		Key:         stringRef(d.Get("key")),
@@ -128,7 +128,7 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("key", shippingZone.Key)
 		d.Set("name", shippingZone.Name)
 		d.Set("description", shippingZone.Description)
-		d.Set("locations", shippingZone.Locations)
+		d.Set("location", marshallShippingZoneLocations(shippingZone.Locations))
 	}
 	return nil
 }
@@ -167,8 +167,8 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 	if d.HasChange("location") {
 		old, new := d.GetChange("location")
 
-		oldLocations := resourceShippingZoneGetLocation(old)
-		newLocations := resourceShippingZoneGetLocation(new)
+		oldLocations := unmarshallShippingZoneLocations(old)
+		newLocations := unmarshallShippingZoneLocations(new)
 
 		for i, location := range oldLocations {
 			if !_locationInSlice(location, newLocations) {
@@ -212,7 +212,7 @@ func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceShippingZoneGetLocation(input interface{}) []platform.Location {
+func unmarshallShippingZoneLocations(input interface{}) []platform.Location {
 	inputSlice := input.([]interface{})
 	var result []platform.Location
 
@@ -232,6 +232,19 @@ func resourceShippingZoneGetLocation(input interface{}) []platform.Location {
 		result = append(result, platform.Location{
 			Country: country,
 			State:   &state,
+		})
+	}
+
+	return result
+}
+
+func marshallShippingZoneLocations(locations []platform.Location) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(locations))
+
+	for _, location := range locations {
+		result = append(result, map[string]interface{}{
+			"country": location.Country,
+			"state":   location.State,
 		})
 	}
 

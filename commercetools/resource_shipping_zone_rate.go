@@ -197,12 +197,9 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 	}
 	log.Printf("[DEBUG] Setting freeAbove: %s", stringFormatObject(freeAbove))
 
-	var shippingRatePriceTiers []platform.ShippingRatePriceTier
-	if shippingRatePriceTierState, ok := d.GetOk("shipping_rate_price_tier"); ok {
-		shippingRatePriceTiers, err = createShippingRatePriceTiers(shippingRatePriceTierState.([]interface{}))
-		if err != nil {
-			return err
-		}
+	shippingRatePriceTiers, err := unmarshallShippingRatePriceTiers(d)
+	if err != nil {
+		return err
 	}
 	log.Printf("[DEBUG] Setting shippingRatePriceTiers: %s", stringFormatObject(shippingRatePriceTiers))
 
@@ -257,10 +254,15 @@ func resourceShippingZoneRateCreate(d *schema.ResourceData, m interface{}) error
 	return resourceShippingZoneRateRead(d, m)
 }
 
-func createShippingRatePriceTiers(tierStateMap []interface{}) ([]platform.ShippingRatePriceTier, error) {
+func unmarshallShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRatePriceTier, error) {
+	values, ok := d.GetOk("shipping_rate_price_tier")
+	if !ok {
+		return []platform.ShippingRatePriceTier{}, nil
+	}
+
 	var tiers []platform.ShippingRatePriceTier
-	for tierState := range tierStateMap {
-		tierMap := tierStateMap[tierState].(map[string]interface{})
+	for _, priceTier := range values.([]interface{}) {
+		tierMap := priceTier.(map[string]interface{})
 
 		priceMap := tierMap["price"].([]interface{})[0].(map[string]interface{})
 		price := platform.Money{
@@ -392,12 +394,9 @@ func resourceShippingZoneRateUpdate(d *schema.ResourceData, m interface{}) error
 			}
 		}
 
-		var newShippingRatePriceTiers []platform.ShippingRatePriceTier
-		if shippingRatePriceTiers, ok := d.GetOk("shipping_rate_price_tier"); ok {
-			newShippingRatePriceTiers, err = createShippingRatePriceTiers(shippingRatePriceTiers.([]interface{}))
-			if err != nil {
-				return err
-			}
+		newShippingRatePriceTiers, err := unmarshallShippingRatePriceTiers(d)
+		if err != nil {
+			return err
 		}
 
 		newShippingRateDraft := platform.ShippingRateDraft{
@@ -466,12 +465,9 @@ func resourceShippingZoneRateDelete(d *schema.ResourceData, m interface{}) error
 		}
 	}
 
-	var newShippingRatePriceTiers []platform.ShippingRatePriceTier
-	if shippingRatePriceTiers, ok := d.GetOk("shipping_rate_price_tier"); ok {
-		newShippingRatePriceTiers, err = createShippingRatePriceTiers(shippingRatePriceTiers.([]interface{}))
-		if err != nil {
-			return err
-		}
+	newShippingRatePriceTiers, err := unmarshallShippingRatePriceTiers(d)
+	if err != nil {
+		return err
 	}
 
 	shippingZoneID := d.Get("shipping_zone_id").(string)
