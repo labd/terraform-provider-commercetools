@@ -119,7 +119,7 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	if store.Name != nil {
 		d.Set("name", *store.Name)
 	} else {
-		d.Set("name", "")
+		d.Set("name", nil)
 	}
 	d.Set("version", store.Version)
 	if store.Languages != nil {
