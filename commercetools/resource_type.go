@@ -304,23 +304,6 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 		log.Print("[DEBUG] Found following type:")
 		log.Print(stringFormatObject(ctType))
 
-		fields := make([]map[string]interface{}, len(ctType.FieldDefinitions))
-		for i, fieldDef := range ctType.FieldDefinitions {
-			fieldData := make(map[string]interface{})
-			log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
-			fieldType, err := resourceTypeReadFieldType(fieldDef.Type, true)
-			if err != nil {
-				return err
-			}
-			fieldData["type"] = fieldType
-			fieldData["name"] = fieldDef.Name
-			fieldData["label"] = fieldDef.Label
-			fieldData["required"] = fieldDef.Required
-			fieldData["input_hint"] = fieldDef.InputHint
-
-			fields[i] = fieldData
-		}
-
 		d.Set("version", ctType.Version)
 		d.Set("key", ctType.Key)
 		d.Set("name", ctType.Name)
@@ -328,57 +311,14 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 			d.Set("description", ctType.Description)
 		}
 		d.Set("resource_type_ids", ctType.ResourceTypeIds)
-		d.Set("field", fields)
+
+		if fields, err := marshallTypeFields(ctType); err == nil {
+			d.Set("field", fields)
+		} else {
+			return err
+		}
 	}
 	return nil
-}
-
-func resourceTypeReadFieldType(fieldType platform.FieldType, setsAllowed bool) ([]interface{}, error) {
-	typeData := make(map[string]interface{})
-
-	if _, ok := fieldType.(platform.CustomFieldBooleanType); ok {
-		typeData["name"] = "Boolean"
-	} else if _, ok := fieldType.(platform.CustomFieldStringType); ok {
-		typeData["name"] = "String"
-	} else if _, ok := fieldType.(platform.CustomFieldLocalizedStringType); ok {
-		typeData["name"] = "LocalizedString"
-	} else if f, ok := fieldType.(platform.CustomFieldEnumType); ok {
-		enumValues := make(map[string]interface{}, len(f.Values))
-		for _, value := range f.Values {
-			enumValues[value.Key] = value.Label
-		}
-		typeData["name"] = "Enum"
-		typeData["values"] = enumValues
-	} else if f, ok := fieldType.(platform.CustomFieldLocalizedEnumType); ok {
-		typeData["name"] = "LocalizedEnum"
-		typeData["localized_value"] = readCustomFieldLocalizedEnum(f.Values)
-	} else if _, ok := fieldType.(platform.CustomFieldNumberType); ok {
-		typeData["name"] = "Number"
-	} else if _, ok := fieldType.(platform.CustomFieldMoneyType); ok {
-		typeData["name"] = "Money"
-	} else if _, ok := fieldType.(platform.CustomFieldDateType); ok {
-		typeData["name"] = "Date"
-	} else if _, ok := fieldType.(platform.CustomFieldTimeType); ok {
-		typeData["name"] = "Time"
-	} else if _, ok := fieldType.(platform.CustomFieldDateTimeType); ok {
-		typeData["name"] = "DateTime"
-	} else if f, ok := fieldType.(platform.CustomFieldReferenceType); ok {
-		typeData["name"] = "Reference"
-		typeData["reference_type_id"] = f.ReferenceTypeId
-	} else if f, ok := fieldType.(platform.CustomFieldSetType); ok {
-		typeData["name"] = "Set"
-		if setsAllowed {
-			elemType, err := resourceTypeReadFieldType(f.ElementType, false)
-			if err != nil {
-				return nil, err
-			}
-			typeData["element_type"] = elemType
-		}
-	} else {
-		return nil, fmt.Errorf("Unknown resource Type %T: %#v", fieldType, fieldType)
-	}
-
-	return []interface{}{typeData}, nil
 }
 
 func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
@@ -446,17 +386,18 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 
 	log.Printf("[DEBUG] Construction Field change actions")
 
-	// Check if we have fields which are removed
+	// Check if we have fields which are removed and generate the corresponding
+	// remove field actions
 	for name := range oldLookup {
 		if _, ok := newLookup[name]; !ok {
 			log.Printf("[DEBUG] Field deleted: %s", name)
 			actions = append(actions, platform.TypeRemoveFieldDefinitionAction{FieldName: name})
-			checkAttributeOrder = false
+			// checkAttributeOrder = false
 		}
 	}
 
-	for _, value := range newValues {
-		newV := value.(map[string]interface{})
+	for i := range newValues {
+		newV := newValues[i].(map[string]interface{})
 		name := newV["name"].(string)
 		oldValue, existingField := oldLookup[name]
 
@@ -472,7 +413,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			actions = append(
 				actions,
 				platform.TypeAddFieldDefinitionAction{FieldDefinition: *fieldDef})
-			checkAttributeOrder = false
+			// checkAttributeOrder = false
 			continue
 		}
 
@@ -519,16 +460,19 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 	oldNames := make([]string, len(oldValues))
 	newNames := make([]string, len(newValues))
 
-	for i, value := range oldValues {
-		v := value.(map[string]interface{})
+	for i := range oldValues {
+		v := oldValues[i].(map[string]interface{})
 		oldNames[i] = v["name"].(string)
 	}
-	for i, value := range newValues {
-		v := value.(map[string]interface{})
+
+	for i := range newValues {
+		v := newValues[i].(map[string]interface{})
 		newNames[i] = v["name"].(string)
 	}
 
 	if checkAttributeOrder && !reflect.DeepEqual(oldNames, newNames) {
+		log.Printf("[DEBUG] Field ordering: %s", newNames)
+
 		actions = append(
 			actions,
 			platform.TypeChangeFieldDefinitionOrderAction{
@@ -543,8 +487,8 @@ func resourceTypeHandleEnumTypeChanges(newFieldType platform.FieldType, oldField
 	if enumType, ok := newFieldType.(platform.CustomFieldEnumType); ok {
 		oldEnumV := oldFieldType["values"].(map[string]interface{})
 
-		for i, enumValue := range enumType.Values {
-			if _, ok := oldEnumV[enumValue.Key]; !ok {
+		for i := range enumType.Values {
+			if _, ok := oldEnumV[enumType.Values[i].Key]; !ok {
 				// Key does not appear in old enum values, so we'll add it
 				actions = append(
 					actions,
@@ -555,7 +499,7 @@ func resourceTypeHandleEnumTypeChanges(newFieldType platform.FieldType, oldField
 				continue
 			}
 
-			if oldEnumV[enumValue.Key].(string) != enumValue.Label {
+			if oldEnumV[enumType.Values[i].Key].(string) != enumType.Values[i].Label {
 				//label for this key is changed
 				actions = append(
 					actions,
@@ -573,8 +517,8 @@ func resourceTypeHandleEnumTypeChanges(newFieldType platform.FieldType, oldField
 		oldEnumV := oldFieldType["localized_value"].([]interface{})
 		oldEnumKeys := make(map[string]map[string]interface{}, len(oldEnumV))
 
-		for _, value := range oldEnumV {
-			v := value.(map[string]interface{})
+		for i := range oldEnumV {
+			v := oldEnumV[i].(map[string]interface{})
 			oldEnumKeys[v["key"].(string)] = v
 		}
 
@@ -611,16 +555,17 @@ func resourceTypeDelete(d *schema.ResourceData, m interface{}) error {
 
 func resourceTypeGetFieldDefinitions(d *schema.ResourceData) ([]platform.FieldDefinition, error) {
 	input := d.Get("field").([]interface{})
-	var result []platform.FieldDefinition
+	result := make([]platform.FieldDefinition, len(input))
 
-	for _, raw := range input {
-		fieldDef, err := resourceTypeGetFieldDefinition(raw.(map[string]interface{}))
+	for i := range input {
+		raw := input[i].(map[string]interface{})
+		fieldDef, err := resourceTypeGetFieldDefinition(raw)
 
 		if err != nil {
 			return nil, err
 		}
 
-		result = append(result, *fieldDef)
+		result[i] = *fieldDef
 	}
 
 	return result, nil
@@ -731,12 +676,98 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	return nil, fmt.Errorf("Unknown FieldType %s", typeName)
 }
 
-func readCustomFieldLocalizedEnum(values []platform.CustomFieldLocalizedEnumValue) []interface{} {
+func marshallTypeFields(t *platform.Type) ([]map[string]interface{}, error) {
+	fields := make([]map[string]interface{}, len(t.FieldDefinitions))
+	for i, fieldDef := range t.FieldDefinitions {
+		fieldData := make(map[string]interface{})
+		log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
+		fieldType, err := marshallTypeFieldType(fieldDef.Type, true)
+		if err != nil {
+			return nil, err
+		}
+		fieldData["type"] = fieldType
+		fieldData["name"] = fieldDef.Name
+		if fieldDef.Label != nil {
+			fieldData["label"] = fieldDef.Label
+		} else {
+			fieldData["label"] = nil
+		}
+		fieldData["required"] = fieldDef.Required
+		fieldData["input_hint"] = fieldDef.InputHint
+
+		fields[i] = fieldData
+	}
+	return fields, nil
+}
+
+func marshallTypeFieldType(fieldType platform.FieldType, setsAllowed bool) ([]interface{}, error) {
+	typeData := make(map[string]interface{})
+
+	switch val := fieldType.(type) {
+
+	case platform.CustomFieldBooleanType:
+		typeData["name"] = "Boolean"
+
+	case platform.CustomFieldStringType:
+		typeData["name"] = "String"
+
+	case platform.CustomFieldLocalizedStringType:
+		typeData["name"] = "LocalizedString"
+
+	case platform.CustomFieldEnumType:
+		enumValues := make(map[string]interface{}, len(val.Values))
+		for _, value := range val.Values {
+			enumValues[value.Key] = value.Label
+		}
+		typeData["name"] = "Enum"
+		typeData["values"] = enumValues
+
+	case platform.CustomFieldLocalizedEnumType:
+		typeData["name"] = "LocalizedEnum"
+		typeData["localized_value"] = marshallTypeLocalizedEnum(val.Values)
+
+	case platform.CustomFieldNumberType:
+		typeData["name"] = "Number"
+
+	case platform.CustomFieldMoneyType:
+		typeData["name"] = "Money"
+
+	case platform.CustomFieldDateType:
+		typeData["name"] = "Date"
+
+	case platform.CustomFieldTimeType:
+		typeData["name"] = "Time"
+
+	case platform.CustomFieldDateTimeType:
+		typeData["name"] = "DateTime"
+
+	case platform.CustomFieldReferenceType:
+		typeData["name"] = "Reference"
+		typeData["reference_type_id"] = val.ReferenceTypeId
+
+	case platform.CustomFieldSetType:
+		typeData["name"] = "Set"
+		if setsAllowed {
+			elemType, err := marshallTypeFieldType(val.ElementType, false)
+			if err != nil {
+				return nil, err
+			}
+			typeData["element_type"] = elemType
+		}
+
+	default:
+		return nil, fmt.Errorf("Unknown resource Type %T: %#v", fieldType, fieldType)
+	}
+
+	return []interface{}{typeData}, nil
+}
+
+func marshallTypeLocalizedEnum(values []platform.CustomFieldLocalizedEnumValue) []interface{} {
 	enumValues := make([]interface{}, len(values))
-	for i, value := range values {
+	for i := range values {
 		enumValues[i] = map[string]interface{}{
-			"key":   value.Key,
-			"label": &value.Label,
+			"key":   values[i].Key,
+			"label": values[i].Label,
 		}
 	}
 	return enumValues
