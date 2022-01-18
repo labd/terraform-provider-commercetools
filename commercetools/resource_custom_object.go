@@ -93,7 +93,7 @@ func resourceCustomObjectRead(d *schema.ResourceData, m interface{}) error {
 		log.Print(stringFormatObject(customObject))
 		d.Set("container", customObject.Container)
 		d.Set("key", customObject.Key)
-		d.Set("value", customObject.Value)
+		d.Set("value", marshallCustomObjectValue(customObject))
 		d.Set("version", customObject.Version)
 	}
 	return nil
@@ -192,4 +192,12 @@ func _decodeCustomObjectValue(value string) interface{} {
 	data := make(map[string]interface{})
 	json.Unmarshal([]byte(value), &data)
 	return data
+}
+
+func marshallCustomObjectValue(o *platform.CustomObject) string {
+	val, err := json.Marshal(o.Value)
+	if err != nil {
+		panic(err)
+	}
+	return string(val)
 }
