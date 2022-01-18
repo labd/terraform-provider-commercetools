@@ -104,7 +104,7 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 	var transitions []platform.StateResourceIdentifier
 	for _, value := range d.Get("transitions").(*schema.Set).List() {
 		transitions = append(transitions, platform.StateResourceIdentifier{
-			Key: stringRef(value),
+			ID: stringRef(value),
 		})
 	}
 
@@ -173,7 +173,7 @@ func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("roles", state.Roles)
 	}
 	if state.Transitions != nil {
-		d.Set("transitions", state.Transitions)
+		d.Set("transitions", marshallStateTransitions(state.Transitions))
 	}
 	return nil
 }
@@ -237,7 +237,7 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 		var transitions []platform.StateResourceIdentifier
 		for _, value := range d.Get("transitions").(*schema.Set).List() {
 			transitions = append(transitions, platform.StateResourceIdentifier{
-				Key: stringRef(value),
+				ID: stringRef(value),
 			})
 		}
 		input.Actions = append(
@@ -266,4 +266,12 @@ func resourceStateDelete(d *schema.ResourceData, m interface{}) error {
 	}
 
 	return nil
+}
+
+func marshallStateTransitions(values []platform.StateReference) []string {
+	result := make([]string, len(values))
+	for idx, _ := range values {
+		result[idx] = values[idx].ID
+	}
+	return result
 }

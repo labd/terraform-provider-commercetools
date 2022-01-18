@@ -104,7 +104,7 @@ func testAccTransitionConfig(t *testing.T, transition string) string {
 		name = {
 			en = "State #1"
 		}
-		transitions = ["%[1]s"]
+		transitions = [commercetools_state.acctest_t2.id]
 	}
 
 	resource "commercetools_state" "acctest_t2" {
