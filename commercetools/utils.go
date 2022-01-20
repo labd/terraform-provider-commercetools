@@ -1,10 +1,12 @@
 package commercetools
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // import (
@@ -26,10 +28,40 @@ func TypeLocalizedString() types.MapType {
 	return types.MapType{ElemType: types.StringType}
 }
 
-func transformStringSlice(v []string) []types.String {
+func marshallStringSlice(v []string) []types.String {
 	result := make([]types.String, len(v))
 	for idx := range v {
 		result[idx] = types.String{Value: v[idx]}
+	}
+	return result
+}
+
+func unmarshallStringSlice(v []types.String) []string {
+	result := make([]string, len(v))
+	for idx := range v {
+		result[idx] = v[idx].Value
+	}
+	return result
+}
+
+func marshallStringMap(v map[string]string) types.Map {
+	result := types.Map{ElemType: types.StringType}
+	for idx := range v {
+		result.Elems[idx] = types.String{Value: v[idx]}
+	}
+	return result
+}
+
+func unmarshallStringMap(v types.Map) map[string]string {
+	result := map[string]string{}
+
+	data, err := v.ToTerraformValue(context.Background())
+	if err != nil {
+		panic(err)
+	}
+
+	for idx, val := range data.(map[string]tftypes.Value) {
+		result[idx] = val.String()
 	}
 	return result
 }

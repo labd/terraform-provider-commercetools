@@ -71,26 +71,27 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 
 // GetResources - Defines provider resources
 func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
-	return map[string]tfsdk.ResourceType{}, nil
-	// "commercetools_api_client":         resourceAPIClient(),
-	// "commercetools_api_extension":      resourceAPIExtension(),
-	// "commercetools_cart_discount":      resourceCartDiscount(),
-	// "commercetools_channel":            resourceChannel(),
-	// "commercetools_custom_object":      resourceCustomObject(),
-	// "commercetools_customer_group":     resourceCustomerGroup(),
-	// "commercetools_discount_code":      resourceDiscountCode(),
-	// "commercetools_product_type":       resourceProductType(),
-	// "commercetools_project_settings":   resourceProjectSettings(),
-	// "commercetools_shipping_method":    resourceShippingMethod(),
-	// "commercetools_shipping_zone_rate": resourceShippingZoneRate(),
-	// "commercetools_shipping_zone":      resourceShippingZone(),
-	// "commercetools_state":              resourceState(),
-	// "commercetools_store":              resourceStore(),
-	// "commercetools_subscription":       resourceSubscription(),
-	// "commercetools_tax_category_rate":  resourceTaxCategoryRate(),
-	// "commercetools_tax_category":       resourceTaxCategory(),
-	// "commercetools_category":           resourceCategory(),
-	// "commercetools_type":               resourceType(),
+	return map[string]tfsdk.ResourceType{
+		// "commercetools_api_client":         resourceAPIClient(),
+		// "commercetools_api_extension":      resourceAPIExtension(),
+		// "commercetools_cart_discount":      resourceCartDiscount(),
+		// "commercetools_channel":            resourceChannel(),
+		// "commercetools_custom_object":      resourceCustomObject(),
+		// "commercetools_customer_group":     resourceCustomerGroup(),
+		// "commercetools_discount_code":      resourceDiscountCode(),
+		// "commercetools_product_type":       resourceProductType(),
+		"commercetools_project_settings": resourceProjectSettingsType{},
+		// "commercetools_shipping_method":    resourceShippingMethod(),
+		// "commercetools_shipping_zone_rate": resourceShippingZoneRate(),
+		// "commercetools_shipping_zone":      resourceShippingZone(),
+		// "commercetools_state":              resourceState(),
+		// "commercetools_store":              resourceStore(),
+		// "commercetools_subscription":       resourceSubscription(),
+		// "commercetools_tax_category_rate":  resourceTaxCategoryRate(),
+		// "commercetools_tax_category":       resourceTaxCategory(),
+		// "commercetools_category":           resourceCategory(),
+		// "commercetools_type":               resourceType(),
+	}, nil
 }
 
 // GetDataSources - Defines provider data sources

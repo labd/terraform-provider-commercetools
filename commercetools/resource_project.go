@@ -2,6 +2,7 @@ package commercetools
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -13,32 +14,13 @@ import (
 
 type resourceProjectSettingsType struct{}
 
-// // TODO: A lot of fields are optional in this schema that are not optional in platform. When not set via terraform
-// // commercetools simply sets the default values for these fields. This works but can be a little confusing. It is worth
-// // considering whether to align the optional/required status of the fields in the provider with that of the API itself
+// TODO: A lot of fields are optional in this schema that are not optional in
+// platform. When not set via terraform commercetools simply sets the default
+// values for these fields. This works but can be a little confusing. It is
+// worth considering whether to align the optional/required status of the fields
+// in the provider with that of the API itself
 func (r resourceProjectSettingsType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
-
-		// Description: "The project endpoint provides a limited set of information about settings and configuration of " +
-		// 	"the project. Updating the settings is eventually consistent, it may take up to a minute before " +
-		// 	"a change becomes fully active.\n\n" +
-		// 	"See also the [Project Settings API Documentation](https://docs.commercetools.com/api/projects/project)",
-		// Create: resourceProjectCreate,
-		// Read:   resourceProjectRead,
-		// Update: resourceProjectUpdate,
-		// Delete: resourceProjectDelete,
-		// Exists: resourceProjectExists,
-		// Importer: &schema.ResourceImporter{
-		// 	State: schema.ImportStatePassthrough,
-		// },
-		// SchemaVersion: 1,
-		// StateUpgraders: []schema.StateUpgrader{
-		// 	{
-		// 		Type:    resourceProjectSettingsResourceV0().CoreConfigSchema().ImpliedType(),
-		// 		Upgrade: migrateResourceProjectSettingsStateV0toV1,
-		// 		Version: 0,
-		// 	},
-		// },
 		Attributes: map[string]tfsdk.Attribute{
 			"key": {
 				Description: "The unique key of the project",
@@ -78,7 +60,6 @@ func (r resourceProjectSettingsType) GetSchema(_ context.Context) (tfsdk.Schema,
 			},
 			"external_oauth": {
 				Description: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
-				Type:        types.ListType{ElemType: types.StringType},
 				Optional:    true,
 				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 					"url": {
@@ -94,7 +75,6 @@ func (r resourceProjectSettingsType) GetSchema(_ context.Context) (tfsdk.Schema,
 			},
 			"carts": {
 				Description: "[Carts Configuration](https://docs.commercetools.com/api/projects/project#carts-configuration)",
-				Type:        types.ListType{ElemType: types.StringType},
 				Optional:    true,
 				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 					"country_tax_rate_fallback_enabled": {
@@ -125,7 +105,6 @@ func (r resourceProjectSettingsType) GetSchema(_ context.Context) (tfsdk.Schema,
 					"tiers\n. Only a key defined inside the values array can be used to create a tier, or to set a value " +
 					"for the shippingRateInput on the cart. The keys are checked for uniqueness and the request is " +
 					"rejected if keys are not unique",
-				Type:     types.ListType{ElemType: types.StringType},
 				Optional: true,
 				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
 					"key": {
@@ -147,14 +126,17 @@ func (r resourceProjectSettingsType) GetSchema(_ context.Context) (tfsdk.Schema,
 }
 
 type ProjectSettings struct {
-	Key           types.String                 `tfsdk:"key"`
-	Name          types.String                 `tfsdk:"name"`
-	Version       types.Int64                  `tfsdk:"version"`
-	Currencies    []types.String               `tfsdk:"currencies"`
-	Countries     []types.String               `tfsdk:"countries"`
-	Languages     []types.String               `tfsdk:"languages"`
-	Message       ProjectSettingsMessage       `tfsdk:"messages"`
-	ExternalOAuth ProjectSettingsExternalOAuth `tfsdk:"external_oauth"`
+	Key                                 types.String                                         `tfsdk:"key"`
+	Name                                types.String                                         `tfsdk:"name"`
+	Version                             types.Int64                                          `tfsdk:"version"`
+	Currencies                          []types.String                                       `tfsdk:"currencies"`
+	Countries                           []types.String                                       `tfsdk:"countries"`
+	Languages                           []types.String                                       `tfsdk:"languages"`
+	Message                             ProjectSettingsMessage                               `tfsdk:"messages"`
+	ExternalOAuth                       ProjectSettingsExternalOAuth                         `tfsdk:"external_oauth"`
+	ShippingRateInputType               types.String                                         `tfsdk:"shipping_rate_input_type"`
+	ShippingRateCartClassificationValue []ProjectSettingsShippingRateCartClassificationValue `tfsdk:"shipping_rate_cart_classification_value"`
+	Cart                                ProjectSettingsCart                                  `tfsdk:"carts"`
 }
 
 type ProjectSettingsMessage struct {
@@ -164,6 +146,16 @@ type ProjectSettingsMessage struct {
 type ProjectSettingsExternalOAuth struct {
 	URL                 types.String `tfsdk:"url"`
 	AuthorizationHeader types.String `tfsdk:"authorization_header"`
+}
+
+type ProjectSettingsShippingRateCartClassificationValue struct {
+	Key   types.String `tfsdk:"key"`
+	Label types.Map    `tfsdk:"label"`
+}
+
+type ProjectSettingsCart struct {
+	CountryTaxRateFallbackEnabled   types.Bool  `tfsdk:"country_tax_rate_fallback_enabled"`
+	DeleteDaysAfterLastModification types.Int64 `tfsdk:"delete_days_after_last_modification"`
 }
 
 // New resource instance
@@ -176,21 +168,6 @@ func (r resourceProjectSettingsType) NewResource(_ context.Context, p tfsdk.Prov
 type resourceProjectSettings struct {
 	p provider
 }
-
-// func resourceProjectExists(d *schema.ResourceData, m interface{}) (bool, error) {
-// 	client := getClient(m)
-
-// 	_, err := client.Get().Execute(context.Background())
-// 	if err != nil {
-// 		if ctErr, ok := err.(platform.ErrorResponse); ok {
-// 			if ctErr.StatusCode == 404 {
-// 				return false, nil
-// 			}
-// 		}
-// 		return false, err
-// 	}
-// 	return true, nil
-// }
 
 func (r resourceProjectSettings) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	if !r.p.configured {
@@ -210,7 +187,6 @@ func (r resourceProjectSettings) Create(ctx context.Context, req tfsdk.CreateRes
 	}
 
 	project, err := r.p.client.Get().Execute(context.Background())
-
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
@@ -222,11 +198,19 @@ func (r resourceProjectSettings) Create(ctx context.Context, req tfsdk.CreateRes
 		return
 	}
 
-	err = r.projectUpdate(&plan, project)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	return resourceProjectRead(d, m)
+	r.projectUpdate(&plan, project)
+
+	// Set state
+	state, err := marshallProjectSettings(project)
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to marshall project settings", err.Error())
+		return
+	}
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r resourceProjectSettings) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
@@ -249,27 +233,12 @@ func (r resourceProjectSettings) Read(ctx context.Context, req tfsdk.ReadResourc
 		resp.Diagnostics.AddError("Unable to retrieve project settings", err.Error())
 	}
 
-	log.Print("[DEBUG] Found the following project:")
-	log.Print(stringFormatObject(project))
-
-	state = ProjectSettings{
-		Key:        types.String{Value: project.Key},
-		Version:    types.Int64{Value: int64(project.Version)},
-		Name:       types.String{Value: project.Name},
-		Countries:  transformStringSlice(project.Countries),
-		Currencies: transformStringSlice(project.Currencies),
-		Languages:  transformStringSlice(project.Languages),
-		ExternalOAuth: ProjectSettingsExternalOAuth{
-			URL:                 types.String{Value: project.ExternalOAuth.Url},
-			AuthorizationHeader: types.String{Value: project.ExternalOAuth.AuthorizationHeader},
-		},
-		Message: ProjectSettingsMessage{
-			Enabled: types.Bool{Value: project.Messages.Enabled},
-		},
+	if ref, err := marshallProjectSettings(project); err != nil {
+		// TODO
+		panic("Error")
+	} else {
+		state = *ref
 	}
-
-	// d.Set("shipping_rate_input_type", marshallProjectShippingRateInputType(project.ShippingRateInputType))
-	// d.Set("carts", marshallProjectCarts(project.Carts))
 
 	// Set state
 	diags = resp.State.Set(ctx, &state)
@@ -326,10 +295,10 @@ func (r resourceProjectSettings) ImportState(ctx context.Context, req tfsdk.Impo
 }
 
 func (r resourceProjectSettings) projectUpdate(plan *ProjectSettings, obj *platform.Project) error {
-	// input := platform.ProjectUpdate{
-	// 	Version: obj.Version,
-	// 	Actions: []platform.ProjectUpdateAction{},
-	// }
+	input := platform.ProjectUpdate{
+		Version: obj.Version,
+		Actions: []platform.ProjectUpdateAction{},
+	}
 
 	// if d.HasChange("name") {
 	// 	input.Actions = append(input.Actions, &platform.ProjectChangeNameAction{Name: d.Get("name").(string)})
@@ -454,167 +423,60 @@ func (r resourceProjectSettings) projectUpdate(plan *ProjectSettings, obj *platf
 // 	return currencyObjects
 // }
 
-// func getShippingRateInputType(d *schema.ResourceData) (platform.ShippingRateInputType, error) {
-// 	switch d.Get("shipping_rate_input_type").(string) {
-// 	case "CartValue":
-// 		return platform.CartValueType{}, nil
-// 	case "CartScore":
-// 		return platform.CartScoreType{}, nil
-// 	case "CartClassification":
-// 		values, err := getCartClassificationValues(d)
-// 		if err != nil {
-// 			return "", fmt.Errorf("invalid cart classification value: %v, %w", values, err)
-// 		}
-// 		return platform.CartClassificationType{Values: values}, nil
-// 	default:
-// 		return "", fmt.Errorf("shipping rate input type %s not implemented", d.Get("shipping_rate_input_type").(string))
-// 	}
-// }
+func marshallProjectSettings(project *platform.Project) (*ProjectSettings, error) {
+	return &ProjectSettings{
+		Key:        types.String{Value: project.Key},
+		Version:    types.Int64{Value: int64(project.Version)},
+		Name:       types.String{Value: project.Name},
+		Countries:  marshallStringSlice(project.Countries),
+		Currencies: marshallStringSlice(project.Currencies),
+		Languages:  marshallStringSlice(project.Languages),
+		Cart: ProjectSettingsCart{
+			DeleteDaysAfterLastModification: types.Int64{Value: int64(*project.Carts.DeleteDaysAfterLastModification)},
+			CountryTaxRateFallbackEnabled:   types.Bool{Value: *project.Carts.CountryTaxRateFallbackEnabled},
+		},
+		ExternalOAuth: ProjectSettingsExternalOAuth{
+			URL:                 types.String{Value: project.ExternalOAuth.Url},
+			AuthorizationHeader: types.String{Value: project.ExternalOAuth.AuthorizationHeader},
+		},
+		Message: ProjectSettingsMessage{
+			Enabled: types.Bool{Value: project.Messages.Enabled},
+		},
+		ShippingRateInputType:               marshallProjectShippingRateInputType(project.ShippingRateInputType),
+		ShippingRateCartClassificationValue: marshallProjectShippingRateCartClassificationValue(project.ShippingRateInputType),
+	}, nil
 
-// func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomFieldLocalizedEnumValue, error) {
-// 	var values []platform.CustomFieldLocalizedEnumValue
-// 	data := d.Get("shipping_rate_cart_classification_value").([]interface{})
-// 	for _, item := range data {
-// 		itemMap := item.(map[string]interface{})
-// 		label := platform.LocalizedString(expandStringMap(itemMap["label"].(map[string]interface{})))
-// 		values = append(values, platform.CustomFieldLocalizedEnumValue{
-// 			Label: label,
-// 			Key:   itemMap["key"].(string),
-// 		})
-// 	}
-// 	return values, nil
-// }
+}
 
-// func marshallProjectCarts(val platform.CartsConfiguration) []map[string]interface{} {
-// 	return []map[string]interface{}{
-// 		{
-// 			"country_tax_rate_fallback_enabled":   val.CountryTaxRateFallbackEnabled,
-// 			"delete_days_after_last_modification": val.DeleteDaysAfterLastModification,
-// 		},
-// 	}
-// }
+func unmarshallProjectSettings() {
+}
 
-// func marshallProjectExternalOAuth(val *platform.ExternalOAuth) []map[string]interface{} {
-// 	if val == nil {
-// 		return []map[string]interface{}{}
-// 	}
-// 	return []map[string]interface{}{
-// 		{
-// 			"url":                  val.Url,
-// 			"authorization_header": val.AuthorizationHeader,
-// 		},
-// 	}
-// }
+func marshallProjectShippingRateCartClassificationValue(val platform.ShippingRateInputType) []ProjectSettingsShippingRateCartClassificationValue {
+	switch v := val.(type) {
+	case platform.CartClassificationType:
+		result := make([]ProjectSettingsShippingRateCartClassificationValue, len(v.Values))
+		for idx := range v.Values {
+			result[idx] = ProjectSettingsShippingRateCartClassificationValue{
+				Key:   types.String{Value: v.Values[idx].Key},
+				Label: marshallStringMap(v.Values[idx].Label),
+			}
+		}
+		return result
+	}
+	return []ProjectSettingsShippingRateCartClassificationValue{}
+}
 
-// func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) string {
-// 	switch val.(type) {
-// 	case platform.CartScoreType:
-// 		return "CartScore"
-// 	case platform.CartValueType:
-// 		return "CartValue"
-// 	case platform.CartClassificationType:
-// 		return "CartClassification"
-// 	}
-// 	return ""
-// }
-
-// func marshallProjectMessages(val platform.MessageConfiguration) []map[string]interface{} {
-// 	return []map[string]interface{}{
-// 		{
-// 			"enabled": val.Enabled,
-// 		},
-// 	}
-// }
-
-// func resourceProjectSettingsResourceV0() *schema.Resource {
-// 	return &schema.Resource{
-// 		Schema: map[string]*schema.Schema{
-// 			"key": {
-// 				Description: "The unique key of the project",
-// 				Type:        types.StringType,
-// 				Computed:    true,
-// 			},
-// 			"name": {
-// 				Description: "The name of the project",
-// 				Type:        types.StringType,
-// 				Optional:    true,
-// 			},
-// 			"currencies": {
-// 				Description: "A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
-// 				Type:        types.ListType{ElemType: types.StringType},
-// 				Optional:    true,
-// 				Elem:        &schema.Schema{Type: types.StringType},
-// 			},
-// 			"countries": {
-// 				Description: "A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
-// 				Type:        types.ListType{ElemType: types.StringType},
-// 				Optional:    true,
-// 				Elem:        &schema.Schema{Type: types.StringType},
-// 			},
-// 			"languages": {
-// 				Description: "[IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)",
-// 				Type:        types.ListType{ElemType: types.StringType},
-// 				Optional:    true,
-// 				Elem:        &schema.Schema{Type: types.StringType},
-// 			},
-// 			"messages": {
-// 				Description: "[Messages Configuration](https://docs.commercetools.com/api/projects/project#messages-configuration)",
-// 				Type:        schema.TypeMap,
-// 				Optional:    true,
-// 				Elem: &schema.Schema{
-// 					Type: types.BoolType,
-// 				},
-// 			},
-// 			"external_oauth": {
-// 				Description: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
-// 				Type:        schema.TypeMap,
-// 				Optional:    true,
-// 				Elem: &schema.Schema{
-// 					Type: types.StringType,
-// 				},
-// 			},
-// 			"carts": {
-// 				Description: "[Carts Configuration](https://docs.commercetools.com/api/projects/project#carts-configuration)",
-// 				Type:        schema.TypeMap,
-// 				Optional:    true,
-// 				Elem: &schema.Schema{
-// 					Type: types.StringType,
-// 				},
-// 			},
-// 			"shipping_rate_input_type": {
-// 				Description: "Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses " +
-// 					"the sum of all line item prices, whereas CartClassification and CartScore use the " +
-// 					"shippingRateInput field on the cart to select a tier",
-// 				Type:     types.StringType,
-// 				Optional: true,
-// 			},
-// 			"shipping_rate_cart_classification_value": {
-// 				Description: "If shipping_rate_input_type is set to CartClassification these values are used to create " +
-// 					"tiers\n. Only a key defined inside the values array can be used to create a tier, or to set a value " +
-// 					"for the shippingRateInput on the cart. The keys are checked for uniqueness and the request is " +
-// 					"rejected if keys are not unique",
-// 				Type:     types.ListType{ElemType: types.StringType},
-// 				Optional: true,
-// 				Elem: &schema.Resource{
-// 					Schema: map[string]*schema.Schema{
-// 						"key": {
-// 							Type:     types.StringType,
-// 							Required: true,
-// 						},
-// 						"label": {
-// 							Type:     TypeLocalizedString,
-// 							Optional: true,
-// 						},
-// 					},
-// 				},
-// 			},
-// 			"version": {
-// 				Type:     types.Int64Type,
-// 				Computed: true,
-// 			},
-// 		},
-// 	}
-// }
+func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) types.String {
+	switch val.(type) {
+	case platform.CartScoreType:
+		return types.String{Value: "CartScore"}
+	case platform.CartValueType:
+		return types.String{Value: "CartValue"}
+	case platform.CartClassificationType:
+		return types.String{Value: "CartClassification"}
+	}
+	return types.String{Null: true}
+}
 
 // func migrateResourceProjectSettingsStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 // 	transformToList(rawState, "messages")
@@ -635,4 +497,27 @@ func marshallProjectCarts(val platform.CartsConfiguration) []map[string]interfac
 		},
 	}
 	return result
+}
+
+func unmarshallProjectShippingRateInputType(p *ProjectSettings) (platform.ShippingRateInputType, error) {
+
+	switch p.ShippingRateInputType.Value {
+
+	case "CartValue":
+		return platform.CartValueType{}, nil
+	case "CartScore":
+		return platform.CartScoreType{}, nil
+	case "CartClassification":
+		var values []platform.CustomFieldLocalizedEnumValue
+		for _, item := range p.ShippingRateCartClassificationValue {
+			label := platform.LocalizedString(unmarshallStringMap(item.Label))
+			values = append(values, platform.CustomFieldLocalizedEnumValue{
+				Label: label,
+				Key:   item.Key.Value,
+			})
+		}
+		return platform.CartClassificationType{Values: values}, nil
+	default:
+		return "", fmt.Errorf("shipping rate input type %s not implemented", p.ShippingRateInputType.Value)
+	}
 }
