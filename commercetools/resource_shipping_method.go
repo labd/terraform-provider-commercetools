@@ -83,8 +83,8 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 	localizedName := platform.LocalizedString(
 		expandStringMap(d.Get("localized_name").(map[string]interface{})))
 
-	draft := &platform.ShippingMethodDraft{
-		Key:                  d.Get("key").(string),
+	draft := platform.ShippingMethodDraft{
+		Key:                  stringRef(d.Get("key")),
 		Name:                 d.Get("name").(string),
 		Description:          stringRef(d.Get("description")),
 		LocalizedDescription: &localizedDescription,
@@ -179,11 +179,11 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("localized_name") {
-		newLocalizedName := commercetools.LocalizedString(
+		newLocalizedName := platform.LocalizedString(
 			expandStringMap(d.Get("localized_name").(map[string]interface{})))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ShippingMethodSetLocalizedNameAction{LocalizedName: &newLocalizedName})
+			&platform.ShippingMethodSetLocalizedNameAction{LocalizedName: &newLocalizedName})
 	}
 
 	if d.HasChange("key") {
