@@ -28,6 +28,8 @@ See also [ZoneRate API Documentation](https://docs.commercetools.com/api/project
 
 - **free_above** (Block List, Max: 1) The shipping is free if the sum of the (custom) line item prices reaches the freeAbove value (see [below for nested schema](#nestedblock--free_above))
 - **id** (String) The ID of this resource.
+- **shipping_rate_price_tier** (Block List) A price tier is selected instead of the default price when a certain threshold or specific cart value is reached. If no tiered price is suitable for the cart, the base price of the shipping rate is used
+. See also [Shipping Rate Price Tier API Docs](https://docs.commercetools.com/api/projects/shippingMethods#shippingratepricetier) (see [below for nested schema](#nestedblock--shipping_rate_price_tier))
 
 <a id="nestedblock--price"></a>
 ### Nested Schema for `price`
@@ -47,16 +49,26 @@ Required:
 - **currency_code** (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
 
 
-
 <a id="nestedblock--shipping_rate_price_tier"></a>
 ### Nested Schema for `shipping_rate_price_tier`
 
 Required:
 
-- **type** (String) CartValue
-- **minimum_cent_amount** (Number) The amout of cents which triggers this tier
-- **price**
-  - **cent_amount** (Number) The amount in cents (the smallest indivisible unit of the currency)
-  - **currency_code** (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
+- **price** (Block List, Min: 1, Max: 1) The price of the score, value or minimum_cent_amount tier (see [below for nested schema](#nestedblock--shipping_rate_price_tier--price))
+- **type** (String) CartValue, CartScore or CartClassification
+
+Optional:
+
+- **minimum_cent_amount** (Number) If type is CartValue this represents the cent amount of the tier
+- **score** (Number) If type is CartScore. Sets a fixed price for this score value
+- **value** (String) If type is CartClassification, must be a valid key of the CartClassification
+
+<a id="nestedblock--shipping_rate_price_tier--price"></a>
+### Nested Schema for `shipping_rate_price_tier.price`
+
+Required:
+
+- **cent_amount** (Number)
+- **currency_code** (String)
 
 

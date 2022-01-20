@@ -17,9 +17,9 @@ See also the [Shipping Methods API Documentation](https://docs.commercetools.com
 
 ```terraform
 resource "commercetools_shipping_method" "standard" {
-  name = "Standard tax category"
-  key = "Standard tax category"
-  description = "Standard tax category"
+  name = "Standard shipping method"
+  key = "Standard"
+  description = "Standard shipping method"
   is_default = true
   tax_category_id = "<some tax category id>"
   predicate = "1 = 1"
@@ -39,6 +39,8 @@ resource "commercetools_shipping_method" "standard" {
 - **id** (String) The ID of this resource.
 - **is_default** (Boolean) One shipping method in a project can be default
 - **key** (String) User-specific unique identifier for the shipping method
+- **localized_description** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- **localized_name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - **predicate** (String) A Cart predicate which can be used to more precisely select a shipping method for a cart
 - **tax_category_id** (String) ID of a [Tax Category](https://docs.commercetools.com/api/projects/taxCategories#taxcategory)
 

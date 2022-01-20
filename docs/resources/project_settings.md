@@ -28,10 +28,24 @@ See also the [Project Settings API Documentation](https://docs.commercetools.com
 - **languages** (List of String) [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)
 - **messages** (Map of String) [Messages Configuration](https://docs.commercetools.com/api/projects/project#messages-configuration)
 - **name** (String) The name of the project
+- **shipping_rate_cart_classification_value** (Block List) If shipping_rate_input_type is set to CartClassification these values are used to create tiers
+. Only a key defined inside the values array can be used to create a tier, or to set a value for the shippingRateInput on the cart. The keys are checked for uniqueness and the request is rejected if keys are not unique (see [below for nested schema](#nestedblock--shipping_rate_cart_classification_value))
+- **shipping_rate_input_type** (String) Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses the sum of all line item prices, whereas CartClassification and CartScore use the shippingRateInput field on the cart to select a tier
 
 ### Read-Only
 
 - **key** (String) The unique key of the project
 - **version** (Number)
+
+<a id="nestedblock--shipping_rate_cart_classification_value"></a>
+### Nested Schema for `shipping_rate_cart_classification_value`
+
+Required:
+
+- **key** (String)
+
+Optional:
+
+- **label** (Map of String)
 
 
