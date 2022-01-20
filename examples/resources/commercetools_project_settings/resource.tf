@@ -13,4 +13,13 @@ resource "commercetools_project_settings" "project" {
   carts = {
     country_tax_rate_fallback_enabled = true
   }
+  shipping_rate_input_type = "CartClassification"
+
+  shipping_rate_cart_classification_values {
+    key = "Small"
+    label = {
+      "en" = "Small"
+      "nl" = "Klein"
+    }
+  }
 }

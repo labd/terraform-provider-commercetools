@@ -4,10 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 	"testing"
-
-	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -37,6 +34,11 @@ func TestValidateDestination(t *testing.T) {
 			"project_id": "<project_id>",
 			"topic":      "<topic>",
 		},
+		{
+			"type":       "event_bridge",
+			"region":     "<region>",
+			"account_id": "<account_id>",
+		},
 	}
 	for _, validDestination := range validDestinations {
 		_, errs := validateDestination(validDestination, "destination")
@@ -60,6 +62,10 @@ func TestValidateDestination(t *testing.T) {
 		{
 			"type":  "google_pubsub",
 			"topic": "<topic>",
+		},
+		{
+			"type":  "event_bridge",
+			"topic": "<region>",
 		},
 	}
 	for _, validDestination := range invalidDestinations {
@@ -117,22 +123,21 @@ resource "commercetools_subscription" "subscription_%[1]s" {
 }
 
 func testAccCheckSubscriptionDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	conn := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_subscription" {
 			continue
 		}
-		response, err := conn.SubscriptionGetWithID(context.Background(), rs.Primary.ID)
+		response, err := conn.Subscriptions().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("subscription (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

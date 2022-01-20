@@ -60,6 +60,12 @@ differentiated by the type field.
 * `access_key` - The aws access key.
 * `access_secret` - The aws access secret.
 
+#### AWS EventBridge Destination
+
+* `type` - `"EventBridge"`
+* `region` - The aws region.
+* `account_id` - ID of the AWS account that will receive events from commercetools.
+
 #### Azure Service Bus Destination
 
 * `type` - `"azure_servicebus"`

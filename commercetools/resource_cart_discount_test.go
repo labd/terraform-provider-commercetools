@@ -3,10 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
-
-	"github.com/labd/commercetools-go-sdk/commercetools"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
@@ -213,7 +210,7 @@ func testAccCartDiscountUpdate() string {
 			type      = "lineItems"
 			predicate = "1=1"
 		}
-		
+
 		value {
 			type      = "relative"
 			permyriad = 1000
@@ -232,7 +229,7 @@ func testAccCartDiscountRemoveProperties() string {
 		  en = "standard name"
 		}
 		sort_order             = "0.8"
-		predicate              = "1=1"	
+		predicate              = "1=1"
 		requires_discount_code = true
 		target = {
 			type      = "lineItems"
@@ -247,22 +244,21 @@ func testAccCartDiscountRemoveProperties() string {
 }
 
 func testAccCheckCartDiscountDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_cart_discount" {
 			continue
 		}
-		response, err := conn.CartDiscountGetWithID(context.Background(), rs.Primary.ID)
+		response, err := client.CartDiscounts().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("cart discount (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

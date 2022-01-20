@@ -1,3 +1,8 @@
+unreleased
+==========
+- add support for AWS EventBridge subscription
+
+
 v0.30.1 (2022-01-13)
 ====================
 - Resource shipping_zone: Add `localized_name` attribute
