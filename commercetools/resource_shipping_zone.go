@@ -35,7 +35,7 @@ func resourceShippingZone() *schema.Resource {
 				Optional:    true,
 			},
 			"location": {
-				Description: "[Location](https://docs.commercetoolstools.pi/projects/zones#location)",
+				Description: "[Location](https://docs.commercetools.com/api/projects/zones#location)",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Elem: &schema.Resource{
