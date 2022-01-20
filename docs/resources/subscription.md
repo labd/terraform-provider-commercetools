@@ -71,3 +71,48 @@ Optional:
 - **types** (List of String) types must contain valid message types for this resource, for example for resource type product the message type ProductPublished is valid. If no types of messages are given, the subscription is valid for all messages of this resource
 
 
+### Nested Schema for `destination`
+
+A destination contains all info necessary for the commercetools platform to
+deliver a message onto your Message Queue. Message Queues can be
+differentiated by the type field.
+
+#### AWS SQS Destination
+
+* `type` - `"SQS"`
+* `queue_url` - The url of the queue.
+* `access_key` - The aws access key.
+* `access_secret` - The aws access secret.
+* `region` - The aws region.
+
+#### AWS SNS Destination
+
+* `type` - `"SNS"`
+* `topic_arn` - The arn of the topic.
+* `access_key` - The aws access key.
+* `access_secret` - The aws access secret.
+
+#### AWS EventBridge Destination
+
+* `type` - `"EventBridge"`
+* `region` - The aws region.
+* `account_id` - ID of the AWS account that will receive events from commercetools.
+
+#### Azure Service Bus Destination
+
+* `type` - `"azure_servicebus"`
+* `connection_string` - The SharedAccessKey for the service bus destination.
+
+#### Azure Event Grid Destination
+
+* `type` - `"azure_eventgrid"`
+* `uri` - The URI of the topic.
+* `access_key` - The access key for the destination.
+
+#### Google Cloud Pub/Sub Destination
+
+* `type` - `"google_pubsub"`
+* `project_id` - The id of the project that contains the Pub/Sub topic.
+* `topic` - The name of the Pub/Sub topic.
+
+
