@@ -1,5 +1,5 @@
-unreleased
-==========
+v0.31.0 (2022-01-26)
+====================
 - add support for AWS EventBridge subscription
 
 
