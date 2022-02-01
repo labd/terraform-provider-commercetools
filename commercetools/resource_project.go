@@ -397,12 +397,17 @@ func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomField
 }
 
 func marshallProjectCarts(val platform.CartsConfiguration) []map[string]interface{} {
-	return []map[string]interface{}{
+	if *val.CountryTaxRateFallbackEnabled == false && val.DeleteDaysAfterLastModification == nil {
+		return []map[string]interface{}{}
+	}
+
+	result := []map[string]interface{}{
 		{
 			"country_tax_rate_fallback_enabled":   val.CountryTaxRateFallbackEnabled,
 			"delete_days_after_last_modification": val.DeleteDaysAfterLastModification,
 		},
 	}
+	return result
 }
 
 func marshallProjectExternalOAuth(val *platform.ExternalOAuth) []map[string]interface{} {

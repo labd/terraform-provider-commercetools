@@ -143,11 +143,11 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.0.label.nl", "Klein",
 					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled", "false",
+					resource.TestCheckNoResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled",
 					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification", "0",
+					resource.TestCheckNoResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification",
 					),
 				),
 			},
@@ -171,16 +171,16 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						"commercetools_project_settings.acctest_project_settings", "messages.0.enabled", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.url", "https://example.com/oauth/token",
+						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.url", "https://example.com/oauth/token",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.authorization_header", "Bearer secret",
+						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.authorization_header", "Bearer secret",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "shipping_rate_input_type", "CartValue",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.country_tax_rate_fallback_enabled", "true",
+						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled", "true",
 					),
 				),
 			},
