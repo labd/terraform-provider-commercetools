@@ -44,13 +44,16 @@ func TestAccShippingZoneRate_createAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "price.0.currency_code", "USD"),
 					resource.TestCheckResourceAttr(resourceName, "free_above.0.cent_amount", "12345"),
 					resource.TestCheckResourceAttr(resourceName, "free_above.0.currency_code", "USD"),
-					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.#", "3"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.0.type", "CartScore"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.0.score", "10"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.0.price.0.cent_amount", "5000"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.1.type", "CartScore"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.1.score", "20"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.1.price.0.cent_amount", "2000"),
+					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.2.type", "CartScore"),
+					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.2.score", "30"),
+					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.2.price_function.0.function", "x + 1"),
 				),
 			},
 		},
@@ -177,6 +180,15 @@ func testAccShippingZoneRateUpdate(taxCategoryName string, shippingMethodName st
 				price {
 					cent_amount      = 2000
 					currency_code    = "{{ .currencyCode }}"
+				}
+			}
+			shipping_rate_price_tier {
+				type  = "CartScore"
+				score = 30
+
+				price_function {
+					function      = "x + 1"
+					currency_code = "{{ .currencyCode }}"
 				}
 			}
 		}`,
