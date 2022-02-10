@@ -116,8 +116,7 @@ func resourceShippingZoneRate() *schema.Resource {
 						"price": {
 							Description: "The price of the score, value or minimum_cent_amount tier",
 							Type:        schema.TypeList,
-							Required:    true,
-							MinItems:    1,
+							Optional:    true,
 							MaxItems:    1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -129,6 +128,26 @@ func resourceShippingZoneRate() *schema.Resource {
 									},
 									"cent_amount": {
 										Type:     schema.TypeInt,
+										Required: true,
+									},
+								},
+							},
+						},
+						"price_function": {
+							Description: "If type is CartScore. Allows to calculate a price dynamically for the score.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"currency_code": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ForceNew:     true,
+										ValidateFunc: ValidateCurrencyCode,
+									},
+									"function": {
+										Type:     schema.TypeString,
 										Required: true,
 									},
 								},
@@ -246,10 +265,14 @@ func expandShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRa
 	for _, priceTier := range values.([]any) {
 		tierMap := priceTier.(map[string]any)
 
-		priceMap := tierMap["price"].([]any)[0].(map[string]any)
-		price := platform.Money{
-			CurrencyCode: priceMap["currency_code"].(string),
-			CentAmount:   priceMap["cent_amount"].(int),
+		var price *platform.Money
+		priceList := tierMap["price"].([]any)
+		if len(priceList) > 0 {
+			priceMap := priceList[0].(map[string]interface{})
+			price = &platform.Money{
+				CurrencyCode: priceMap["currency_code"].(string),
+				CentAmount:   priceMap["cent_amount"].(int),
+			}
 		}
 
 		tierType := tierMap["type"].(string)
@@ -257,17 +280,28 @@ func expandShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRa
 		case string(platform.ShippingRateTierTypeCartValue):
 			tiers = append(tiers, platform.CartValueTier{
 				MinimumCentAmount: tierMap["minimum_cent_amount"].(int),
-				Price:             price,
+				Price:             *price,
 			})
 		case string(platform.ShippingRateTierTypeCartClassification):
 			tiers = append(tiers, platform.CartClassificationTier{
 				Value: tierMap["value"].(string),
-				Price: price,
+				Price: *price,
 			})
 		case string(platform.ShippingRateTierTypeCartScore):
+			var function *platform.PriceFunction
+			functionList := tierMap["price_function"].([]interface{})
+			if len(functionList) > 0 {
+				functionMap := functionList[0].(map[string]interface{})
+				function = &platform.PriceFunction{
+					CurrencyCode: functionMap["currency_code"].(string),
+					Function:     functionMap["function"].(string),
+				}
+			}
+
 			tiers = append(tiers, platform.CartScoreTier{
-				Score: tierMap["score"].(float64),
-				Price: &price,
+				Score:         tierMap["score"].(float64),
+				Price:         price,
+				PriceFunction: function,
 			})
 			// Do we want to fail on 1 wrong tier?
 		default:
