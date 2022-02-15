@@ -676,7 +676,7 @@ func handleLocalizedEnumTypeChanges(newFieldType platform.AttributeType, oldFiel
 						Value:         enumType.Values[i],
 					})
 			} else {
-				labelChanged := !localizedStringCompare(*enumValue.Label, oldEnumValues[idx]["label"].(map[string]interface{}))
+				labelChanged := !localizedStringCompare(enumValue.Label, oldEnumValues[idx]["label"].(map[string]interface{}))
 				if labelChanged {
 					actions = append(
 						actions,
