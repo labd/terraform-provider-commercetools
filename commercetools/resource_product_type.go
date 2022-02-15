@@ -25,7 +25,7 @@ func resourceProductType() *schema.Resource {
 		Description: "Product types are used to describe common characteristics, most importantly common custom " +
 			"attributes, of many concrete products. Please note: to customize other resources than products, " +
 			"please refer to resource_type.\n\n" +
-			"See also the [Product Type API Documentation](https://docs.commercetools.com/api/projects/productTypes)",
+			"See also the [Product Type API Documentation](https://docs.platform.com/api/projects/productTypes)",
 		Create: resourceProductTypeCreate,
 		Read:   resourceProductTypeRead,
 		Update: resourceProductTypeUpdate,
@@ -48,13 +48,13 @@ func resourceProductType() *schema.Resource {
 				Optional:    true,
 			},
 			"attribute": {
-				Description: "[Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition)",
+				Description: "[Product attribute fefinition](https://docs.platform.com/api/projects/productTypes#attributedefinition)",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Description: "[AttributeType](https://docs.commercetools.com/api/projects/productTypes#attributetype)",
+							Description: "[AttributeType](https://docs.platform.com/api/projects/productTypes#attributetype)",
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Required:    true,
@@ -85,7 +85,7 @@ func resourceProductType() *schema.Resource {
 						"constraint": {
 							Description: "Describes how an attribute or a set of attributes should be validated " +
 								"across all variants of a product. " +
-								"See also [Attribute Constraint](https://docs.commercetools.com/api/projects/productTypes#attributeconstraint-enum)",
+								"See also [Attribute Constraint](https://docs.platform.com/api/projects/productTypes#attributeconstraint-enum)",
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  platform.AttributeConstraintEnumNone,

@@ -3,6 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -107,6 +108,11 @@ func TestGetAttributeType(t *testing.T) {
 }
 
 func TestAccProductTypes_basic(t *testing.T) {
+
+	if os.Getenv("CTP_CLIENT_ID") == "unittest" {
+		t.Skip("Skipping testing with mock server as the implementation can not handle order of localized enums")
+	}
+
 	name := "acctest_producttype"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -214,6 +220,17 @@ func TestAccProductTypes_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.2.type.0.element_type.0.localized_value.1.label.de", "Mittagessen",
 					),
+
+					func(s *terraform.State) error {
+						if os.Getenv("CTP_CLIENT_ID") == "unittest" {
+							t.Log("Skipping check of order as the mock server does not support this correctly")
+							return nil
+						}
+
+						return resource.TestCheckResourceAttr(
+							"commercetools_product_type.acctest_product_type", "attribute.3.type.0.localized_value.0.key", "ml",
+						)(s)
+					},
 					resource.TestCheckResourceAttr(
 						"commercetools_product_type.acctest_product_type", "attribute.3.type.0.localized_value.0.key", "ml",
 					),
