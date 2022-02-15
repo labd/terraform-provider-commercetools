@@ -107,8 +107,8 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	if d.HasChange("custom") {
 		typeId, fields := getCustomFieldsData(d)
 
-		draft.Custom = &commercetools.CustomFieldsDraft{
-			Type:   typeId,
+		draft.Custom = &platform.CustomFieldsDraft{
+			Type:   *typeId,
 			Fields: fields,
 		}
 	}
@@ -137,14 +137,14 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceChannelRead(d, m)
 }
 
-func getCustomFieldsData(d *schema.ResourceData) (*commercetools.TypeResourceIdentifier, *commercetools.FieldContainer) {
+func getCustomFieldsData(d *schema.ResourceData) (*platform.TypeResourceIdentifier, *platform.FieldContainer) {
 	custom := d.Get("custom").([]interface{})[0].(map[string]interface{})
 
-	typeId := &commercetools.TypeResourceIdentifier{
-		Key: custom["type_key"].(string),
+	typeId := &platform.TypeResourceIdentifier{
+		Key: custom["type_key"].(*string),
 	}
 
-	fields := &commercetools.FieldContainer{}
+	fields := &platform.FieldContainer{}
 
 	for _, fieldDef := range custom["field"].([]interface{}) {
 		key := fieldDef.(map[string]interface{})["name"].(string)
@@ -300,7 +300,7 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ChannelSetCustomTypeAction{Type: typeId, Fields: fields})
+			&platform.ChannelSetCustomTypeAction{Type: typeId, Fields: fields})
 	}
 
 	_, err := client.Channels().WithId(d.Id()).Post(input).Execute(context.Background())

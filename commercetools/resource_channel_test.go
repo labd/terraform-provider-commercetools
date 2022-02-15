@@ -7,10 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func skipMockServer(t *testing.T) {
@@ -315,14 +314,14 @@ resource "commercetools_channel" "standard" {
 }
 
 func testAccCheckChannelDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_channel" {
 			continue
 		}
 
-		response, err := conn.ChannelGetWithID(context.Background(), rs.Primary.ID)
+		response, err := client.Channels().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("channel (%s) still exists", rs.Primary.ID)

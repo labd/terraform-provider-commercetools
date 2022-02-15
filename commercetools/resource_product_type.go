@@ -25,7 +25,7 @@ func resourceProductType() *schema.Resource {
 		Description: "Product types are used to describe common characteristics, most importantly common custom " +
 			"attributes, of many concrete products. Please note: to customize other resources than products, " +
 			"please refer to resource_type.\n\n" +
-			"See also the [Product Type API Documentation](https://docs.commercetools.com/api/projects/productTypes)",
+			"See also the [Product Type API Documentation](https://docs.platform.com/api/projects/productTypes)",
 		Create: resourceProductTypeCreate,
 		Read:   resourceProductTypeRead,
 		Update: resourceProductTypeUpdate,
@@ -48,13 +48,13 @@ func resourceProductType() *schema.Resource {
 				Optional:    true,
 			},
 			"attribute": {
-				Description: "[Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition)",
+				Description: "[Product attribute fefinition](https://docs.platform.com/api/projects/productTypes#attributedefinition)",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Description: "[AttributeType](https://docs.commercetools.com/api/projects/productTypes#attributetype)",
+							Description: "[AttributeType](https://docs.platform.com/api/projects/productTypes#attributetype)",
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Required:    true,
@@ -85,7 +85,7 @@ func resourceProductType() *schema.Resource {
 						"constraint": {
 							Description: "Describes how an attribute or a set of attributes should be validated " +
 								"across all variants of a product. " +
-								"See also [Attribute Constraint](https://docs.commercetools.com/api/projects/productTypes#attributeconstraint-enum)",
+								"See also [Attribute Constraint](https://docs.platform.com/api/projects/productTypes#attributeconstraint-enum)",
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  platform.AttributeConstraintEnumNone,
@@ -563,7 +563,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 	return actions, nil
 }
 
-func removeEnumValues(oldEnumKeys []string, newEnumKeys []string, name string) *commercetools.ProductTypeRemoveEnumValuesAction {
+func removeEnumValues(oldEnumKeys []string, newEnumKeys []string, name string) *platform.ProductTypeRemoveEnumValuesAction {
 	var removeEnumKeys []string
 	for _, oldEnumKey := range oldEnumKeys {
 
@@ -582,7 +582,7 @@ func removeEnumValues(oldEnumKeys []string, newEnumKeys []string, name string) *
 	}
 
 	if len(removeEnumKeys) > 0 {
-		return &commercetools.ProductTypeRemoveEnumValuesAction{
+		return &platform.ProductTypeRemoveEnumValuesAction{
 			AttributeName: name,
 			Keys:          removeEnumKeys,
 		}
@@ -590,8 +590,8 @@ func removeEnumValues(oldEnumKeys []string, newEnumKeys []string, name string) *
 	return nil
 }
 
-func handlePlainEnumTypeChanges(newFieldType commercetools.AttributeType, oldFieldType map[string]interface{}, actions []commercetools.ProductTypeUpdateAction, name string) []commercetools.ProductTypeUpdateAction {
-	if enumType, ok := newFieldType.(commercetools.AttributeEnumType); ok {
+func handlePlainEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map[string]interface{}, actions []platform.ProductTypeUpdateAction, name string) []platform.ProductTypeUpdateAction {
+	if enumType, ok := newFieldType.(platform.AttributeEnumType); ok {
 		oldEnumV := oldFieldType["values"].(map[string]interface{})
 		oldEnumKeys := make([]string, 0)
 		newEnumKeys := make([]string, 0)
@@ -631,7 +631,7 @@ func handlePlainEnumTypeChanges(newFieldType commercetools.AttributeType, oldFie
 		if len(oldEnumKeys) == len(newEnumKeys) && orderChanged(newEnumKeys, oldEnumKeys) {
 			actions = append(
 				actions,
-				commercetools.ProductTypeChangePlainEnumValueOrderAction{Values: enumType.Values, AttributeName: name})
+				platform.ProductTypeChangePlainEnumValueOrderAction{Values: enumType.Values, AttributeName: name})
 		}
 
 		return actions
@@ -640,8 +640,8 @@ func handlePlainEnumTypeChanges(newFieldType commercetools.AttributeType, oldFie
 	return actions
 }
 
-func handleLocalizedEnumTypeChanges(newFieldType commercetools.AttributeType, oldFieldType map[string]interface{}, actions []commercetools.ProductTypeUpdateAction, name string) []commercetools.ProductTypeUpdateAction {
-	if enumType, ok := newFieldType.(commercetools.AttributeLocalizedEnumType); ok {
+func handleLocalizedEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map[string]interface{}, actions []platform.ProductTypeUpdateAction, name string) []platform.ProductTypeUpdateAction {
+	if enumType, ok := newFieldType.(platform.AttributeLocalizedEnumType); ok {
 		oldEnumV := oldFieldType["localized_value"].([]interface{})
 		oldEnumKeys := make([]string, 0)
 		oldEnumValues := make([]map[string]interface{}, 0)
@@ -676,7 +676,7 @@ func handleLocalizedEnumTypeChanges(newFieldType commercetools.AttributeType, ol
 						Value:         enumType.Values[i],
 					})
 			} else {
-				labelChanged := !localizedStringCompare(*enumValue.Label, oldEnumValues[idx]["label"].(map[string]interface{}))
+				labelChanged := !localizedStringCompare(enumValue.Label, oldEnumValues[idx]["label"].(map[string]interface{}))
 				if labelChanged {
 					actions = append(
 						actions,
@@ -703,7 +703,7 @@ func handleLocalizedEnumTypeChanges(newFieldType commercetools.AttributeType, ol
 		if len(oldEnumKeys) == len(newEnumKeys) && orderChanged(newEnumKeys, oldEnumKeys) {
 			actions = append(
 				actions,
-				commercetools.ProductTypeChangeLocalizedEnumValueOrderAction{Values: enumType.Values, AttributeName: name})
+				platform.ProductTypeChangeLocalizedEnumValueOrderAction{Values: enumType.Values, AttributeName: name})
 		}
 
 		return actions
