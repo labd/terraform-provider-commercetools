@@ -140,8 +140,10 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 func getCustomFieldsData(d *schema.ResourceData) (*platform.TypeResourceIdentifier, *platform.FieldContainer) {
 	custom := d.Get("custom").([]interface{})[0].(map[string]interface{})
 
+	typeKey := custom["type_key"].(string)
+
 	typeId := &platform.TypeResourceIdentifier{
-		Key: custom["type_key"].(*string),
+		Key: &typeKey,
 	}
 
 	fields := &platform.FieldContainer{}
@@ -171,7 +173,7 @@ func _encodeCustomFieldValue(value interface{}) string {
 
 func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
-	channel, err := client.Channels().WithId(d.Id()).Get().Execute(context.Background())
+	channel, err := client.Channels().WithId(d.Id()).Get().Expand([]string{"custom.type"}).Execute(context.Background())
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
