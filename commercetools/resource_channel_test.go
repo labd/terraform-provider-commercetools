@@ -3,8 +3,8 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"github.com/labd/commercetools-go-sdk/platform"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -328,8 +328,9 @@ func testAccCheckChannelDestroy(s *terraform.State) error {
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
+
+		// If we don't get 404 error we return the error, otherwise the ressource was destroyed
+		if requestError, ok := err.(platform.GenericRequestError); !ok || requestError.StatusCode != 404 {
 			return err
 		}
 	}
