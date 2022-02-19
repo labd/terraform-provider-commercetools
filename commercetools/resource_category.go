@@ -264,7 +264,7 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 			d.Set("meta_keywords", *category.MetaKeywords)
 		}
 		if category.Assets != nil {
-			d.Set("assets", category.Assets)
+			d.Set("assets", marshallCategoryAssets(category.Assets))
 		}
 	}
 	return nil
@@ -394,6 +394,29 @@ func resourceCategoryDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
+func marshallCategoryAssets(assets []platform.Asset) []map[string]interface{} {
+
+	result := make([]map[string]interface{}, len(assets))
+
+	for i := range assets {
+		asset := assets[i]
+
+		result[i] = make(map[string]interface{})
+		result[i]["name"] = asset.Name
+		result[i]["key"] = asset.Key
+		result[i]["sources"] = marshallCategoryAssetSources(asset.Sources)
+		result[i]["tags"] = asset.Tags
+
+		if asset.Description != nil {
+			result[i]["description"] = *asset.Description
+		} else {
+			result[i]["description"] = nil
+		}
+	}
+
+	return result
+}
+
 func unmarshallCategoryAssets(d *schema.ResourceData) []platform.AssetDraft {
 	input := d.Get("assets").([]interface{})
 	var result []platform.AssetDraft
@@ -404,6 +427,7 @@ func unmarshallCategoryAssets(d *schema.ResourceData) []platform.AssetDraft {
 		name := platform.LocalizedString(expandStringMap(i["name"].(map[string]interface{})))
 		description := platform.LocalizedString(expandStringMap(i["description"].(map[string]interface{})))
 		sources := unmarshallCategoryAssetSources(i)
+		tags := expandStringArray(i["tags"].([]interface{}))
 
 		key := i["key"].(string)
 		result = append(result, platform.AssetDraft{
@@ -411,9 +435,33 @@ func unmarshallCategoryAssets(d *schema.ResourceData) []platform.AssetDraft {
 			Name:        name,
 			Description: &description,
 			Sources:     sources,
+			Tags:        tags,
 		})
 	}
 
+	return result
+}
+
+func marshallCategoryAssetSources(sources []platform.AssetSource) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(sources))
+
+	for i := range sources {
+		source := sources[i]
+
+		result[i] = make(map[string]interface{})
+		result[i]["key"] = source.Key
+		result[i]["uri"] = source.Uri
+		result[i]["content_type"] = source.ContentType
+
+		if source.Dimensions != nil {
+			result[i]["dimensions"] = []map[string]interface{}{
+				{
+					"h": source.Dimensions.H,
+					"w": source.Dimensions.W,
+				},
+			}
+		}
+	}
 	return result
 }
 
@@ -431,8 +479,7 @@ func unmarshallCategoryAssetSources(i map[string]interface{}) []platform.AssetSo
 		}
 
 		if _, ok := s["dimensions"]; ok {
-			assetDimensions := unmarshallCategoryAssetSourceDimensions(s)
-			source.Dimensions = &assetDimensions
+			source.Dimensions = unmarshallCategoryAssetSourceDimensions(s)
 		}
 
 		sources = append(sources, source)
@@ -440,22 +487,20 @@ func unmarshallCategoryAssetSources(i map[string]interface{}) []platform.AssetSo
 	return sources
 }
 
-func unmarshallCategoryAssetSourceDimensions(s map[string]interface{}) platform.AssetDimensions {
-	var dimensions platform.AssetDimensions
+func unmarshallCategoryAssetSourceDimensions(s map[string]interface{}) *platform.AssetDimensions {
 	data, err := elementFromSlice(s, "dimensions")
 	if err != nil {
-		return dimensions
+		return nil
 	}
 
-	for _, item := range data {
-		d := item.(map[string]interface{})
-
-		dimensions = platform.AssetDimensions{
-			W: d["w"].(int),
-			H: d["h"].(int),
-		}
+	if data["w"] == nil || data["h"] == nil {
+		return nil
 	}
-	return dimensions
+
+	return &platform.AssetDimensions{
+		W: data["w"].(int),
+		H: data["h"].(int),
+	}
 }
 
 func resourceCategoryResourceV0() *schema.Resource {

@@ -48,8 +48,8 @@ func handleCommercetoolsError(err error) *resource.RetryError {
 
 func expandStringArray(input []interface{}) []string {
 	s := make([]string, len(input))
-	for i, v := range input {
-		s[i] = fmt.Sprint(v)
+	for i := range input {
+		s[i] = input[i].(string)
 	}
 	return s
 }
