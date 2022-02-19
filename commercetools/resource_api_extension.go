@@ -276,12 +276,12 @@ func unmarshallExtensionDestination(d *schema.ResourceData) (platform.Destinatio
 			return nil, err
 		}
 
-		return platform.ExtensionHttpDestination{
+		return platform.HttpDestination{
 			Url:            input["url"].(string),
 			Authentication: &auth,
 		}, nil
 	case "awslambda":
-		return platform.ExtensionAWSLambdaDestination{
+		return platform.AWSLambdaDestination{
 			Arn:          input["arn"].(string),
 			AccessKey:    input["access_key"].(string),
 			AccessSecret: input["access_secret"].(string),
@@ -291,7 +291,7 @@ func unmarshallExtensionDestination(d *schema.ResourceData) (platform.Destinatio
 	}
 }
 
-func unmarshallExtensionDestinationAuthentication(destInput map[string]interface{}) (platform.ExtensionHttpDestinationAuthentication, error) {
+func unmarshallExtensionDestinationAuthentication(destInput map[string]interface{}) (platform.HttpDestinationAuthentication, error) {
 	authKeys := [2]string{"authorization_header", "azure_authentication"}
 	count := 0
 	for _, key := range authKeys {
@@ -307,12 +307,12 @@ func unmarshallExtensionDestinationAuthentication(destInput map[string]interface
 	}
 
 	if val, ok := isNotEmpty(destInput, "authorization_header"); ok {
-		return &platform.ExtensionAuthorizationHeaderAuthentication{
+		return &platform.AuthorizationHeaderAuthentication{
 			HeaderValue: val.(string),
 		}, nil
 	}
 	if val, ok := isNotEmpty(destInput, "azure_authentication"); ok {
-		return &platform.ExtensionAzureFunctionsAuthentication{
+		return &platform.AzureFunctionsAuthentication{
 			Key: val.(string),
 		}, nil
 	}
@@ -322,15 +322,15 @@ func unmarshallExtensionDestinationAuthentication(destInput map[string]interface
 
 func marshallExtensionDestination(d platform.Destination) []map[string]string {
 	switch v := d.(type) {
-	case platform.ExtensionHttpDestination:
+	case platform.HttpDestination:
 		switch a := v.Authentication.(type) {
-		case platform.ExtensionAuthorizationHeaderAuthentication:
+		case platform.AuthorizationHeaderAuthentication:
 			return []map[string]string{{
 				"type":                 "HTTP",
 				"url":                  v.Url,
 				"authorization_header": a.HeaderValue,
 			}}
-		case platform.ExtensionAzureFunctionsAuthentication:
+		case platform.AzureFunctionsAuthentication:
 			return []map[string]string{{
 				"type":                 "HTTP",
 				"url":                  v.Url,
@@ -342,7 +342,7 @@ func marshallExtensionDestination(d platform.Destination) []map[string]string {
 			"url":  v.Url,
 		}}
 
-	case platform.ExtensionAWSLambdaDestination:
+	case platform.AWSLambdaDestination:
 		return []map[string]string{{
 			"type":          "awslambda",
 			"access_key":    v.AccessKey,

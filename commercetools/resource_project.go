@@ -343,7 +343,7 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 
 		input.Actions = append(
 			input.Actions,
-			&platform.ProjectChangeCartsConfiguration{
+			&platform.ProjectChangeCartsConfigurationAction{
 				CartsConfiguration: &platform.CartsConfiguration{
 					CountryTaxRateFallbackEnabled:   boolRef(fallbackEnabled),
 					DeleteDaysAfterLastModification: deleteDaysAfterLastModification,
@@ -434,7 +434,7 @@ func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) st
 	return ""
 }
 
-func marshallProjectMessages(val platform.MessageConfiguration) []map[string]interface{} {
+func marshallProjectMessages(val platform.MessagesConfiguration) []map[string]interface{} {
 	return []map[string]interface{}{
 		{
 			"enabled": val.Enabled,

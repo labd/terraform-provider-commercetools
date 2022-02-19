@@ -651,7 +651,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 			return nil, fmt.Errorf("No reference_type_id specified for Reference type")
 		}
 		return platform.CustomFieldReferenceType{
-			ReferenceTypeId: platform.ReferenceTypeId(refTypeID),
+			ReferenceTypeId: platform.CustomFieldReferenceValue(refTypeID),
 		}, nil
 	case "Set":
 		elementTypes, elementTypesOk := config["element_type"]

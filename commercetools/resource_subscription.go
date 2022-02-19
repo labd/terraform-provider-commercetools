@@ -542,11 +542,11 @@ func marshallSubscriptionDestination(dst platform.Destination, d *schema.Resourc
 
 func marshallSubscriptionFormat(f platform.DeliveryFormat) []map[string]string {
 	switch v := f.(type) {
-	case platform.DeliveryPlatformFormat:
+	case platform.PlatformFormat:
 		return []map[string]string{{
 			"type": "Platform",
 		}}
-	case platform.DeliveryCloudEventsFormat:
+	case platform.CloudEventsFormat:
 		return []map[string]string{{
 			"type":                 "CloudEvents",
 			"cloud_events_version": v.CloudEventsVersion,
@@ -563,11 +563,11 @@ func unmarshallSubscriptionFormat(d *schema.ResourceData) (platform.DeliveryForm
 
 		switch format["type"] {
 		case cloudEvents:
-			return platform.DeliveryCloudEventsFormat{
+			return platform.CloudEventsFormat{
 				CloudEventsVersion: format["cloud_events_version"].(string),
 			}, nil
 		case fmtPlatform:
-			return platform.DeliveryPlatformFormat{}, nil
+			return platform.PlatformFormat{}, nil
 		}
 	}
 
