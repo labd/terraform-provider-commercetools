@@ -256,14 +256,14 @@ func resourceCartDiscountCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
-		validFrom, err := expandDate(val)
+		validFrom, err := unmarshallTime(val)
 		if err != nil {
 			return err
 		}
 		draft.ValidFrom = &validFrom
 	}
 	if val := d.Get("valid_until").(string); len(val) > 0 {
-		validUntil, err := expandDate(val)
+		validUntil, err := unmarshallTime(val)
 		if err != nil {
 			return err
 		}
@@ -420,7 +420,7 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 
 	if d.HasChange("valid_from") {
 		if val := d.Get("valid_from").(string); len(val) > 0 {
-			newValidFrom, err := expandDate(d.Get("valid_from").(string))
+			newValidFrom, err := unmarshallTime(d.Get("valid_from").(string))
 			if err != nil {
 				return err
 			}
@@ -436,7 +436,7 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 
 	if d.HasChange("valid_until") {
 		if val := d.Get("valid_until").(string); len(val) > 0 {
-			newValidUntil, err := expandDate(d.Get("valid_until").(string))
+			newValidUntil, err := unmarshallTime(d.Get("valid_until").(string))
 			if err != nil {
 				return err
 			}
