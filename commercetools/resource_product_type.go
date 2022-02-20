@@ -425,9 +425,7 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m in
 func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ProductTypes().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyProductTypesByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(ctx)
+	_, err := client.ProductTypes().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}

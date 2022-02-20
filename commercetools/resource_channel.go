@@ -168,9 +168,7 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Channels().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyChannelsByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(ctx)
+	_, err := client.Channels().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}

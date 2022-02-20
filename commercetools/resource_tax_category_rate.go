@@ -81,9 +81,7 @@ func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceD
 	client := getClient(meta)
 	taxRateID := d.Id()
 	// Arbitrary number, safe to assume there won't be more than 500 tax categories...
-	taxCategoriesQuery, err := client.TaxCategories().Get().WithQueryParams(platform.ByProjectKeyTaxCategoriesRequestMethodGetInput{
-		Limit: intRef(500),
-	}).Execute(ctx)
+	taxCategoriesQuery, err := client.TaxCategories().Get().Limit(500).Execute(ctx)
 	if err != nil {
 		return nil, err
 	}

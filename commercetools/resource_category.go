@@ -385,9 +385,7 @@ func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m inter
 	client := getClient(m)
 
 	version := d.Get("version").(int)
-	_, err := client.Categories().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyCategoriesByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(ctx)
+	_, err := client.Categories().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}

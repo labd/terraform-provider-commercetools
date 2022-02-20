@@ -315,10 +315,7 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.DiscountCodes().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyDiscountCodesByIDRequestMethodDeleteInput{
-		Version:     version,
-		DataErasure: boolRef(true),
-	}).Execute(ctx)
+	_, err := client.DiscountCodes().WithId(d.Id()).Delete().Version(version).DataErasure(true).Execute(ctx)
 
 	if err != nil {
 		log.Printf("[ERROR] Error during deleting discount code resource %s", err)

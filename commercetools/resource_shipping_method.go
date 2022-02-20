@@ -236,9 +236,7 @@ func resourceShippingMethodDelete(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	_, err = client.ShippingMethods().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyShippingMethodsByIDRequestMethodDeleteInput{
-		Version: shippingMethod.Version,
-	}).Execute(ctx)
+	_, err = client.ShippingMethods().WithId(d.Id()).Delete().Version(shippingMethod.Version).Execute(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}

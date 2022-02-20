@@ -174,9 +174,7 @@ func resourceTaxCategoryDelete(ctx context.Context, d *schema.ResourceData, m in
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	_, err = client.TaxCategories().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyTaxCategoriesByIDRequestMethodDeleteInput{
-		Version: taxCategory.Version,
-	}).Execute(ctx)
+	_, err = client.TaxCategories().WithId(d.Id()).Delete().Version(taxCategory.Version).Execute(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}

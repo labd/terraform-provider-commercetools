@@ -539,9 +539,7 @@ func resourceTypeHandleEnumTypeChanges(newFieldType platform.FieldType, oldField
 func resourceTypeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Types().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyTypesByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(ctx)
+	_, err := client.Types().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}
