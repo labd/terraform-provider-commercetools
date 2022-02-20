@@ -116,8 +116,8 @@ func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m interfac
 		Transitions: transitions,
 	}
 
-	// Note the use of GetOkExists since it's an optional bool type
-	if _, exists := d.GetOkExists("initial"); exists {
+	// Note the use of GetOk since it's an optional bool type
+	if _, exists := d.GetOk("initial"); exists {
 		draft.Initial = boolRef(d.Get("initial"))
 	}
 
