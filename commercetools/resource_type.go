@@ -590,7 +590,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	typeName, ok := config["name"].(string)
 
 	if !ok {
-		return nil, fmt.Errorf("No 'name' for type object given")
+		return nil, fmt.Errorf("no 'name' for type object given")
 	}
 
 	switch typeName {
@@ -603,7 +603,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	case "Enum":
 		valuesInput, valuesOk := config["values"].(map[string]interface{})
 		if !valuesOk {
-			return nil, fmt.Errorf("No values specified for Enum type: %+v", valuesInput)
+			return nil, fmt.Errorf("no values specified for Enum type: %+v", valuesInput)
 		}
 		var values []platform.CustomFieldEnumValue
 		for k, v := range valuesInput {
@@ -616,7 +616,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	case "LocalizedEnum":
 		valuesInput, valuesOk := config["localized_value"]
 		if !valuesOk {
-			return nil, fmt.Errorf("No localized_value elements specified for LocalizedEnum type")
+			return nil, fmt.Errorf("no localized_value elements specified for LocalizedEnum type")
 		}
 		var values []platform.CustomFieldLocalizedEnumValue
 		for _, value := range valuesInput.([]interface{}) {
@@ -641,7 +641,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	case "Reference":
 		refTypeID, refTypeIDOk := config["reference_type_id"].(string)
 		if !refTypeIDOk {
-			return nil, fmt.Errorf("No reference_type_id specified for Reference type")
+			return nil, fmt.Errorf("no reference_type_id specified for Reference type")
 		}
 		return platform.CustomFieldReferenceType{
 			ReferenceTypeId: platform.CustomFieldReferenceValue(refTypeID),
@@ -649,11 +649,11 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	case "Set":
 		elementTypes, elementTypesOk := config["element_type"]
 		if !elementTypesOk {
-			return nil, fmt.Errorf("No element_type specified for Set type")
+			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 		elementTypeList := elementTypes.([]interface{})
 		if len(elementTypeList) == 0 {
-			return nil, fmt.Errorf("No element_type specified for Set type")
+			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 
 		setFieldType, err := getFieldType(elementTypeList[0])
@@ -666,7 +666,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 		}, nil
 	}
 
-	return nil, fmt.Errorf("Unknown FieldType %s", typeName)
+	return nil, fmt.Errorf("unknown FieldType %s", typeName)
 }
 
 func marshallTypeFields(t *platform.Type) ([]map[string]interface{}, error) {
@@ -749,7 +749,7 @@ func marshallTypeFieldType(fieldType platform.FieldType, setsAllowed bool) ([]in
 		}
 
 	default:
-		return nil, fmt.Errorf("Unknown resource Type %T: %#v", fieldType, fieldType)
+		return nil, fmt.Errorf("unknown resource Type %T: %#v", fieldType, fieldType)
 	}
 
 	return []interface{}{typeData}, nil

@@ -115,7 +115,7 @@ func resourceSubscription() *schema.Resource {
 
 								if !stringInSlice(d.(string), allowed) {
 									return []string{}, []error{
-										fmt.Errorf("Invalid destination type %s. Accepted are %s",
+										fmt.Errorf("invalid destination type %s. Accepted are %s",
 											d.(string), strings.Join(allowed, ", "),
 										),
 									}
@@ -444,7 +444,7 @@ func unmarshallSubscriptionDestination(d *schema.ResourceData) (platform.Destina
 		return nil, err
 	}
 	if dst == nil {
-		return nil, fmt.Errorf("Destination is missing")
+		return nil, fmt.Errorf("destination is missing")
 	}
 
 	switch dst["type"] {
@@ -481,7 +481,7 @@ func unmarshallSubscriptionDestination(d *schema.ResourceData) (platform.Destina
 			AccountId: dst["account_id"].(string),
 		}, nil
 	default:
-		return nil, fmt.Errorf("Destination type %s not implemented", dst["type"])
+		return nil, fmt.Errorf("destination type %s not implemented", dst["type"])
 	}
 }
 
@@ -633,7 +633,7 @@ func validateDestination(d *schema.ResourceData) error {
 	input := d.Get("destination").([]interface{})
 
 	if len(input) != 1 {
-		return fmt.Errorf("Destination is missing")
+		return fmt.Errorf("destination is missing")
 	}
 
 	dst := input[0].(map[string]interface{})
@@ -641,15 +641,15 @@ func validateDestination(d *schema.ResourceData) error {
 	dstType := dst["type"].(string)
 	requiredFields, ok := destinationFields[dstType]
 	if !ok {
-		return fmt.Errorf("Invalid type for destination: '%v'", dstType)
+		return fmt.Errorf("invalid type for destination: '%v'", dstType)
 	}
 
 	for _, field := range requiredFields {
 		value, ok := dst[field].(string)
 		if !ok {
-			return fmt.Errorf("Required property '%v' missing", field)
+			return fmt.Errorf("required property '%v' missing", field)
 		} else if len(value) == 0 {
-			return fmt.Errorf("Required property '%v' is empty", field)
+			return fmt.Errorf("required property '%v' is empty", field)
 		}
 	}
 	return nil
@@ -666,15 +666,15 @@ func validateFormat(d *schema.ResourceData) error {
 	dstType := dst["type"].(string)
 	requiredFields, ok := formatFields[dstType]
 	if !ok {
-		return fmt.Errorf("Invalid type for format: '%v'", dstType)
+		return fmt.Errorf("invalid type for format: '%v'", dstType)
 	}
 
 	for _, field := range requiredFields {
 		value, ok := dst[field].(string)
 		if !ok {
-			return fmt.Errorf("Required property '%v' missing", field)
+			return fmt.Errorf("required property '%v' missing", field)
 		} else if len(value) == 0 {
-			return fmt.Errorf("Required property '%v' is empty", field)
+			return fmt.Errorf("required property '%v' is empty", field)
 		}
 	}
 	return nil

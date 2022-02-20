@@ -552,7 +552,7 @@ func unmarshallCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountV
 		return draft, nil
 
 	default:
-		return nil, fmt.Errorf("Value type %s not implemented", value["type"])
+		return nil, fmt.Errorf("value type %s not implemented", value["type"])
 	}
 }
 
@@ -599,7 +599,7 @@ func unmarshallCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscount
 	case "shipping":
 		return platform.CartDiscountShippingCostTarget{}, nil
 	default:
-		return nil, fmt.Errorf("Target type %s not implemented", input["type"])
+		return nil, fmt.Errorf("target type %s not implemented", input["type"])
 	}
 
 }
@@ -611,7 +611,7 @@ func unmarshallCartDiscountStackingMode(d *schema.ResourceData) (platform.Stacki
 	case "StopAfterThisDiscount":
 		return platform.StackingModeStopAfterThisDiscount, nil
 	default:
-		return "", fmt.Errorf("Stacking mode %s not implemented", d.Get("stacking_mode").(string))
+		return "", fmt.Errorf("stacking mode %s not implemented", d.Get("stacking_mode").(string))
 	}
 }
 

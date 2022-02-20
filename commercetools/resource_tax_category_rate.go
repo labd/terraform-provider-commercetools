@@ -91,7 +91,7 @@ func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceD
 	taxCategory, taxRate := findTaxRate(taxRateID, taxCategoriesQuery.Results)
 
 	if taxRate == nil {
-		return nil, fmt.Errorf("Tax rate %s does not seem to exist", taxRateID)
+		return nil, fmt.Errorf("tax rate %s does not seem to exist", taxRateID)
 	}
 
 	results := make([]*schema.ResourceData, 0)
@@ -352,7 +352,7 @@ func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m in
 	log.Print(stringFormatObject(taxCategory))
 	taxRate := getTaxRateWithID(taxCategory, taxRateID)
 	if taxRate == nil {
-		return nil, nil, fmt.Errorf("Could not find tax rate %s in tax category %s", taxRateID, taxCategory.ID)
+		return nil, nil, fmt.Errorf("could not find tax rate %s in tax category %s", taxRateID, taxCategory.ID)
 	}
 	log.Print("[DEBUG] Found following tax rate:")
 	log.Print(stringFormatObject(taxRate))

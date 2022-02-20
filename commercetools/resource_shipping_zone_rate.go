@@ -524,7 +524,7 @@ func findShippingZoneRate(shippingZoneID string, currencyCode string, shippingMe
 		}
 	}
 
-	return nil, fmt.Errorf("Couldn't find shipping zone rate")
+	return nil, fmt.Errorf("couldn't find shipping zone rate")
 }
 
 func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.ShippingMethod) error {

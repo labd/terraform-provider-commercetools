@@ -286,7 +286,7 @@ func unmarshallExtensionDestination(d *schema.ResourceData) (platform.Destinatio
 			AccessSecret: input["access_secret"].(string),
 		}, nil
 	default:
-		return nil, fmt.Errorf("Extension type %s not implemented", input["type"])
+		return nil, fmt.Errorf("extension type %s not implemented", input["type"])
 	}
 }
 
@@ -302,7 +302,7 @@ func unmarshallExtensionDestinationAuthentication(destInput map[string]interface
 	}
 	if count > 1 {
 		return nil, fmt.Errorf(
-			"In the destination only one of the auth values should be definied: %q", authKeys)
+			"in the destination only one of the auth values should be definied: %q", authKeys)
 	}
 
 	if val, ok := isNotEmpty(destInput, "authorization_header"); ok {

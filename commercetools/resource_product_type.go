@@ -361,7 +361,7 @@ func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsA
 			typeData["element_type"] = elemType
 		}
 	} else {
-		return nil, fmt.Errorf("Unknown resource Type %T", attrType)
+		return nil, fmt.Errorf("unknown resource Type %T", attrType)
 	}
 
 	return []interface{}{typeData}, nil
@@ -710,7 +710,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	typeName, ok := config["name"].(string)
 
 	if !ok {
-		return nil, fmt.Errorf("No 'name' for type object given")
+		return nil, fmt.Errorf("no 'name' for type object given")
 	}
 
 	switch typeName {
@@ -723,7 +723,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "enum":
 		valuesInput, valuesOk := config["values"].(map[string]interface{})
 		if !valuesOk {
-			return nil, fmt.Errorf("No values specified for Enum type: %+v", valuesInput)
+			return nil, fmt.Errorf("no values specified for Enum type: %+v", valuesInput)
 		}
 		var values []platform.AttributePlainEnumValue
 		for k, v := range valuesInput {
@@ -736,7 +736,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "lenum":
 		valuesInput, valuesOk := config["localized_value"]
 		if !valuesOk {
-			return nil, fmt.Errorf("No localized_value elements specified for LocalizedEnum type")
+			return nil, fmt.Errorf("no localized_value elements specified for LocalizedEnum type")
 		}
 		var values []platform.AttributeLocalizedEnumValue
 		for _, value := range valuesInput.([]interface{}) {
@@ -763,7 +763,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "reference":
 		refTypeID, refTypeIDOk := config["reference_type_id"].(string)
 		if !refTypeIDOk {
-			return nil, fmt.Errorf("No reference_type_id specified for Reference type")
+			return nil, fmt.Errorf("no reference_type_id specified for Reference type")
 		}
 		return platform.AttributeReferenceType{
 			ReferenceTypeId: platform.ReferenceTypeId(refTypeID),
@@ -771,7 +771,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "nested":
 		typeReference, typeReferenceOk := config["type_reference"].(string)
 		if !typeReferenceOk {
-			return nil, fmt.Errorf("No type_reference specified for Nested type")
+			return nil, fmt.Errorf("no type_reference specified for Nested type")
 		}
 		return platform.AttributeNestedType{
 			TypeReference: platform.ProductTypeReference{ID: typeReference},
@@ -779,11 +779,11 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "set":
 		elementTypes, elementTypesOk := config["element_type"]
 		if !elementTypesOk {
-			return nil, fmt.Errorf("No element_type specified for Set type")
+			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 		elementTypeList := elementTypes.([]interface{})
 		if len(elementTypeList) == 0 {
-			return nil, fmt.Errorf("No element_type specified for Set type")
+			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 
 		setAttrType, err := getAttributeType(elementTypeList[0])
@@ -796,7 +796,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 		}, nil
 	}
 
-	return nil, fmt.Errorf("Unknown AttributeType %s", typeName)
+	return nil, fmt.Errorf("unknown AttributeType %s", typeName)
 }
 
 func readAttributeLocalizedEnum(values []platform.AttributeLocalizedEnumValue) []interface{} {
