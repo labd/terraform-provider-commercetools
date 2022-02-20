@@ -668,13 +668,10 @@ func resourceProductTypeGetAttributeDefinition(input map[string]interface{}, dra
 		return nil, err
 	}
 
-	label := platform.LocalizedString(
-		expandStringMap(input["label"].(map[string]interface{})))
-
+	label := unmarshallLocalizedString(input["label"])
 	var inputTip platform.LocalizedString
 	if inputTipRaw, ok := input["input_tip"]; ok {
-		inputTip = platform.LocalizedString(
-			expandStringMap(inputTipRaw.(map[string]interface{})))
+		inputTip = unmarshallLocalizedString(inputTipRaw)
 	}
 
 	constraint := platform.AttributeConstraintEnumNone
@@ -744,8 +741,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 		var values []platform.AttributeLocalizedEnumValue
 		for _, value := range valuesInput.([]interface{}) {
 			v := value.(map[string]interface{})
-			labels := platform.LocalizedString(
-				expandStringMap(v["label"].(map[string]interface{})))
+			labels := unmarshallLocalizedString(v["label"])
 
 			values = append(values, platform.AttributeLocalizedEnumValue{
 				Key:   v["key"].(string),

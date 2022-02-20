@@ -234,10 +234,8 @@ func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m interface
 	client := getClient(m)
 	var ctType *platform.Type
 
-	name := platform.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := platform.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+	name := unmarshallLocalizedString(d.Get("name"))
+	description := unmarshallLocalizedString(d.Get("description"))
 
 	resourceTypeIds := []platform.ResourceTypeId{}
 	for _, item := range expandStringArray(d.Get("resource_type_ids").([]interface{})) {
@@ -338,20 +336,18 @@ func resourceTypeUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.TypeChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescr := platform.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := unmarshallLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.TypeSetDescriptionAction{
-				Description: &newDescr})
+				Description: &newDescription})
 	}
 
 	if d.HasChange("field") {
@@ -421,8 +417,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		// Check if we need to update the field label
 		oldV := oldValue.(map[string]interface{})
 		if !reflect.DeepEqual(oldV["label"], newV["label"]) {
-			newLabel := platform.LocalizedString(
-				expandStringMap(newV["label"].(map[string]interface{})))
+			newLabel := unmarshallLocalizedString(newV["label"])
 			actions = append(
 				actions,
 				platform.TypeChangeLabelAction{FieldName: name, Label: newLabel})
@@ -579,9 +574,7 @@ func resourceTypeGetFieldDefinition(input map[string]interface{}) (*platform.Fie
 		return nil, err
 	}
 
-	label := platform.LocalizedString(
-		expandStringMap(input["label"].(map[string]interface{})))
-
+	label := unmarshallLocalizedString(input["label"])
 	inputHint := platform.TypeTextInputHint(input["input_hint"].(string))
 	return &platform.FieldDefinition{
 		Type:      fieldType,
@@ -628,8 +621,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 		var values []platform.CustomFieldLocalizedEnumValue
 		for _, value := range valuesInput.([]interface{}) {
 			v := value.(map[string]interface{})
-			labels := platform.LocalizedString(
-				expandStringMap(v["label"].(map[string]interface{})))
+			labels := unmarshallLocalizedString(v["label"])
 			values = append(values, platform.CustomFieldLocalizedEnumValue{
 				Key:   v["key"].(string),
 				Label: labels,

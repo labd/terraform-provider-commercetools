@@ -53,14 +53,6 @@ func expandStringArray(input []interface{}) []string {
 	return s
 }
 
-func expandStringMap(input map[string]interface{}) map[string]string {
-	s := make(map[string]string)
-	for k, v := range input {
-		s[k] = fmt.Sprint(v)
-	}
-	return s
-}
-
 func localizedStringCompare(a platform.LocalizedString, b map[string]interface{}) bool {
 	for i, v := range a {
 		if v != b[i] {
@@ -68,14 +60,6 @@ func localizedStringCompare(a platform.LocalizedString, b map[string]interface{}
 		}
 	}
 	return true
-}
-
-func localizedStringToMap(input platform.LocalizedString) map[string]string {
-	result := make(map[string]string, len(input))
-	for k, v := range input {
-		result[k] = v
-	}
-	return result
 }
 
 func stringFormatObject(object interface{}) string {

@@ -154,8 +154,8 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 	client := getClient(m)
 	var category *platform.Category
 
-	name := platform.LocalizedString(expandStringMap(d.Get("name").(map[string]interface{})))
-	slug := platform.LocalizedString(expandStringMap(d.Get("slug").(map[string]interface{})))
+	name := unmarshallLocalizedString(d.Get("name"))
+	slug := unmarshallLocalizedString(d.Get("slug"))
 
 	draft := platform.CategoryDraft{
 		Key:       stringRef(d.Get("key")),
@@ -165,22 +165,22 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.Get("description") != nil {
-		desc := platform.LocalizedString(expandStringMap(d.Get("description").(map[string]interface{})))
+		desc := unmarshallLocalizedString(d.Get("description"))
 		draft.Description = &desc
 	}
 
 	if d.Get("meta_title") != nil {
-		metaTitle := platform.LocalizedString(expandStringMap(d.Get("meta_title").(map[string]interface{})))
+		metaTitle := unmarshallLocalizedString(d.Get("meta_title"))
 		draft.MetaTitle = &metaTitle
 	}
 
 	if d.Get("meta_description") != nil {
-		metaDescription := platform.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
+		metaDescription := unmarshallLocalizedString(d.Get("meta_description"))
 		draft.MetaDescription = &metaDescription
 	}
 
 	if d.Get("meta_keywords") != nil {
-		metaKeywords := platform.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
+		metaKeywords := unmarshallLocalizedString(d.Get("meta_keywords"))
 		draft.MetaKeywords = &metaKeywords
 	}
 
@@ -285,14 +285,14 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategoryChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("slug") {
-		newSlug := platform.LocalizedString(expandStringMap(d.Get("slug").(map[string]interface{})))
+		newSlug := unmarshallLocalizedString(d.Get("slug"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategoryChangeSlugAction{Slug: newSlug})
@@ -313,7 +313,7 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("description") {
-		newDescription := platform.LocalizedString(expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := unmarshallLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetDescriptionAction{Description: &newDescription})
@@ -328,21 +328,21 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("meta_title") {
-		newMetaTitle := platform.LocalizedString(expandStringMap(d.Get("meta_title").(map[string]interface{})))
+		newMetaTitle := unmarshallLocalizedString(d.Get("meta_title"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetMetaTitleAction{MetaTitle: &newMetaTitle})
 	}
 
 	if d.HasChange("meta_description") {
-		newMetaDescription := platform.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
+		newMetaDescription := unmarshallLocalizedString(d.Get("meta_description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetMetaDescriptionAction{MetaDescription: &newMetaDescription})
 	}
 
 	if d.HasChange("meta_keywords") {
-		newMetaKeywords := platform.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
+		newMetaKeywords := unmarshallLocalizedString(d.Get("meta_keywords"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetMetaKeywordsAction{MetaKeywords: &newMetaKeywords})
@@ -425,8 +425,8 @@ func unmarshallCategoryAssets(d *schema.ResourceData) []platform.AssetDraft {
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
 
-		name := platform.LocalizedString(expandStringMap(i["name"].(map[string]interface{})))
-		description := platform.LocalizedString(expandStringMap(i["description"].(map[string]interface{})))
+		name := unmarshallLocalizedString(i["name"])
+		description := unmarshallLocalizedString(i["description"])
 		sources := unmarshallCategoryAssetSources(i)
 		tags := expandStringArray(i["tags"].([]interface{}))
 

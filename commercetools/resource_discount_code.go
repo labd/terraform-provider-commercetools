@@ -95,10 +95,8 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m i
 	client := getClient(m)
 	var discountCode *platform.DiscountCode
 
-	name := platform.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := platform.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+	name := unmarshallLocalizedString(d.Get("name"))
+	description := unmarshallLocalizedString(d.Get("description"))
 
 	draft := platform.DiscountCodeDraft{
 		Name:                       &name,
@@ -206,16 +204,14 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeSetNameAction{Name: &newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := platform.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := unmarshallLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeSetDescriptionAction{Description: &newDescription})

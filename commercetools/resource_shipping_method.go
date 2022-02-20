@@ -73,8 +73,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		taxCategory.ID = stringRef(taxCategoryID)
 	}
 
-	localizedDescription := platform.LocalizedString(
-		expandStringMap(d.Get("localized_description").(map[string]interface{})))
+	localizedDescription := unmarshallLocalizedString(d.Get("localized_description"))
 
 	draft := platform.ShippingMethodDraft{
 		Key:                  stringRef(d.Get("key")),
@@ -184,8 +183,7 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	if d.HasChange("localized_description") {
-		newLocalizedDescription := platform.LocalizedString(
-			expandStringMap(d.Get("localized_description").(map[string]interface{})))
+		newLocalizedDescription := unmarshallLocalizedString(d.Get("localized_description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ShippingMethodSetLocalizedDescriptionAction{LocalizedDescription: &newLocalizedDescription})

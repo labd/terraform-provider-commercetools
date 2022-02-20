@@ -92,10 +92,8 @@ func resourceState() *schema.Resource {
 }
 
 func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	name := platform.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := platform.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+	name := unmarshallLocalizedString(d.Get("name"))
+	description := unmarshallLocalizedString(d.Get("description"))
 
 	roles := []platform.StateRoleEnum{}
 	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
@@ -188,16 +186,14 @@ func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.StateSetNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := platform.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := unmarshallLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.StateSetDescriptionAction{Description: newDescription})
