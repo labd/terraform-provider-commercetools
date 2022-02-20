@@ -324,7 +324,7 @@ func ValidateCurrencyCode(val interface{}, key string) (warns []string, errs []e
 }
 
 func transformToList(data map[string]interface{}, key string) {
-	newDestination := make([]interface{}, 1, 1)
+	newDestination := make([]interface{}, 1)
 	if data[key] != nil {
 		newDestination[0] = data[key]
 	}
