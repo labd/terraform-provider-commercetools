@@ -261,32 +261,21 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 	}
 
 	if d.HasChange("currencies") {
-		newCurrencies := []string{}
-		for _, item := range getStringSlice(d, "currencies") {
-			newCurrencies = append(newCurrencies, item)
-		}
-
+		newCurrencies := getStringSlice(d, "currencies")
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeCurrenciesAction{Currencies: newCurrencies})
 	}
 
 	if d.HasChange("countries") {
-		newCountries := []string{}
-		for _, item := range getStringSlice(d, "countries") {
-			newCountries = append(newCountries, item)
-		}
-
+		newCountries := getStringSlice(d, "countries")
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeCountriesAction{Countries: newCountries})
 	}
 
 	if d.HasChange("languages") {
-		newLanguages := []string{}
-		for _, item := range getStringSlice(d, "languages") {
-			newLanguages = append(newLanguages, item)
-		}
+		newLanguages := getStringSlice(d, "languages")
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeLanguagesAction{Languages: newLanguages})

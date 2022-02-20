@@ -328,11 +328,7 @@ func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func unmarshallDiscountCodeGroups(d *schema.ResourceData) []string {
-	var groups []string
-	for _, group := range expandStringArray(d.Get("groups").([]interface{})) {
-		groups = append(groups, group)
-	}
-	return groups
+	return expandStringArray(d.Get("groups").([]interface{}))
 }
 
 func unmarshallDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.CartDiscountResourceIdentifier {
