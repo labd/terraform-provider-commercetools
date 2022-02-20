@@ -202,50 +202,44 @@ func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	version := d.Get("version").(int)
-	_, err := client.Zones().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyZonesByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := client.Zones().WithId(d.Id()).Delete().Version(version).Execute(context.Background())
+	return err
 }
 
 func unmarshallShippingZoneLocations(input interface{}) []platform.Location {
 	inputSlice := input.([]interface{})
-	var result []platform.Location
+	result := make([]platform.Location, len(inputSlice))
 
-	for _, raw := range inputSlice {
-		i := raw.(map[string]interface{})
+	for i := range inputSlice {
+		raw := inputSlice[i].(map[string]interface{})
 
-		country, ok := i["country"].(string)
+		country, ok := raw["country"].(string)
 		if !ok {
 			country = ""
 		}
 
-		state, ok := i["state"].(string)
-		if !ok {
-			state = ""
+		var stateRef *string
+		if state, ok := raw["state"].(string); ok && state != "" {
+			stateRef = &state
 		}
 
-		result = append(result, platform.Location{
+		result[i] = platform.Location{
 			Country: country,
-			State:   &state,
-		})
+			State:   stateRef,
+		}
 	}
 
 	return result
 }
 
 func marshallShippingZoneLocations(locations []platform.Location) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(locations))
+	result := make([]map[string]interface{}, len(locations))
 
-	for _, location := range locations {
-		result = append(result, map[string]interface{}{
-			"country": location.Country,
-			"state":   location.State,
-		})
+	for i := range locations {
+		result[i] = map[string]interface{}{
+			"country": locations[i].Country,
+			"state":   locations[i].State,
+		}
 	}
 
 	return result
