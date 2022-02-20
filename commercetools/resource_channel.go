@@ -19,7 +19,7 @@ func resourceChannel() *schema.Resource {
 		Update: resourceChannelUpdate,
 		Delete: resourceChannelDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {

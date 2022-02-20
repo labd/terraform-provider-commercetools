@@ -20,7 +20,7 @@ func resourceCustomerGroup() *schema.Resource {
 		Update: resourceCustomerGroupUpdate,
 		Delete: resourceCustomerGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {

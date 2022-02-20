@@ -18,7 +18,7 @@ func resourceShippingZone() *schema.Resource {
 		Update: resourceShippingZoneUpdate,
 		Delete: resourceShippingZoneDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {

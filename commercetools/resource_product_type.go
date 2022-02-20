@@ -31,7 +31,7 @@ func resourceProductType() *schema.Resource {
 		Update: resourceProductTypeUpdate,
 		Delete: resourceProductTypeDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {

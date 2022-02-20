@@ -22,7 +22,7 @@ func resourceCartDiscount() *schema.Resource {
 		Update: resourceCartDiscountUpdate,
 		Delete: resourceCartDiscountDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{

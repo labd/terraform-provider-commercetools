@@ -21,7 +21,7 @@ func resourceStore() *schema.Resource {
 		Update: resourceStoreUpdate,
 		Delete: resourceStoreDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {

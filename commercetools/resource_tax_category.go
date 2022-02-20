@@ -19,7 +19,7 @@ func resourceTaxCategory() *schema.Resource {
 		Update: resourceTaxCategoryUpdate,
 		Delete: resourceTaxCategoryDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {

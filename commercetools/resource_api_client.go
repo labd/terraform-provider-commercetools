@@ -21,7 +21,7 @@ func resourceAPIClient() *schema.Resource {
 		Read:   resourceAPIClientRead,
 		Delete: resourceAPIClientDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
