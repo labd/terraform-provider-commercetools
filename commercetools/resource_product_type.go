@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -26,10 +27,10 @@ func resourceProductType() *schema.Resource {
 			"attributes, of many concrete products. Please note: to customize other resources than products, " +
 			"please refer to resource_type.\n\n" +
 			"See also the [Product Type API Documentation](https://docs.commercetools.com/api/projects/productTypes)",
-		Create: resourceProductTypeCreate,
-		Read:   resourceProductTypeRead,
-		Update: resourceProductTypeUpdate,
-		Delete: resourceProductTypeDelete,
+		CreateContext: resourceProductTypeCreate,
+		ReadContext:   resourceProductTypeRead,
+		UpdateContext: resourceProductTypeUpdate,
+		DeleteContext: resourceProductTypeDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -98,7 +99,7 @@ func resourceProductType() *schema.Resource {
 										allowedConstraints = append(allowedConstraints, key)
 									}
 									errs = append(errs, fmt.Errorf(
-										"Unkown attribute constraint '%v'. Possible values are %v", v, allowedConstraints))
+										"unkown attribute constraint '%v'. Possible values are %v", v, allowedConstraints))
 								}
 								return
 							},
@@ -155,13 +156,13 @@ func resourceProductType() *schema.Resource {
 							continue
 						}
 						return fmt.Errorf(
-							"Field '%s' type changed from %s to %s. Changing types is not supported; please remove the attribute first and re-define it later",
+							"field '%s' type changed from %s to %s. Changing types is not supported; please remove the attribute first and re-define it later",
 							name, oldType["name"], newType["name"])
 					}
 
 					if oldF["required"] != newF["required"] {
 						return fmt.Errorf(
-							"Error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
+							"error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
 							name)
 					}
 				}
@@ -179,7 +180,7 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 			ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 				v := val.(string)
 				if !setsAllowed && v == "set" {
-					errs = append(errs, fmt.Errorf("Sets in another Set are not allowed"))
+					errs = append(errs, fmt.Errorf("sets in another Set are not allowed"))
 				}
 				return
 			},
@@ -215,14 +216,14 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 	return &schema.Resource{Schema: result}
 }
 
-func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
+func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var ctType *platform.ProductType
 
 	attributes, err := resourceProductTypeGetAttributeDefinitions(d)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	draft := platform.ProductTypeDraft{
@@ -232,10 +233,10 @@ func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
 		Attributes:  attributes,
 	}
 
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		ctType, err = client.ProductTypes().Post(draft).Execute(context.Background())
+		ctType, err = client.ProductTypes().Post(draft).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -243,7 +244,7 @@ func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ctType == nil {
@@ -253,14 +254,14 @@ func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(ctType.ID)
 	d.Set("version", ctType.Version)
 
-	return resourceProductTypeRead(d, m)
+	return resourceProductTypeRead(ctx, d, m)
 }
 
-func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
+func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading product type from commercetools")
 	client := getClient(m)
 
-	ctType, err := client.ProductTypes().WithId(d.Id()).Get().Execute(context.Background())
+	ctType, err := client.ProductTypes().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -269,7 +270,7 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ctType == nil {
@@ -285,7 +286,7 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 			log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
 			fieldType, err := resourceProductTypeReadAttributeType(fieldDef.Type, true)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 
 			fieldData["type"] = fieldType
@@ -309,7 +310,7 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("description", ctType.Description)
 		err = d.Set("attribute", attributes)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	return nil
@@ -366,7 +367,7 @@ func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsA
 	return []interface{}{typeData}, nil
 }
 
-func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ProductTypeUpdate{
@@ -400,7 +401,7 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		attributeChangeActions, err := resourceProductTypeAttributeChangeActions(
 			old.([]interface{}), new.([]interface{}))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		input.Actions = append(input.Actions, attributeChangeActions...)
@@ -410,25 +411,25 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceProductTypeRead(d, m)
+	return resourceProductTypeRead(ctx, d, m)
 }
 
-func resourceProductTypeDelete(d *schema.ResourceData, m interface{}) error {
+func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	_, err := client.ProductTypes().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyProductTypesByIDRequestMethodDeleteInput{
 		Version: version,
-	}).Execute(context.Background())
+	}).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

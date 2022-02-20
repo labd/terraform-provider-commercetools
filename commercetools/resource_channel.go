@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -14,10 +15,10 @@ func resourceChannel() *schema.Resource {
 		Description: "Channels represent a source or destination of different entities. They can be used to model " +
 			"warehouses or stores.\n\n" +
 			"See also the [Channels API Documentation](https://docs.commercetools.com/api/projects/channels)",
-		Create: resourceChannelCreate,
-		Read:   resourceChannelRead,
-		Update: resourceChannelUpdate,
-		Delete: resourceChannelDelete,
+		CreateContext: resourceChannelCreate,
+		ReadContext:   resourceChannelRead,
+		UpdateContext: resourceChannelUpdate,
+		DeleteContext: resourceChannelDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -52,7 +53,7 @@ func resourceChannel() *schema.Resource {
 	}
 }
 
-func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
+func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	name := platform.LocalizedString(
 		expandStringMap(d.Get("name").(map[string]interface{})))
 	description := platform.LocalizedString(
@@ -73,10 +74,10 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	var channel *platform.Channel
 
-	err := resource.Retry(20*time.Second, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
-		channel, err = client.Channels().Post(draft).Execute(context.Background())
+		channel, err = client.Channels().Post(draft).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -84,17 +85,17 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(channel.ID)
 	d.Set("version", channel.Version)
-	return resourceChannelRead(d, m)
+	return resourceChannelRead(ctx, d, m)
 }
 
-func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
+func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	channel, err := client.Channels().WithId(d.Id()).Get().Execute(context.Background())
+	channel, err := client.Channels().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -103,7 +104,7 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(channel.ID)
@@ -119,7 +120,7 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ChannelUpdate{
@@ -160,22 +161,22 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 			&platform.ChannelSetRolesAction{Roles: roles})
 	}
 
-	_, err := client.Channels().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err := client.Channels().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceChannelRead(d, m)
+	return resourceChannelRead(ctx, d, m)
 }
 
-func resourceChannelDelete(d *schema.ResourceData, m interface{}) error {
+func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	_, err := client.Channels().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyChannelsByIDRequestMethodDeleteInput{
 		Version: version,
-	}).Execute(context.Background())
+	}).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

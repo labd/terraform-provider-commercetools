@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -14,10 +15,10 @@ func resourceCategory() *schema.Resource {
 	return &schema.Resource{
 		Description: "Categories allow you to organize products into hierarchical structures.\n\n" +
 			"Also see the [Categories HTTP API documentation](https://docs.commercetools.com/api/projects/categories).",
-		Create: resourceCategoryCreate,
-		Read:   resourceCategoryRead,
-		Update: resourceCategoryUpdate,
-		Delete: resourceCategoryDelete,
+		CreateContext: resourceCategoryCreate,
+		ReadContext:   resourceCategoryRead,
+		UpdateContext: resourceCategoryUpdate,
+		DeleteContext: resourceCategoryDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -149,7 +150,7 @@ func resourceCategory() *schema.Resource {
 	}
 }
 
-func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var category *platform.Category
 
@@ -194,10 +195,10 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 		draft.Assets = assets
 	}
 
-	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		category, err = client.Categories().Post(draft).Execute(context.Background())
+		category, err = client.Categories().Post(draft).Execute(ctx)
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -206,7 +207,7 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if category == nil {
@@ -216,14 +217,14 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(category.ID)
 	_ = d.Set("version", category.Version)
 
-	return resourceCategoryRead(d, m)
+	return resourceCategoryRead(ctx, d, m)
 }
 
-func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Printf("[DEBUG] Reading category from commercetools, with category id: %s", d.Id())
 	client := getClient(m)
 
-	category, err := client.Categories().WithId(d.Id()).Get().Execute(context.Background())
+	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -232,7 +233,7 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if category == nil {
@@ -270,12 +271,12 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	category, err := client.Categories().WithId(d.Id()).Get().Execute(context.Background())
+	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	input := platform.CategoryUpdate{
@@ -369,26 +370,26 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.Categories().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err = client.Categories().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceCategoryRead(d, m)
+	return resourceCategoryRead(ctx, d, m)
 }
 
-func resourceCategoryDelete(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	version := d.Get("version").(int)
 	_, err := client.Categories().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyCategoriesByIDRequestMethodDeleteInput{
 		Version: version,
-	}).Execute(context.Background())
+	}).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -20,10 +21,10 @@ func resourceType() *schema.Resource {
 			"In case you want to customize products, please use product types instead that serve a similar purpose, " +
 			"but tailored to products.\n\n" +
 			"See also the [Types Api Documentation](https://docs.commercetools.com/api/projects/types)",
-		Create: resourceTypeCreate,
-		Read:   resourceTypeRead,
-		Update: resourceTypeUpdate,
-		Delete: resourceTypeDelete,
+		CreateContext: resourceTypeCreate,
+		ReadContext:   resourceTypeRead,
+		UpdateContext: resourceTypeUpdate,
+		DeleteContext: resourceTypeDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -126,13 +127,13 @@ func resourceType() *schema.Resource {
 							continue
 						}
 						return fmt.Errorf(
-							"Field '%s' type changed from %s to %s. Changing types is not supported; please remove the field first and re-define it later",
+							"field '%s' type changed from %s to %s. Changing types is not supported; please remove the field first and re-define it later",
 							name, oldType["name"], newType["name"])
 					}
 
 					if oldF["required"] != newF["required"] {
 						return fmt.Errorf(
-							"Error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
+							"error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
 							name)
 					}
 				}
@@ -165,7 +166,7 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 			ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 				v := val.(string)
 				if !setsAllowed && v == "Set" {
-					errs = append(errs, fmt.Errorf("Sets in another Set are not allowed"))
+					errs = append(errs, fmt.Errorf("sets in another Set are not allowed"))
 				}
 				return
 			},
@@ -229,7 +230,7 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 	return &schema.Resource{Schema: result}
 }
 
-func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
+func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var ctType *platform.Type
 
@@ -246,7 +247,7 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 	fields, err := resourceTypeGetFieldDefinitions(d)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	draft := platform.TypeDraft{
@@ -257,10 +258,10 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 		FieldDefinitions: fields,
 	}
 
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		ctType, err = client.Types().Post(draft).Execute(context.Background())
+		ctType, err = client.Types().Post(draft).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -268,7 +269,7 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ctType == nil {
@@ -278,14 +279,14 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(ctType.ID)
 	d.Set("version", ctType.Version)
 
-	return resourceTypeRead(d, m)
+	return resourceTypeRead(ctx, d, m)
 }
 
-func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
+func resourceTypeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading type from commercetools")
 	client := getClient(m)
 
-	ctType, err := client.Types().WithId(d.Id()).Get().Execute(context.Background())
+	ctType, err := client.Types().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -294,7 +295,7 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ctType == nil {
@@ -315,13 +316,13 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 		if fields, err := marshallTypeFields(ctType); err == nil {
 			d.Set("field", fields)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	return nil
 }
 
-func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceTypeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.TypeUpdate{
@@ -357,7 +358,7 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		old, new := d.GetChange("field")
 		fieldChangeActions, err := resourceTypeFieldChangeActions(old.([]interface{}), new.([]interface{}))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		input.Actions = append(input.Actions, fieldChangeActions...)
 	}
@@ -365,15 +366,15 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.Types().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err := client.Types().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceTypeRead(d, m)
+	return resourceTypeRead(ctx, d, m)
 }
 
 // Generate a list of actions needed for updating the fields value in
@@ -540,14 +541,14 @@ func resourceTypeHandleEnumTypeChanges(newFieldType platform.FieldType, oldField
 	return actions
 }
 
-func resourceTypeDelete(d *schema.ResourceData, m interface{}) error {
+func resourceTypeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	_, err := client.Types().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyTypesByIDRequestMethodDeleteInput{
 		Version: version,
-	}).Execute(context.Background())
+	}).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

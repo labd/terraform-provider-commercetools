@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -15,10 +16,10 @@ func resourceShippingMethod() *schema.Resource {
 		Description: "With Shipping Methods you can specify which shipping services you want to provide to your " +
 			"customers for deliveries to different areas of the world at rates you can define.\n\n" +
 			"See also the [Shipping Methods API Documentation](https://docs.commercetoolstools.com/api/projects/shippingMethods)",
-		Create: resourceShippingMethodCreate,
-		Read:   resourceShippingMethodRead,
-		Update: resourceShippingMethodUpdate,
-		Delete: resourceShippingMethodDelete,
+		CreateContext: resourceShippingMethodCreate,
+		ReadContext:   resourceShippingMethodRead,
+		UpdateContext: resourceShippingMethodUpdate,
+		DeleteContext: resourceShippingMethodDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -64,7 +65,7 @@ func resourceShippingMethod() *schema.Resource {
 	}
 }
 
-func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
+func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var shippingMethod *platform.ShippingMethod
 	taxCategory := platform.TaxCategoryResourceIdentifier{}
@@ -85,10 +86,10 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 		Predicate:            stringRef(d.Get("predicate")),
 	}
 
-	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		shippingMethod, err = client.ShippingMethods().Post(draft).Execute(context.Background())
+		shippingMethod, err = client.ShippingMethods().Post(draft).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -96,7 +97,7 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if shippingMethod == nil {
@@ -106,15 +107,15 @@ func resourceShippingMethodCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(shippingMethod.ID)
 	d.Set("version", shippingMethod.Version)
 
-	return resourceShippingMethodRead(d, m)
+	return resourceShippingMethodRead(ctx, d, m)
 }
 
-func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
+func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Printf("[DEBUG] Reading shipping method from commercetools, with shippingMethod id: %s", d.Id())
 
 	client := getClient(m)
 
-	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(context.Background())
+	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -123,7 +124,7 @@ func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if shippingMethod == nil {
@@ -146,14 +147,14 @@ func resourceShippingMethodRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
-	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(context.Background())
+	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	input := platform.ShippingMethodUpdate{
@@ -215,33 +216,33 @@ func resourceShippingMethodUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(context.Background())
+	_, err = client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceShippingMethodRead(d, m)
+	return resourceShippingMethodRead(ctx, d, m)
 }
 
-func resourceShippingMethodDelete(d *schema.ResourceData, m interface{}) error {
+func resourceShippingMethodDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(context.Background())
+	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = client.ShippingMethods().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyShippingMethodsByIDRequestMethodDeleteInput{
 		Version: shippingMethod.Version,
-	}).Execute(context.Background())
+	}).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

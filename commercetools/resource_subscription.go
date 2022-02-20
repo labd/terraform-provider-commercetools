@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -70,10 +71,10 @@ func resourceSubscription() *schema.Resource {
 			"Credit Card after the delivery has been made, or synchronizing customer accounts to a Customer " +
 			"Relationship Management (CRM) system.\n\n" +
 			"See also the [Subscriptions API Documentation](https://docs.commercetools.com/api/projects/subscriptions)",
-		Create: resourceSubscriptionCreate,
-		Read:   resourceSubscriptionRead,
-		Update: resourceSubscriptionUpdate,
-		Delete: resourceSubscriptionDelete,
+		CreateContext: resourceSubscriptionCreate,
+		ReadContext:   resourceSubscriptionRead,
+		UpdateContext: resourceSubscriptionUpdate,
+		DeleteContext: resourceSubscriptionDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -270,26 +271,26 @@ func resourceSubscription() *schema.Resource {
 	}
 }
 
-func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
+func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var subscription *platform.Subscription
 
 	if err := validateDestination(d); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := validateFormat(d); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	messages := unmarshallSubscriptionMessages(d)
 	changes := unmarshallSubscriptionChanges(d)
 	destination, err := unmarshallSubscriptionDestination(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	format, err := unmarshallSubscriptionFormat(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	draft := platform.SubscriptionDraft{
@@ -300,10 +301,10 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 		Changes:     changes,
 	}
 
-	err = resource.Retry(20*time.Second, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
-		subscription, err = client.Subscriptions().Post(draft).Execute(context.Background())
+		subscription, err = client.Subscriptions().Post(draft).Execute(ctx)
 		if err != nil {
 			// Some subscription resources might not be ready yet, always keep retrying
 			return resource.RetryableError(err)
@@ -312,24 +313,24 @@ func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if subscription == nil {
-		return fmt.Errorf("Error creating subscription")
+		return diag.Errorf("Error creating subscription")
 	}
 
 	d.SetId(subscription.ID)
 	d.Set("version", subscription.Version)
 
-	return resourceSubscriptionRead(d, m)
+	return resourceSubscriptionRead(ctx, d, m)
 }
 
-func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
+func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading subscriptions from commercetools")
 	client := getClient(m)
 
-	subscription, err := client.Subscriptions().WithId(d.Id()).Get().Execute(context.Background())
+	subscription, err := client.Subscriptions().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -338,7 +339,7 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if subscription == nil {
@@ -358,14 +359,14 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	if err := validateDestination(d); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := validateFormat(d); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	input := platform.SubscriptionUpdate{
@@ -376,7 +377,7 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 	if d.HasChange("destination") {
 		destination, err := unmarshallSubscriptionDestination(d)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		input.Actions = append(
@@ -405,10 +406,10 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 			&platform.SubscriptionSetChangesAction{Changes: changes})
 	}
 
-	err := resource.Retry(5*time.Second, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 5*time.Second, func() *resource.RetryError {
 		var err error
 
-		_, err = client.Subscriptions().WithId(d.Id()).Post(input).Execute(context.Background())
+		_, err = client.Subscriptions().WithId(d.Id()).Post(input).Execute(ctx)
 		if err != nil {
 			// Some subscription resources might not be ready yet, always keep retrying
 			return resource.RetryableError(err)
@@ -417,13 +418,13 @@ func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceSubscriptionRead(d, m)
+	return resourceSubscriptionRead(ctx, d, m)
 }
 
-func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
+func resourceSubscriptionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	_, err := client.Subscriptions().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeySubscriptionsByIDRequestMethodDeleteInput{
@@ -431,7 +432,7 @@ func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
 	}).Execute(context.Background())
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
@@ -18,11 +19,11 @@ func resourceProjectSettings() *schema.Resource {
 			"the project. Updating the settings is eventually consistent, it may take up to a minute before " +
 			"a change becomes fully active.\n\n" +
 			"See also the [Project Settings API Documentation](https://docs.commercetools.com/api/projects/project)",
-		Create: resourceProjectCreate,
-		Read:   resourceProjectRead,
-		Update: resourceProjectUpdate,
-		Delete: resourceProjectDelete,
-		Exists: resourceProjectExists,
+		CreateContext: resourceProjectCreate,
+		ReadContext:   resourceProjectRead,
+		UpdateContext: resourceProjectUpdate,
+		DeleteContext: resourceProjectDelete,
+		Exists:        resourceProjectExists,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -181,9 +182,9 @@ func resourceProjectExists(d *schema.ResourceData, m interface{}) (bool, error) 
 	return true, nil
 }
 
-func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
+func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	project, err := client.Get().Execute(context.Background())
+	project, err := client.Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -191,21 +192,21 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	err = projectUpdate(d, client, project.Version)
-	if err != nil {
-		return err
+	diags := projectUpdate(ctx, d, client, project.Version)
+	if diags != nil {
+		return diags
 	}
-	return resourceProjectRead(d, m)
+	return resourceProjectRead(ctx, d, m)
 }
 
-func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
+func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading projects from commercetools")
 	client := getClient(m)
 
-	project, err := client.Get().Execute(context.Background())
+	project, err := client.Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -213,7 +214,7 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	log.Print("[DEBUG] Found the following project:")
@@ -234,22 +235,22 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	err := projectUpdate(d, client, version)
-	if err != nil {
-		return err
+	diags := projectUpdate(ctx, d, client, version)
+	if diags != nil {
+		return diags
 	}
-	return resourceProjectRead(d, m)
+	return resourceProjectRead(ctx, d, m)
 }
 
-func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
+func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	d.SetId("")
 	return nil
 }
 
-func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestBuilder, version int) error {
+func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform.ByProjectKeyRequestBuilder, version int) diag.Diagnostics {
 	input := platform.ProjectUpdate{
 		Version: version,
 		Actions: []platform.ProjectUpdateAction{},
@@ -294,7 +295,7 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	if d.HasChange("messages") {
 		messages, err := elementFromList(d, "messages")
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if messages["enabled"] != nil {
 			input.Actions = append(
@@ -312,7 +313,7 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	if d.HasChange("shipping_rate_input_type") || d.HasChange("shipping_rate_cart_classification_value") {
 		newShippingRateInputType, err := getShippingRateInputType(d)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		input.Actions = append(
 			input.Actions,
@@ -322,7 +323,7 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	if d.HasChange("external_oauth") {
 		externalOAuth, err := elementFromList(d, "external_oauth")
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if externalOAuth["url"] != nil && externalOAuth["authorization_header"] != nil {
 			newExternalOAuth := platform.ExternalOAuth{
@@ -361,7 +362,7 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	if d.HasChange("carts") {
 		carts, err := elementFromList(d, "carts")
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		fallbackEnabled := false
 		if carts["country_tax_rate_fallback_enabled"] != nil {
@@ -384,8 +385,8 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 			})
 	}
 
-	_, err := client.Post(input).Execute(context.Background())
-	return err
+	_, err := client.Post(input).Execute(ctx)
+	return diag.FromErr(err)
 }
 
 func getStringSlice(d *schema.ResourceData, field string) []string {

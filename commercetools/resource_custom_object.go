@@ -3,9 +3,9 @@ package commercetools
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
@@ -17,10 +17,10 @@ func resourceCustomObject() *schema.Resource {
 			"completely from any third-party persistence solution and means that all your data stays on the " +
 			"commercetools platform.\n\n" +
 			"See also the [Custom Object API Documentation](https://docs.commercetools.com/api/projects/custom-objects)",
-		Create: resourceCustomObjectCreate,
-		Read:   resourceCustomObjectRead,
-		Update: resourceCustomObjectUpdate,
-		Delete: resourceCustomObjectDelete,
+		CreateContext: resourceCustomObjectCreate,
+		ReadContext:   resourceCustomObjectRead,
+		UpdateContext: resourceCustomObjectUpdate,
+		DeleteContext: resourceCustomObjectDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -48,7 +48,7 @@ func resourceCustomObject() *schema.Resource {
 	}
 }
 
-func resourceCustomObjectCreate(d *schema.ResourceData, m interface{}) error {
+func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	value := _decodeCustomObjectValue(d.Get("value").(string))
 
@@ -57,9 +57,9 @@ func resourceCustomObjectCreate(d *schema.ResourceData, m interface{}) error {
 		Key:       d.Get("key").(string),
 		Value:     value,
 	}
-	customObject, err := client.CustomObjects().Post(draft).Execute(context.Background())
+	customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(customObject.ID)
@@ -68,13 +68,13 @@ func resourceCustomObjectCreate(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceCustomObjectRead(d *schema.ResourceData, m interface{}) error {
+func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	container := d.Get("container").(string)
 	key := d.Get("key").(string)
 	log.Printf("[DEBUG] Reading custom object from commercetools with following values\n Container: %s \n Key: %s", container, key)
 	client := getClient(m)
 
-	customObject, err := client.CustomObjects().WithContainerAndKey(container, key).Get().Execute(context.Background())
+	customObject, err := client.CustomObjects().WithContainerAndKey(container, key).Get().Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			if ctErr.StatusCode == 404 {
@@ -82,7 +82,7 @@ func resourceCustomObjectRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if customObject == nil {
@@ -99,10 +99,9 @@ func resourceCustomObjectRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	value := _decodeCustomObjectValue(d.Get("value").(string))
-	ctx := context.Background()
 	originalKey, newKey := d.GetChange("key")
 	originalContainer, newContainer := d.GetChange("container")
 	originalVersion, _ := d.GetChange("version")
@@ -118,7 +117,7 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 		customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		d.SetId(customObject.ID)
 		d.Set("version", customObject.Version)
@@ -132,7 +131,7 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 			Execute(ctx)
 
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		// Update the value by creating an object with the same key/value.
@@ -146,7 +145,7 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 		customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		d.SetId(customObject.ID)
@@ -156,7 +155,7 @@ func resourceCustomObjectUpdate(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceCustomObjectDelete(d *schema.ResourceData, m interface{}) error {
+func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	container := d.Get("container").(string)
 	key := d.Get("key").(string)
 
@@ -170,9 +169,12 @@ func resourceCustomObjectDelete(d *schema.ResourceData, m interface{}) error {
 		CustomObjects().
 		WithContainerAndKey(container, key).
 		Get().
-		Execute(context.Background())
+		Execute(ctx)
 	if err != nil {
-		return fmt.Errorf("could not get custom object with container %s and key %s: %w", container, key, err)
+		var diags diag.Diagnostics
+		diags = append(diags, diag.FromErr(err)...)
+		diags = append(diags, diag.Errorf("could not get custom object with container %s and key %s", container, key)...)
+		return diags
 	}
 
 	_, err = client.
@@ -181,9 +183,12 @@ func resourceCustomObjectDelete(d *schema.ResourceData, m interface{}) error {
 		Delete().
 		Version(customObject.Version).
 		DataErasure(false).
-		Execute(context.Background())
+		Execute(ctx)
 	if err != nil {
-		return fmt.Errorf("could not delete custom object with container %s and key %s: %w", container, key, err)
+		var diags diag.Diagnostics
+		diags = append(diags, diag.FromErr(err)...)
+		diags = append(diags, diag.Errorf("could not delete custom object with container %s and key %s", container, key)...)
+		return diags
 	}
 	return nil
 }

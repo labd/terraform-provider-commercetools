@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -18,10 +19,10 @@ func resourceAPIExtension() *schema.Resource {
 			"Note that API extensions affect the performance of the API it is extending. If it fails, the whole API " +
 			"call fails \n\n" +
 			"Also see the [API Extension API Documentation](https://docs.commercetools.com/api/projects/api-extensions)",
-		Create:        resourceAPIExtensionCreate,
-		Read:          resourceAPIExtensionRead,
-		Update:        resourceAPIExtensionUpdate,
-		Delete:        resourceAPIExtensionDelete,
+		CreateContext: resourceAPIExtensionCreate,
+		ReadContext:   resourceAPIExtensionRead,
+		UpdateContext: resourceAPIExtensionUpdate,
+		DeleteContext: resourceAPIExtensionDelete,
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -127,14 +128,14 @@ func validateDestinationType(val interface{}, key string) (warns []string, errs 
 	return
 }
 
-func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
+func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var extension *platform.Extension
 
 	triggers := unmarshallExtensionTriggers(d)
 	destination, err := unmarshallExtensionDestination(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	draft := platform.ExtensionDraft{
@@ -144,10 +145,10 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 		TimeoutInMs: intRef(d.Get("timeout_in_ms")),
 	}
 
-	err = resource.Retry(20*time.Second, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
-		extension, err = client.Extensions().Post(draft).Execute(context.Background())
+		extension, err = client.Extensions().Post(draft).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -155,24 +156,24 @@ func resourceAPIExtensionCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if extension == nil {
-		return fmt.Errorf("Error creating extension")
+		return diag.Errorf("Error creating extension")
 	}
 
 	d.SetId(extension.ID)
 	d.Set("version", extension.Version)
 
-	return resourceAPIExtensionRead(d, m)
+	return resourceAPIExtensionRead(ctx, d, m)
 }
 
-func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
+func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading extensions from commercetools")
 	client := getClient(m)
 
-	extension, err := client.Extensions().WithId(d.Id()).Get().Execute(context.Background())
+	extension, err := client.Extensions().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -181,7 +182,7 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if extension == nil {
@@ -200,7 +201,7 @@ func resourceAPIExtensionRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ExtensionUpdate{
@@ -225,7 +226,7 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 	if d.HasChange("destination") {
 		destination, err := unmarshallExtensionDestination(d)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		input.Actions = append(
 			input.Actions,
@@ -239,22 +240,20 @@ func resourceAPIExtensionUpdate(d *schema.ResourceData, m interface{}) error {
 			&platform.ExtensionSetTimeoutInMsAction{TimeoutInMs: &newTimeout})
 	}
 
-	_, err := client.Extensions().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err := client.Extensions().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceAPIExtensionRead(d, m)
+	return resourceAPIExtensionRead(ctx, d, m)
 }
 
-func resourceAPIExtensionDelete(d *schema.ResourceData, m interface{}) error {
+func resourceAPIExtensionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Extensions().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyExtensionsByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(context.Background())
+	_, err := client.Extensions().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	return nil
 }
