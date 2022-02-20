@@ -340,9 +340,9 @@ func unmarshallDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.Cart
 }
 
 func marshallDiscountCodeCartDiscounts(values []platform.CartDiscountReference) []string {
-	result := make([]string, 0, len(values))
-	for _, obj := range values {
-		result = append(result, string(obj.ID))
+	result := make([]string, len(values))
+	for i := range values {
+		result[i] = string(values[i].ID)
 	}
 	return result
 }
