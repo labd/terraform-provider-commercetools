@@ -246,7 +246,7 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 		stringFormatActions(input.Actions))
 
 	client := getClient(m)
-	taxCategory, err = client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
+	_, err = client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
@@ -257,6 +257,9 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 	// Refresh the taxCategory. When a tax rate is added the ID is different
 	// then the ID returned in the response
 	updatedTaxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
 

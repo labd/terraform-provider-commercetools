@@ -265,8 +265,8 @@ func resourceStateDelete(ctx context.Context, d *schema.ResourceData, m interfac
 
 func marshallStateTransitions(values []platform.StateReference) []string {
 	result := make([]string, len(values))
-	for idx, _ := range values {
-		result[idx] = values[idx].ID
+	for i := range values {
+		result[i] = values[i].ID
 	}
 	return result
 }

@@ -420,7 +420,7 @@ func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomField
 }
 
 func marshallProjectCarts(val platform.CartsConfiguration) []map[string]interface{} {
-	if *val.CountryTaxRateFallbackEnabled == false && val.DeleteDaysAfterLastModification == nil {
+	if !*val.CountryTaxRateFallbackEnabled && val.DeleteDaysAfterLastModification == nil {
 		return []map[string]interface{}{}
 	}
 
