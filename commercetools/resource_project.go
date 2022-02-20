@@ -78,6 +78,16 @@ func resourceProjectSettings() *schema.Resource {
 					},
 				},
 			},
+			"enable_search_index_products": {
+				Description: "Enable the Search Indexing of products",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"enable_search_index_orders": {
+				Description: "Enable the Search Indexing of orders",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
 			"external_oauth": {
 				Description: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
 				Type:        schema.TypeList,
@@ -216,6 +226,8 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("countries", project.Countries)
 	d.Set("languages", project.Languages)
 	d.Set("shipping_rate_input_type", marshallProjectShippingRateInputType(project.ShippingRateInputType))
+	d.Set("enable_search_index_products", marshallProjectSearchIndexProducts(project.SearchIndexing))
+	d.Set("enable_search_index_orders", marshallProjectSearchIndexOrders(project.SearchIndexing))
 	d.Set("external_oauth", marshallProjectExternalOAuth(project.ExternalOAuth))
 	d.Set("carts", marshallProjectCarts(project.Carts))
 	d.Set("messages", marshallProjectMessages(project.Messages))
@@ -325,6 +337,27 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 		}
 	}
 
+	if d.HasChange("enable_search_index_products") {
+		value := d.Get("enable_search_index_products").(bool)
+		action := platform.ProjectChangeProductSearchIndexingEnabledAction{
+			Enabled: value,
+		}
+		input.Actions = append(input.Actions, action)
+	}
+
+	if d.HasChange("enable_search_index_orders") {
+		value := d.Get("enable_search_index_orders")
+
+		status := platform.OrderSearchStatusDeactivated
+		if value.(bool) {
+			status = platform.OrderSearchStatusActivated
+		}
+		action := platform.ProjectChangeOrderSearchStatusAction{
+			Status: status,
+		}
+		input.Actions = append(input.Actions, action)
+	}
+
 	if d.HasChange("carts") {
 		carts, err := elementFromList(d, "carts")
 		if err != nil {
@@ -420,6 +453,28 @@ func marshallProjectExternalOAuth(val *platform.ExternalOAuth) []map[string]inte
 			"authorization_header": val.AuthorizationHeader,
 		},
 	}
+}
+
+func marshallProjectSearchIndexProducts(val *platform.SearchIndexingConfiguration) bool {
+	if val == nil {
+		return false
+	}
+
+	if val.Products != nil && val.Products.Status != nil {
+		return *val.Products.Status != platform.SearchIndexingConfigurationStatusDeactivated
+	}
+	return false
+}
+
+func marshallProjectSearchIndexOrders(val *platform.SearchIndexingConfiguration) bool {
+	if val == nil {
+		return false
+	}
+
+	if val.Orders != nil && val.Orders.Status != nil {
+		return *val.Orders.Status != platform.SearchIndexingConfigurationStatusDeactivated
+	}
+	return false
 }
 
 func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) string {

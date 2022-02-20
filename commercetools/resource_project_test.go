@@ -204,6 +204,7 @@ func testAccProjectConfig() string {
 				url = "https://example.com/oauth/token"
 				authorization_header = "Bearer secret"
 			}
+
 			messages {
 			  enabled = true
 			}
@@ -236,6 +237,9 @@ func testAccProjectConfigUpdate() string {
               country_tax_rate_fallback_enabled = false
               delete_days_after_last_modification = 21
             }
+
+			enable_search_index_products = true
+			enable_search_index_orders = true
 
             shipping_rate_input_type = "CartClassification"
 			shipping_rate_cart_classification_value {
