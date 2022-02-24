@@ -348,6 +348,8 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			&platform.CategorySetMetaKeywordsAction{MetaKeywords: &newMetaKeywords})
 	}
 
+	// TODO: This is far from complete. See
+	// https://github.com/labd/terraform-provider-commercetools/issues/205
 	if d.HasChange("assets") {
 		assets := unmarshallCategoryAssets(d)
 		for _, asset := range assets {
