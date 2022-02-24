@@ -2,7 +2,7 @@ module github.com/labd/terraform-provider-commercetools
 
 require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.10.1
-	github.com/labd/commercetools-go-sdk v1.0.0-beta.3
+	github.com/labd/commercetools-go-sdk v1.0.0-beta.4
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 )

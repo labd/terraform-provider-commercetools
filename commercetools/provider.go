@@ -2,9 +2,11 @@ package commercetools
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/labd/commercetools-go-sdk/ctutils"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"golang.org/x/oauth2/clientcredentials"
 )
@@ -95,10 +97,15 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		TokenURL:     fmt.Sprintf("%s/oauth/token", authURL),
 	}
 
+	httpCLient := &http.Client{
+		Transport: ctutils.DebugTransport,
+	}
+
 	client, err := platform.NewClient(&platform.ClientConfig{
 		URL:         apiURL,
 		Credentials: oauth2Config,
 		UserAgent:   fmt.Sprintf("%s (terraform-provider-commercetools)", platform.GetUserAgent()),
+		HTTPClient:  httpCLient,
 	})
 
 	if err != nil {
