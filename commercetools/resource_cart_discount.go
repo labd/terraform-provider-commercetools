@@ -284,7 +284,7 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if cartDiscount == nil {
-		log.Fatal("No cart discount created")
+		return diag.Errorf("No cart discount created")
 	}
 
 	d.SetId(cartDiscount.ID)

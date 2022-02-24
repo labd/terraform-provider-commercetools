@@ -168,7 +168,7 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
 
 	if newTaxRate == nil {
-		log.Fatal("No tax category rate created?")
+		return diag.Errorf("No tax category rate created?")
 	}
 
 	d.SetId(*newTaxRate.ID)
@@ -264,7 +264,7 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
 
 	if newTaxRate == nil {
-		log.Fatal("No tax category rate created?")
+		return diag.Errorf("No tax category rate created?")
 	}
 
 	d.SetId(*newTaxRate.ID)

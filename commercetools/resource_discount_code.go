@@ -141,7 +141,7 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if discountCode == nil {
-		log.Fatal("No discount code created")
+		return diag.Errorf("No discount code created")
 	}
 
 	d.SetId(discountCode.ID)

@@ -211,7 +211,7 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if category == nil {
-		log.Fatal("No  category created?")
+		return diag.Errorf("No  category created?")
 	}
 
 	d.SetId(category.ID)

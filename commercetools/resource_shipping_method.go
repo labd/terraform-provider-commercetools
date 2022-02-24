@@ -100,7 +100,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	if shippingMethod == nil {
-		log.Fatal("No shipping method created?")
+		return diag.Errorf("No shipping method created?")
 	}
 
 	d.SetId(shippingMethod.ID)

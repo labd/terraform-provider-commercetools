@@ -248,7 +248,7 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	if ctType == nil {
-		log.Fatal("No type created?")
+		return diag.Errorf("No type created?")
 	}
 
 	d.SetId(ctType.ID)

@@ -247,7 +247,7 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if shippingMethod == nil {
-		log.Fatal("No shipping method created?")
+		return diag.Errorf("No shipping method created?")
 	}
 
 	d.SetId(buildShippingZoneRateID(shippingMethod.ID, shippingZoneID, string(priceCurrencyCode)))

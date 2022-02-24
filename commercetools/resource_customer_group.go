@@ -67,7 +67,7 @@ func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	if customerGroup == nil {
-		log.Fatal("No customer group")
+		return diag.Errorf("No customer group")
 	}
 
 	d.SetId(customerGroup.ID)

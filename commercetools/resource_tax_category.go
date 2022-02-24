@@ -71,7 +71,7 @@ func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	if taxCategory == nil {
-		log.Fatal("No tax category created?")
+		return diag.Errorf("No tax category created?")
 	}
 
 	d.SetId(taxCategory.ID)
