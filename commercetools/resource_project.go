@@ -229,9 +229,9 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("shipping_rate_input_type", marshallProjectShippingRateInputType(project.ShippingRateInputType))
 	d.Set("enable_search_index_products", marshallProjectSearchIndexProducts(project.SearchIndexing))
 	d.Set("enable_search_index_orders", marshallProjectSearchIndexOrders(project.SearchIndexing))
-	d.Set("external_oauth", marshallProjectExternalOAuth(project.ExternalOAuth))
+	d.Set("external_oauth", marshallProjectExternalOAuth(project.ExternalOAuth, d.Get("external_oauth")))
 	d.Set("carts", marshallProjectCarts(project.Carts))
-	d.Set("messages", marshallProjectMessages(project.Messages))
+	d.Set("messages", marshallProjectMessages(project.Messages, d))
 	return nil
 }
 
@@ -433,14 +433,24 @@ func marshallProjectCarts(val platform.CartsConfiguration) []map[string]interfac
 	return result
 }
 
-func marshallProjectExternalOAuth(val *platform.ExternalOAuth) []map[string]interface{} {
+func marshallProjectExternalOAuth(val *platform.ExternalOAuth, current interface{}) []map[string]interface{} {
 	if val == nil {
 		return []map[string]interface{}{}
+	}
+
+	// Get the current value since this we cannot read this value from commercetools
+	var authHeader string
+	if val, ok := current.([]interface{}); ok {
+		if len(val) > 0 {
+			if items, ok := val[0].(map[string]interface{}); ok {
+				authHeader = items["authorization_header"].(string)
+			}
+		}
 	}
 	return []map[string]interface{}{
 		{
 			"url":                  val.Url,
-			"authorization_header": val.AuthorizationHeader,
+			"authorization_header": authHeader,
 		},
 	}
 }
@@ -479,7 +489,13 @@ func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) st
 	return ""
 }
 
-func marshallProjectMessages(val platform.MessagesConfiguration) []map[string]interface{} {
+func marshallProjectMessages(val platform.MessagesConfiguration, d *schema.ResourceData) []map[string]interface{} {
+	if current, ok := d.Get("messages").([]interface{}); ok {
+		if len(current) == 0 && !val.Enabled {
+			return nil
+		}
+
+	}
 	return []map[string]interface{}{
 		{
 			"enabled": val.Enabled,
