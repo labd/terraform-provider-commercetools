@@ -94,7 +94,6 @@ func TestUnmarshallExtensionTriggers(t *testing.T) {
 }
 
 func TestAccAPIExtension_basic(t *testing.T) {
-	fmt.Println("RUN IT")
 	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
 	timeoutInMs := acctest.RandIntRange(200, 1800)
 
