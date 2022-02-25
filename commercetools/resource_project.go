@@ -367,7 +367,7 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeCartsConfigurationAction{
-				CartsConfiguration: &platform.CartsConfiguration{
+				CartsConfiguration: platform.CartsConfiguration{
 					CountryTaxRateFallbackEnabled:   boolRef(fallbackEnabled),
 					DeleteDaysAfterLastModification: deleteDaysAfterLastModification,
 				},
