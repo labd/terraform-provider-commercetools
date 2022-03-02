@@ -2,11 +2,11 @@ package commercetools
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/ctutils"
@@ -17,12 +17,12 @@ func resourceCartDiscount() *schema.Resource {
 	return &schema.Resource{
 		Description: "Cart discounts are used to change the prices of different elements within a cart.\n\n" +
 			"See also the [Cart Discount API Documentation](https://docs.commercetools.com/api/projects/cartDiscounts)",
-		Create: resourceCartDiscountCreate,
-		Read:   resourceCartDiscountRead,
-		Update: resourceCartDiscountUpdate,
-		Delete: resourceCartDiscountDelete,
+		CreateContext: resourceCartDiscountCreate,
+		ReadContext:   resourceCartDiscountRead,
+		UpdateContext: resourceCartDiscountUpdate,
+		DeleteContext: resourceCartDiscountDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
@@ -218,23 +218,21 @@ func validateStackingMode(val interface{}, key string) (warns []string, errs []e
 	return
 }
 
-func resourceCartDiscountCreate(d *schema.ResourceData, m interface{}) error {
+func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var cartDiscount *platform.CartDiscount
 
-	name := platform.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := platform.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+	name := unmarshallLocalizedString(d.Get("name"))
+	description := unmarshallLocalizedString(d.Get("description"))
 
 	value, err := unmarshallCartDiscountValue(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	stackingMode, err := unmarshallCartDiscountStackingMode(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	draft := platform.CartDiscountDraft{
@@ -252,28 +250,28 @@ func resourceCartDiscountCreate(d *schema.ResourceData, m interface{}) error {
 	if val, err := unmarshallCartDiscountTarget(d); err == nil {
 		draft.Target = val
 	} else {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
-		validFrom, err := expandDate(val)
+		validFrom, err := unmarshallTime(val)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		draft.ValidFrom = &validFrom
 	}
 	if val := d.Get("valid_until").(string); len(val) > 0 {
-		validUntil, err := expandDate(val)
+		validUntil, err := unmarshallTime(val)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		draft.ValidUntil = &validUntil
 	}
 
-	errorResponse := resource.Retry(1*time.Minute, func() *resource.RetryError {
+	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		cartDiscount, err = client.CartDiscounts().Post(draft).Execute(context.Background())
+		cartDiscount, err = client.CartDiscounts().Post(draft).Execute(ctx)
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -282,25 +280,25 @@ func resourceCartDiscountCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if errorResponse != nil {
-		return errorResponse
+		return diag.FromErr(errorResponse)
 	}
 
 	if cartDiscount == nil {
-		log.Fatal("No cart discount created")
+		return diag.Errorf("No cart discount created")
 	}
 
 	d.SetId(cartDiscount.ID)
 	d.Set("version", cartDiscount.Version)
 
-	return resourceCartDiscountRead(d, m)
+	return resourceCartDiscountRead(ctx, d, m)
 }
 
-func resourceCartDiscountRead(d *schema.ResourceData, m interface{}) error {
+func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Printf("[DEBUG] Reading cart discount from commercetools, with cartDiscount id: %s", d.Id())
 
 	client := getClient(m)
 
-	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(context.Background())
+	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -309,7 +307,7 @@ func resourceCartDiscountRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if cartDiscount == nil {
@@ -337,11 +335,11 @@ func resourceCartDiscountRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(context.Background())
+	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	input := platform.CartDiscountUpdate{
@@ -357,16 +355,14 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CartDiscountChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := platform.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := unmarshallLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CartDiscountSetDescriptionAction{Description: &newDescription})
@@ -375,7 +371,7 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 	if d.HasChange("value") {
 		value, err := unmarshallCartDiscountValue(d)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		input.Actions = append(
 			input.Actions,
@@ -396,10 +392,10 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 					input.Actions,
 					&platform.CartDiscountChangeTargetAction{Target: val})
 			} else {
-				return errors.New("Cannot change target to empty")
+				return diag.Errorf("Cannot change target to empty")
 			}
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 
 	}
@@ -420,9 +416,9 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 
 	if d.HasChange("valid_from") {
 		if val := d.Get("valid_from").(string); len(val) > 0 {
-			newValidFrom, err := expandDate(d.Get("valid_from").(string))
+			newValidFrom, err := unmarshallTime(d.Get("valid_from").(string))
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 			input.Actions = append(
 				input.Actions,
@@ -436,9 +432,9 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 
 	if d.HasChange("valid_until") {
 		if val := d.Get("valid_until").(string); len(val) > 0 {
-			newValidUntil, err := expandDate(d.Get("valid_until").(string))
+			newValidUntil, err := unmarshallTime(d.Get("valid_until").(string))
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 			input.Actions = append(
 				input.Actions,
@@ -460,7 +456,7 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 	if d.HasChange("stacking_mode") {
 		newStackingMode, err := unmarshallCartDiscountStackingMode(d)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		input.Actions = append(
 			input.Actions,
@@ -471,25 +467,23 @@ func resourceCartDiscountUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.CartDiscounts().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err = client.CartDiscounts().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceCartDiscountRead(d, m)
+	return resourceCartDiscountRead(ctx, d, m)
 }
 
-func resourceCartDiscountDelete(d *schema.ResourceData, m interface{}) error {
+func resourceCartDiscountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.CartDiscounts().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyCartDiscountsByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(context.Background())
+	_, err := client.CartDiscounts().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	return nil
 }
@@ -556,7 +550,7 @@ func unmarshallCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountV
 		return draft, nil
 
 	default:
-		return nil, fmt.Errorf("Value type %s not implemented", value["type"])
+		return nil, fmt.Errorf("value type %s not implemented", value["type"])
 	}
 }
 
@@ -603,7 +597,7 @@ func unmarshallCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscount
 	case "shipping":
 		return platform.CartDiscountShippingCostTarget{}, nil
 	default:
-		return nil, fmt.Errorf("Target type %s not implemented", input["type"])
+		return nil, fmt.Errorf("target type %s not implemented", input["type"])
 	}
 
 }
@@ -615,7 +609,7 @@ func unmarshallCartDiscountStackingMode(d *schema.ResourceData) (platform.Stacki
 	case "StopAfterThisDiscount":
 		return platform.StackingModeStopAfterThisDiscount, nil
 	default:
-		return "", fmt.Errorf("Stacking mode %s not implemented", d.Get("stacking_mode").(string))
+		return "", fmt.Errorf("stacking mode %s not implemented", d.Get("stacking_mode").(string))
 	}
 }
 

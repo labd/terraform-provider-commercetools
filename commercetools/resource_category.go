@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -14,12 +15,12 @@ func resourceCategory() *schema.Resource {
 	return &schema.Resource{
 		Description: "Categories allow you to organize products into hierarchical structures.\n\n" +
 			"Also see the [Categories HTTP API documentation](https://docs.commercetools.com/api/projects/categories).",
-		Create: resourceCategoryCreate,
-		Read:   resourceCategoryRead,
-		Update: resourceCategoryUpdate,
-		Delete: resourceCategoryDelete,
+		CreateContext: resourceCategoryCreate,
+		ReadContext:   resourceCategoryRead,
+		UpdateContext: resourceCategoryUpdate,
+		DeleteContext: resourceCategoryDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
@@ -149,12 +150,12 @@ func resourceCategory() *schema.Resource {
 	}
 }
 
-func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var category *platform.Category
 
-	name := platform.LocalizedString(expandStringMap(d.Get("name").(map[string]interface{})))
-	slug := platform.LocalizedString(expandStringMap(d.Get("slug").(map[string]interface{})))
+	name := unmarshallLocalizedString(d.Get("name"))
+	slug := unmarshallLocalizedString(d.Get("slug"))
 
 	draft := platform.CategoryDraft{
 		Key:       stringRef(d.Get("key")),
@@ -164,22 +165,22 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.Get("description") != nil {
-		desc := platform.LocalizedString(expandStringMap(d.Get("description").(map[string]interface{})))
+		desc := unmarshallLocalizedString(d.Get("description"))
 		draft.Description = &desc
 	}
 
 	if d.Get("meta_title") != nil {
-		metaTitle := platform.LocalizedString(expandStringMap(d.Get("meta_title").(map[string]interface{})))
+		metaTitle := unmarshallLocalizedString(d.Get("meta_title"))
 		draft.MetaTitle = &metaTitle
 	}
 
 	if d.Get("meta_description") != nil {
-		metaDescription := platform.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
+		metaDescription := unmarshallLocalizedString(d.Get("meta_description"))
 		draft.MetaDescription = &metaDescription
 	}
 
 	if d.Get("meta_keywords") != nil {
-		metaKeywords := platform.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
+		metaKeywords := unmarshallLocalizedString(d.Get("meta_keywords"))
 		draft.MetaKeywords = &metaKeywords
 	}
 
@@ -194,10 +195,10 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 		draft.Assets = assets
 	}
 
-	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		category, err = client.Categories().Post(draft).Execute(context.Background())
+		category, err = client.Categories().Post(draft).Execute(ctx)
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -206,24 +207,24 @@ func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if category == nil {
-		log.Fatal("No  category created?")
+		return diag.Errorf("No  category created?")
 	}
 
 	d.SetId(category.ID)
 	_ = d.Set("version", category.Version)
 
-	return resourceCategoryRead(d, m)
+	return resourceCategoryRead(ctx, d, m)
 }
 
-func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Printf("[DEBUG] Reading category from commercetools, with category id: %s", d.Id())
 	client := getClient(m)
 
-	category, err := client.Categories().WithId(d.Id()).Get().Execute(context.Background())
+	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -232,7 +233,7 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if category == nil {
@@ -264,18 +265,18 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 			d.Set("meta_keywords", *category.MetaKeywords)
 		}
 		if category.Assets != nil {
-			d.Set("assets", category.Assets)
+			d.Set("assets", marshallCategoryAssets(category.Assets))
 		}
 	}
 	return nil
 }
 
-func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	category, err := client.Categories().WithId(d.Id()).Get().Execute(context.Background())
+	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	input := platform.CategoryUpdate{
@@ -284,14 +285,14 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategoryChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("slug") {
-		newSlug := platform.LocalizedString(expandStringMap(d.Get("slug").(map[string]interface{})))
+		newSlug := unmarshallLocalizedString(d.Get("slug"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategoryChangeSlugAction{Slug: newSlug})
@@ -312,7 +313,7 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("description") {
-		newDescription := platform.LocalizedString(expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := unmarshallLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetDescriptionAction{Description: &newDescription})
@@ -327,26 +328,28 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("meta_title") {
-		newMetaTitle := platform.LocalizedString(expandStringMap(d.Get("meta_title").(map[string]interface{})))
+		newMetaTitle := unmarshallLocalizedString(d.Get("meta_title"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetMetaTitleAction{MetaTitle: &newMetaTitle})
 	}
 
 	if d.HasChange("meta_description") {
-		newMetaDescription := platform.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
+		newMetaDescription := unmarshallLocalizedString(d.Get("meta_description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetMetaDescriptionAction{MetaDescription: &newMetaDescription})
 	}
 
 	if d.HasChange("meta_keywords") {
-		newMetaKeywords := platform.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
+		newMetaKeywords := unmarshallLocalizedString(d.Get("meta_keywords"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetMetaKeywordsAction{MetaKeywords: &newMetaKeywords})
 	}
 
+	// TODO: This is far from complete. See
+	// https://github.com/labd/terraform-provider-commercetools/issues/205
 	if d.HasChange("assets") {
 		assets := unmarshallCategoryAssets(d)
 		for _, asset := range assets {
@@ -369,29 +372,50 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.Categories().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err = client.Categories().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceCategoryRead(d, m)
+	return resourceCategoryRead(ctx, d, m)
 }
 
-func resourceCategoryDelete(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	version := d.Get("version").(int)
-	_, err := client.Categories().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyCategoriesByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(context.Background())
+	_, err := client.Categories().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
+}
+
+func marshallCategoryAssets(assets []platform.Asset) []map[string]interface{} {
+
+	result := make([]map[string]interface{}, len(assets))
+
+	for i := range assets {
+		asset := assets[i]
+
+		result[i] = make(map[string]interface{})
+		result[i]["name"] = asset.Name
+		result[i]["key"] = asset.Key
+		result[i]["sources"] = marshallCategoryAssetSources(asset.Sources)
+		result[i]["tags"] = asset.Tags
+
+		if asset.Description != nil {
+			result[i]["description"] = *asset.Description
+		} else {
+			result[i]["description"] = nil
+		}
+	}
+
+	return result
 }
 
 func unmarshallCategoryAssets(d *schema.ResourceData) []platform.AssetDraft {
@@ -401,9 +425,10 @@ func unmarshallCategoryAssets(d *schema.ResourceData) []platform.AssetDraft {
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
 
-		name := platform.LocalizedString(expandStringMap(i["name"].(map[string]interface{})))
-		description := platform.LocalizedString(expandStringMap(i["description"].(map[string]interface{})))
+		name := unmarshallLocalizedString(i["name"])
+		description := unmarshallLocalizedString(i["description"])
 		sources := unmarshallCategoryAssetSources(i)
+		tags := expandStringArray(i["tags"].([]interface{}))
 
 		key := i["key"].(string)
 		result = append(result, platform.AssetDraft{
@@ -411,9 +436,33 @@ func unmarshallCategoryAssets(d *schema.ResourceData) []platform.AssetDraft {
 			Name:        name,
 			Description: &description,
 			Sources:     sources,
+			Tags:        tags,
 		})
 	}
 
+	return result
+}
+
+func marshallCategoryAssetSources(sources []platform.AssetSource) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(sources))
+
+	for i := range sources {
+		source := sources[i]
+
+		result[i] = make(map[string]interface{})
+		result[i]["key"] = source.Key
+		result[i]["uri"] = source.Uri
+		result[i]["content_type"] = source.ContentType
+
+		if source.Dimensions != nil {
+			result[i]["dimensions"] = []map[string]interface{}{
+				{
+					"h": source.Dimensions.H,
+					"w": source.Dimensions.W,
+				},
+			}
+		}
+	}
 	return result
 }
 
@@ -431,8 +480,7 @@ func unmarshallCategoryAssetSources(i map[string]interface{}) []platform.AssetSo
 		}
 
 		if _, ok := s["dimensions"]; ok {
-			assetDimensions := unmarshallCategoryAssetSourceDimensions(s)
-			source.Dimensions = &assetDimensions
+			source.Dimensions = unmarshallCategoryAssetSourceDimensions(s)
 		}
 
 		sources = append(sources, source)
@@ -440,22 +488,20 @@ func unmarshallCategoryAssetSources(i map[string]interface{}) []platform.AssetSo
 	return sources
 }
 
-func unmarshallCategoryAssetSourceDimensions(s map[string]interface{}) platform.AssetDimensions {
-	var dimensions platform.AssetDimensions
+func unmarshallCategoryAssetSourceDimensions(s map[string]interface{}) *platform.AssetDimensions {
 	data, err := elementFromSlice(s, "dimensions")
 	if err != nil {
-		return dimensions
+		return nil
 	}
 
-	for _, item := range data {
-		d := item.(map[string]interface{})
-
-		dimensions = platform.AssetDimensions{
-			W: d["w"].(int),
-			H: d["h"].(int),
-		}
+	if data["w"] == nil || data["h"] == nil {
+		return nil
 	}
-	return dimensions
+
+	return &platform.AssetDimensions{
+		W: data["w"].(int),
+		H: data["h"].(int),
+	}
 }
 
 func resourceCategoryResourceV0() *schema.Resource {

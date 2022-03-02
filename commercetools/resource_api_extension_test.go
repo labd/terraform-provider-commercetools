@@ -39,7 +39,7 @@ func TestAPIExtensionUnmarshallExtensionDestination(t *testing.T) {
 
 	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
 	destination, _ := unmarshallExtensionDestination(d)
-	lambdaDestination, ok := destination.(platform.ExtensionAWSLambdaDestination)
+	lambdaDestination, ok := destination.(platform.AWSLambdaDestination)
 
 	assert.True(t, ok)
 	assert.Equal(t, lambdaDestination.Arn, "arn:aws:lambda:eu-west-1:111111111:function:api_extensions")
@@ -62,7 +62,7 @@ func TestAPIExtensionUnmarshallExtensionDestinationAuthentication(t *testing.T) 
 	}
 
 	auth, err = unmarshallExtensionDestinationAuthentication(input)
-	httpAuth, ok := auth.(*platform.ExtensionAuthorizationHeaderAuthentication)
+	httpAuth, ok := auth.(*platform.AuthorizationHeaderAuthentication)
 	assert.True(t, ok)
 	assert.Equal(t, "12345", httpAuth.HeaderValue)
 	assert.NotNil(t, auth)
@@ -94,7 +94,6 @@ func TestUnmarshallExtensionTriggers(t *testing.T) {
 }
 
 func TestAccAPIExtension_basic(t *testing.T) {
-	fmt.Println("RUN IT")
 	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
 	timeoutInMs := acctest.RandIntRange(200, 1800)
 

@@ -3,9 +3,9 @@ package commercetools
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -16,12 +16,12 @@ func resourceChannel() *schema.Resource {
 		Description: "Channels represent a source or destination of different entities. They can be used to model " +
 			"warehouses or stores.\n\n" +
 			"See also the [Channels API Documentation](https://docs.commercetools.com/api/projects/channels)",
-		Create: resourceChannelCreate,
-		Read:   resourceChannelRead,
-		Update: resourceChannelUpdate,
-		Delete: resourceChannelDelete,
+		CreateContext: resourceChannelCreate,
+		ReadContext:   resourceChannelRead,
+		UpdateContext: resourceChannelUpdate,
+		DeleteContext: resourceChannelDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -85,11 +85,9 @@ func resourceChannel() *schema.Resource {
 	}
 }
 
-func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
-	name := platform.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := platform.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	name := unmarshallLocalizedString(d.Get("name"))
+	description := unmarshallLocalizedString(d.Get("description"))
 
 	roles := []platform.ChannelRoleEnum{}
 	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
@@ -116,10 +114,10 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	client := getClient(m)
 	var channel *platform.Channel
 
-	err := resource.Retry(20*time.Second, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
-		channel, err = client.Channels().Post(draft).Execute(context.Background())
+		channel, err = client.Channels().Post(draft).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -127,14 +125,14 @@ func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(channel.ID)
 	if err := d.Set("version", channel.Version); err != nil {
-		return fmt.Errorf("error reading channel: %s", err)
+		return diag.FromErr(err)
 	}
-	return resourceChannelRead(d, m)
+	return resourceChannelRead(ctx, d, m)
 }
 
 func getCustomFieldsData(d *schema.ResourceData) (*platform.TypeResourceIdentifier, *platform.FieldContainer) {
@@ -171,9 +169,9 @@ func _encodeCustomFieldValue(value interface{}) string {
 	return string(data)
 }
 
-func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
+func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	channel, err := client.Channels().WithId(d.Id()).Get().Expand([]string{"custom.type"}).Execute(context.Background())
+	channel, err := client.Channels().WithId(d.Id()).Get().Expand([]string{"custom.type"}).Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -182,26 +180,26 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(channel.ID)
 	if err := d.Set("version", channel.Version); err != nil {
-		return fmt.Errorf("error reading channel: %s", err)
+		return diag.FromErr(err)
 	}
 
 	if channel.Name != nil {
 		if err := d.Set("name", *channel.Name); err != nil {
-			return fmt.Errorf("error reading channel: %s", err)
+			return diag.FromErr(err)
 		}
 	}
 	if channel.Description != nil {
 		if err := d.Set("description", *channel.Description); err != nil {
-			return fmt.Errorf("error reading channel: %s", err)
+			return diag.FromErr(err)
 		}
 	}
 	if err := d.Set("roles", channel.Roles); err != nil {
-		return fmt.Errorf("error reading channel: %s", err)
+		return diag.FromErr(err)
 	}
 
 	if channel.Custom != nil {
@@ -250,13 +248,13 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 		}}
 
 		if err := d.Set("custom", customBase); err != nil {
-			return fmt.Errorf("error reading channel: %s", err)
+			return diag.FromErr(err)
 		}
 	}
 	return nil
 }
 
-func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ChannelUpdate{
@@ -272,16 +270,14 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ChannelChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := platform.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := unmarshallLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ChannelChangeDescriptionAction{Description: newDescription})
@@ -305,22 +301,20 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 			&platform.ChannelSetCustomTypeAction{Type: typeId, Fields: fields})
 	}
 
-	_, err := client.Channels().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err := client.Channels().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceChannelRead(d, m)
+	return resourceChannelRead(ctx, d, m)
 }
 
-func resourceChannelDelete(d *schema.ResourceData, m interface{}) error {
+func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Channels().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyChannelsByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(context.Background())
+	_, err := client.Channels().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

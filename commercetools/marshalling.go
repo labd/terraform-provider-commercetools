@@ -49,3 +49,16 @@ func unmarshallTypedMoney(d map[string]interface{}) []platform.Money {
 
 	return result
 }
+
+func unmarshallLocalizedString(val interface{}) platform.LocalizedString {
+	values, ok := val.(map[string]interface{})
+	if !ok {
+		return platform.LocalizedString{}
+	}
+
+	result := make(platform.LocalizedString, len(values))
+	for k := range values {
+		result[k] = values[k].(string)
+	}
+	return result
+}

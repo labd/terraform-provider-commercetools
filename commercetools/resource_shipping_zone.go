@@ -2,10 +2,10 @@ package commercetools
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -13,12 +13,12 @@ import (
 
 func resourceShippingZone() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceShippingZoneCreate,
-		Read:   resourceShippingZoneRead,
-		Update: resourceShippingZoneUpdate,
-		Delete: resourceShippingZoneDelete,
+		CreateContext: resourceShippingZoneCreate,
+		ReadContext:   resourceShippingZoneRead,
+		UpdateContext: resourceShippingZoneUpdate,
+		DeleteContext: resourceShippingZoneDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -61,7 +61,7 @@ func resourceShippingZone() *schema.Resource {
 	}
 }
 
-func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
+func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Creating shippingzones in commercetools")
 	client := getClient(m)
 
@@ -77,10 +77,10 @@ func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
 		Locations:   locations,
 	}
 
-	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		shippingZone, err = client.Zones().Post(draft).Execute(context.Background())
+		shippingZone, err = client.Zones().Post(draft).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -88,24 +88,24 @@ func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if shippingZone == nil {
-		return fmt.Errorf("Error creating shipping zone")
+		return diag.Errorf("Error creating shipping zone")
 	}
 
 	d.SetId(shippingZone.ID)
 	d.Set("version", shippingZone.Version)
 
-	return resourceShippingZoneRead(d, m)
+	return resourceShippingZoneRead(ctx, d, m)
 }
 
-func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
+func resourceShippingZoneRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading shippingzones from commercetools")
 	client := getClient(m)
 
-	shippingZone, err := client.Zones().WithId(d.Id()).Get().Execute(context.Background())
+	shippingZone, err := client.Zones().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -114,7 +114,7 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if shippingZone == nil {
@@ -133,7 +133,7 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceShippingZoneUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	ctMutexKV.Lock(d.Id())
@@ -186,15 +186,15 @@ func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
-	_, err := client.Zones().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err := client.Zones().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceShippingZoneRead(d, m)
+	return resourceShippingZoneRead(ctx, d, m)
 }
 
-func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
+func resourceShippingZoneDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
@@ -202,50 +202,44 @@ func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	version := d.Get("version").(int)
-	_, err := client.Zones().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyZonesByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := client.Zones().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+	return diag.FromErr(err)
 }
 
 func unmarshallShippingZoneLocations(input interface{}) []platform.Location {
 	inputSlice := input.([]interface{})
-	var result []platform.Location
+	result := make([]platform.Location, len(inputSlice))
 
-	for _, raw := range inputSlice {
-		i := raw.(map[string]interface{})
+	for i := range inputSlice {
+		raw := inputSlice[i].(map[string]interface{})
 
-		country, ok := i["country"].(string)
+		country, ok := raw["country"].(string)
 		if !ok {
 			country = ""
 		}
 
-		state, ok := i["state"].(string)
-		if !ok {
-			state = ""
+		var stateRef *string
+		if state, ok := raw["state"].(string); ok && state != "" {
+			stateRef = &state
 		}
 
-		result = append(result, platform.Location{
+		result[i] = platform.Location{
 			Country: country,
-			State:   &state,
-		})
+			State:   stateRef,
+		}
 	}
 
 	return result
 }
 
 func marshallShippingZoneLocations(locations []platform.Location) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(locations))
+	result := make([]map[string]interface{}, len(locations))
 
-	for _, location := range locations {
-		result = append(result, map[string]interface{}{
-			"country": location.Country,
-			"state":   location.State,
-		})
+	for i := range locations {
+		result[i] = map[string]interface{}{
+			"country": locations[i].Country,
+			"state":   locations[i].State,
+		}
 	}
 
 	return result

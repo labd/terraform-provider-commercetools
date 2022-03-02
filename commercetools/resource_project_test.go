@@ -1,10 +1,14 @@
 package commercetools
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccProjectCreate_basic(t *testing.T) {
@@ -46,6 +50,37 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification", "7"),
+
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["commercetools_project_settings.acctest_project_settings"]
+						if !ok {
+							return fmt.Errorf("Project not found")
+						}
+
+						if rs.Primary.ID == "" {
+							return fmt.Errorf("No Project ID found")
+						}
+
+						client := getClient(testAccProvider.Meta())
+						result, err := client.Get().Execute(context.Background())
+						if err != nil {
+							return err
+						}
+						if result == nil {
+							return fmt.Errorf("resource not found")
+						}
+
+						assert.True(t, *result.Carts.CountryTaxRateFallbackEnabled)
+						assert.EqualValues(t, result.Messages.Enabled, true)
+						assert.EqualValues(t, result.ExternalOAuth.Url, "https://example.com/oauth/token")
+						assert.EqualValues(t, result.ExternalOAuth.AuthorizationHeader, "Bearer secret")
+						assert.EqualValues(t, result.Countries, []string{"NL", "DE", "US"})
+						assert.EqualValues(t, result.Languages, []string{"nl", "de", "en", "en-US"})
+						assert.EqualValues(t, result.Currencies, []string{"EUR", "USD"})
+						assert.Equal(t, *result.Carts.DeleteDaysAfterLastModification, 7)
+						assert.Equal(t, result.ShippingRateInputType, platform.CartValueType(platform.CartValueType{}))
+						return nil
+					},
 				),
 			},
 			{
@@ -204,6 +239,7 @@ func testAccProjectConfig() string {
 				url = "https://example.com/oauth/token"
 				authorization_header = "Bearer secret"
 			}
+
 			messages {
 			  enabled = true
 			}
@@ -236,6 +272,9 @@ func testAccProjectConfigUpdate() string {
               country_tax_rate_fallback_enabled = false
               delete_days_after_last_modification = 21
             }
+
+			enable_search_index_products = true
+			enable_search_index_orders = true
 
             shipping_rate_input_type = "CartClassification"
 			shipping_rate_cart_classification_value {

@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -16,12 +17,12 @@ func resourceDiscountCode() *schema.Resource {
 			"They are defined by a string value which can be added to a cart so that specific cart discounts " +
 			"can be applied to the cart.\n\n" +
 			"See also the [Discount Code Api Documentation](https://docs.commercetools.com/api/projects/discountCodes)",
-		Create: resourceDiscountCodeCreate,
-		Read:   resourceDiscountCodeRead,
-		Update: resourceDiscountCodeUpdate,
-		Delete: resourceDiscountCodeDelete,
+		CreateContext: resourceDiscountCodeCreate,
+		ReadContext:   resourceDiscountCodeRead,
+		UpdateContext: resourceDiscountCodeUpdate,
+		DeleteContext: resourceDiscountCodeDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -90,14 +91,12 @@ func resourceDiscountCode() *schema.Resource {
 	}
 }
 
-func resourceDiscountCodeCreate(d *schema.ResourceData, m interface{}) error {
+func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var discountCode *platform.DiscountCode
 
-	name := platform.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := platform.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+	name := unmarshallLocalizedString(d.Get("name"))
+	description := unmarshallLocalizedString(d.Get("description"))
 
 	draft := platform.DiscountCodeDraft{
 		Name:                       &name,
@@ -112,24 +111,24 @@ func resourceDiscountCodeCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
-		validFrom, err := expandDate(val)
+		validFrom, err := unmarshallTime(val)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		draft.ValidFrom = &validFrom
 	}
 	if val := d.Get("valid_until").(string); len(val) > 0 {
-		validUntil, err := expandDate(val)
+		validUntil, err := unmarshallTime(val)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		draft.ValidUntil = &validUntil
 	}
 
-	errorResponse := resource.Retry(1*time.Minute, func() *resource.RetryError {
+	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		discountCode, err = client.DiscountCodes().Post(draft).Execute(context.Background())
+		discountCode, err = client.DiscountCodes().Post(draft).Execute(ctx)
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -138,25 +137,25 @@ func resourceDiscountCodeCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if errorResponse != nil {
-		return errorResponse
+		return diag.FromErr(errorResponse)
 	}
 
 	if discountCode == nil {
-		log.Fatal("No discount code created")
+		return diag.Errorf("No discount code created")
 	}
 
 	d.SetId(discountCode.ID)
 	d.Set("version", discountCode.Version)
 
-	return resourceDiscountCodeRead(d, m)
+	return resourceDiscountCodeRead(ctx, d, m)
 }
 
-func resourceDiscountCodeRead(d *schema.ResourceData, m interface{}) error {
+func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Printf("[DEBUG] Reading discount code from commercetools, with discount code id: %s", d.Id())
 
 	client := getClient(m)
 
-	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(context.Background())
+	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -165,7 +164,7 @@ func resourceDiscountCodeRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if discountCode == nil {
@@ -192,11 +191,11 @@ func resourceDiscountCodeRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(context.Background())
+	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	input := platform.DiscountCodeUpdate{
@@ -205,16 +204,14 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeSetNameAction{Name: &newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := platform.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := unmarshallLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeSetDescriptionAction{Description: &newDescription})
@@ -270,9 +267,9 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 
 	if d.HasChange("valid_from") {
 		if val := d.Get("valid_from").(string); len(val) > 0 {
-			newValidFrom, err := expandDate(d.Get("valid_from").(string))
+			newValidFrom, err := unmarshallTime(d.Get("valid_from").(string))
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 			input.Actions = append(
 				input.Actions,
@@ -286,9 +283,9 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 
 	if d.HasChange("valid_until") {
 		if val := d.Get("valid_until").(string); len(val) > 0 {
-			newValidUntil, err := expandDate(d.Get("valid_until").(string))
+			newValidUntil, err := unmarshallTime(d.Get("valid_until").(string))
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 			input.Actions = append(
 				input.Actions,
@@ -304,24 +301,21 @@ func resourceDiscountCodeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.DiscountCodes().WithId(discountCode.ID).Post(input).Execute(context.Background())
+	_, err = client.DiscountCodes().WithId(discountCode.ID).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceDiscountCodeRead(d, m)
+	return resourceDiscountCodeRead(ctx, d, m)
 }
 
-func resourceDiscountCodeDelete(d *schema.ResourceData, m interface{}) error {
+func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.DiscountCodes().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyDiscountCodesByIDRequestMethodDeleteInput{
-		Version:     version,
-		DataErasure: boolRef(true),
-	}).Execute(context.Background())
+	_, err := client.DiscountCodes().WithId(d.Id()).Delete().Version(version).DataErasure(true).Execute(ctx)
 
 	if err != nil {
 		log.Printf("[ERROR] Error during deleting discount code resource %s", err)
@@ -331,11 +325,7 @@ func resourceDiscountCodeDelete(d *schema.ResourceData, m interface{}) error {
 }
 
 func unmarshallDiscountCodeGroups(d *schema.ResourceData) []string {
-	var groups []string
-	for _, group := range expandStringArray(d.Get("groups").([]interface{})) {
-		groups = append(groups, group)
-	}
-	return groups
+	return expandStringArray(d.Get("groups").([]interface{}))
 }
 
 func unmarshallDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.CartDiscountResourceIdentifier {
@@ -350,9 +340,9 @@ func unmarshallDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.Cart
 }
 
 func marshallDiscountCodeCartDiscounts(values []platform.CartDiscountReference) []string {
-	result := make([]string, 0, len(values))
-	for _, obj := range values {
-		result = append(result, string(obj.ID))
+	result := make([]string, len(values))
+	for i := range values {
+		result[i] = string(values[i].ID)
 	}
 	return result
 }

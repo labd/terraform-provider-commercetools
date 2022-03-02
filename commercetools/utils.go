@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -48,16 +47,8 @@ func handleCommercetoolsError(err error) *resource.RetryError {
 
 func expandStringArray(input []interface{}) []string {
 	s := make([]string, len(input))
-	for i, v := range input {
-		s[i] = fmt.Sprint(v)
-	}
-	return s
-}
-
-func expandStringMap(input map[string]interface{}) map[string]string {
-	s := make(map[string]string)
-	for k, v := range input {
-		s[k] = fmt.Sprint(v)
+	for i := range input {
+		s[i] = input[i].(string)
 	}
 	return s
 }
@@ -69,14 +60,6 @@ func localizedStringCompare(a platform.LocalizedString, b map[string]interface{}
 		}
 	}
 	return true
-}
-
-func localizedStringToMap(input platform.LocalizedString) map[string]string {
-	result := make(map[string]string, len(input))
-	for k, v := range input {
-		result[k] = v
-	}
-	return result
 }
 
 func stringFormatObject(object interface{}) string {
@@ -324,13 +307,8 @@ func ValidateCurrencyCode(val interface{}, key string) (warns []string, errs []e
 	return
 }
 
-// Replaced by unmarshallTime
-func expandDate(input string) (time.Time, error) {
-	return time.Parse(time.RFC3339, input)
-}
-
 func transformToList(data map[string]interface{}, key string) {
-	newDestination := make([]interface{}, 1, 1)
+	newDestination := make([]interface{}, 1)
 	if data[key] != nil {
 		newDestination[0] = data[key]
 	}

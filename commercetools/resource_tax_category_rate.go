@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -15,12 +16,12 @@ func resourceTaxCategoryRate() *schema.Resource {
 	return &schema.Resource{
 		Description: "Tax rate for Tax Category. \n\n" +
 			"See also [Tax Rate API Documentation](https://docs.commercetools.com/api/projects/taxCategories#taxrate)",
-		Create: resourceTaxCategoryRateCreate,
-		Read:   resourceTaxCategoryRateRead,
-		Update: resourceTaxCategoryRateUpdate,
-		Delete: resourceTaxCategoryRateDelete,
+		CreateContext: resourceTaxCategoryRateCreate,
+		ReadContext:   resourceTaxCategoryRateRead,
+		UpdateContext: resourceTaxCategoryRateUpdate,
+		DeleteContext: resourceTaxCategoryRateDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceTaxCategoryRateImportState,
+			StateContext: resourceTaxCategoryRateImportState,
 		},
 		Schema: map[string]*schema.Schema{
 			"tax_category_id": {
@@ -76,13 +77,11 @@ func resourceTaxCategoryRate() *schema.Resource {
 	}
 }
 
-func resourceTaxCategoryRateImportState(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	client := getClient(meta)
 	taxRateID := d.Id()
 	// Arbitrary number, safe to assume there won't be more than 500 tax categories...
-	taxCategoriesQuery, err := client.TaxCategories().Get().WithQueryParams(platform.ByProjectKeyTaxCategoriesRequestMethodGetInput{
-		Limit: intRef(500),
-	}).Execute(context.Background())
+	taxCategoriesQuery, err := client.TaxCategories().Get().Limit(500).Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +89,7 @@ func resourceTaxCategoryRateImportState(d *schema.ResourceData, meta interface{}
 	taxCategory, taxRate := findTaxRate(taxRateID, taxCategoriesQuery.Results)
 
 	if taxRate == nil {
-		return nil, fmt.Errorf("Tax rate %s does not seem to exist", taxRateID)
+		return nil, fmt.Errorf("tax rate %s does not seem to exist", taxRateID)
 	}
 
 	results := make([]*schema.ResourceData, 0)
@@ -123,7 +122,7 @@ func resourceTaxCategoryRateGetSubRates(input []interface{}) ([]platform.SubRate
 	return result, nil
 }
 
-func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error {
+func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	taxCategoryID := d.Get("tax_category_id").(string)
 
@@ -131,10 +130,10 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 	ctMutexKV.Lock(taxCategoryID)
 	defer ctMutexKV.Unlock(taxCategoryID)
 
-	taxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(context.Background())
+	taxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	oldTaxRateIds := getTaxRateIds(taxCategory)
@@ -146,13 +145,13 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 
 	taxRateDraft, err := createTaxRateDraft(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	input.Actions = append(input.Actions, platform.TaxCategoryAddTaxRateAction{TaxRate: *taxRateDraft})
 
-	err = resource.Retry(30*time.Second, func() *resource.RetryError {
-		taxCategory, err = client.TaxCategories().WithId(taxCategoryID).Post(input).Execute(context.Background())
+	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
+		taxCategory, err = client.TaxCategories().WithId(taxCategoryID).Post(input).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -160,27 +159,27 @@ func resourceTaxCategoryRateCreate(d *schema.ResourceData, m interface{}) error 
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Refresh the taxCategory. When a tax rate is added the ID is different
 	// then the ID returned in the response
-	updatedTaxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(context.Background())
+	updatedTaxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
 	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
 
 	if newTaxRate == nil {
-		log.Fatal("No tax category rate created?")
+		return diag.Errorf("No tax category rate created?")
 	}
 
 	d.SetId(*newTaxRate.ID)
 	d.Set("tax_category_id", taxCategory.ID)
 
-	return resourceTaxCategoryRateRead(d, m)
+	return resourceTaxCategoryRateRead(ctx, d, m)
 }
 
-func resourceTaxCategoryRateRead(d *schema.ResourceData, m interface{}) error {
+func resourceTaxCategoryRateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Printf("[DEBUG] Current tax rate state: %s and m: %s", stringFormatObject(d), stringFormatObject(m))
-	_, taxRate, err := readResourcesFromStateIDs(d, m)
+	_, taxRate, err := readResourcesFromStateIDs(ctx, d, m)
 
 	if err != nil {
 		d.SetId("")
@@ -212,16 +211,16 @@ func setTaxRateState(d *schema.ResourceData, taxRate *platform.TaxRate) {
 	log.Printf("[DEBUG] Updated state to: %s", stringFormatObject(d))
 }
 
-func resourceTaxCategoryRateUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	taxCategoryID := d.Get("tax_category_id").(string)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
 	ctMutexKV.Lock(taxCategoryID)
 	defer ctMutexKV.Unlock(taxCategoryID)
 
-	taxCategory, _, err := readResourcesFromStateIDs(d, m)
+	taxCategory, _, err := readResourcesFromStateIDs(ctx, d, m)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	oldTaxRateIds := getTaxRateIds(taxCategory)
@@ -234,7 +233,7 @@ func resourceTaxCategoryRateUpdate(d *schema.ResourceData, m interface{}) error 
 	if d.HasChange("name") || d.HasChange("amount") || d.HasChange("included_in_price") || d.HasChange("country") || d.HasChange("state") || d.HasChange("sub_rate") {
 		taxRateDraft, err := createTaxRateDraft(d)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		input.Actions = append(input.Actions, platform.TaxCategoryReplaceTaxRateAction{
 			TaxRateId: d.Id(),
@@ -247,27 +246,30 @@ func resourceTaxCategoryRateUpdate(d *schema.ResourceData, m interface{}) error 
 		stringFormatActions(input.Actions))
 
 	client := getClient(m)
-	taxCategory, err = client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(context.Background())
+	_, err = client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Refresh the taxCategory. When a tax rate is added the ID is different
 	// then the ID returned in the response
-	updatedTaxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(context.Background())
+	updatedTaxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
 
 	if newTaxRate == nil {
-		log.Fatal("No tax category rate created?")
+		return diag.Errorf("No tax category rate created?")
 	}
 
 	d.SetId(*newTaxRate.ID)
 
-	return resourceTaxCategoryRateRead(d, m)
+	return resourceTaxCategoryRateRead(ctx, d, m)
 }
 
 func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) {
@@ -303,16 +305,16 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 	return &taxRateDraft, nil
 }
 
-func resourceTaxCategoryRateDelete(d *schema.ResourceData, m interface{}) error {
+func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	taxCategoryID := d.Get("tax_category_id").(string)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
 	ctMutexKV.Lock(taxCategoryID)
 	defer ctMutexKV.Unlock(taxCategoryID)
 
-	taxCategory, taxRate, err := readResourcesFromStateIDs(d, m)
+	taxCategory, taxRate, err := readResourcesFromStateIDs(ctx, d, m)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	input := platform.TaxCategoryUpdate{
@@ -326,22 +328,22 @@ func resourceTaxCategoryRateDelete(d *schema.ResourceData, m interface{}) error 
 	input.Actions = append(input.Actions, removeAction)
 
 	client := getClient(m)
-	_, err = client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(context.Background())
+	_, err = client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func readResourcesFromStateIDs(d *schema.ResourceData, m interface{}) (*platform.TaxCategory, *platform.TaxRate, error) {
+func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m interface{}) (*platform.TaxCategory, *platform.TaxRate, error) {
 	client := getClient(m)
 	taxCategoryID := d.Get("tax_category_id").(string)
 	taxRateID := d.Id()
 
 	log.Printf("[DEBUG] Reading tax category from commercetools, taxCategory ID: %s, taxRate ID: %s", taxCategoryID, taxRateID)
 
-	taxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(context.Background())
+	taxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
 
 	if err != nil {
 		return nil, nil, err
@@ -351,7 +353,7 @@ func readResourcesFromStateIDs(d *schema.ResourceData, m interface{}) (*platform
 	log.Print(stringFormatObject(taxCategory))
 	taxRate := getTaxRateWithID(taxCategory, taxRateID)
 	if taxRate == nil {
-		return nil, nil, fmt.Errorf("Could not find tax rate %s in tax category %s", taxRateID, taxCategory.ID)
+		return nil, nil, fmt.Errorf("could not find tax rate %s in tax category %s", taxRateID, taxCategory.ID)
 	}
 	log.Print("[DEBUG] Found following tax rate:")
 	log.Print(stringFormatObject(taxRate))

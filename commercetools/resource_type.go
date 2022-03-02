@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -20,12 +21,12 @@ func resourceType() *schema.Resource {
 			"In case you want to customize products, please use product types instead that serve a similar purpose, " +
 			"but tailored to products.\n\n" +
 			"See also the [Types Api Documentation](https://docs.commercetools.com/api/projects/types)",
-		Create: resourceTypeCreate,
-		Read:   resourceTypeRead,
-		Update: resourceTypeUpdate,
-		Delete: resourceTypeDelete,
+		CreateContext: resourceTypeCreate,
+		ReadContext:   resourceTypeRead,
+		UpdateContext: resourceTypeUpdate,
+		DeleteContext: resourceTypeDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -126,13 +127,13 @@ func resourceType() *schema.Resource {
 							continue
 						}
 						return fmt.Errorf(
-							"Field '%s' type changed from %s to %s. Changing types is not supported; please remove the field first and re-define it later",
+							"field '%s' type changed from %s to %s. Changing types is not supported; please remove the field first and re-define it later",
 							name, oldType["name"], newType["name"])
 					}
 
 					if oldF["required"] != newF["required"] {
 						return fmt.Errorf(
-							"Error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
+							"error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
 							name)
 					}
 				}
@@ -165,7 +166,7 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 			ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 				v := val.(string)
 				if !setsAllowed && v == "Set" {
-					errs = append(errs, fmt.Errorf("Sets in another Set are not allowed"))
+					errs = append(errs, fmt.Errorf("sets in another Set are not allowed"))
 				}
 				return
 			},
@@ -229,14 +230,12 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 	return &schema.Resource{Schema: result}
 }
 
-func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
+func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var ctType *platform.Type
 
-	name := platform.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := platform.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+	name := unmarshallLocalizedString(d.Get("name"))
+	description := unmarshallLocalizedString(d.Get("description"))
 
 	resourceTypeIds := []platform.ResourceTypeId{}
 	for _, item := range expandStringArray(d.Get("resource_type_ids").([]interface{})) {
@@ -246,7 +245,7 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 	fields, err := resourceTypeGetFieldDefinitions(d)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	draft := platform.TypeDraft{
@@ -257,10 +256,10 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 		FieldDefinitions: fields,
 	}
 
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		ctType, err = client.Types().Post(draft).Execute(context.Background())
+		ctType, err = client.Types().Post(draft).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -268,24 +267,24 @@ func resourceTypeCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ctType == nil {
-		log.Fatal("No type created?")
+		return diag.Errorf("No type created?")
 	}
 
 	d.SetId(ctType.ID)
 	d.Set("version", ctType.Version)
 
-	return resourceTypeRead(d, m)
+	return resourceTypeRead(ctx, d, m)
 }
 
-func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
+func resourceTypeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading type from commercetools")
 	client := getClient(m)
 
-	ctType, err := client.Types().WithId(d.Id()).Get().Execute(context.Background())
+	ctType, err := client.Types().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -294,7 +293,7 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ctType == nil {
@@ -315,13 +314,13 @@ func resourceTypeRead(d *schema.ResourceData, m interface{}) error {
 		if fields, err := marshallTypeFields(ctType); err == nil {
 			d.Set("field", fields)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	return nil
 }
 
-func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceTypeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.TypeUpdate{
@@ -337,27 +336,25 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.TypeChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescr := platform.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := unmarshallLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.TypeSetDescriptionAction{
-				Description: &newDescr})
+				Description: &newDescription})
 	}
 
 	if d.HasChange("field") {
 		old, new := d.GetChange("field")
 		fieldChangeActions, err := resourceTypeFieldChangeActions(old.([]interface{}), new.([]interface{}))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		input.Actions = append(input.Actions, fieldChangeActions...)
 	}
@@ -365,15 +362,15 @@ func resourceTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.Types().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err := client.Types().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceTypeRead(d, m)
+	return resourceTypeRead(ctx, d, m)
 }
 
 // Generate a list of actions needed for updating the fields value in
@@ -420,8 +417,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		// Check if we need to update the field label
 		oldV := oldValue.(map[string]interface{})
 		if !reflect.DeepEqual(oldV["label"], newV["label"]) {
-			newLabel := platform.LocalizedString(
-				expandStringMap(newV["label"].(map[string]interface{})))
+			newLabel := unmarshallLocalizedString(newV["label"])
 			actions = append(
 				actions,
 				platform.TypeChangeLabelAction{FieldName: name, Label: newLabel})
@@ -540,14 +536,12 @@ func resourceTypeHandleEnumTypeChanges(newFieldType platform.FieldType, oldField
 	return actions
 }
 
-func resourceTypeDelete(d *schema.ResourceData, m interface{}) error {
+func resourceTypeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Types().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyTypesByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(context.Background())
+	_, err := client.Types().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -578,9 +572,7 @@ func resourceTypeGetFieldDefinition(input map[string]interface{}) (*platform.Fie
 		return nil, err
 	}
 
-	label := platform.LocalizedString(
-		expandStringMap(input["label"].(map[string]interface{})))
-
+	label := unmarshallLocalizedString(input["label"])
 	inputHint := platform.TypeTextInputHint(input["input_hint"].(string))
 	return &platform.FieldDefinition{
 		Type:      fieldType,
@@ -596,7 +588,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	typeName, ok := config["name"].(string)
 
 	if !ok {
-		return nil, fmt.Errorf("No 'name' for type object given")
+		return nil, fmt.Errorf("no 'name' for type object given")
 	}
 
 	switch typeName {
@@ -609,7 +601,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	case "Enum":
 		valuesInput, valuesOk := config["values"].(map[string]interface{})
 		if !valuesOk {
-			return nil, fmt.Errorf("No values specified for Enum type: %+v", valuesInput)
+			return nil, fmt.Errorf("no values specified for Enum type: %+v", valuesInput)
 		}
 		var values []platform.CustomFieldEnumValue
 		for k, v := range valuesInput {
@@ -622,13 +614,12 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	case "LocalizedEnum":
 		valuesInput, valuesOk := config["localized_value"]
 		if !valuesOk {
-			return nil, fmt.Errorf("No localized_value elements specified for LocalizedEnum type")
+			return nil, fmt.Errorf("no localized_value elements specified for LocalizedEnum type")
 		}
 		var values []platform.CustomFieldLocalizedEnumValue
 		for _, value := range valuesInput.([]interface{}) {
 			v := value.(map[string]interface{})
-			labels := platform.LocalizedString(
-				expandStringMap(v["label"].(map[string]interface{})))
+			labels := unmarshallLocalizedString(v["label"])
 			values = append(values, platform.CustomFieldLocalizedEnumValue{
 				Key:   v["key"].(string),
 				Label: labels,
@@ -648,19 +639,19 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	case "Reference":
 		refTypeID, refTypeIDOk := config["reference_type_id"].(string)
 		if !refTypeIDOk {
-			return nil, fmt.Errorf("No reference_type_id specified for Reference type")
+			return nil, fmt.Errorf("no reference_type_id specified for Reference type")
 		}
 		return platform.CustomFieldReferenceType{
-			ReferenceTypeId: platform.ReferenceTypeId(refTypeID),
+			ReferenceTypeId: platform.CustomFieldReferenceValue(refTypeID),
 		}, nil
 	case "Set":
 		elementTypes, elementTypesOk := config["element_type"]
 		if !elementTypesOk {
-			return nil, fmt.Errorf("No element_type specified for Set type")
+			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 		elementTypeList := elementTypes.([]interface{})
 		if len(elementTypeList) == 0 {
-			return nil, fmt.Errorf("No element_type specified for Set type")
+			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 
 		setFieldType, err := getFieldType(elementTypeList[0])
@@ -673,7 +664,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 		}, nil
 	}
 
-	return nil, fmt.Errorf("Unknown FieldType %s", typeName)
+	return nil, fmt.Errorf("unknown FieldType %s", typeName)
 }
 
 func marshallTypeFields(t *platform.Type) ([]map[string]interface{}, error) {
@@ -756,7 +747,7 @@ func marshallTypeFieldType(fieldType platform.FieldType, setsAllowed bool) ([]in
 		}
 
 	default:
-		return nil, fmt.Errorf("Unknown resource Type %T: %#v", fieldType, fieldType)
+		return nil, fmt.Errorf("unknown resource Type %T: %#v", fieldType, fieldType)
 	}
 
 	return []interface{}{typeData}, nil

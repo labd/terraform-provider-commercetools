@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -16,12 +17,12 @@ func resourceState() *schema.Resource {
 			"items, products, reviews, and payments to define finite state machines reflecting the business " +
 			"logic you'd like to implement.\n\n" +
 			"See also the [State API Documentation](https://docs.commercetools.com/api/projects/states)",
-		Create: resourceStateCreate,
-		Read:   resourceStateRead,
-		Update: resourceStateUpdate,
-		Delete: resourceStateDelete,
+		CreateContext: resourceStateCreate,
+		ReadContext:   resourceStateRead,
+		UpdateContext: resourceStateUpdate,
+		DeleteContext: resourceStateDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -90,11 +91,9 @@ func resourceState() *schema.Resource {
 	}
 }
 
-func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
-	name := platform.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := platform.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	name := unmarshallLocalizedString(d.Get("name"))
+	description := unmarshallLocalizedString(d.Get("description"))
 
 	roles := []platform.StateRoleEnum{}
 	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
@@ -117,18 +116,18 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 		Transitions: transitions,
 	}
 
-	// Note the use of GetOkExists since it's an optional bool type
-	if _, exists := d.GetOkExists("initial"); exists {
+	// Note the use of GetOk since it's an optional bool type
+	if _, exists := d.GetOk("initial"); exists {
 		draft.Initial = boolRef(d.Get("initial"))
 	}
 
 	client := getClient(m)
 	var state *platform.State
 
-	err := resource.Retry(20*time.Second, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
-		state, err = client.States().Post(draft).Execute(context.Background())
+		state, err = client.States().Post(draft).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -136,17 +135,17 @@ func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(state.ID)
 	d.Set("version", state.Version)
-	return resourceStateRead(d, m)
+	return resourceStateRead(ctx, d, m)
 }
 
-func resourceStateRead(d *schema.ResourceData, m interface{}) error {
+func resourceStateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	state, err := client.States().WithId(d.Id()).Get().Execute(context.Background())
+	state, err := client.States().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -155,7 +154,7 @@ func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(state.ID)
@@ -178,7 +177,7 @@ func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.StateUpdate{
@@ -187,16 +186,14 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.StateSetNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := platform.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := unmarshallLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.StateSetDescriptionAction{Description: newDescription})
@@ -247,22 +244,20 @@ func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
 			})
 	}
 
-	_, err := client.States().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err := client.States().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceStateRead(d, m)
+	return resourceStateRead(ctx, d, m)
 }
 
-func resourceStateDelete(d *schema.ResourceData, m interface{}) error {
+func resourceStateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.States().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyStatesByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(context.Background())
+	_, err := client.States().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -270,8 +265,8 @@ func resourceStateDelete(d *schema.ResourceData, m interface{}) error {
 
 func marshallStateTransitions(values []platform.StateReference) []string {
 	result := make([]string, len(values))
-	for idx, _ := range values {
-		result[idx] = values[idx].ID
+	for i := range values {
+		result[i] = values[i].ID
 	}
 	return result
 }
