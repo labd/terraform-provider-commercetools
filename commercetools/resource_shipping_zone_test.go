@@ -7,7 +7,34 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestUnmarshallShippingZoneLocations(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{
+			"country": "DE",
+			"state":   "",
+		},
+		map[string]interface{}{
+			"country": "US",
+			"state":   "Nevada",
+		},
+	}
+	actual := unmarshallShippingZoneLocations(input)
+	expected := []platform.Location{
+		{
+			Country: "DE",
+			State:   nil,
+		},
+		{
+			Country: "US",
+			State:   stringRef("Nevada"),
+		},
+	}
+	assert.Equal(t, expected, actual)
+}
 
 func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 
@@ -35,6 +62,12 @@ func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "location.#", "2",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_zone.standard", "location.0.country", "DE",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_zone.standard", "location.0.state", "",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "key", key,
@@ -65,12 +98,14 @@ func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 func testAccShippingZoneConfig(name string, description string, key string) string {
 	return fmt.Sprintf(`
 resource "commercetools_shipping_zone" "standard" {
-	name = "%s"
+	name        = "%s"
 	description = "%s"
-	key = "%s"
+	key         = "%s"
+
 	location {
 		country = "DE"
 	}
+
 	location {
 		country = "US"
 		state = "Nevada"
@@ -138,14 +173,17 @@ func TestAccShippingZone_createAndAddLocation(t *testing.T) {
 func testAccShippingZoneConfigLocationAdded() string {
 	return `
 resource "commercetools_shipping_zone" "standard" {
-	name = "the zone"
+	name        = "the zone"
 	description = "the description"
+
 	location {
 		country = "DE"
 	}
+
 	location {
 		country = "ES"
 	}
+
 	location {
 		country = "US"
 		state = "Nevada"
@@ -207,8 +245,9 @@ func TestAccShippingZone_createAndRemoveLocation(t *testing.T) {
 func testAccShippingZoneConfigLocationRemoved() string {
 	return `
 resource "commercetools_shipping_zone" "standard" {
-	name = "the zone"
+	name        = "the zone"
 	description = "the description"
+
 	location {
 		country = "US"
 		state = "Nevada"

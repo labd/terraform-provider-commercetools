@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -25,13 +26,13 @@ func resourceProductType() *schema.Resource {
 		Description: "Product types are used to describe common characteristics, most importantly common custom " +
 			"attributes, of many concrete products. Please note: to customize other resources than products, " +
 			"please refer to resource_type.\n\n" +
-			"See also the [Product Type API Documentation](https://docs.platform.com/api/projects/productTypes)",
-		Create: resourceProductTypeCreate,
-		Read:   resourceProductTypeRead,
-		Update: resourceProductTypeUpdate,
-		Delete: resourceProductTypeDelete,
+			"See also the [Product Type API Documentation](https://docs.commercetools.com/api/projects/productTypes)",
+		CreateContext: resourceProductTypeCreate,
+		ReadContext:   resourceProductTypeRead,
+		UpdateContext: resourceProductTypeUpdate,
+		DeleteContext: resourceProductTypeDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -48,13 +49,13 @@ func resourceProductType() *schema.Resource {
 				Optional:    true,
 			},
 			"attribute": {
-				Description: "[Product attribute fefinition](https://docs.platform.com/api/projects/productTypes#attributedefinition)",
+				Description: "[Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition)",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Description: "[AttributeType](https://docs.platform.com/api/projects/productTypes#attributetype)",
+							Description: "[AttributeType](https://docs.commercetools.com/api/projects/productTypes#attributetype)",
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Required:    true,
@@ -85,7 +86,7 @@ func resourceProductType() *schema.Resource {
 						"constraint": {
 							Description: "Describes how an attribute or a set of attributes should be validated " +
 								"across all variants of a product. " +
-								"See also [Attribute Constraint](https://docs.platform.com/api/projects/productTypes#attributeconstraint-enum)",
+								"See also [Attribute Constraint](https://docs.commercetools.com/api/projects/productTypes#attributeconstraint-enum)",
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  platform.AttributeConstraintEnumNone,
@@ -98,7 +99,7 @@ func resourceProductType() *schema.Resource {
 										allowedConstraints = append(allowedConstraints, key)
 									}
 									errs = append(errs, fmt.Errorf(
-										"Unkown attribute constraint '%v'. Possible values are %v", v, allowedConstraints))
+										"unkown attribute constraint '%v'. Possible values are %v", v, allowedConstraints))
 								}
 								return
 							},
@@ -155,13 +156,13 @@ func resourceProductType() *schema.Resource {
 							continue
 						}
 						return fmt.Errorf(
-							"Field '%s' type changed from %s to %s. Changing types is not supported; please remove the attribute first and re-define it later",
+							"field '%s' type changed from %s to %s. Changing types is not supported; please remove the attribute first and re-define it later",
 							name, oldType["name"], newType["name"])
 					}
 
 					if oldF["required"] != newF["required"] {
 						return fmt.Errorf(
-							"Error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
+							"error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
 							name)
 					}
 				}
@@ -179,7 +180,7 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 			ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 				v := val.(string)
 				if !setsAllowed && v == "set" {
-					errs = append(errs, fmt.Errorf("Sets in another Set are not allowed"))
+					errs = append(errs, fmt.Errorf("sets in another Set are not allowed"))
 				}
 				return
 			},
@@ -215,14 +216,14 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 	return &schema.Resource{Schema: result}
 }
 
-func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
+func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	var ctType *platform.ProductType
 
 	attributes, err := resourceProductTypeGetAttributeDefinitions(d)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	draft := platform.ProductTypeDraft{
@@ -232,10 +233,10 @@ func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
 		Attributes:  attributes,
 	}
 
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
-		ctType, err = client.ProductTypes().Post(draft).Execute(context.Background())
+		ctType, err = client.ProductTypes().Post(draft).Execute(ctx)
 		if err != nil {
 			return handleCommercetoolsError(err)
 		}
@@ -243,24 +244,24 @@ func resourceProductTypeCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ctType == nil {
-		log.Fatal("No type created?")
+		return diag.Errorf("No type created?")
 	}
 
 	d.SetId(ctType.ID)
 	d.Set("version", ctType.Version)
 
-	return resourceProductTypeRead(d, m)
+	return resourceProductTypeRead(ctx, d, m)
 }
 
-func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
+func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading product type from commercetools")
 	client := getClient(m)
 
-	ctType, err := client.ProductTypes().WithId(d.Id()).Get().Execute(context.Background())
+	ctType, err := client.ProductTypes().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -269,7 +270,7 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if ctType == nil {
@@ -285,7 +286,7 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 			log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
 			fieldType, err := resourceProductTypeReadAttributeType(fieldDef.Type, true)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 
 			fieldData["type"] = fieldType
@@ -309,7 +310,7 @@ func resourceProductTypeRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("description", ctType.Description)
 		err = d.Set("attribute", attributes)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	return nil
@@ -360,13 +361,13 @@ func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsA
 			typeData["element_type"] = elemType
 		}
 	} else {
-		return nil, fmt.Errorf("Unknown resource Type %T", attrType)
+		return nil, fmt.Errorf("unknown resource Type %T", attrType)
 	}
 
 	return []interface{}{typeData}, nil
 }
 
-func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ProductTypeUpdate{
@@ -400,7 +401,7 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		attributeChangeActions, err := resourceProductTypeAttributeChangeActions(
 			old.([]interface{}), newAttribute.([]interface{}))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		input.Actions = append(input.Actions, attributeChangeActions...)
@@ -410,25 +411,23 @@ func resourceProductTypeUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
 			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceProductTypeRead(d, m)
+	return resourceProductTypeRead(ctx, d, m)
 }
 
-func resourceProductTypeDelete(d *schema.ResourceData, m interface{}) error {
+func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ProductTypes().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyProductTypesByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(context.Background())
+	_, err := client.ProductTypes().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -744,13 +743,10 @@ func resourceProductTypeGetAttributeDefinition(input map[string]interface{}, dra
 		return nil, err
 	}
 
-	label := platform.LocalizedString(
-		expandStringMap(input["label"].(map[string]interface{})))
-
+	label := unmarshallLocalizedString(input["label"])
 	var inputTip platform.LocalizedString
 	if inputTipRaw, ok := input["input_tip"]; ok {
-		inputTip = platform.LocalizedString(
-			expandStringMap(inputTipRaw.(map[string]interface{})))
+		inputTip = unmarshallLocalizedString(inputTipRaw)
 	}
 
 	constraint := platform.AttributeConstraintEnumNone
@@ -789,7 +785,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	typeName, ok := config["name"].(string)
 
 	if !ok {
-		return nil, fmt.Errorf("No 'name' for type object given")
+		return nil, fmt.Errorf("no 'name' for type object given")
 	}
 
 	switch typeName {
@@ -802,7 +798,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "enum":
 		valuesInput, valuesOk := config["values"].(map[string]interface{})
 		if !valuesOk {
-			return nil, fmt.Errorf("No values specified for Enum type: %+v", valuesInput)
+			return nil, fmt.Errorf("no values specified for Enum type: %+v", valuesInput)
 		}
 		var values []platform.AttributePlainEnumValue
 		for k, v := range valuesInput {
@@ -815,13 +811,12 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "lenum":
 		valuesInput, valuesOk := config["localized_value"]
 		if !valuesOk {
-			return nil, fmt.Errorf("No localized_value elements specified for LocalizedEnum type")
+			return nil, fmt.Errorf("no localized_value elements specified for LocalizedEnum type")
 		}
 		var values []platform.AttributeLocalizedEnumValue
 		for _, value := range valuesInput.([]interface{}) {
 			v := value.(map[string]interface{})
-			labels := platform.LocalizedString(
-				expandStringMap(v["label"].(map[string]interface{})))
+			labels := unmarshallLocalizedString(v["label"])
 
 			values = append(values, platform.AttributeLocalizedEnumValue{
 				Key:   v["key"].(string),
@@ -843,7 +838,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "reference":
 		refTypeID, refTypeIDOk := config["reference_type_id"].(string)
 		if !refTypeIDOk {
-			return nil, fmt.Errorf("No reference_type_id specified for Reference type")
+			return nil, fmt.Errorf("no reference_type_id specified for Reference type")
 		}
 		return platform.AttributeReferenceType{
 			ReferenceTypeId: platform.ReferenceTypeId(refTypeID),
@@ -851,7 +846,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "nested":
 		typeReference, typeReferenceOk := config["type_reference"].(string)
 		if !typeReferenceOk {
-			return nil, fmt.Errorf("No type_reference specified for Nested type")
+			return nil, fmt.Errorf("no type_reference specified for Nested type")
 		}
 		return platform.AttributeNestedType{
 			TypeReference: platform.ProductTypeReference{ID: typeReference},
@@ -859,11 +854,11 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "set":
 		elementTypes, elementTypesOk := config["element_type"]
 		if !elementTypesOk {
-			return nil, fmt.Errorf("No element_type specified for Set type")
+			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 		elementTypeList := elementTypes.([]interface{})
 		if len(elementTypeList) == 0 {
-			return nil, fmt.Errorf("No element_type specified for Set type")
+			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 
 		setAttrType, err := getAttributeType(elementTypeList[0])
@@ -876,7 +871,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 		}, nil
 	}
 
-	return nil, fmt.Errorf("Unknown AttributeType %s", typeName)
+	return nil, fmt.Errorf("unknown AttributeType %s", typeName)
 }
 
 func readAttributeLocalizedEnum(values []platform.AttributeLocalizedEnumValue) []interface{} {

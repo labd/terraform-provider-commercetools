@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -16,12 +17,12 @@ func resourceStore() *schema.Resource {
 		Description: "Stores can be used to model, for example, physical retail locations, brand stores, " +
 			"or country-specific stores.\n\n" +
 			"See also the [Stores API Documentation](https://docs.commercetools.com/api/projects/stores)",
-		Create: resourceStoreCreate,
-		Read:   resourceStoreRead,
-		Update: resourceStoreUpdate,
-		Delete: resourceStoreDelete,
+		CreateContext: resourceStoreCreate,
+		ReadContext:   resourceStoreRead,
+		UpdateContext: resourceStoreUpdate,
+		DeleteContext: resourceStoreDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -62,9 +63,8 @@ func resourceStore() *schema.Resource {
 	}
 }
 
-func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
-	name := platform.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
+func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	name := unmarshallLocalizedString(d.Get("name"))
 	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
 
 	draft := platform.StoreDraft{
@@ -78,9 +78,9 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 
 	var store *platform.Store
 
-	err := resource.Retry(20*time.Second, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
-		store, err = client.Stores().Post(draft).Execute(context.Background())
+		store, err = client.Stores().Post(draft).Execute(ctx)
 
 		if err != nil {
 			return handleCommercetoolsError(err)
@@ -89,20 +89,22 @@ func resourceStoreCreate(d *schema.ResourceData, m interface{}) error {
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(store.ID)
 	d.Set("version", store.Version)
-	return resourceStoreRead(d, m)
+	return resourceStoreRead(ctx, d, m)
 }
 
-func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
+func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	store, err := client.Stores().WithId(d.Id()).Get().WithQueryParams(platform.ByProjectKeyStoresByIDRequestMethodGetInput{
-		Expand: []string{"distributionChannels[*]", "supplyChannels[*]"},
-	}).Execute(context.Background())
+	store, err := client.Stores().
+		WithId(d.Id()).
+		Get().
+		Expand([]string{"distributionChannels[*]", "supplyChannels[*]"}).
+		Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -111,7 +113,7 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(store.ID)
@@ -130,7 +132,7 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	if store.DistributionChannels != nil {
 		channelKeys, err := flattenStoreChannels(store.DistributionChannels)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		log.Printf("[DEBUG] Setting channel keys to: %+v", channelKeys)
 		d.Set("distribution_channels", channelKeys)
@@ -140,7 +142,7 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	if store.SupplyChannels != nil {
 		channelKeys, err := flattenStoreChannels(store.SupplyChannels)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		log.Printf("[DEBUG] Setting channel keys to: %+v", channelKeys)
 		d.Set("supply_channels", channelKeys)
@@ -148,7 +150,7 @@ func resourceStoreRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.StoreUpdate{
@@ -157,8 +159,7 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if d.HasChange("name") {
-		newName := platform.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := unmarshallLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.StoreSetNameAction{Name: &newName})
@@ -200,22 +201,21 @@ func resourceStoreUpdate(d *schema.ResourceData, m interface{}) error {
 		)
 	}
 
-	_, err := client.Stores().WithId(d.Id()).Post(input).Execute(context.Background())
+	_, err := client.Stores().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceStoreRead(d, m)
+	return resourceStoreRead(ctx, d, m)
 }
 
-func resourceStoreDelete(d *schema.ResourceData, m interface{}) error {
+func resourceStoreDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Stores().WithId(d.Id()).Delete().WithQueryParams(platform.ByProjectKeyStoresByIDRequestMethodDeleteInput{
-		Version: version,
-	}).Execute(context.Background())
+
+	_, err := client.Stores().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
@@ -18,13 +19,13 @@ func resourceProjectSettings() *schema.Resource {
 			"the project. Updating the settings is eventually consistent, it may take up to a minute before " +
 			"a change becomes fully active.\n\n" +
 			"See also the [Project Settings API Documentation](https://docs.commercetools.com/api/projects/project)",
-		Create: resourceProjectCreate,
-		Read:   resourceProjectRead,
-		Update: resourceProjectUpdate,
-		Delete: resourceProjectDelete,
-		Exists: resourceProjectExists,
+		CreateContext: resourceProjectCreate,
+		ReadContext:   resourceProjectRead,
+		UpdateContext: resourceProjectUpdate,
+		DeleteContext: resourceProjectDelete,
+		Exists:        resourceProjectExists,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
@@ -77,6 +78,16 @@ func resourceProjectSettings() *schema.Resource {
 						},
 					},
 				},
+			},
+			"enable_search_index_products": {
+				Description: "Enable the Search Indexing of products",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"enable_search_index_orders": {
+				Description: "Enable the Search Indexing of orders",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"external_oauth": {
 				Description: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
@@ -171,9 +182,9 @@ func resourceProjectExists(d *schema.ResourceData, m interface{}) (bool, error) 
 	return true, nil
 }
 
-func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
+func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	project, err := client.Get().Execute(context.Background())
+	project, err := client.Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -181,21 +192,21 @@ func resourceProjectCreate(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	err = projectUpdate(d, client, project.Version)
-	if err != nil {
-		return err
+	diags := projectUpdate(ctx, d, client, project.Version)
+	if diags != nil {
+		return diags
 	}
-	return resourceProjectRead(d, m)
+	return resourceProjectRead(ctx, d, m)
 }
 
-func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
+func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading projects from commercetools")
 	client := getClient(m)
 
-	project, err := client.Get().Execute(context.Background())
+	project, err := client.Get().Execute(ctx)
 
 	if err != nil {
 		if ctErr, ok := err.(platform.ErrorResponse); ok {
@@ -203,7 +214,7 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 				return nil
 			}
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	log.Print("[DEBUG] Found the following project:")
@@ -216,28 +227,30 @@ func resourceProjectRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("countries", project.Countries)
 	d.Set("languages", project.Languages)
 	d.Set("shipping_rate_input_type", marshallProjectShippingRateInputType(project.ShippingRateInputType))
-	d.Set("external_oauth", marshallProjectExternalOAuth(project.ExternalOAuth))
+	d.Set("enable_search_index_products", marshallProjectSearchIndexProducts(project.SearchIndexing))
+	d.Set("enable_search_index_orders", marshallProjectSearchIndexOrders(project.SearchIndexing))
+	d.Set("external_oauth", marshallProjectExternalOAuth(project.ExternalOAuth, d.Get("external_oauth")))
 	d.Set("carts", marshallProjectCarts(project.Carts))
-	d.Set("messages", marshallProjectMessages(project.Messages))
+	d.Set("messages", marshallProjectMessages(project.Messages, d))
 	return nil
 }
 
-func resourceProjectUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	err := projectUpdate(d, client, version)
-	if err != nil {
-		return err
+	diags := projectUpdate(ctx, d, client, version)
+	if diags != nil {
+		return diags
 	}
-	return resourceProjectRead(d, m)
+	return resourceProjectRead(ctx, d, m)
 }
 
-func resourceProjectDelete(d *schema.ResourceData, m interface{}) error {
+func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	d.SetId("")
 	return nil
 }
 
-func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestBuilder, version int) error {
+func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform.ByProjectKeyRequestBuilder, version int) diag.Diagnostics {
 	input := platform.ProjectUpdate{
 		Version: version,
 		Actions: []platform.ProjectUpdateAction{},
@@ -248,32 +261,21 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	}
 
 	if d.HasChange("currencies") {
-		newCurrencies := []string{}
-		for _, item := range getStringSlice(d, "currencies") {
-			newCurrencies = append(newCurrencies, item)
-		}
-
+		newCurrencies := getStringSlice(d, "currencies")
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeCurrenciesAction{Currencies: newCurrencies})
 	}
 
 	if d.HasChange("countries") {
-		newCountries := []string{}
-		for _, item := range getStringSlice(d, "countries") {
-			newCountries = append(newCountries, item)
-		}
-
+		newCountries := getStringSlice(d, "countries")
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeCountriesAction{Countries: newCountries})
 	}
 
 	if d.HasChange("languages") {
-		newLanguages := []string{}
-		for _, item := range getStringSlice(d, "languages") {
-			newLanguages = append(newLanguages, item)
-		}
+		newLanguages := getStringSlice(d, "languages")
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeLanguagesAction{Languages: newLanguages})
@@ -282,7 +284,7 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	if d.HasChange("messages") {
 		messages, err := elementFromList(d, "messages")
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if messages["enabled"] != nil {
 			input.Actions = append(
@@ -300,7 +302,7 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	if d.HasChange("shipping_rate_input_type") || d.HasChange("shipping_rate_cart_classification_value") {
 		newShippingRateInputType, err := getShippingRateInputType(d)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		input.Actions = append(
 			input.Actions,
@@ -310,7 +312,7 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 	if d.HasChange("external_oauth") {
 		externalOAuth, err := elementFromList(d, "external_oauth")
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if externalOAuth["url"] != nil && externalOAuth["authorization_header"] != nil {
 			newExternalOAuth := platform.ExternalOAuth{
@@ -325,10 +327,31 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 		}
 	}
 
+	if d.HasChange("enable_search_index_products") {
+		value := d.Get("enable_search_index_products").(bool)
+		action := platform.ProjectChangeProductSearchIndexingEnabledAction{
+			Enabled: value,
+		}
+		input.Actions = append(input.Actions, action)
+	}
+
+	if d.HasChange("enable_search_index_orders") {
+		value := d.Get("enable_search_index_orders")
+
+		status := platform.OrderSearchStatusDeactivated
+		if value.(bool) {
+			status = platform.OrderSearchStatusActivated
+		}
+		action := platform.ProjectChangeOrderSearchStatusAction{
+			Status: status,
+		}
+		input.Actions = append(input.Actions, action)
+	}
+
 	if d.HasChange("carts") {
 		carts, err := elementFromList(d, "carts")
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		fallbackEnabled := false
 		if carts["country_tax_rate_fallback_enabled"] != nil {
@@ -343,16 +366,16 @@ func projectUpdate(d *schema.ResourceData, client *platform.ByProjectKeyRequestB
 
 		input.Actions = append(
 			input.Actions,
-			&platform.ProjectChangeCartsConfiguration{
-				CartsConfiguration: &platform.CartsConfiguration{
+			&platform.ProjectChangeCartsConfigurationAction{
+				CartsConfiguration: platform.CartsConfiguration{
 					CountryTaxRateFallbackEnabled:   boolRef(fallbackEnabled),
 					DeleteDaysAfterLastModification: deleteDaysAfterLastModification,
 				},
 			})
 	}
 
-	_, err := client.Post(input).Execute(context.Background())
-	return err
+	_, err := client.Post(input).Execute(ctx)
+	return diag.FromErr(err)
 }
 
 func getStringSlice(d *schema.ResourceData, field string) []string {
@@ -387,7 +410,7 @@ func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomField
 	data := d.Get("shipping_rate_cart_classification_value").([]interface{})
 	for _, item := range data {
 		itemMap := item.(map[string]interface{})
-		label := platform.LocalizedString(expandStringMap(itemMap["label"].(map[string]interface{})))
+		label := unmarshallLocalizedString(d.Get("label"))
 		values = append(values, platform.CustomFieldLocalizedEnumValue{
 			Label: label,
 			Key:   itemMap["key"].(string),
@@ -397,7 +420,7 @@ func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomField
 }
 
 func marshallProjectCarts(val platform.CartsConfiguration) []map[string]interface{} {
-	if *val.CountryTaxRateFallbackEnabled == false && val.DeleteDaysAfterLastModification == nil {
+	if !*val.CountryTaxRateFallbackEnabled && val.DeleteDaysAfterLastModification == nil {
 		return []map[string]interface{}{}
 	}
 
@@ -410,16 +433,48 @@ func marshallProjectCarts(val platform.CartsConfiguration) []map[string]interfac
 	return result
 }
 
-func marshallProjectExternalOAuth(val *platform.ExternalOAuth) []map[string]interface{} {
+func marshallProjectExternalOAuth(val *platform.ExternalOAuth, current interface{}) []map[string]interface{} {
 	if val == nil {
 		return []map[string]interface{}{}
+	}
+
+	// Get the current value since this we cannot read this value from commercetools
+	var authHeader string
+	if val, ok := current.([]interface{}); ok {
+		if len(val) > 0 {
+			if items, ok := val[0].(map[string]interface{}); ok {
+				authHeader = items["authorization_header"].(string)
+			}
+		}
 	}
 	return []map[string]interface{}{
 		{
 			"url":                  val.Url,
-			"authorization_header": val.AuthorizationHeader,
+			"authorization_header": authHeader,
 		},
 	}
+}
+
+func marshallProjectSearchIndexProducts(val *platform.SearchIndexingConfiguration) bool {
+	if val == nil {
+		return false
+	}
+
+	if val.Products != nil && val.Products.Status != nil {
+		return *val.Products.Status != platform.SearchIndexingConfigurationStatusDeactivated
+	}
+	return false
+}
+
+func marshallProjectSearchIndexOrders(val *platform.SearchIndexingConfiguration) bool {
+	if val == nil {
+		return false
+	}
+
+	if val.Orders != nil && val.Orders.Status != nil {
+		return *val.Orders.Status != platform.SearchIndexingConfigurationStatusDeactivated
+	}
+	return false
 }
 
 func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) string {
@@ -434,7 +489,13 @@ func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) st
 	return ""
 }
 
-func marshallProjectMessages(val platform.MessageConfiguration) []map[string]interface{} {
+func marshallProjectMessages(val platform.MessagesConfiguration, d *schema.ResourceData) []map[string]interface{} {
+	if current, ok := d.Get("messages").([]interface{}); ok {
+		if len(current) == 0 && !val.Enabled {
+			return nil
+		}
+
+	}
 	return []map[string]interface{}{
 		{
 			"enabled": val.Enabled,

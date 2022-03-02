@@ -263,6 +263,12 @@ func testAccCategoryUpdate() string {
 			sources {
 				uri = "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg"
 				key = "image"
+
+				dimensions {
+					w = 10
+					h = 20
+				}
+
 			}
 		}
 	}  `
