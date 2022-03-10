@@ -379,7 +379,6 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 	oldLookup := createLookup(oldValues, "name")
 	newLookup := createLookup(newValues, "name")
 	actions := []platform.TypeUpdateAction{}
-	checkAttributeOrder := true
 
 	log.Printf("[DEBUG] Construction Field change actions")
 
@@ -389,7 +388,6 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		if _, ok := newLookup[name]; !ok {
 			log.Printf("[DEBUG] Field deleted: %s", name)
 			actions = append(actions, platform.TypeRemoveFieldDefinitionAction{FieldName: name})
-			// checkAttributeOrder = false
 		}
 	}
 
@@ -410,7 +408,6 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			actions = append(
 				actions,
 				platform.TypeAddFieldDefinitionAction{FieldDefinition: *fieldDef})
-			// checkAttributeOrder = false
 			continue
 		}
 
@@ -466,7 +463,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		newNames[i] = v["name"].(string)
 	}
 
-	if checkAttributeOrder && !reflect.DeepEqual(oldNames, newNames) {
+	if isFieldDefinitionOrderChanged(oldNames, newNames) {
 		log.Printf("[DEBUG] Field ordering: %s", newNames)
 
 		actions = append(
@@ -477,6 +474,23 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 	}
 
 	return actions, nil
+}
+
+func isFieldDefinitionOrderChanged(existingFieldNames []string, newFieldNames []string) bool {
+
+	for key, existingFieldName := range existingFieldNames {
+
+		if len(newFieldNames) < (key + 1) {
+			//we have removed some values and do not check anymore for the order
+			break
+		}
+
+		if newFieldNames[key] != existingFieldName {
+			return true
+		}
+	}
+
+	return false
 }
 
 func resourceTypeHandleEnumTypeChanges(newFieldType platform.FieldType, oldFieldType map[string]interface{}, actions []platform.TypeUpdateAction, name string) []platform.TypeUpdateAction {

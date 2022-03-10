@@ -187,6 +187,41 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 	})
 }
 
+func TestAccTypes_UpdateWithAddingToLastPosition(t *testing.T) {
+	name := "acctest_type"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckTypesDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccTypeConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccTypeExists("acctest_type"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.1.name", "existing_enum"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.1.type.0.element_type.0.values.%", "2"),
+				),
+			},
+			{
+				Config: testAccTypeConfigForAddNewFieldAtLastPosition(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccTypeExists("acctest_type"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.#", "3"),
+					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.2.name", "new_field"),
+				),
+			},
+		},
+	})
+}
+
 func testAccTypeConfig(name string) string {
 	return fmt.Sprintf(`
 resource "commercetools_type" "%s" {
@@ -228,6 +263,63 @@ resource "commercetools_type" "%s" {
 					evening = "Evening"
 				}
 			}
+		}
+	}
+
+}`, name, name)
+}
+
+func testAccTypeConfigForAddNewFieldAtLastPosition(name string) string {
+	return fmt.Sprintf(`
+resource "commercetools_type" "%s" {
+	key = "%s"
+	name = {
+		en = "Contact info"
+		nl = "Contact informatie"
+	}
+	description = {
+		en = "All things related communication"
+		nl = "Alle communicatie-gerelateerde zaken"
+	}
+
+	resource_type_ids = ["customer"]
+
+	field {
+		name = "skype_name"
+		label = {
+			en = "Skype name"
+			nl = "Skype naam"
+		}
+		type {
+			name = "String"
+		}
+	}
+
+	field {
+		name = "existing_enum"
+		label = {
+			en = "existing enum"
+			de = "existierendes enum"
+		}
+		type {
+			name = "Set"
+			element_type {
+				name = "Enum"
+				values = {
+					day = "Daytime"
+					evening = "Evening"
+				}
+			}
+		}
+	}
+
+	field {
+		name = "new_field"
+		label = {
+			en = "new field"
+		}
+		type {
+			name = "String"
 		}
 	}
 
