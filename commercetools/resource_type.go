@@ -389,7 +389,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		if _, ok := newLookup[name]; !ok {
 			log.Printf("[DEBUG] Field deleted: %s", name)
 			actions = append(actions, platform.TypeRemoveFieldDefinitionAction{FieldName: name})
-			// checkAttributeOrder = false
+			checkAttributeOrder = false
 		}
 	}
 
@@ -410,7 +410,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 			actions = append(
 				actions,
 				platform.TypeAddFieldDefinitionAction{FieldDefinition: *fieldDef})
-			// checkAttributeOrder = false
+			checkAttributeOrder = false
 			continue
 		}
 
