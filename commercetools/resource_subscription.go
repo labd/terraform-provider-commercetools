@@ -150,6 +150,7 @@ func resourceSubscription() *schema.Resource {
 							Description:      "For AWS SNS / SQS / Azure Event Grid",
 							Type:             schema.TypeString,
 							Optional:         true,
+							Sensitive:        true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS, subAzureEventGrid),
 						},
 						"access_secret": {
@@ -169,6 +170,7 @@ func resourceSubscription() *schema.Resource {
 							Description:      "For Azure Service Bus",
 							Type:             schema.TypeString,
 							Optional:         true,
+							Sensitive:        true,
 							ForceNew:         true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subAzureServiceBus),
 						},
