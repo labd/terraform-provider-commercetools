@@ -66,12 +66,14 @@ func resourceStore() *schema.Resource {
 func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	name := unmarshallLocalizedString(d.Get("name"))
 	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
+	scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
 
 	draft := platform.StoreDraft{
 		Key:                  d.Get("key").(string),
 		Name:                 &name,
 		Languages:            expandStringArray(d.Get("languages").([]interface{})),
 		DistributionChannels: dcIdentifiers,
+		SupplyChannels:       scIdentifiers,
 	}
 
 	client := getClient(m)
