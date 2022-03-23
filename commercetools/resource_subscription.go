@@ -661,7 +661,7 @@ func validateFormat(d *schema.ResourceData) error {
 	dst := input[0].(map[string]interface{})
 
 	dstType := dst["type"].(string)
-	requiredFields, ok := formatFields[dstType]
+	requiredFields, ok := formatFields[strings.ToLower(dstType)]
 	if !ok {
 		return fmt.Errorf("invalid type for format: '%v'", dstType)
 	}
