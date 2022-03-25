@@ -221,6 +221,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	log.Print(stringFormatObject(project))
 
 	d.SetId(project.Key)
+	d.Set("key", project.Key)
 	d.Set("version", project.Version)
 	d.Set("name", project.Name)
 	d.Set("currencies", project.Currencies)
