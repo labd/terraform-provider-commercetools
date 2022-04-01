@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
 
@@ -350,3 +352,8 @@ func isNotEmpty(d map[string]interface{}, key string) (interface{}, bool) {
 	}
 	return nil, false
 }
+
+var validateLocalizedStringKey = validation.MapKeyMatch(
+	regexp.MustCompile("^[a-z]{2}(-[A-Z]{2})?$"),
+	"Locale keys must match pattern ^[a-z]{2}(-[A-Z]{2})?$",
+)
