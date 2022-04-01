@@ -73,9 +73,10 @@ func resourceProductType() *schema.Resource {
 							Required: true,
 						},
 						"label": {
-							Description: "A human-readable label for the attribute",
-							Type:        TypeLocalizedString,
-							Required:    true,
+							Description:      "A human-readable label for the attribute",
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Required:         true,
 						},
 						"required": {
 							Description: "Whether the attribute is required to have a value",
@@ -107,8 +108,9 @@ func resourceProductType() *schema.Resource {
 						"input_tip": {
 							Description: "Additional information about the attribute that aids content managers " +
 								"when setting product details",
-							Type:     TypeLocalizedString,
-							Optional: true,
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Optional:         true,
 						},
 						"input_hint": {
 							Description: "Provides a visual representation type for this attribute. " +

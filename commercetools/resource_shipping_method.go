@@ -38,9 +38,10 @@ func resourceShippingMethod() *schema.Resource {
 				Optional: true,
 			},
 			"localized_description": {
-				Description: "[LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"is_default": {
 				Description: "One shipping method in a project can be default",
