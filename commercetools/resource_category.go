@@ -85,6 +85,10 @@ func resourceCategory() *schema.Resource {
 				Description: "Can be used to store images, icons or movies related to this category",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"key": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -203,7 +207,7 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if len(d.Get("assets").([]interface{})) != 0 {
-		assets := unmarshallCategoryAssets(d)
+		assets := unmarshallCategoryAssetDrafts(d)
 		draft.Assets = assets
 	}
 
@@ -360,22 +364,30 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			&platform.CategorySetMetaKeywordsAction{MetaKeywords: &newMetaKeywords})
 	}
 
-	// TODO: This is far from complete. See
-	// https://github.com/labd/terraform-provider-commercetools/issues/205
 	if d.HasChange("assets") {
 		assets := unmarshallCategoryAssets(d)
 		for _, asset := range assets {
-			input.Actions = append(
-				input.Actions,
-				&platform.CategoryChangeAssetNameAction{Name: asset.Name, AssetKey: asset.Key},
-				&platform.CategorySetAssetDescriptionAction{Description: asset.Description, AssetKey: asset.Key},
-				&platform.CategorySetAssetSourcesAction{Sources: asset.Sources, AssetKey: asset.Key},
-			)
-			if len(asset.Tags) > 0 {
+			if asset.ID == "" {
+				input.Actions = append(input.Actions, &platform.CategoryAddAssetAction{Asset: platform.AssetDraft{
+					Key:         asset.Key,
+					Name:        asset.Name,
+					Description: asset.Description,
+					Sources:     asset.Sources,
+					Tags:        asset.Tags,
+				}})
+			} else {
 				input.Actions = append(
 					input.Actions,
-					&platform.CategorySetAssetTagsAction{Tags: asset.Tags, AssetKey: asset.Key},
+					&platform.CategoryChangeAssetNameAction{Name: asset.Name, AssetKey: asset.Key},
+					&platform.CategorySetAssetDescriptionAction{Description: asset.Description, AssetKey: asset.Key},
+					&platform.CategorySetAssetSourcesAction{Sources: asset.Sources, AssetKey: asset.Key},
 				)
+				if len(asset.Tags) > 0 {
+					input.Actions = append(
+						input.Actions,
+						&platform.CategorySetAssetTagsAction{Tags: asset.Tags, AssetKey: asset.Key},
+					)
+				}
 			}
 		}
 	}
@@ -408,13 +420,15 @@ func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func marshallCategoryAssets(assets []platform.Asset) []map[string]interface{} {
-
 	result := make([]map[string]interface{}, len(assets))
 
 	for i := range assets {
 		asset := assets[i]
 
 		result[i] = make(map[string]interface{})
+		if asset.ID != "" {
+			result[i]["id"] = asset.ID
+		}
 		result[i]["name"] = asset.Name
 		result[i]["key"] = asset.Key
 		result[i]["sources"] = marshallCategoryAssetSources(asset.Sources)
@@ -430,28 +444,48 @@ func marshallCategoryAssets(assets []platform.Asset) []map[string]interface{} {
 	return result
 }
 
-func unmarshallCategoryAssets(d *schema.ResourceData) []platform.AssetDraft {
+func unmarshallCategoryAssetDraft(u interface{}) *platform.AssetDraft {
+	i := u.(map[string]interface{})
+	name := unmarshallLocalizedString(i["name"])
+	description := unmarshallLocalizedString(i["description"])
+	sources := unmarshallCategoryAssetSources(i)
+	tags := expandStringArray(i["tags"].([]interface{}))
+	key := i["key"].(string)
+	return &platform.AssetDraft{
+		Key:         &key,
+		Name:        name,
+		Description: &description,
+		Sources:     sources,
+		Tags:        tags,
+	}
+}
+
+func unmarshallCategoryAssetDrafts(d *schema.ResourceData) []platform.AssetDraft {
 	input := d.Get("assets").([]interface{})
 	var result []platform.AssetDraft
-
 	for _, raw := range input {
-		i := raw.(map[string]interface{})
-
-		name := unmarshallLocalizedString(i["name"])
-		description := unmarshallLocalizedString(i["description"])
-		sources := unmarshallCategoryAssetSources(i)
-		tags := expandStringArray(i["tags"].([]interface{}))
-
-		key := i["key"].(string)
-		result = append(result, platform.AssetDraft{
-			Key:         &key,
-			Name:        name,
-			Description: &description,
-			Sources:     sources,
-			Tags:        tags,
-		})
+		result = append(result, *unmarshallCategoryAssetDraft(raw))
 	}
+	return result
+}
 
+func unmarshallCategoryAssets(d *schema.ResourceData) []platform.Asset {
+	input := d.Get("assets").([]interface{})
+	var result []platform.Asset
+	for _, raw := range input {
+		draft := unmarshallCategoryAssetDraft(raw)
+		i := raw.(map[string]interface{})
+		id := i["id"].(string)
+		asset := platform.Asset{
+			ID:          id,
+			Key:         draft.Key,
+			Name:        draft.Name,
+			Description: draft.Description,
+			Sources:     draft.Sources,
+			Tags:        draft.Tags,
+		}
+		result = append(result, asset)
+	}
 	return result
 }
 
