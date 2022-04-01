@@ -164,12 +164,16 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	name := unmarshallLocalizedString(d.Get("name"))
 	slug := unmarshallLocalizedString(d.Get("slug"))
+	key := stringRef(d.Get("key"))
 
 	draft := platform.CategoryDraft{
-		Key:       stringRef(d.Get("key")),
 		Name:      name,
 		Slug:      slug,
 		OrderHint: stringRef(d.Get("order_hint")),
+	}
+
+	if *key != "" {
+		draft.Key = key
 	}
 
 	if d.Get("description") != nil {
