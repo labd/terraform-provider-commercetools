@@ -36,14 +36,16 @@ func resourceChannel() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"description": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"version": {
 				Type:     schema.TypeInt,

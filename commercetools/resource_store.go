@@ -33,9 +33,10 @@ func resourceStore() *schema.Resource {
 				ForceNew: true,
 			},
 			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"version": {
 				Type:     schema.TypeInt,

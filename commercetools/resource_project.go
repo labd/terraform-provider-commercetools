@@ -153,8 +153,9 @@ func resourceProjectSettings() *schema.Resource {
 							Required: true,
 						},
 						"label": {
-							Type:     TypeLocalizedString,
-							Optional: true,
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Optional:         true,
 						},
 					},
 				},
@@ -580,8 +581,9 @@ func resourceProjectSettingsResourceV0() *schema.Resource {
 							Required: true,
 						},
 						"label": {
-							Type:     TypeLocalizedString,
-							Optional: true,
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Optional:         true,
 						},
 					},
 				},

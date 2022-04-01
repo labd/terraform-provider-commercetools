@@ -35,14 +35,16 @@ func resourceType() *schema.Resource {
 				Required:    true,
 			},
 			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Required:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Required:         true,
 			},
 			"description": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"resource_type_ids": {
 				Description: "Defines for which [resources](https://docs.commercetools.com/api/projects/custom-fields#customizable-resources)" +
@@ -76,9 +78,10 @@ func resourceType() *schema.Resource {
 							Required: true,
 						},
 						"label": {
-							Description: "A human-readable label for the field",
-							Type:        TypeLocalizedString,
-							Required:    true,
+							Description:      "A human-readable label for the field",
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Required:         true,
 						},
 						"required": {
 							Description: "Whether the field is required to have a value",
@@ -151,8 +154,9 @@ func localizedValueElement() *schema.Resource {
 				Required: true,
 			},
 			"label": {
-				Type:     TypeLocalizedString,
-				Required: true,
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Required:         true,
 			},
 		},
 	}

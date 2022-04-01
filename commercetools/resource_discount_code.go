@@ -26,14 +26,16 @@ func resourceDiscountCode() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"description": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"code": {
 				Description: "Unique identifier of this discount code. This value is added to the cart to enable " +
