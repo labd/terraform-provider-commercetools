@@ -101,6 +101,10 @@ Optional:
 - **sources** (Block List) Array of AssetSource, Has at least one entry (see [below for nested schema](#nestedblock--assets--sources))
 - **tags** (List of String)
 
+Read-Only:
+
+- **id** (String) The ID of this resource.
+
 <a id="nestedblock--assets--sources"></a>
 ### Nested Schema for `assets.sources`
 
@@ -111,7 +115,15 @@ Required:
 Optional:
 
 - **content_type** (String)
-- **dimensions** (Map of String)
+- **dimensions** (Block List, Max: 1) (see [below for nested schema](#nestedblock--assets--sources--dimensions))
 - **key** (String) Unique identifier, must be unique within the Asset
+
+<a id="nestedblock--assets--sources--dimensions"></a>
+### Nested Schema for `assets.sources.dimensions`
+
+Required:
+
+- **h** (Number) The height of the asset source
+- **w** (Number) The width of the asset source
 
 

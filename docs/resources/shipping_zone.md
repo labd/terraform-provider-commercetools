@@ -34,7 +34,7 @@ resource "commercetools_shipping_zone" "de-us" {
 - **description** (String)
 - **id** (String) The ID of this resource.
 - **key** (String) User-specific unique identifier for a zone. Must be unique across a project
-- **location** (Block List) [Location](https://docs.commercetools.com/api/projects/zones#location) (see [below for nested schema](#nestedblock--location))
+- **location** (Block List) [Location](https://docs.commercetoolstools.pi/projects/zones#location) (see [below for nested schema](#nestedblock--location))
 - **name** (String)
 
 ### Read-Only

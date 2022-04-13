@@ -36,6 +36,6 @@ resource "commercetools_api_client" "my-api-client" {
 
 ### Read-Only
 
-- **secret** (String)
+- **secret** (String, Sensitive)
 
 

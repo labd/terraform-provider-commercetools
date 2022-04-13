@@ -107,7 +107,7 @@ resource "commercetools_cart_discount" "my-cart-discount" {
 - **key** (String) User-specific unique identifier for a cart discount. Must be unique across a project
 - **requires_discount_code** (Boolean) States whether the discount can only be used in a connection with a [DiscountCode](https://docs.commercetools.com/api/projects/discountCodes#discountcode)
 - **stacking_mode** (String) Specifies whether the application of this discount causes the following discounts to be ignored
-- **target** (Map of String) Empty when the value has type giftLineItem, otherwise a [CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget)
+- **target** (Block List, Max: 1) Empty when the value has type giftLineItem, otherwise a [CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget) (see [below for nested schema](#nestedblock--target))
 - **valid_from** (String)
 - **valid_until** (String)
 
@@ -138,5 +138,18 @@ Required:
 
 - **cent_amount** (Number) The amount in cents (the smallest indivisible unit of the currency)
 - **currency_code** (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
+
+
+
+<a id="nestedblock--target"></a>
+### Nested Schema for `target`
+
+Required:
+
+- **type** (String) Supports lineItems/customLineItems/shipping
+
+Optional:
+
+- **predicate** (String) LineItems/CustomLineItems target specific fields
 
 

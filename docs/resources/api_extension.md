@@ -19,7 +19,7 @@ Also see the [API Extension API Documentation](https://docs.commercetools.com/ap
 resource "commercetools_api_extension" "my-extension" {
   key = "test-case"
 
-  destination = {
+  destination {
     type                 = "HTTP"
     url                  = "https://example.com"
     authorization_header = "Basic 12345"
@@ -41,7 +41,7 @@ of `authorization_header` like so:
 resource "commercetools_api_extension" "my-extension" {
   key = "test-case"
 
-  destination = {
+  destination {
     type = "http"
     url = "https://some_azure_url"
     azure_authentication = "an_azure_function_key"
@@ -64,7 +64,7 @@ The `destination` field supports AWS Lambda functions. In this case set `type` t
 resource "commercetools_api_extension" "my-extension" {
   key = "test-case"
 
-  destination = {
+  destination {
     type = "awslambda"
     arn = "arn:aws:lambda:some_lambda_arn"
     access_key = "access_key_123"
@@ -84,7 +84,7 @@ resource "commercetools_api_extension" "my-extension" {
 
 ### Required
 
-- **destination** (Map of String) [Destination](https://docs.commercetools.com/api/projects/api-extensions#destination) Details where the extension can be reached
+- **destination** (Block List, Min: 1, Max: 1) [Destination](https://docs.commercetools.com/api/projects/api-extensions#destination) Details where the extension can be reached (see [below for nested schema](#nestedblock--destination))
 - **trigger** (Block List, Min: 1) Array of [Trigger](https://docs.commercetools.com/api/projects/api-extensions#trigger) Describes what triggers the extension (see [below for nested schema](#nestedblock--trigger))
 
 ### Optional
@@ -96,6 +96,23 @@ resource "commercetools_api_extension" "my-extension" {
 ### Read-Only
 
 - **version** (Number)
+
+<a id="nestedblock--destination"></a>
+### Nested Schema for `destination`
+
+Required:
+
+- **type** (String)
+
+Optional:
+
+- **access_key** (String)
+- **access_secret** (String)
+- **arn** (String)
+- **authorization_header** (String)
+- **azure_authentication** (String)
+- **url** (String)
+
 
 <a id="nestedblock--trigger"></a>
 ### Nested Schema for `trigger`
