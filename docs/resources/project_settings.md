@@ -21,14 +21,14 @@ resource "commercetools_project_settings" "project" {
   countries = ["NL", "DE", "US", "CA"]
   currencies = ["EUR", "USD", "CAD"]
   languages = ["nl", "de", "en", "fr-CA"]
-  external_oauth = {
+  external_oauth {
     url = "https://example.com/oauth/introspection"
     authorization_header = "Bearer secret"
   }
-  messages = {
+  messages {
     enabled = true
   }
-  carts = {
+  carts {
     country_tax_rate_fallback_enabled = true
   }
   shipping_rate_input_type = "CartClassification"
