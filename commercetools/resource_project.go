@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -272,21 +273,21 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 	}
 
 	if d.HasChange("currencies") {
-		newCurrencies := getStringSlice(d, "currencies")
+		newCurrencies := upperSlice(getStringSlice(d, "currencies"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeCurrenciesAction{Currencies: newCurrencies})
 	}
 
 	if d.HasChange("countries") {
-		newCountries := getStringSlice(d, "countries")
+		newCountries := upperSlice(getStringSlice(d, "countries"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeCountriesAction{Countries: newCountries})
 	}
 
 	if d.HasChange("languages") {
-		newLanguages := getStringSlice(d, "languages")
+		newLanguages := languageCodeSlice(getStringSlice(d, "languages"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ProjectChangeLanguagesAction{Languages: newLanguages})
@@ -307,7 +308,6 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 				input.Actions,
 				&platform.ProjectChangeMessagesEnabledAction{MessagesEnabled: false})
 		}
-
 	}
 
 	if d.HasChange("shipping_rate_input_type") || d.HasChange("shipping_rate_cart_classification_value") {
@@ -507,6 +507,34 @@ func marshallProjectMessages(val platform.MessagesConfiguration, d *schema.Resou
 			"enabled": val.Enabled,
 		},
 	}
+}
+
+func upperSlice(items []string) []string {
+	s := make([]string, len(items))
+	for i, currency := range items {
+		s[i] = strings.ToUpper(currency)
+	}
+	return s
+}
+
+func languageCode(s string) string {
+	if len(s) == 2 {
+		return strings.ToLower(s)
+	}
+	parts := strings.Split(s, "-")
+	if len(parts) == 2 {
+		return strings.Join([]string{strings.ToLower(parts[0]), strings.ToUpper(parts[1])}, "-")
+	}
+	// fallback to the original
+	return s
+}
+
+func languageCodeSlice(items []string) []string {
+	codes := make([]string, len(items))
+	for i, code := range items {
+		codes[i] = languageCode(code)
+	}
+	return codes
 }
 
 func resourceProjectSettingsResourceV0() *schema.Resource {
