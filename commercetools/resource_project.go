@@ -147,7 +147,6 @@ func resourceProjectSettings() *schema.Resource {
 					"shippingRateInput field on the cart to select a tier",
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 			},
 			"shipping_rate_cart_classification_value": {
 				Description: "If shipping_rate_input_type is set to CartClassification these values are used to create " +
