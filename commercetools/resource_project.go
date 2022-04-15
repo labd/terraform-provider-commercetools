@@ -129,7 +129,8 @@ func resourceProjectSettings() *schema.Resource {
 								"shipping address state is not explicitly covered in the rates lists of all tax " +
 								"categories of a cart line items",
 							Type:     schema.TypeBool,
-							Required: true,
+							Optional: true,
+							Computed: true,
 						},
 						"delete_days_after_last_modification": {
 							Description: "Number - Optional The default value for the " +
