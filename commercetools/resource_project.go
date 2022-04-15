@@ -73,6 +73,7 @@ func resourceProjectSettings() *schema.Resource {
 				Type:        schema.TypeList,
 				MaxItems:    1,
 				Optional:    true,
+				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"enabled": {
@@ -500,12 +501,6 @@ func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) st
 }
 
 func marshallProjectMessages(val platform.MessagesConfiguration, d *schema.ResourceData) []map[string]interface{} {
-	if current, ok := d.Get("messages").([]interface{}); ok {
-		if len(current) == 0 && !val.Enabled {
-			return nil
-		}
-
-	}
 	return []map[string]interface{}{
 		{
 			"enabled": val.Enabled,
