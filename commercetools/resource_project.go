@@ -93,6 +93,7 @@ func resourceProjectSettings() *schema.Resource {
 				Description: "Enable the Search Indexing of orders",
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Computed:    true,
 			},
 			"external_oauth": {
 				Description: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
