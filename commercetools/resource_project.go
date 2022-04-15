@@ -87,6 +87,7 @@ func resourceProjectSettings() *schema.Resource {
 				Description: "Enable the Search Indexing of products",
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Computed:    true,
 			},
 			"enable_search_index_orders": {
 				Description: "Enable the Search Indexing of orders",
