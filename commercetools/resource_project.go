@@ -136,6 +136,7 @@ func resourceProjectSettings() *schema.Resource {
 								"projects created after December 2019.",
 							Type:     schema.TypeInt,
 							Optional: true,
+							Computed: true,
 						},
 					},
 				},
