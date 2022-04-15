@@ -49,14 +49,14 @@ func resourceProjectSettings() *schema.Resource {
 				Computed:    true,
 			},
 			"currencies": {
-				Description: "A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
+				Description: "A list of three-digit currency codes as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"countries": {
-				Description: "A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
+				Description: "A list of two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
