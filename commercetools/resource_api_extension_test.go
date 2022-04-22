@@ -117,6 +117,18 @@ func TestAccAPIExtension_basic(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccAPIExtensionConfigRequiredOnly(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAPIExtensionExists("ext"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "key", name),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.#", "1"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
+				),
+			},
+			{
 				Config: testAccAPIExtensionUpdate(name, timeoutInMs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAPIExtensionExists("ext"),
@@ -154,6 +166,24 @@ resource "commercetools_api_extension" "ext" {
   }
 }
 `, name, timeoutInMs)
+}
+
+func testAccAPIExtensionConfigRequiredOnly(name string) string {
+	return fmt.Sprintf(`
+resource "commercetools_api_extension" "ext" {
+  key = "%s"
+
+  destination {
+    type = "HTTP"
+    url  = "https://example.com"
+  }
+
+  trigger {
+    resource_type_id = "customer"
+    actions = ["Create"]
+  }
+}
+`, name)
 }
 
 func testAccAPIExtensionUpdate(name string, timeoutInMs int) string {
