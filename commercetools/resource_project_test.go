@@ -83,6 +83,38 @@ func TestAccProjectCreate_basic(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccProjectEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "name", "Test this thing",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "countries.#", "3",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "currencies.#", "2",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "languages.#", "4",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "messages.0.enabled", "true",
+					),
+					resource.TestCheckNoResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.url",
+					),
+					resource.TestCheckNoResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.authorization_header",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "shipping_rate_input_type", "CartValue",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled", "true",
+					),
+				),
+			},
+			{
 				Config: testAccProjectConfigUpdate(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -249,6 +281,12 @@ func testAccProjectConfig() string {
             }
 
 			shipping_rate_input_type = "CartValue"
+		}`
+}
+
+func testAccProjectEmptyConfig() string {
+	return `
+		resource "commercetools_project_settings" "acctest_project_settings" {
 		}`
 }
 
