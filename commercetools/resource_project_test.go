@@ -178,11 +178,11 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.0.label.nl", "Klein",
 					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled",
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled", "false",
 					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification",
+					resource.TestCheckResourceAttr(
+						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification", "21",
 					),
 				),
 			},
