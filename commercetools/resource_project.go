@@ -579,8 +579,7 @@ func resourceProjectSettingsResourceV0() *schema.Resource {
 				Description: "Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses " +
 					"the sum of all line item prices, whereas CartClassification and CartScore use the " +
 					"shippingRateInput field on the cart to select a tier",
-				Type: schema.TypeString,
-				// Computed: true,
+				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"shipping_rate_cart_classification_value": {
