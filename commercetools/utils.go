@@ -366,6 +366,8 @@ func upperStringSlice(items []string) []string {
 	return s
 }
 
+// languageCode converts an IETF language tag with mixed casing into the case-sensitive format.
+// The original item is returned if the given input is not valid.
 func languageCode(s string) string {
 	if len(s) == 2 {
 		return strings.ToLower(s)
@@ -378,9 +380,6 @@ func languageCode(s string) string {
 	return s
 }
 
-// languageCodeSlice maps a list of IETF language tags with mixed casing
-// into the case-sensitive format. The original items are returned if the given input
-// contains invalid language tags, .
 func languageCodeSlice(items []string) []string {
 	codes := make([]string, len(items))
 	for i, code := range items {
