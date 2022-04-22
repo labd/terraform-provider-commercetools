@@ -491,16 +491,15 @@ func marshallProjectSearchIndexOrders(val *platform.SearchIndexingConfiguration)
 }
 
 func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) string {
-	var s string
-	if data, ok := val.(map[string]interface{}); ok {
-		s, ok = data["type"].(string)
-		if !ok {
-			return ""
-		}
-	} else {
-		return ""
+	switch val.(type) {
+	case platform.CartScoreType:
+		return "CartScore"
+	case platform.CartValueType:
+		return "CartValue"
+	case platform.CartClassificationType:
+		return "CartClassification"
 	}
-	return s
+	return ""
 }
 
 func marshallProjectMessages(val platform.MessagesConfiguration, d *schema.ResourceData) []map[string]interface{} {
