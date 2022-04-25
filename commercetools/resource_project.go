@@ -390,10 +390,14 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 			input.Actions,
 			&platform.ProjectChangeCartsConfigurationAction{
 				CartsConfiguration: platform.CartsConfiguration{
-					CountryTaxRateFallbackEnabled:   boolRef(fallbackEnabled),
 					DeleteDaysAfterLastModification: deleteDaysAfterLastModification,
+					CountryTaxRateFallbackEnabled:   boolRef(fallbackEnabled),
 				},
-			})
+			},
+			&platform.ProjectChangeCountryTaxRateFallbackEnabledAction{
+				CountryTaxRateFallbackEnabled: fallbackEnabled,
+			},
+		)
 	}
 
 	_, err := client.Post(input).Execute(ctx)
