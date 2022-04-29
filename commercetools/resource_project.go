@@ -378,7 +378,11 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 					CountryTaxRateFallbackEnabled:   boolRef(fallbackEnabled),
 					DeleteDaysAfterLastModification: deleteDaysAfterLastModification,
 				},
-			})
+			},
+			&platform.ProjectChangeCountryTaxRateFallbackEnabledAction{
+				CountryTaxRateFallbackEnabled: fallbackEnabled,
+			},
+		)
 	}
 
 	_, err := client.Post(input).Execute(ctx)
