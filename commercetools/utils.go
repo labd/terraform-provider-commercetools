@@ -357,3 +357,33 @@ var validateLocalizedStringKey = validation.MapKeyMatch(
 	regexp.MustCompile("^[a-z]{2}(-[A-Z]{2})?$"),
 	"Locale keys must match pattern ^[a-z]{2}(-[A-Z]{2})?$",
 )
+
+func upperStringSlice(items []string) []string {
+	s := make([]string, len(items))
+	for i, v := range items {
+		s[i] = strings.ToUpper(v)
+	}
+	return s
+}
+
+// languageCode converts an IETF language tag with mixed casing into the case-sensitive format.
+// The original item is returned if the given input is not valid.
+func languageCode(s string) string {
+	if len(s) == 2 {
+		return strings.ToLower(s)
+	}
+	parts := strings.Split(s, "-")
+	if len(parts) == 2 {
+		return strings.Join([]string{strings.ToLower(parts[0]), strings.ToUpper(parts[1])}, "-")
+	}
+	// fallback to the original
+	return s
+}
+
+func languageCodeSlice(items []string) []string {
+	codes := make([]string, len(items))
+	for i, code := range items {
+		codes[i] = languageCode(code)
+	}
+	return codes
+}
