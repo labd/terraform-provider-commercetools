@@ -194,7 +194,7 @@ func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func _decodeCustomObjectValue(value string) interface{} {
-	data := make(map[string]interface{})
+	var data interface{}
 	json.Unmarshal([]byte(value), &data)
 	return data
 }
