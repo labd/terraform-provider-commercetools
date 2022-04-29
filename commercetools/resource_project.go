@@ -417,7 +417,7 @@ func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomField
 	data := d.Get("shipping_rate_cart_classification_value").([]interface{})
 	for _, item := range data {
 		itemMap := item.(map[string]interface{})
-		label := unmarshallLocalizedString(d.Get("label"))
+		label := unmarshallLocalizedString(itemMap["label"].(map[string]interface{}))
 		values = append(values, platform.CustomFieldLocalizedEnumValue{
 			Label: label,
 			Key:   itemMap["key"].(string),
