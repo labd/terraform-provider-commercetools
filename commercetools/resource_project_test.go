@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,7 +77,7 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						assert.EqualValues(t, result.Languages, []string{"nl", "de", "en", "en-US"})
 						assert.EqualValues(t, result.Currencies, []string{"EUR", "USD"})
 						assert.Equal(t, *result.Carts.DeleteDaysAfterLastModification, 7)
-						assert.Equal(t, result.ShippingRateInputType, platform.CartValueType(platform.CartValueType{}))
+						assert.Equal(t, result.ShippingRateInputType, map[string]interface{}{"type": "CartValue"})
 						return nil
 					},
 				),
