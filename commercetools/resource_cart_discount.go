@@ -155,10 +155,16 @@ func resourceCartDiscount() *schema.Resource {
 			"valid_from": {
 				Type:     schema.TypeString,
 				Optional: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return compareCartDiscountValidDates(old, new)
+				},
 			},
 			"valid_until": {
 				Type:     schema.TypeString,
 				Optional: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return compareCartDiscountValidDates(old, new)
+				},
 			},
 			"requires_discount_code": {
 				Description: "States whether the discount can only be used in a connection with a " +
@@ -613,6 +619,21 @@ func unmarshallCartDiscountStackingMode(d *schema.ResourceData) (platform.Stacki
 	default:
 		return "", fmt.Errorf("stacking mode %s not implemented", d.Get("stacking_mode").(string))
 	}
+}
+
+func compareCartDiscountValidDates(old, new string) bool {
+	if old == "" && new == "" {
+		return false
+	}
+	oldDate, err := unmarshallTime(old)
+	if err != nil {
+		return true
+	}
+	newDate, err := unmarshallTime(new)
+	if err != nil {
+		return true
+	}
+	return oldDate.Unix() == newDate.Unix()
 }
 
 func resourceCartDiscountResourceV0() *schema.Resource {
