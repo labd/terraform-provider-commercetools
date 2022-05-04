@@ -85,6 +85,23 @@ func TestAccCustomObjectCreate_basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				Config: testAccCustomScalarNumber(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_custom_object.scalar_value", "container", "foobar",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_custom_object.scalar_value", "key", "somekey1",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_custom_object.scalar_value", "value", "20",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_custom_object.scalar_value", "version", "1",
+					),
+				),
+			},
 		},
 	})
 }
@@ -176,6 +193,15 @@ func testAccCustomObjectNestedData() string {
 				last_name = "Smith"
 			}
 		})
+	  }`
+}
+
+func testAccCustomScalarNumber() string {
+	return `
+	resource "commercetools_custom_object" "scalar_value" {
+		container = "foobar"
+		key = "somekey1"
+		value = 20
 	  }`
 }
 
