@@ -139,7 +139,6 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	draft := platform.ExtensionDraft{
-		Key:         stringRef(d.Get("key")),
 		Destination: destination,
 		Triggers:    triggers,
 	}
@@ -147,6 +146,11 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m i
 	timeoutInMs := d.Get("timeout_in_ms")
 	if timeoutInMs != 0 {
 		draft.TimeoutInMs = intRef(timeoutInMs)
+	}
+
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
 	}
 
 	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {

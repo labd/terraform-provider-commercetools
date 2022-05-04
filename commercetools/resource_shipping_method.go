@@ -77,13 +77,17 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 	localizedDescription := unmarshallLocalizedString(d.Get("localized_description"))
 
 	draft := platform.ShippingMethodDraft{
-		Key:                  stringRef(d.Get("key")),
 		Name:                 d.Get("name").(string),
 		Description:          stringRef(d.Get("description")),
 		LocalizedDescription: &localizedDescription,
 		IsDefault:            d.Get("is_default").(bool),
 		TaxCategory:          taxCategory,
 		Predicate:            stringRef(d.Get("predicate")),
+	}
+
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
 	}
 
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {

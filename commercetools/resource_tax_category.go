@@ -50,10 +50,14 @@ func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m in
 	emptyTaxRates := []platform.TaxRateDraft{}
 
 	draft := platform.TaxCategoryDraft{
-		Key:         stringRef(d.Get("key")),
 		Name:        d.Get("name").(string),
 		Description: stringRef(d.Get("description")),
 		Rates:       emptyTaxRates,
+	}
+
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
 	}
 
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
