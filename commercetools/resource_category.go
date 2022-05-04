@@ -64,6 +64,11 @@ func resourceCategory() *schema.Resource {
 				Optional:    true,
 				Description: "An attribute as base for a custom category order in one level, filled with random value when left empty",
 			},
+			"external_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "",
+			},
 			"meta_title": {
 				Type:             TypeLocalizedString,
 				ValidateDiagFunc: validateLocalizedStringKey,
@@ -211,6 +216,10 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 		draft.Assets = assets
 	}
 
+	if d.Get("external_id").(string) != "" {
+		draft.ExternalId = stringRef(d.Get("external_id"))
+	}
+
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
@@ -268,6 +277,7 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interfa
 			d.Set("parent", "")
 		}
 		d.Set("order_hint", category.OrderHint)
+		d.Set("external_id", category.ExternalId)
 		if category.Description != nil {
 			d.Set("description", *category.Description)
 		}
@@ -326,6 +336,13 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		input.Actions = append(
 			input.Actions,
 			&platform.CategoryChangeOrderHintAction{OrderHint: newVal})
+	}
+
+	if d.HasChange("external_id") {
+		newExternalID := d.Get("external_id").(string)
+		input.Actions = append(
+			input.Actions,
+			&platform.CategorySetExternalIdAction{ExternalId: &newExternalID})
 	}
 
 	if d.HasChange("description") {
@@ -585,6 +602,11 @@ func resourceCategoryResourceV0() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "An attribute as base for a custom category order in one level, filled with random value when left empty",
+			},
+			"external_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "",
 			},
 			"meta_title": {
 				Type:             TypeLocalizedString,
