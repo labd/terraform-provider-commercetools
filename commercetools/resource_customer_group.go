@@ -48,7 +48,11 @@ func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 
 	draft := platform.CustomerGroupDraft{
 		GroupName: d.Get("name").(string),
-		Key:       stringRef(d.Get("key")),
+	}
+
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
 	}
 
 	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {

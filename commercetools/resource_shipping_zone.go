@@ -71,10 +71,14 @@ func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m i
 	locations := unmarshallShippingZoneLocations(input)
 
 	draft := platform.ZoneDraft{
-		Key:         stringRef(d.Get("key")),
 		Name:        d.Get("name").(string),
 		Description: stringRef(d.Get("description")),
 		Locations:   locations,
+	}
+
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
 	}
 
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {

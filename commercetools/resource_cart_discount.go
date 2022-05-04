@@ -244,7 +244,6 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	draft := platform.CartDiscountDraft{
-		Key:                  stringRef(d.Get("key")),
 		Name:                 name,
 		Description:          &description,
 		Value:                &value,
@@ -253,6 +252,11 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m i
 		IsActive:             boolRef(d.Get("is_active")),
 		RequiresDiscountCode: ctutils.BoolRef(d.Get("requires_discount_code").(bool)),
 		StackingMode:         &stackingMode,
+	}
+
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
 	}
 
 	if val, err := unmarshallCartDiscountTarget(d); err == nil {
