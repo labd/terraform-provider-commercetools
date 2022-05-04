@@ -257,9 +257,9 @@ func testAccProjectConfigUpdate() string {
 	return `
 		resource "commercetools_project_settings" "acctest_project_settings" {
 			name       = "Test this thing new"
-			countries  = ["NL", "DE", "US", "GB"]
-			currencies = ["EUR", "USD", "GBP"]
-			languages  = ["nl", "de", "en", "en-US", "fr"]
+			countries  = ["nL", "De", "us", "gb"]
+			currencies = ["Eur", "UsD", "GbP"]
+			languages  = ["NL", "dE", "en", "eN-uS", "Fr"]
 			external_oauth {
 				url = "https://new-example.com/oauth/token"
 				authorization_header = "Bearer new-secret"
