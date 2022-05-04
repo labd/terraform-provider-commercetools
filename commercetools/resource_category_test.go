@@ -42,6 +42,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
 					),
 					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "external_id", "some external id",
+					),
+					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "meta_title.en", "meta text",
 					),
 					resource.TestCheckResourceAttr(
@@ -83,6 +86,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
 					),
 					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "external_id", "some external id",
+					),
+					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "meta_title.en", "updated meta text",
 					),
 					resource.TestCheckResourceAttr(
@@ -122,6 +128,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "external_id", "some external id",
 					),
 					resource.TestCheckNoResourceAttr(
 						"commercetools_category.accessories", "meta_title",
@@ -179,6 +188,7 @@ func testAccCategoryConfig() string {
 			en = "accessories"
 		}
 		order_hint = "0.000016143365484621617765232"
+		external_id = "some external id"
 		meta_title = {
 			en = "meta text"
 		}
@@ -243,6 +253,7 @@ func testAccCategoryUpdate() string {
 			en = "accessories_updated"
 		}
 		order_hint = "0.000016143365484621617765232"
+		external_id = "some external id"
 		meta_title = {
 			en = "updated meta text"
 		}
@@ -303,6 +314,7 @@ func testAccCategoryRemoveProperties() string {
 			en = "accessories_updated"
 		}
 		order_hint = "0.000016143365484621617765232"
+		external_id = "some external id"
 	}  `
 }
 
