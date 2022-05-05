@@ -46,13 +46,11 @@ func resourceProjectSettings() *schema.Resource {
 				Description: "The name of the project",
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
 			},
 			"currencies": {
 				Description: "A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return strings.EqualFold(old, new)
@@ -62,7 +60,6 @@ func resourceProjectSettings() *schema.Resource {
 				Description: "A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return strings.EqualFold(old, new)
@@ -72,7 +69,6 @@ func resourceProjectSettings() *schema.Resource {
 				Description: "[IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)",
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return strings.EqualFold(old, new)
@@ -127,7 +123,6 @@ func resourceProjectSettings() *schema.Resource {
 				Type:        schema.TypeList,
 				MaxItems:    1,
 				Optional:    true,
-				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"country_tax_rate_fallback_enabled": {
