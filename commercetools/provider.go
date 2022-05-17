@@ -75,6 +75,7 @@ func Provider() *schema.Provider {
 			"commercetools_tax_category":       resourceTaxCategory(),
 			"commercetools_category":           resourceCategory(),
 			"commercetools_type":               resourceType(),
+			"commercetools_product_discount":   resourceProductDiscount(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
