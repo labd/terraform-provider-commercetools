@@ -402,3 +402,7 @@ func compareDateString(a, b string) bool {
 	}
 	return da.Unix() == db.Unix()
 }
+
+func diffSuppressDateString(k, old, new string, d *schema.ResourceData) bool {
+	return compareDateString(old, new)
+}

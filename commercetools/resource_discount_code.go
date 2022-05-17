@@ -44,14 +44,16 @@ func resourceDiscountCode() *schema.Resource {
 				Required: true,
 			},
 			"valid_from": {
-				Description: "The time from which the discount can be applied on a cart. Before that time the code is invalid",
-				Type:        schema.TypeString,
-				Optional:    true,
+				Description:      "The time from which the discount can be applied on a cart. Before that time the code is invalid",
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressDateString,
 			},
 			"valid_until": {
-				Description: "The time until the discount can be applied on a cart. After that time the code is invalid",
-				Type:        schema.TypeString,
-				Optional:    true,
+				Description:      "The time until the discount can be applied on a cart. After that time the code is invalid",
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressDateString,
 			},
 			"is_active": {
 				Type:     schema.TypeBool,

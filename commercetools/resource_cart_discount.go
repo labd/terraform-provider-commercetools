@@ -153,18 +153,14 @@ func resourceCartDiscount() *schema.Resource {
 				Default:     true,
 			},
 			"valid_from": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return compareDateString(old, new)
-				},
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressDateString,
 			},
 			"valid_until": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return compareDateString(old, new)
-				},
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressDateString,
 			},
 			"requires_discount_code": {
 				Description: "States whether the discount can only be used in a connection with a " +
@@ -735,12 +731,14 @@ func resourceCartDiscountResourceV0() *schema.Resource {
 				Default:     true,
 			},
 			"valid_from": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressDateString,
 			},
 			"valid_until": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressDateString,
 			},
 			"requires_discount_code": {
 				Description: "States whether the discount can only be used in a connection with a " +
