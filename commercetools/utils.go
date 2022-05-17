@@ -387,3 +387,18 @@ func languageCodeSlice(items []string) []string {
 	}
 	return codes
 }
+
+func compareDateString(a, b string) bool {
+	if a == b {
+		return true
+	}
+	da, err := unmarshallTime(a)
+	if err != nil {
+		return false
+	}
+	db, err := unmarshallTime(b)
+	if err != nil {
+		return false
+	}
+	return da.Unix() == db.Unix()
+}
