@@ -1,3 +1,6 @@
+.. meta::
+   :http-equiv=Refresh: 0; url='https://registry.terraform.io/providers/labd/commercetools/latest/docs'
+
 # Commercetools Terraform provider
 This is the Terraform provider for commercetools. It allows you to configure your
 commercetools project with infrastructure-as-code principles.
