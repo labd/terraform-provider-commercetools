@@ -391,7 +391,7 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 	}
 
 	_, err := client.Post(input).Execute(ctx)
-	return diag.FromErr(err)
+	return processRemoteError(err)
 }
 
 func getStringSlice(d *schema.ResourceData, field string) []string {
