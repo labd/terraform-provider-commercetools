@@ -1,6 +1,20 @@
-unreleased
-==========
-- add support for AWS EventBridge subscription
+v1.0.0 (2022-05-23)
+===================
+- Use terraform plugin sdk v2. This changed required various changes and should
+  have made the codebase more robust.
+- Fix marshalling the commercetools to terraform state for various resources.
+- Move documentation to the terraform registry, see
+  https://registry.terraform.io/providers/labd/commercetools/latest/docs
+- Use Go 1.18
+- Add support for AWS EventBridge subscription
+- Resource updates:
+  - project_settings: do case insensitive comparison of the languages, currencies
+    and countries
+  - shipping_zone: make the name required
+  - api_extension: Fix handling of timeout_in_ms when empty
+  - category: add support for setting external_id
+  - category: fix empty key being set on creation
+
 
 v0.30.0 (2021-08-04)
 ====================
