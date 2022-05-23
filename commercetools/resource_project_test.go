@@ -73,7 +73,7 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						assert.True(t, *result.Carts.CountryTaxRateFallbackEnabled)
 						assert.EqualValues(t, result.Messages.Enabled, true)
 						assert.EqualValues(t, result.ExternalOAuth.Url, "https://example.com/oauth/token")
-						assert.EqualValues(t, result.ExternalOAuth.AuthorizationHeader, "Bearer secret")
+						assert.EqualValues(t, result.ExternalOAuth.AuthorizationHeader, "****")
 						assert.EqualValues(t, result.Countries, []string{"NL", "DE", "US"})
 						assert.EqualValues(t, result.Languages, []string{"nl", "de", "en", "en-US"})
 						assert.EqualValues(t, result.Currencies, []string{"EUR", "USD"})
