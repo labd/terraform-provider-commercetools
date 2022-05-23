@@ -50,7 +50,8 @@ func resourceProjectSettings() *schema.Resource {
 			"currencies": {
 				Description: "A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
 				Type:        schema.TypeList,
-				Optional:    true,
+				MinItems:    1,
+				Required:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return strings.EqualFold(old, new)
@@ -68,7 +69,8 @@ func resourceProjectSettings() *schema.Resource {
 			"languages": {
 				Description: "[IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)",
 				Type:        schema.TypeList,
-				Optional:    true,
+				MinItems:    1,
+				Required:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return strings.EqualFold(old, new)
