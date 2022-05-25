@@ -1,3 +1,7 @@
+v1.0.1 (2022-05-25)
+===================
+- Minor release to fix hash error
+
 v1.0.0 (2022-05-23)
 ===================
 - Use terraform plugin sdk v2. This changed required various changes and should
