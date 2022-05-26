@@ -247,11 +247,9 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interfa
 	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
