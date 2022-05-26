@@ -187,10 +187,8 @@ func resourceProjectExists(d *schema.ResourceData, m interface{}) (bool, error) 
 
 	_, err := client.Get().Execute(context.Background())
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				return false, nil
-			}
+		if IsResourceNotFoundError(err) {
+			return false, nil
 		}
 		return false, err
 	}
@@ -202,10 +200,8 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	project, err := client.Get().Execute(ctx)
 
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -224,10 +220,8 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	project, err := client.Get().Execute(ctx)
 
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			return nil
 		}
 		return diag.FromErr(err)
 	}

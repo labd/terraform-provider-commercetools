@@ -31,3 +31,15 @@ func processRemoteError(err error) *resource.RetryError {
 
 	return resource.RetryableError(err)
 }
+
+// IsResourceNotFoundError returns true if commercetools returned a 404 error
+func IsResourceNotFoundError(err error) bool {
+	switch e := err.(type) {
+	case platform.ResourceNotFoundError:
+		return true
+
+	case platform.ErrorResponse:
+		return e.StatusCode == 404
+	}
+	return false
+}

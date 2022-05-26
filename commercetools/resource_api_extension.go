@@ -197,11 +197,9 @@ func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m int
 	extension, err := client.Extensions().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
