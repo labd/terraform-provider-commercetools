@@ -236,7 +236,6 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 
 func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var ctType *platform.Type
 
 	name := unmarshallLocalizedString(d.Get("name"))
 	description := unmarshallLocalizedString(d.Get("description"))
@@ -260,14 +259,12 @@ func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m interface
 		FieldDefinitions: fields,
 	}
 
+	var ctType *platform.Type
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
 		ctType, err = client.Types().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {

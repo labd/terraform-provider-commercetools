@@ -65,8 +65,6 @@ func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m i
 	log.Print("[DEBUG] Creating shippingzones in commercetools")
 	client := getClient(m)
 
-	var shippingZone *platform.Zone
-
 	input := d.Get("location").([]interface{})
 	locations := unmarshallShippingZoneLocations(input)
 
@@ -81,14 +79,12 @@ func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m i
 		draft.Key = key
 	}
 
+	var shippingZone *platform.Zone
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
 		shippingZone, err = client.Zones().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {

@@ -97,7 +97,6 @@ func resourceDiscountCode() *schema.Resource {
 
 func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var discountCode *platform.DiscountCode
 
 	name := unmarshallLocalizedString(d.Get("name"))
 	description := unmarshallLocalizedString(d.Get("description"))
@@ -129,15 +128,12 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m i
 		draft.ValidUntil = &validUntil
 	}
 
+	var discountCode *platform.DiscountCode
 	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
 		discountCode, err = client.DiscountCodes().Post(draft).Execute(ctx)
-
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if errorResponse != nil {

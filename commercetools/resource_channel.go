@@ -73,15 +73,11 @@ func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interf
 
 	client := getClient(m)
 	var channel *platform.Channel
-
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
 		channel, err = client.Channels().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {

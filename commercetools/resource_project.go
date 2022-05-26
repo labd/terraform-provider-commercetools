@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
@@ -392,8 +394,11 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 		)
 	}
 
-	_, err := client.Post(input).Execute(ctx)
-	return processRemoteError(err)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
 func getStringSlice(d *schema.ResourceData, field string) []string {

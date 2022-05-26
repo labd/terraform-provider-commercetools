@@ -46,7 +46,6 @@ func resourceTaxCategory() *schema.Resource {
 
 func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var taxCategory *platform.TaxCategory
 	emptyTaxRates := []platform.TaxRateDraft{}
 
 	draft := platform.TaxCategoryDraft{
@@ -60,14 +59,12 @@ func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m in
 		draft.Key = key
 	}
 
+	var taxCategory *platform.TaxCategory
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
 		taxCategory, err = client.TaxCategories().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {
