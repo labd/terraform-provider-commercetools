@@ -220,7 +220,6 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 
 func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var ctType *platform.ProductType
 
 	attributes, err := resourceProductTypeGetAttributeDefinitions(d)
 
@@ -239,14 +238,12 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m in
 		draft.Key = key
 	}
 
+	var ctType *platform.ProductType
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
 		ctType, err = client.ProductTypes().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {

@@ -44,7 +44,6 @@ func resourceCustomerGroup() *schema.Resource {
 
 func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var customerGroup *platform.CustomerGroup
 
 	draft := platform.CustomerGroupDraft{
 		GroupName: d.Get("name").(string),
@@ -55,15 +54,12 @@ func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 		draft.Key = key
 	}
 
+	var customerGroup *platform.CustomerGroup
 	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
 		customerGroup, err = client.CustomerGroups().Post(draft).Execute(ctx)
-
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if errorResponse != nil {

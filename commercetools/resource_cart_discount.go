@@ -224,7 +224,6 @@ func validateStackingMode(val interface{}, key string) (warns []string, errs []e
 
 func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var cartDiscount *platform.CartDiscount
 
 	name := unmarshallLocalizedString(d.Get("name"))
 	description := unmarshallLocalizedString(d.Get("description"))
@@ -276,15 +275,11 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m i
 		draft.ValidUntil = &validUntil
 	}
 
+	var cartDiscount *platform.CartDiscount
 	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
 		cartDiscount, err = client.CartDiscounts().Post(draft).Execute(ctx)
-
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if errorResponse != nil {

@@ -152,10 +152,7 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 
 	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
 		taxCategory, err = client.TaxCategories().WithId(taxCategoryID).Post(input).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {

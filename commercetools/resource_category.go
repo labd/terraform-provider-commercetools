@@ -169,7 +169,6 @@ func resourceCategory() *schema.Resource {
 
 func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var category *platform.Category
 
 	name := unmarshallLocalizedString(d.Get("name"))
 	slug := unmarshallLocalizedString(d.Get("slug"))
@@ -220,15 +219,11 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 		draft.ExternalId = stringRef(d.Get("external_id"))
 	}
 
+	var category *platform.Category
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
 		category, err = client.Categories().Post(draft).Execute(ctx)
-
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {

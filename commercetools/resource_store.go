@@ -84,11 +84,7 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m interfac
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 		store, err = client.Stores().Post(draft).Execute(ctx)
-
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {

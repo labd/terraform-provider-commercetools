@@ -68,7 +68,6 @@ func resourceShippingMethod() *schema.Resource {
 
 func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var shippingMethod *platform.ShippingMethod
 	taxCategory := platform.TaxCategoryResourceIdentifier{}
 	if taxCategoryID, ok := d.GetOk("tax_category_id"); ok {
 		taxCategory.ID = stringRef(taxCategoryID)
@@ -90,14 +89,12 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		draft.Key = key
 	}
 
+	var shippingMethod *platform.ShippingMethod
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 
 		shippingMethod, err = client.ShippingMethods().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {

@@ -130,10 +130,7 @@ func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m interfac
 		var err error
 
 		state, err = client.States().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {

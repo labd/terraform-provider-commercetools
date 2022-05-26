@@ -236,10 +236,7 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 		var err error
 
 		shippingMethod, err = client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {

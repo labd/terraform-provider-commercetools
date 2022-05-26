@@ -3,11 +3,9 @@ package commercetools
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -36,15 +34,6 @@ func intRef(value interface{}) *int {
 func boolRef(value interface{}) *bool {
 	result := value.(bool)
 	return &result
-}
-
-func handleCommercetoolsError(err error) *resource.RetryError {
-	if ctErr, ok := err.(platform.ErrorResponse); ok {
-		return resource.NonRetryableError(ctErr)
-	}
-
-	log.Printf("[DEBUG] Received error: %s", err)
-	return resource.RetryableError(err)
 }
 
 func expandStringArray(input []interface{}) []string {

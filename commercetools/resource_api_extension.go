@@ -146,7 +146,6 @@ func validateExtensionDestination(draft platform.ExtensionDraft) error {
 
 func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var extension *platform.Extension
 
 	triggers := unmarshallExtensionTriggers(d)
 	destination, err := unmarshallExtensionDestination(d)
@@ -173,14 +172,11 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
+	var extension *platform.Extension
 	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
-
 		extension, err = client.Extensions().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {
