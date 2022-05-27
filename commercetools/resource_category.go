@@ -230,10 +230,6 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 
-	if category == nil {
-		return diag.Errorf("No  category created?")
-	}
-
 	d.SetId(category.ID)
 	_ = d.Set("version", category.Version)
 
@@ -245,7 +241,6 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interfa
 	client := getClient(m)
 
 	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
 		if IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -293,7 +288,6 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interfa
 func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -406,11 +400,11 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.Categories().WithId(d.Id()).Post(input).Execute(ctx)
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.Categories().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
 		return diag.FromErr(err)
 	}
 
@@ -421,7 +415,10 @@ func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m inter
 	client := getClient(m)
 
 	version := d.Get("version").(int)
-	_, err := client.Categories().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.Categories().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}

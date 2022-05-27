@@ -198,7 +198,10 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 		)
 	}
 
-	_, err := client.Stores().WithId(d.Id()).Post(input).Execute(ctx)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Stores().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -210,12 +213,11 @@ func resourceStoreDelete(ctx context.Context, d *schema.ResourceData, m interfac
 	client := getClient(m)
 	version := d.Get("version").(int)
 
-	_, err := client.Stores().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Stores().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
 func convertChannelKeysToIdentifiers(channelKeys []string) []platform.ChannelResourceIdentifier {

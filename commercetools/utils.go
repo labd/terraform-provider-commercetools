@@ -62,24 +62,6 @@ func stringFormatObject(object interface{}) string {
 	return string(append(data, '\n'))
 }
 
-func stringFormatErrorExtras(err platform.ErrorResponse) string {
-	switch len(err.Errors) {
-	case 0:
-		return ""
-	case 1:
-		return "temp" // stringFormatObject(err.Errors[0].Error())
-	default:
-		{
-			messages := make([]string, len(err.Errors))
-			for i, item := range err.Errors {
-				messages[i] = fmt.Sprintf("%v", item)
-				//messages[i] = fmt.Sprintf(" %d. %s", i+1, stringFormatObject(item.Extra()))
-			}
-			return strings.Join(messages, "\n")
-		}
-	}
-}
-
 func stringFormatActions(actions ...interface{}) string {
 	lines := []string{}
 	for i, action := range actions {

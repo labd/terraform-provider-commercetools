@@ -92,17 +92,12 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 	var shippingMethod *platform.ShippingMethod
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
 		shippingMethod, err = client.ShippingMethods().Post(draft).Execute(ctx)
 		return processRemoteError(err)
 	})
 
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	if shippingMethod == nil {
-		return diag.Errorf("No shipping method created?")
 	}
 
 	d.SetId(shippingMethod.ID)
@@ -117,7 +112,6 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m i
 	client := getClient(m)
 
 	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
 		if IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -214,11 +208,11 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
 		return diag.FromErr(err)
 	}
 
@@ -236,10 +230,9 @@ func resourceShippingMethodDelete(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	_, err = client.ShippingMethods().WithId(d.Id()).Delete().Version(shippingMethod.Version).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ShippingMethods().WithId(d.Id()).Delete().Version(shippingMethod.Version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }

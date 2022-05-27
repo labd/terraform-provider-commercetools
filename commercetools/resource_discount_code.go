@@ -129,19 +129,14 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	var discountCode *platform.DiscountCode
-	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
 		discountCode, err = client.DiscountCodes().Post(draft).Execute(ctx)
 		return processRemoteError(err)
 	})
 
-	if errorResponse != nil {
-		return diag.FromErr(errorResponse)
-	}
-
-	if discountCode == nil {
-		return diag.Errorf("No discount code created")
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	d.SetId(discountCode.ID)
@@ -156,7 +151,6 @@ func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m int
 	client := getClient(m)
 
 	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
 		if IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -299,11 +293,11 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.DiscountCodes().WithId(discountCode.ID).Post(input).Execute(ctx)
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.DiscountCodes().WithId(discountCode.ID).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
 		return diag.FromErr(err)
 	}
 
@@ -313,13 +307,12 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.DiscountCodes().WithId(d.Id()).Delete().Version(version).DataErasure(true).Execute(ctx)
 
-	if err != nil {
-		log.Printf("[ERROR] Error during deleting discount code resource %s", err)
-		return nil
-	}
-	return nil
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.DiscountCodes().WithId(d.Id()).Delete().Version(version).DataErasure(true).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
 func unmarshallDiscountCodeGroups(d *schema.ResourceData) []string {

@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
@@ -57,7 +59,12 @@ func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m i
 		Key:       d.Get("key").(string),
 		Value:     value,
 	}
-	customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
+	var customObject *platform.CustomObject
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		var err error
+		customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -113,21 +120,28 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m i
 			Key:       newKey.(string),
 			Value:     value,
 		}
-		customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
+		var customObject *platform.CustomObject
+		err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+			var err error
+			customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
+			return processRemoteError(err)
+		})
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		d.SetId(customObject.ID)
 		d.Set("version", customObject.Version)
 
-		_, err = client.
-			CustomObjects().
-			WithContainerAndKey(originalContainer.(string), originalKey.(string)).
-			Delete().
-			Version(originalVersion.(int)).
-			DataErasure(true).
-			Execute(ctx)
-
+		err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+			_, err := client.
+				CustomObjects().
+				WithContainerAndKey(originalContainer.(string), originalKey.(string)).
+				Delete().
+				Version(originalVersion.(int)).
+				DataErasure(true).
+				Execute(ctx)
+			return processRemoteError(err)
+		})
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -141,7 +155,12 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m i
 			Value:     value,
 			Version:   intRef(d.Get("version")),
 		}
-		customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
+		var customObject *platform.CustomObject
+		err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+			var err error
+			customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
+			return processRemoteError(err)
+		})
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -175,13 +194,16 @@ func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m i
 		return diags
 	}
 
-	_, err = client.
-		CustomObjects().
-		WithContainerAndKey(container, key).
-		Delete().
-		Version(customObject.Version).
-		DataErasure(false).
-		Execute(ctx)
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.
+			CustomObjects().
+			WithContainerAndKey(container, key).
+			Delete().
+			Version(customObject.Version).
+			DataErasure(false).
+			Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
 		var diags diag.Diagnostics
 		diags = append(diags, diag.FromErr(err)...)

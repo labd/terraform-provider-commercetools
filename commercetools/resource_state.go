@@ -128,7 +128,6 @@ func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
-
 		state, err = client.States().Post(draft).Execute(ctx)
 		return processRemoteError(err)
 	})
@@ -145,7 +144,6 @@ func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m interfac
 func resourceStateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	state, err := client.States().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
 		if IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -241,7 +239,10 @@ func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			})
 	}
 
-	_, err := client.States().WithId(d.Id()).Post(input).Execute(ctx)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.States().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -252,12 +253,11 @@ func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 func resourceStateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.States().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.States().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
 func marshallStateTransitions(values []platform.StateReference) []string {
