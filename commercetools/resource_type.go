@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math"
 	"reflect"
 	"time"
 
@@ -471,7 +470,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		newNames[i] = v["name"].(string)
 	}
 
-	if checkAttributeOrder && !reflect.DeepEqual(oldNames, newNames[:int(math.Min(float64(len(newNames)), float64(len(oldNames))))]) {
+	if checkAttributeOrder && !reflect.DeepEqual(oldNames, newNames[:min(len(newNames), len(oldNames))]) {
 		log.Printf("[DEBUG] Field ordering: %s", newNames)
 
 		actions = append(
