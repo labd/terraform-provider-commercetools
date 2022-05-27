@@ -406,3 +406,10 @@ func compareDateString(a, b string) bool {
 func diffSuppressDateString(k, old, new string, d *schema.ResourceData) bool {
 	return compareDateString(old, new)
 }
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
