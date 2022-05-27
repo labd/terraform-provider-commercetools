@@ -162,6 +162,8 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_type.acctest_type", "key", name),
 					resource.TestCheckResourceAttr(
+						"commercetools_type.acctest_type", "field.0.name", "skype_name"),
+					resource.TestCheckResourceAttr(
 						"commercetools_type.acctest_type", "field.1.name", "existing_enum"),
 					resource.TestCheckResourceAttr(
 						"commercetools_type.acctest_type", "field.1.type.0.element_type.0.values.%", "2"),
@@ -174,13 +176,13 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_type.acctest_type", "key", name),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.#", "11"),
+						"commercetools_type.acctest_type", "field.#", "10"),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.2.name", "existing_enum"),
+						"commercetools_type.acctest_type", "field.1.name", "existing_enum"),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.2.type.0.element_type.0.values.%", "3"),
+						"commercetools_type.acctest_type", "field.1.type.0.element_type.0.values.%", "3"),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.2.type.0.element_type.0.values.evening", "Evening Changed"),
+						"commercetools_type.acctest_type", "field.1.type.0.element_type.0.values.evening", "Evening Changed"),
 				),
 			},
 		},
@@ -275,17 +277,6 @@ resource "commercetools_type" "%s" {
 	}
 
 	resource_type_ids = ["customer"]
-
-	field {
-		name = "skype_name"
-		label = {
-			en = "Skype name"
-			nl = "Skype naam"
-		}
-		type {
-			name = "String"
-		}
-	}
 
 	field {
 		name = "new_enum"
