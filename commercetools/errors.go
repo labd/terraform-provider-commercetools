@@ -3,6 +3,7 @@ package commercetools
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -19,17 +20,49 @@ func processRemoteError(err error) *resource.RetryError {
 
 	case platform.GenericRequestError:
 		{
-			data := map[string]any{}
-			if err := json.Unmarshal(e.Content, &data); err == nil {
-				if val, ok := data["message"].(string); ok {
-					return resource.NonRetryableError(errors.New(val))
-				}
+			if err := extractDetailedError(e.Content); err != nil {
+				return resource.NonRetryableError(err)
 			}
 			return resource.NonRetryableError(e)
 		}
 	}
 
 	return resource.RetryableError(err)
+}
+
+func extractDetailedError(content []byte) error {
+	data := map[string]any{}
+	if err := json.Unmarshal(content, &data); err != nil {
+		return nil
+	}
+
+	// Iterate over the errors. This is a list of objects containing the
+	// code, message and detailedErrorMessage values.
+	if val, ok := data["errors"].([]interface{}); ok {
+		for i := range val {
+			if error, ok := val[i].(map[string]interface{}); ok {
+				var message string
+
+				if detail, ok := error["message"].(string); ok {
+					message = detail
+				}
+
+				if detail, ok := error["detailedErrorMessage"].(string); ok {
+					if message != "" {
+						return fmt.Errorf("%s %s", message, detail)
+					}
+					return errors.New(detail)
+				}
+			}
+		}
+	}
+
+	// Fallback to the generic error message
+	if val, ok := data["message"].(string); ok {
+		return errors.New(val)
+	}
+
+	return nil
 }
 
 // IsResourceNotFoundError returns true if commercetools returned a 404 error
