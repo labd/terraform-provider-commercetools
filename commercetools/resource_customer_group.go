@@ -55,15 +55,14 @@ func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	var customerGroup *platform.CustomerGroup
-	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
 		customerGroup, err = client.CustomerGroups().Post(draft).Execute(ctx)
 		return processRemoteError(err)
 	})
 
-	if errorResponse != nil {
-		return diag.FromErr(errorResponse)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	if customerGroup == nil {
@@ -82,7 +81,6 @@ func resourceCustomerGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	client := getClient(m)
 
 	customerGroup, err := client.CustomerGroups().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
 		if IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -136,11 +134,11 @@ func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.CustomerGroups().WithId(d.Id()).Post(input).Execute(ctx)
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.CustomerGroups().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
 		return diag.FromErr(err)
 	}
 
@@ -150,10 +148,9 @@ func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 func resourceCustomerGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.CustomerGroups().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-	if err != nil {
-		log.Printf("[ERROR] Error during deleting customer group resource %s", err)
-		return nil
-	}
-	return nil
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.CustomerGroups().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }

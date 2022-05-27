@@ -82,17 +82,12 @@ func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m i
 	var shippingZone *platform.Zone
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
 		shippingZone, err = client.Zones().Post(draft).Execute(ctx)
 		return processRemoteError(err)
 	})
 
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	if shippingZone == nil {
-		return diag.Errorf("Error creating shipping zone")
 	}
 
 	d.SetId(shippingZone.ID)
@@ -200,7 +195,10 @@ func resourceShippingZoneDelete(ctx context.Context, d *schema.ResourceData, m i
 	defer ctMutexKV.Unlock(d.Id())
 
 	version := d.Get("version").(int)
-	_, err := client.Zones().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.Zones().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
 	return diag.FromErr(err)
 }
 

@@ -131,7 +131,6 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 	defer ctMutexKV.Unlock(taxCategoryID)
 
 	taxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -243,11 +242,11 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 		stringFormatActions(input.Actions))
 
 	client := getClient(m)
-	_, err = client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
+	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
+		_, err := client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
 		return diag.FromErr(err)
 	}
 
@@ -259,7 +258,6 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
-
 	if newTaxRate == nil {
 		return diag.Errorf("No tax category rate created?")
 	}
@@ -325,12 +323,11 @@ func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, 
 	input.Actions = append(input.Actions, removeAction)
 
 	client := getClient(m)
-	_, err = client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
+		_, err := client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
 func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m interface{}) (*platform.TaxCategory, *platform.TaxRate, error) {

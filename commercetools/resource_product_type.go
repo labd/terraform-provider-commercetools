@@ -239,7 +239,7 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	var ctType *platform.ProductType
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
 		ctType, err = client.ProductTypes().Post(draft).Execute(ctx)
@@ -248,10 +248,6 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	if ctType == nil {
-		return diag.Errorf("No type created?")
 	}
 
 	d.SetId(ctType.ID)
@@ -265,7 +261,6 @@ func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m inte
 	client := getClient(m)
 
 	ctType, err := client.ProductTypes().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
 		if IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -412,11 +407,11 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m in
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(ctx)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
 		return diag.FromErr(err)
 	}
 
@@ -426,12 +421,11 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m in
 func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ProductTypes().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ProductTypes().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
 func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValues []interface{}) ([]platform.ProductTypeUpdateAction, error) {

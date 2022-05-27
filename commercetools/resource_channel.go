@@ -153,7 +153,10 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			&platform.ChannelSetRolesAction{Roles: roles})
 	}
 
-	_, err := client.Channels().WithId(d.Id()).Post(input).Execute(ctx)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Channels().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -164,7 +167,10 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Channels().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Channels().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}

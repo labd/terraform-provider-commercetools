@@ -276,14 +276,14 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	var cartDiscount *platform.CartDiscount
-	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 		cartDiscount, err = client.CartDiscounts().Post(draft).Execute(ctx)
 		return processRemoteError(err)
 	})
 
-	if errorResponse != nil {
-		return diag.FromErr(errorResponse)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	if cartDiscount == nil {
@@ -302,7 +302,6 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m int
 	client := getClient(m)
 
 	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
 		if IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -468,11 +467,12 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.CartDiscounts().WithId(d.Id()).Post(input).Execute(ctx)
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.CartDiscounts().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
+
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
 		return diag.FromErr(err)
 	}
 
@@ -482,7 +482,11 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 func resourceCartDiscountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.CartDiscounts().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.CartDiscounts().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}

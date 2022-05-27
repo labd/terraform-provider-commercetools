@@ -147,7 +147,6 @@ func resourceShippingZoneRateImportState(ctx context.Context, d *schema.Resource
 	shippingMethodID, _, _ := getShippingIDs(d.Id())
 
 	shippingMethod, err := client.ShippingMethods().WithId(shippingMethodID).Get().Execute(ctx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +175,6 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 	defer ctMutexKV.Unlock(shippingMethodID)
 
 	shippingMethod, err := client.ShippingMethods().WithId(shippingMethodID).Get().Execute(ctx)
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -234,7 +232,6 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
 		shippingMethod, err = client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
 		return processRemoteError(err)
 	})
@@ -243,12 +240,7 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	if shippingMethod == nil {
-		return diag.Errorf("No shipping method created?")
-	}
-
 	d.SetId(buildShippingZoneRateID(shippingMethod.ID, shippingZoneID, string(priceCurrencyCode)))
-
 	return resourceShippingZoneRateRead(ctx, d, m)
 }
 
@@ -305,7 +297,6 @@ func resourceShippingZoneRateRead(ctx context.Context, d *schema.ResourceData, m
 	client := getClient(m)
 
 	shippingMethod, err := client.ShippingMethods().WithId(shippingMethodID).Get().Execute(ctx)
-
 	if err != nil {
 		if IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -342,7 +333,6 @@ func resourceShippingZoneRateUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	shippingRate, err := findShippingZoneRate(shippingZoneID, currencyCode, shippingMethod)
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -424,11 +414,11 @@ func resourceShippingZoneRateUpdate(ctx context.Context, d *schema.ResourceData,
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.ShippingMethods().WithId(shippingMethodID).Post(input).Execute(ctx)
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.ShippingMethods().WithId(shippingMethodID).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
 		return diag.FromErr(err)
 	}
 
@@ -490,12 +480,11 @@ func resourceShippingZoneRateDelete(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	_, err = client.ShippingMethods().WithId(shippingMethodID).Post(input).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err = client.ShippingMethods().WithId(shippingMethodID).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
 func getShippingIDs(shippingZoneRateID string) (string, string, string) {

@@ -104,10 +104,10 @@ func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m interf
 func resourceAPIClientDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	_, err := client.ApiClients().WithId(d.Id()).Delete().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ApiClients().WithId(d.Id()).Delete().Execute(ctx)
+		return processRemoteError(err)
+	})
 
-	return nil
+	return diag.FromErr(err)
 }

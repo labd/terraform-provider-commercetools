@@ -305,21 +305,12 @@ func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m i
 
 	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
-
 		subscription, err = client.Subscriptions().Post(draft).Execute(ctx)
-		if err != nil {
-			// Some subscription resources might not be ready yet, always keep retrying
-			return resource.RetryableError(err)
-		}
-		return nil
+		return processRemoteError(err)
 	})
 
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	if subscription == nil {
-		return diag.Errorf("Error creating subscription")
 	}
 
 	d.SetId(subscription.ID)
@@ -333,7 +324,6 @@ func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m int
 	client := getClient(m)
 
 	subscription, err := client.Subscriptions().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
 		if IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -407,14 +397,8 @@ func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	err := resource.RetryContext(ctx, 5*time.Second, func() *resource.RetryError {
-		var err error
-
-		_, err = client.Subscriptions().WithId(d.Id()).Post(input).Execute(ctx)
-		if err != nil {
-			// Some subscription resources might not be ready yet, always keep retrying
-			return resource.RetryableError(err)
-		}
-		return nil
+		_, err := client.Subscriptions().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
 	})
 
 	if err != nil {
@@ -427,12 +411,11 @@ func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m i
 func resourceSubscriptionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Subscriptions().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err := resource.RetryContext(ctx, 5*time.Second, func() *resource.RetryError {
+		_, err := client.Subscriptions().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
 func unmarshallSubscriptionDestination(d *schema.ResourceData) (platform.Destination, error) {

@@ -195,7 +195,6 @@ func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m int
 	client := getClient(m)
 
 	extension, err := client.Extensions().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
 		if IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -259,7 +258,11 @@ func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m i
 			&platform.ExtensionSetTimeoutInMsAction{TimeoutInMs: &newTimeout})
 	}
 
-	_, err := client.Extensions().WithId(d.Id()).Post(input).Execute(ctx)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Extensions().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
+
 	if err != nil {
 		return diag.FromErr(err)
 	}
