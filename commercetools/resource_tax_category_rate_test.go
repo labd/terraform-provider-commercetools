@@ -122,6 +122,7 @@ func TestAccTaxCategoryRate_createAndUpdateSubRates(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_tax_category_rate.test_rate", "country", country,
 					),
+					resource.TestCheckResourceAttr("commercetools_tax_category_rate.test_rate", "sub_rate.#", "2"),
 					resource.TestCheckResourceAttr(
 						"commercetools_tax_category_rate.test_rate", "sub_rate.0.amount", "0.2",
 					),
@@ -151,7 +152,7 @@ func TestAccTaxCategoryRate_createAndUpdateSubRates(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_tax_category_rate.test_rate", "country", country,
 					),
-					resource.TestCheckNoResourceAttr("commercetools_tax_category_rate.test_rate", "sub_rate"),
+					resource.TestCheckResourceAttr("commercetools_tax_category_rate.test_rate", "sub_rate.#", "0"),
 				),
 			},
 		},
