@@ -123,7 +123,7 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 						"commercetools_cart_discount.standard", "name.en", "standard name",
 					),
 					resource.TestCheckNoResourceAttr(
-						"commercetools_cart_discount.standard", "description",
+						"commercetools_cart_discount.standard", "description.en",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_cart_discount.standard", "sort_order", "0.8",
