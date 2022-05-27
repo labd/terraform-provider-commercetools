@@ -54,6 +54,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 						"commercetools_category.accessories", "meta_keywords.en", "keywords",
 					),
 					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.#", "1",
+					),
+					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "assets.0.name.en", "My Product Video",
 					),
 					resource.TestCheckResourceAttr(
@@ -96,6 +99,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "meta_keywords.en", "keywords, updated",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.#", "1",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "assets.0.name.en", "Updated name",
@@ -141,8 +147,8 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					resource.TestCheckNoResourceAttr(
 						"commercetools_category.accessories", "meta_keywords",
 					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_category.accessories", "assets",
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.#", "0",
 					),
 				),
 			},
