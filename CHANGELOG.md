@@ -1,3 +1,8 @@
+v1.1.0 (2022-06-01)
+===================
+- Fix out of bounds error in the commercetools_type resource (#241)
+- Handle changes to access_secret in api_extension resource (#243)
+
 v1.0.1 (2022-05-25)
 ===================
 - Minor release to fix hash error
