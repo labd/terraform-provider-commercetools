@@ -75,8 +75,9 @@ func resourceAPIExtension() *schema.Resource {
 							Optional: true,
 						},
 						"access_secret": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
 						},
 					},
 				},
@@ -218,7 +219,7 @@ func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m int
 
 		d.Set("version", extension.Version)
 		d.Set("key", extension.Key)
-		d.Set("destination", marshallExtensionDestination(extension.Destination))
+		d.Set("destination", marshallExtensionDestination(extension.Destination, d))
 		d.Set("trigger", marshallExtensionTriggers(extension.Triggers))
 		d.Set("timeout_in_ms", extension.TimeoutInMs)
 	}
@@ -343,8 +344,9 @@ func unmarshallExtensionDestinationAuthentication(destInput map[string]interface
 	return nil, nil
 }
 
-func marshallExtensionDestination(d platform.Destination) []map[string]string {
-	switch v := d.(type) {
+func marshallExtensionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
+
+	switch v := dst.(type) {
 	case platform.HttpDestination:
 		switch a := v.Authentication.(type) {
 		case platform.AuthorizationHeaderAuthentication:
@@ -366,10 +368,18 @@ func marshallExtensionDestination(d platform.Destination) []map[string]string {
 		}}
 
 	case platform.AWSLambdaDestination:
+
+		// Read the access secret from the current resource data
+		c, _ := unmarshallExtensionDestination(d)
+		accessSecret := ""
+		switch current := c.(type) {
+		case platform.AWSLambdaDestination:
+			accessSecret = current.AccessSecret
+		}
 		return []map[string]string{{
 			"type":          "awslambda",
 			"access_key":    v.AccessKey,
-			"access_secret": v.AccessSecret,
+			"access_secret": accessSecret,
 			"arn":           v.Arn,
 		}}
 
