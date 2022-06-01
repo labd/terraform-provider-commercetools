@@ -277,7 +277,7 @@ func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m i
 	client := getClient(m)
 	var subscription *platform.Subscription
 
-	if err := validateDestination(d); err != nil {
+	if err := validateSubscriptionDestination(d); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := validateFormat(d); err != nil {
@@ -364,7 +364,7 @@ func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m int
 func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	if err := validateDestination(d); err != nil {
+	if err := validateSubscriptionDestination(d); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := validateFormat(d); err != nil {
@@ -628,7 +628,7 @@ func unmarshallSubscriptionMessages(d *schema.ResourceData) []platform.MessageSu
 	return messageObjects
 }
 
-func validateDestination(d *schema.ResourceData) error {
+func validateSubscriptionDestination(d *schema.ResourceData) error {
 	input := d.Get("destination").([]interface{})
 
 	if len(input) != 1 {

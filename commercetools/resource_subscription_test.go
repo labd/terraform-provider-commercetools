@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestValidateDestination(t *testing.T) {
+func TestValidateSubscriptionDestination(t *testing.T) {
 	resource := resourceSubscription()
 	validDestinations := []map[string]interface{}{
 		{
@@ -47,7 +47,7 @@ func TestValidateDestination(t *testing.T) {
 			"destination": []interface{}{validDestination},
 		}
 		data := schema.TestResourceDataRaw(t, resource.Schema, rawData)
-		err := validateDestination(data)
+		err := validateSubscriptionDestination(data)
 		if err != nil {
 			t.Error("Expected no validation errors, but got ", err)
 		}
@@ -79,7 +79,7 @@ func TestValidateDestination(t *testing.T) {
 			"destination": []interface{}{validDestination},
 		}
 		data := schema.TestResourceDataRaw(t, resource.Schema, rawData)
-		err := validateDestination(data)
+		err := validateSubscriptionDestination(data)
 		if err == nil {
 			t.Error("Expected validation errors, but none was reported")
 		}
