@@ -50,6 +50,7 @@ func resourceAPIExtension() *schema.Resource {
 							Required:     true,
 							ValidateFunc: validateDestinationType,
 						},
+
 						// HTTP specific fields
 						"url": {
 							Type:     schema.TypeString,
@@ -123,9 +124,20 @@ func validateDestinationType(val interface{}, key string) (warns []string, errs 
 		"awslambda":
 		return
 	default:
-		errs = append(errs, fmt.Errorf("%q not a valid value for %q", val, key))
+		errs = append(errs, fmt.Errorf("%q not a valid value for %q, valid options are: http, awslambda", val, key))
 	}
 	return
+}
+
+func validateExtensionDestination(draft platform.ExtensionDraft) error {
+
+	switch t := draft.Destination.(type) {
+	case platform.AWSLambdaDestination:
+		if t.Arn == "" {
+			return fmt.Errorf("arn is required when using AWSLambda as destination")
+		}
+	}
+	return nil
 }
 
 func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -151,6 +163,10 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m i
 	key := stringRef(d.Get("key"))
 	if *key != "" {
 		draft.Key = key
+	}
+
+	if err := validateExtensionDestination(draft); err != nil {
+		return diag.FromErr(err)
 	}
 
 	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
