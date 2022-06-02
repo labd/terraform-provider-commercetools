@@ -23,6 +23,9 @@ func resourceAPIExtension() *schema.Resource {
 		ReadContext:   resourceAPIExtensionRead,
 		UpdateContext: resourceAPIExtensionUpdate,
 		DeleteContext: resourceAPIExtensionDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -368,14 +371,20 @@ func marshallExtensionDestination(dst platform.Destination, d *schema.ResourceDa
 		}}
 
 	case platform.AWSLambdaDestination:
-
-		// Read the access secret from the current resource data
-		c, _ := unmarshallExtensionDestination(d)
 		accessSecret := ""
-		switch current := c.(type) {
-		case platform.AWSLambdaDestination:
-			accessSecret = current.AccessSecret
+
+		// If we already have a state we get the accessSecret from the state.
+		// Normally we have a state, the one exception is when we are importing
+		// the resource.
+		if !d.GetRawState().GetAttr("version").IsNull() {
+			// Read the access secret from the current resource data
+			c, _ := unmarshallExtensionDestination(d)
+			switch current := c.(type) {
+			case platform.AWSLambdaDestination:
+				accessSecret = current.AccessSecret
+			}
 		}
+
 		return []map[string]string{{
 			"type":          "awslambda",
 			"access_key":    v.AccessKey,
