@@ -60,6 +60,13 @@ var destinationFields = map[string][]string{
 	},
 }
 
+var destinationFieldAliases = map[string]string{
+	subEventBridgeAlias:     subEventBridge,
+	subAzureEventGridAlias:  subAzureEventGrid,
+	subAzureServiceBusAlias: subAzureServiceBus,
+	subGooglePubSubAlias:    subGooglePubSub,
+}
+
 var formatFields = map[string][]string{
 	cloudEvents: {
 		"cloud_events_version",
@@ -627,6 +634,11 @@ func validateSubscriptionDestination(d *schema.ResourceData) error {
 	dst := input[0].(map[string]interface{})
 
 	dstType := dst["type"].(string)
+
+	if dstTypeAlias, ok := destinationFieldAliases[dstType]; ok {
+		dstType = dstTypeAlias
+	}
+
 	requiredFields, ok := destinationFields[dstType]
 	if !ok {
 		return fmt.Errorf("invalid type for destination: '%v'", dstType)

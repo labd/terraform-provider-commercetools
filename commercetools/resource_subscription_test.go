@@ -28,7 +28,16 @@ func TestValidateSubscriptionDestination(t *testing.T) {
 			"access_key": "<access_key>",
 		},
 		{
+			"type":       "EventGrid",
+			"uri":        "<uri>",
+			"access_key": "<access_key>",
+		},
+		{
 			"type":              "azure_servicebus",
+			"connection_string": "<connection_string>",
+		},
+		{
+			"type":              "AzureServiceBus",
 			"connection_string": "<connection_string>",
 		},
 		{
@@ -37,7 +46,17 @@ func TestValidateSubscriptionDestination(t *testing.T) {
 			"topic":      "<topic>",
 		},
 		{
+			"type":       "GoogleCloudPubSub",
+			"project_id": "<project_id>",
+			"topic":      "<topic>",
+		},
+		{
 			"type":       "event_bridge",
+			"region":     "<region>",
+			"account_id": "<account_id>",
+		},
+		{
+			"type":       "EventBridge",
 			"region":     "<region>",
 			"account_id": "<account_id>",
 		},
