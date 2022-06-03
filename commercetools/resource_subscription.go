@@ -27,8 +27,10 @@ const (
 	subGooglePubSubAlias    = "GoogleCloudPubSub"
 
 	// Formats
-	cloudEvents = "cloud_events"
-	fmtPlatform = "platform"
+	cloudEvents      = "cloud_events"
+	cloudEventsAlias = "CloudEvents"
+	fmtPlatform      = "platform"
+	fmtPlatformAlias = "Platform"
 )
 
 var destinationFields = map[string][]string{
@@ -72,6 +74,11 @@ var formatFields = map[string][]string{
 		"cloud_events_version",
 	},
 	fmtPlatform: {},
+}
+
+var formatFieldAliases = map[string]string{
+	cloudEventsAlias: cloudEvents,
+	fmtPlatformAlias: fmtPlatform,
 }
 
 func resourceSubscription() *schema.Resource {
@@ -238,7 +245,7 @@ func resourceSubscription() *schema.Resource {
 							Description:      "For CloudEvents",
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotFormatType(cloudEvents),
+							DiffSuppressFunc: suppressIfNotFormatType(cloudEvents, cloudEventsAlias),
 						},
 					},
 				},
@@ -562,11 +569,11 @@ func expandSubscriptionFormat(d *schema.ResourceData) (platform.DeliveryFormat, 
 		format := input[0].(map[string]interface{})
 
 		switch format["type"] {
-		case cloudEvents:
+		case cloudEvents, cloudEventsAlias:
 			return platform.CloudEventsFormat{
 				CloudEventsVersion: format["cloud_events_version"].(string),
 			}, nil
-		case fmtPlatform:
+		case fmtPlatform, fmtPlatformAlias:
 			return platform.PlatformFormat{}, nil
 		}
 	}
@@ -668,6 +675,11 @@ func validateFormat(d *schema.ResourceData) error {
 	dst := input[0].(map[string]interface{})
 
 	dstType := dst["type"].(string)
+
+	if dstTypeAlias, ok := formatFieldAliases[dstType]; ok {
+		dstType = dstTypeAlias
+	}
+
 	requiredFields, ok := formatFields[dstType]
 	if !ok {
 		return fmt.Errorf("invalid type for format: '%v'", dstType)

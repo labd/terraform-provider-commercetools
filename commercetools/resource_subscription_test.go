@@ -138,6 +138,10 @@ resource "commercetools_subscription" "subscription_%[1]s" {
 		region        = "eu-west-1"
 	}
 
+	format {
+		type = "Platform"
+	}
+
 	changes {
 		resource_type_ids = ["customer"]
 	}
