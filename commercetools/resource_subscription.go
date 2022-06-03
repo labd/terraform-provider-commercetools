@@ -15,12 +15,16 @@ import (
 
 const (
 	// Destinations
-	subSQS             = "SQS"
-	subSNS             = "SNS"
-	subEventBridge     = "event_bridge"
-	subAzureEventGrid  = "azure_eventgrid"
-	subAzureServiceBus = "azure_servicebus"
-	subGooglePubSub    = "google_pubsub"
+	subSQS                  = "SQS"
+	subSNS                  = "SNS"
+	subEventBridge          = "event_bridge"
+	subEventBridgeAlias     = "EventBridge"
+	subAzureEventGrid       = "azure_eventgrid"
+	subAzureEventGridAlias  = "EventGrid"
+	subAzureServiceBus      = "azure_servicebus"
+	subAzureServiceBusAlias = "AzureServiceBus"
+	subGooglePubSub         = "google_pubsub"
+	subGooglePubSubAlias    = "GoogleCloudPubSub"
 
 	// Formats
 	cloudEvents = "cloud_events"
@@ -108,9 +112,13 @@ func resourceSubscription() *schema.Resource {
 									subSQS,
 									subSNS,
 									subEventBridge,
+									subEventBridgeAlias,
 									subAzureEventGrid,
+									subAzureEventGridAlias,
 									subAzureServiceBus,
+									subAzureServiceBusAlias,
 									subGooglePubSub,
+									subGooglePubSubAlias,
 								}
 
 								if !stringInSlice(d.(string), allowed) {
@@ -139,19 +147,19 @@ func resourceSubscription() *schema.Resource {
 						"region": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subEventBridge),
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subEventBridge, subEventBridgeAlias),
 						},
 						"account_id": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subEventBridge),
+							DiffSuppressFunc: suppressIfNotDestinationType(subEventBridge, subEventBridgeAlias),
 						},
 						"access_key": {
 							Description:      "For AWS SNS / SQS / Azure Event Grid",
 							Type:             schema.TypeString,
 							Optional:         true,
 							Sensitive:        true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS, subAzureEventGrid),
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS, subAzureEventGrid, subAzureEventGridAlias),
 						},
 						"access_secret": {
 							Description:      "For AWS SNS / SQS",
@@ -164,7 +172,7 @@ func resourceSubscription() *schema.Resource {
 							Description:      "For Azure Event Grid",
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subAzureEventGrid),
+							DiffSuppressFunc: suppressIfNotDestinationType(subAzureEventGrid, subAzureEventGridAlias),
 						},
 						"connection_string": {
 							Description:      "For Azure Service Bus",
@@ -172,19 +180,19 @@ func resourceSubscription() *schema.Resource {
 							Optional:         true,
 							Sensitive:        true,
 							ForceNew:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subAzureServiceBus),
+							DiffSuppressFunc: suppressIfNotDestinationType(subAzureServiceBus, subAzureServiceBusAlias),
 						},
 						"project_id": {
 							Description:      "For Google Pub Sub",
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
+							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub, subGooglePubSubAlias),
 						},
 						"topic": {
 							Description:      "For Google Pub Sub",
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
+							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub, subGooglePubSubAlias),
 						},
 					},
 				},
@@ -441,21 +449,21 @@ func unmarshallSubscriptionDestination(d *schema.ResourceData) (platform.Destina
 			AccessSecret: dst["access_secret"].(string),
 			Region:       dst["region"].(string),
 		}, nil
-	case subAzureEventGrid:
+	case subAzureEventGrid, subAzureEventGridAlias:
 		return platform.AzureEventGridDestination{
 			Uri:       dst["uri"].(string),
 			AccessKey: dst["access_key"].(string),
 		}, nil
-	case subAzureServiceBus:
+	case subAzureServiceBus, subAzureServiceBusAlias:
 		return platform.AzureServiceBusDestination{
 			ConnectionString: dst["connection_string"].(string),
 		}, nil
-	case subGooglePubSub:
+	case subGooglePubSub, subGooglePubSubAlias:
 		return platform.GoogleCloudPubSubDestination{
 			ProjectId: dst["project_id"].(string),
 			Topic:     dst["topic"].(string),
 		}, nil
-	case subEventBridge:
+	case subEventBridge, subEventBridgeAlias:
 		return platform.EventBridgeDestination{
 			Region:    dst["region"].(string),
 			AccountId: dst["account_id"].(string),
