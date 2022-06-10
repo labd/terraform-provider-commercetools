@@ -311,11 +311,15 @@ func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	draft := platform.SubscriptionDraft{
-		Key:         stringRef(d.Get("key")),
 		Destination: destination,
 		Format:      &format,
 		Messages:    messages,
 		Changes:     changes,
+	}
+
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
 	}
 
 	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
