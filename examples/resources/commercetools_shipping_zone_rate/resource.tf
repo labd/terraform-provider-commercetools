@@ -39,7 +39,7 @@ resource "commercetools_shipping_zone_rate" "my-shipping-zone-rate" {
 
     price {
       cent_amount      = 5000
-      currency_code    = "%[3]s"
+      currency_code    = "EUR"
     }
   }
 
@@ -49,7 +49,7 @@ resource "commercetools_shipping_zone_rate" "my-shipping-zone-rate" {
 
     price {
       cent_amount      = 2000
-      currency_code    = "%[3]s"
+      currency_code    = "EUR"
     }
   }
 }
