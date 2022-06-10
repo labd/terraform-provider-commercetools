@@ -1,4 +1,4 @@
-resource "commercetools_channel" "project" {
+resource "commercetools_channel" "my-channel" {
   key = "My channel"
   roles = ["ProductDistribution"]
   name = {

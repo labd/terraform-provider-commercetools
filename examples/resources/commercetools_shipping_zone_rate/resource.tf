@@ -2,20 +2,23 @@ resource "commercetools_shipping_method" "standard" {
   name = "Standard tax category"
   key = "Standard tax category"
   description = "Standard tax category"
+resource "commercetools_shipping_method" "my-shipping-method" {
+  name = "My shipping method"
+  description = "Standard method"
   is_default = true
   tax_category_id = "<some tax category id>"
   predicate = "1 = 1"
 }
 
-resource "commercetools_shipping_zone" "de" {
+resource "commercetools_shipping_zone" "my-shipping-zone" {
   name = "DE"
-  description = "Germany"
+  description = "My shipping zone"
   location {
       country = "DE"
   }
 }
 
-resource "commercetools_shipping_zone_rate" "standard-de" {
+resource "commercetools_shipping_zone_rate" "my-shipping-zone-rate" {
   shipping_method_id = commercetools_shipping_method.my-shipping-method.id
   shipping_zone_id   = commercetools_shipping_zone.my-shipping-zone.id
 

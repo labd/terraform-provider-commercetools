@@ -1,4 +1,4 @@
-resource "commercetools_project_settings" "project" {
+resource "commercetools_project_settings" "my-project" {
   name = "My project"
   countries = ["NL", "DE", "US", "CA"]
   currencies = ["EUR", "USD", "CAD"]

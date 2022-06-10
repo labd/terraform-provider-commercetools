@@ -11,9 +11,6 @@ resource "commercetools_state" "review_unreviewed" {
   roles = ["ReviewIncludedInStatistics"]
 }
 
-
-# State with transitions specified:
-
 resource "commercetools_state" "product_for_sale" {
   key = "product-for-sale"
   type = "ProductState"

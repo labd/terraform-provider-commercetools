@@ -1,6 +1,6 @@
-resource "commercetools_tax_category" "standard" {
+resource "commercetools_tax_category" "my-tax-category" {
   name = "Standard tax category"
-  key  = "standard-tax-category"
+  description = "Example category"
 }
 
 resource "commercetools_tax_category_rate" "standard-tax-category-DE" {
