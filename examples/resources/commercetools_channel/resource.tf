@@ -1,5 +1,5 @@
 resource "commercetools_channel" "project" {
-  key = "My project"
+  key = "My channel"
   roles = ["ProductDistribution"]
   name = {
       nl-NL = "Channel"

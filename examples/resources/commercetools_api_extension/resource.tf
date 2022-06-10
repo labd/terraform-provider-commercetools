@@ -1,6 +1,4 @@
 resource "commercetools_api_extension" "my-extension" {
-  key = "test-case"
-
   destination {
     type                 = "HTTP"
     url                  = "https://example.com"

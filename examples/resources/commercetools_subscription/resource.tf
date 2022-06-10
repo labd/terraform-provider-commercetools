@@ -1,6 +1,4 @@
 resource "commercetools_subscription" "my-sqs-subscription" {
-  key = "my-subscription"
-
   destination = {
     type          = "SQS"
     queue_url     = "${aws_sqs_queue.your-queue.id}"

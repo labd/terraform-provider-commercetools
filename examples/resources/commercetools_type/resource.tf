@@ -1,5 +1,5 @@
 resource "commercetools_type" "my-custom-type" {
-  key = "contact_info"
+  key = "my-custom-type"
   name = {
     en = "Contact info"
     nl = "Contact informatie"
