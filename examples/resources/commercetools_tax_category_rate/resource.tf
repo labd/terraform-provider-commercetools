@@ -9,6 +9,10 @@ resource "commercetools_tax_category_rate" "standard-tax-category-DE" {
   amount            = 0.19
   included_in_price = false
   country           = "DE"
+  sub_rate {
+		name = "example"
+		amount = 0.19
+	}
 }
 
 resource "commercetools_tax_category_rate" "standard-tax-category-NL" {
