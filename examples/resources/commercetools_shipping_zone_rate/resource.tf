@@ -10,14 +10,14 @@ resource "commercetools_shipping_method" "standard" {
 resource "commercetools_shipping_zone" "de" {
   name = "DE"
   description = "Germany"
-  location = {
+  location {
       country = "DE"
   }
 }
 
 resource "commercetools_shipping_zone_rate" "standard-de" {
-  shipping_method_id = "${commercetools_shipping_method.standard.id}"
-  shipping_zone_id   = "${commercetools_shipping_zone.de.id}"
+  shipping_method_id = commercetools_shipping_method.my-shipping-method.id
+  shipping_zone_id   = commercetools_shipping_zone.my-shipping-zone.id
 
   price {
     cent_amount   = 5000

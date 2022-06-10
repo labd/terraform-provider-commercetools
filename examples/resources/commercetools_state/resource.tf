@@ -24,7 +24,7 @@ resource "commercetools_state" "product_for_sale" {
     en = "Regularly stocked product."
   }
   initial = true
-  transitions = ["${commercetools_state.product_clearance.key}"]
+  transitions = [commercetools_state.product_clearance.id]
 }
 
 resource "commercetools_state" "product_clearance" {
