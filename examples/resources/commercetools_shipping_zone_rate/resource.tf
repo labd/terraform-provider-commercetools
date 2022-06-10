@@ -1,12 +1,13 @@
-resource "commercetools_shipping_method" "standard" {
-  name = "Standard tax category"
-  key = "Standard tax category"
-  description = "Standard tax category"
+resource "commercetools_tax_category" "my-tax-category" {
+	name = "My tax category"
+	description = "Example"
+}
+
 resource "commercetools_shipping_method" "my-shipping-method" {
   name = "My shipping method"
   description = "Standard method"
   is_default = true
-  tax_category_id = "<some tax category id>"
+  tax_category_id = commercetools_tax_category.my-tax-category.id
   predicate = "1 = 1"
 }
 
