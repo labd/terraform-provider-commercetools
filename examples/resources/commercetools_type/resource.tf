@@ -20,6 +20,7 @@ resource "commercetools_type" "my-custom-type" {
     type {
       name = "String"
     }
+  }
 
   field {
     name = "contact_time"
@@ -30,7 +31,7 @@ resource "commercetools_type" "my-custom-type" {
     type {
       name = "Enum"
       values = {
-        day = "Daytime"
+        day     = "Daytime"
         evening = "Evening"
       }
     }
