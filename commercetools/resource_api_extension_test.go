@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIExtensionUnmarshallExtensionDestination(t *testing.T) {
+func TestAPIExtensionExpandExtensionDestination(t *testing.T) {
 	rawDestination := map[string]interface{}{
 		"type":          "AWSLambda",
 		"arn":           "arn:aws:lambda:eu-west-1:111111111:function:api_extensions",
@@ -38,7 +38,7 @@ func TestAPIExtensionUnmarshallExtensionDestination(t *testing.T) {
 	}
 
 	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
-	destination, _ := unmarshallExtensionDestination(d)
+	destination, _ := expandExtensionDestination(d)
 	lambdaDestination, ok := destination.(platform.AWSLambdaDestination)
 
 	assert.True(t, ok)
@@ -47,13 +47,13 @@ func TestAPIExtensionUnmarshallExtensionDestination(t *testing.T) {
 	assert.Equal(t, lambdaDestination.AccessSecret, "****abc/")
 }
 
-func TestAPIExtensionUnmarshallExtensionDestinationAuthentication(t *testing.T) {
+func TestAPIExtensionExpandExtensionDestinationAuthentication(t *testing.T) {
 	var input = map[string]interface{}{
 		"authorization_header": "12345",
 		"azure_authentication": "AzureKey",
 	}
 
-	auth, err := unmarshallExtensionDestinationAuthentication(input)
+	auth, err := expandExtensionDestinationAuthentication(input)
 	assert.Nil(t, auth)
 	assert.NotNil(t, err)
 
@@ -61,7 +61,7 @@ func TestAPIExtensionUnmarshallExtensionDestinationAuthentication(t *testing.T) 
 		"authorization_header": "12345",
 	}
 
-	auth, err = unmarshallExtensionDestinationAuthentication(input)
+	auth, err = expandExtensionDestinationAuthentication(input)
 	httpAuth, ok := auth.(*platform.AuthorizationHeaderAuthentication)
 	assert.True(t, ok)
 	assert.Equal(t, "12345", httpAuth.HeaderValue)
@@ -69,7 +69,7 @@ func TestAPIExtensionUnmarshallExtensionDestinationAuthentication(t *testing.T) 
 	assert.Nil(t, err)
 }
 
-func TestUnmarshallExtensionTriggers(t *testing.T) {
+func TestExpandExtensionTriggers(t *testing.T) {
 	resourceDataMap := map[string]interface{}{
 		"id":             "2845b936-e407-4f29-957b-f8deb0fcba97",
 		"version":        1,
@@ -86,7 +86,7 @@ func TestUnmarshallExtensionTriggers(t *testing.T) {
 	}
 
 	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
-	triggers := unmarshallExtensionTriggers(d)
+	triggers := expandExtensionTriggers(d)
 
 	assert.Len(t, triggers, 1)
 	assert.Equal(t, triggers[0].ResourceTypeId, platform.ExtensionResourceTypeIdCart)

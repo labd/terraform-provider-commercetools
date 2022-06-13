@@ -56,8 +56,8 @@ func resourceChannel() *schema.Resource {
 }
 
 func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	name := unmarshallLocalizedString(d.Get("name"))
-	description := unmarshallLocalizedString(d.Get("description"))
+	name := expandLocalizedString(d.Get("name"))
+	description := expandLocalizedString(d.Get("description"))
 
 	roles := []platform.ChannelRoleEnum{}
 	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
@@ -130,14 +130,14 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ChannelChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := unmarshallLocalizedString(d.Get("description"))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ChannelChangeDescriptionAction{Description: newDescription})

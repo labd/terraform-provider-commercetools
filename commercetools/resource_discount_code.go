@@ -98,8 +98,8 @@ func resourceDiscountCode() *schema.Resource {
 func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	name := unmarshallLocalizedString(d.Get("name"))
-	description := unmarshallLocalizedString(d.Get("description"))
+	name := expandLocalizedString(d.Get("name"))
+	description := expandLocalizedString(d.Get("description"))
 
 	draft := platform.DiscountCodeDraft{
 		Name:                       &name,
@@ -109,19 +109,19 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m i
 		IsActive:                   boolRef(d.Get("is_active")),
 		MaxApplicationsPerCustomer: intRef(d.Get("max_applications_per_customer")),
 		MaxApplications:            intRef(d.Get("max_applications")),
-		Groups:                     unmarshallDiscountCodeGroups(d),
-		CartDiscounts:              unmarshallDiscountCodeCartDiscounts(d),
+		Groups:                     expandDiscountCodeGroups(d),
+		CartDiscounts:              expandDiscountCodeCartDiscounts(d),
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
-		validFrom, err := unmarshallTime(val)
+		validFrom, err := expandTime(val)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		draft.ValidFrom = &validFrom
 	}
 	if val := d.Get("valid_until").(string); len(val) > 0 {
-		validUntil, err := unmarshallTime(val)
+		validUntil, err := expandTime(val)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -171,11 +171,11 @@ func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m int
 		d.Set("name", discountCode.Name)
 		d.Set("description", discountCode.Description)
 		d.Set("predicate", discountCode.CartPredicate)
-		d.Set("cart_discounts", marshallDiscountCodeCartDiscounts(discountCode.CartDiscounts))
+		d.Set("cart_discounts", flattenDiscountCodeCartDiscounts(discountCode.CartDiscounts))
 		d.Set("groups", discountCode.Groups)
 		d.Set("is_active", discountCode.IsActive)
-		d.Set("valid_from", marshallTime(discountCode.ValidFrom))
-		d.Set("valid_until", marshallTime(discountCode.ValidUntil))
+		d.Set("valid_from", flattenTime(discountCode.ValidFrom))
+		d.Set("valid_until", flattenTime(discountCode.ValidUntil))
 		d.Set("max_applications_per_customer", discountCode.MaxApplicationsPerCustomer)
 		d.Set("max_applications", discountCode.MaxApplications)
 	}
@@ -196,14 +196,14 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeSetNameAction{Name: &newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := unmarshallLocalizedString(d.Get("description"))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeSetDescriptionAction{Description: &newDescription})
@@ -231,14 +231,14 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("cart_discounts") {
-		newCartDiscounts := unmarshallDiscountCodeCartDiscounts(d)
+		newCartDiscounts := expandDiscountCodeCartDiscounts(d)
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeChangeCartDiscountsAction{CartDiscounts: newCartDiscounts})
 	}
 
 	if d.HasChange("groups") {
-		newGroups := unmarshallDiscountCodeGroups(d)
+		newGroups := expandDiscountCodeGroups(d)
 		if len(newGroups) > 0 {
 			input.Actions = append(
 				input.Actions,
@@ -259,7 +259,7 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	if d.HasChange("valid_from") {
 		if val := d.Get("valid_from").(string); len(val) > 0 {
-			newValidFrom, err := unmarshallTime(d.Get("valid_from").(string))
+			newValidFrom, err := expandTime(d.Get("valid_from").(string))
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -275,7 +275,7 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	if d.HasChange("valid_until") {
 		if val := d.Get("valid_until").(string); len(val) > 0 {
-			newValidUntil, err := unmarshallTime(d.Get("valid_until").(string))
+			newValidUntil, err := expandTime(d.Get("valid_until").(string))
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -315,11 +315,11 @@ func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m i
 	return diag.FromErr(err)
 }
 
-func unmarshallDiscountCodeGroups(d *schema.ResourceData) []string {
+func expandDiscountCodeGroups(d *schema.ResourceData) []string {
 	return expandStringArray(d.Get("groups").([]interface{}))
 }
 
-func unmarshallDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.CartDiscountResourceIdentifier {
+func expandDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.CartDiscountResourceIdentifier {
 	discounts := d.Get("cart_discounts").([]interface{})
 
 	cartDiscounts := make([]platform.CartDiscountResourceIdentifier, len(discounts))
@@ -330,7 +330,7 @@ func unmarshallDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.Cart
 	return cartDiscounts
 }
 
-func marshallDiscountCodeCartDiscounts(values []platform.CartDiscountReference) []string {
+func flattenDiscountCodeCartDiscounts(values []platform.CartDiscountReference) []string {
 	result := make([]string, len(values))
 	for i := range values {
 		result[i] = string(values[i].ID)

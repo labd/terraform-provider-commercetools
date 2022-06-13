@@ -98,7 +98,7 @@ func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m int
 		log.Print(stringFormatObject(customObject))
 		d.Set("container", customObject.Container)
 		d.Set("key", customObject.Key)
-		d.Set("value", marshallCustomObjectValue(customObject))
+		d.Set("value", flattenCustomObjectValue(customObject))
 		d.Set("version", customObject.Version)
 	}
 	return nil
@@ -219,7 +219,7 @@ func _decodeCustomObjectValue(value string) interface{} {
 	return data
 }
 
-func marshallCustomObjectValue(o *platform.CustomObject) string {
+func flattenCustomObjectValue(o *platform.CustomObject) string {
 	val, err := json.Marshal(o.Value)
 	if err != nil {
 		panic(err)

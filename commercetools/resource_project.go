@@ -236,12 +236,12 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	d.Set("currencies", project.Currencies)
 	d.Set("countries", project.Countries)
 	d.Set("languages", project.Languages)
-	d.Set("shipping_rate_input_type", marshallProjectShippingRateInputType(project.ShippingRateInputType))
-	d.Set("enable_search_index_products", marshallProjectSearchIndexProducts(project.SearchIndexing))
-	d.Set("enable_search_index_orders", marshallProjectSearchIndexOrders(project.SearchIndexing))
-	d.Set("external_oauth", marshallProjectExternalOAuth(project.ExternalOAuth, d.Get("external_oauth")))
-	d.Set("carts", marshallProjectCarts(project.Carts))
-	d.Set("messages", marshallProjectMessages(project.Messages, d))
+	d.Set("shipping_rate_input_type", flattenProjectShippingRateInputType(project.ShippingRateInputType))
+	d.Set("enable_search_index_products", flattenProjectSearchIndexProducts(project.SearchIndexing))
+	d.Set("enable_search_index_orders", flattenProjectSearchIndexOrders(project.SearchIndexing))
+	d.Set("external_oauth", flattenProjectExternalOAuth(project.ExternalOAuth, d.Get("external_oauth")))
+	d.Set("carts", flattenProjectCarts(project.Carts))
+	d.Set("messages", flattenProjectMessages(project.Messages, d))
 	return nil
 }
 
@@ -427,7 +427,7 @@ func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomField
 	data := d.Get("shipping_rate_cart_classification_value").([]interface{})
 	for _, item := range data {
 		itemMap := item.(map[string]interface{})
-		label := unmarshallLocalizedString(itemMap["label"].(map[string]interface{}))
+		label := expandLocalizedString(itemMap["label"].(map[string]interface{}))
 		values = append(values, platform.CustomFieldLocalizedEnumValue{
 			Label: label,
 			Key:   itemMap["key"].(string),
@@ -436,7 +436,7 @@ func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomField
 	return values, nil
 }
 
-func marshallProjectCarts(val platform.CartsConfiguration) []map[string]interface{} {
+func flattenProjectCarts(val platform.CartsConfiguration) []map[string]interface{} {
 	if !*val.CountryTaxRateFallbackEnabled && val.DeleteDaysAfterLastModification == nil {
 		return []map[string]interface{}{}
 	}
@@ -450,7 +450,7 @@ func marshallProjectCarts(val platform.CartsConfiguration) []map[string]interfac
 	return result
 }
 
-func marshallProjectExternalOAuth(val *platform.ExternalOAuth, current interface{}) []map[string]interface{} {
+func flattenProjectExternalOAuth(val *platform.ExternalOAuth, current interface{}) []map[string]interface{} {
 	if val == nil {
 		return []map[string]interface{}{}
 	}
@@ -472,7 +472,7 @@ func marshallProjectExternalOAuth(val *platform.ExternalOAuth, current interface
 	}
 }
 
-func marshallProjectSearchIndexProducts(val *platform.SearchIndexingConfiguration) bool {
+func flattenProjectSearchIndexProducts(val *platform.SearchIndexingConfiguration) bool {
 	if val == nil {
 		return false
 	}
@@ -483,7 +483,7 @@ func marshallProjectSearchIndexProducts(val *platform.SearchIndexingConfiguratio
 	return false
 }
 
-func marshallProjectSearchIndexOrders(val *platform.SearchIndexingConfiguration) bool {
+func flattenProjectSearchIndexOrders(val *platform.SearchIndexingConfiguration) bool {
 	if val == nil {
 		return false
 	}
@@ -494,7 +494,7 @@ func marshallProjectSearchIndexOrders(val *platform.SearchIndexingConfiguration)
 	return false
 }
 
-func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) string {
+func flattenProjectShippingRateInputType(val platform.ShippingRateInputType) string {
 	switch val.(type) {
 	case platform.CartScoreType:
 		return "CartScore"
@@ -506,7 +506,7 @@ func marshallProjectShippingRateInputType(val platform.ShippingRateInputType) st
 	return ""
 }
 
-func marshallProjectMessages(val platform.MessagesConfiguration, d *schema.ResourceData) []map[string]interface{} {
+func flattenProjectMessages(val platform.MessagesConfiguration, d *schema.ResourceData) []map[string]interface{} {
 	if current, ok := d.Get("messages").([]interface{}); ok {
 		if len(current) == 0 && !val.Enabled {
 			return nil

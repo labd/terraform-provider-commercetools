@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUnmarshallShippingZoneLocations(t *testing.T) {
+func TestExpandShippingZoneLocations(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
 			"country": "DE",
@@ -22,7 +22,7 @@ func TestUnmarshallShippingZoneLocations(t *testing.T) {
 			"state":   "Nevada",
 		},
 	}
-	actual := unmarshallShippingZoneLocations(input)
+	actual := expandShippingZoneLocations(input)
 	expected := []platform.Location{
 		{
 			Country: "DE",

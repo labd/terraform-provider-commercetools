@@ -6,18 +6,18 @@ import (
 	"github.com/labd/commercetools-go-sdk/platform"
 )
 
-func marshallTime(val *time.Time) string {
+func flattenTime(val *time.Time) string {
 	if val == nil {
 		return ""
 	}
 	return val.Format(time.RFC3339)
 }
 
-func unmarshallTime(input string) (time.Time, error) {
+func expandTime(input string) (time.Time, error) {
 	return time.Parse(time.RFC3339, input)
 }
 
-func marshallTypedMoney(val platform.TypedMoney) map[string]interface{} {
+func flattenTypedMoney(val platform.TypedMoney) map[string]interface{} {
 	switch v := val.(type) {
 	case platform.HighPrecisionMoney:
 		return map[string]interface{}{
@@ -33,7 +33,7 @@ func marshallTypedMoney(val platform.TypedMoney) map[string]interface{} {
 	panic("Unknown money type")
 }
 
-func unmarshallTypedMoney(d map[string]interface{}) []platform.Money {
+func expandTypedMoney(d map[string]interface{}) []platform.Money {
 	input := d["money"].([]interface{})
 	var result []platform.Money
 
@@ -50,7 +50,7 @@ func unmarshallTypedMoney(d map[string]interface{}) []platform.Money {
 	return result
 }
 
-func unmarshallLocalizedString(val interface{}) platform.LocalizedString {
+func expandLocalizedString(val interface{}) platform.LocalizedString {
 	values, ok := val.(map[string]interface{})
 	if !ok {
 		return platform.LocalizedString{}

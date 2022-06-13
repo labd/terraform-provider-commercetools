@@ -363,11 +363,11 @@ func compareDateString(a, b string) bool {
 	if a == b {
 		return true
 	}
-	da, err := unmarshallTime(a)
+	da, err := expandTime(a)
 	if err != nil {
 		return false
 	}
-	db, err := unmarshallTime(b)
+	db, err := expandTime(b)
 	if err != nil {
 		return false
 	}
