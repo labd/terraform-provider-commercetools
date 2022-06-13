@@ -94,8 +94,8 @@ func resourceState() *schema.Resource {
 }
 
 func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	name := unmarshallLocalizedString(d.Get("name"))
-	description := unmarshallLocalizedString(d.Get("description"))
+	name := expandLocalizedString(d.Get("name"))
+	description := expandLocalizedString(d.Get("description"))
 
 	roles := []platform.StateRoleEnum{}
 	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
@@ -167,7 +167,7 @@ func resourceStateRead(ctx context.Context, d *schema.ResourceData, m interface{
 		d.Set("roles", state.Roles)
 	}
 	if state.Transitions != nil {
-		d.Set("transitions", marshallStateTransitions(state.Transitions))
+		d.Set("transitions", flattenStateTransitions(state.Transitions))
 	}
 	return nil
 }
@@ -181,14 +181,14 @@ func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.StateSetNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := unmarshallLocalizedString(d.Get("description"))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.StateSetDescriptionAction{Description: newDescription})
@@ -260,7 +260,7 @@ func resourceStateDelete(ctx context.Context, d *schema.ResourceData, m interfac
 	return diag.FromErr(err)
 }
 
-func marshallStateTransitions(values []platform.StateReference) []string {
+func flattenStateTransitions(values []platform.StateReference) []string {
 	result := make([]string, len(values))
 	for i := range values {
 		result[i] = values[i].ID

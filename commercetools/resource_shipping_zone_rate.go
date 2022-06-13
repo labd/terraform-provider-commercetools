@@ -196,7 +196,7 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 	}
 	log.Printf("[DEBUG] Setting freeAbove: %s", stringFormatObject(freeAbove))
 
-	shippingRatePriceTiers, err := unmarshallShippingRatePriceTiers(d)
+	shippingRatePriceTiers, err := expandShippingRatePriceTiers(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -244,7 +244,7 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 	return resourceShippingZoneRateRead(ctx, d, m)
 }
 
-func unmarshallShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRatePriceTier, error) {
+func expandShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRatePriceTier, error) {
 	values, ok := d.GetOk("shipping_rate_price_tier")
 	if !ok {
 		return []platform.ShippingRatePriceTier{}, nil
@@ -380,7 +380,7 @@ func resourceShippingZoneRateUpdate(ctx context.Context, d *schema.ResourceData,
 			}
 		}
 
-		newShippingRatePriceTiers, err := unmarshallShippingRatePriceTiers(d)
+		newShippingRatePriceTiers, err := expandShippingRatePriceTiers(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -451,7 +451,7 @@ func resourceShippingZoneRateDelete(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	newShippingRatePriceTiers, err := unmarshallShippingRatePriceTiers(d)
+	newShippingRatePriceTiers, err := expandShippingRatePriceTiers(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -65,7 +65,7 @@ func resourceStore() *schema.Resource {
 }
 
 func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	name := unmarshallLocalizedString(d.Get("name"))
+	name := expandLocalizedString(d.Get("name"))
 	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
 	scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
 
@@ -156,7 +156,7 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.StoreSetNameAction{Name: &newName})

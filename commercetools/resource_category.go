@@ -170,8 +170,8 @@ func resourceCategory() *schema.Resource {
 func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	name := unmarshallLocalizedString(d.Get("name"))
-	slug := unmarshallLocalizedString(d.Get("slug"))
+	name := expandLocalizedString(d.Get("name"))
+	slug := expandLocalizedString(d.Get("slug"))
 	key := stringRef(d.Get("key"))
 
 	draft := platform.CategoryDraft{
@@ -185,22 +185,22 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.Get("description") != nil {
-		desc := unmarshallLocalizedString(d.Get("description"))
+		desc := expandLocalizedString(d.Get("description"))
 		draft.Description = &desc
 	}
 
 	if d.Get("meta_title") != nil {
-		metaTitle := unmarshallLocalizedString(d.Get("meta_title"))
+		metaTitle := expandLocalizedString(d.Get("meta_title"))
 		draft.MetaTitle = &metaTitle
 	}
 
 	if d.Get("meta_description") != nil {
-		metaDescription := unmarshallLocalizedString(d.Get("meta_description"))
+		metaDescription := expandLocalizedString(d.Get("meta_description"))
 		draft.MetaDescription = &metaDescription
 	}
 
 	if d.Get("meta_keywords") != nil {
-		metaKeywords := unmarshallLocalizedString(d.Get("meta_keywords"))
+		metaKeywords := expandLocalizedString(d.Get("meta_keywords"))
 		draft.MetaKeywords = &metaKeywords
 	}
 
@@ -211,7 +211,7 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if len(d.Get("assets").([]interface{})) != 0 {
-		assets := unmarshallCategoryAssetDrafts(d)
+		assets := expandCategoryAssetDrafts(d)
 		draft.Assets = assets
 	}
 
@@ -279,7 +279,7 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interfa
 			d.Set("meta_keywords", *category.MetaKeywords)
 		}
 		if category.Assets != nil {
-			d.Set("assets", marshallCategoryAssets(category.Assets))
+			d.Set("assets", flattenCategoryAssets(category.Assets))
 		}
 	}
 	return nil
@@ -298,14 +298,14 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategoryChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("slug") {
-		newSlug := unmarshallLocalizedString(d.Get("slug"))
+		newSlug := expandLocalizedString(d.Get("slug"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategoryChangeSlugAction{Slug: newSlug})
@@ -333,7 +333,7 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("description") {
-		newDescription := unmarshallLocalizedString(d.Get("description"))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetDescriptionAction{Description: &newDescription})
@@ -348,28 +348,28 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	if d.HasChange("meta_title") {
-		newMetaTitle := unmarshallLocalizedString(d.Get("meta_title"))
+		newMetaTitle := expandLocalizedString(d.Get("meta_title"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetMetaTitleAction{MetaTitle: &newMetaTitle})
 	}
 
 	if d.HasChange("meta_description") {
-		newMetaDescription := unmarshallLocalizedString(d.Get("meta_description"))
+		newMetaDescription := expandLocalizedString(d.Get("meta_description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetMetaDescriptionAction{MetaDescription: &newMetaDescription})
 	}
 
 	if d.HasChange("meta_keywords") {
-		newMetaKeywords := unmarshallLocalizedString(d.Get("meta_keywords"))
+		newMetaKeywords := expandLocalizedString(d.Get("meta_keywords"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CategorySetMetaKeywordsAction{MetaKeywords: &newMetaKeywords})
 	}
 
 	if d.HasChange("assets") {
-		assets := unmarshallCategoryAssets(d)
+		assets := expandCategoryAssets(d)
 		for _, asset := range assets {
 			if asset.ID == "" {
 				input.Actions = append(input.Actions, &platform.CategoryAddAssetAction{Asset: platform.AssetDraft{
@@ -426,7 +426,7 @@ func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m inter
 	return nil
 }
 
-func marshallCategoryAssets(assets []platform.Asset) []map[string]interface{} {
+func flattenCategoryAssets(assets []platform.Asset) []map[string]interface{} {
 	result := make([]map[string]interface{}, len(assets))
 
 	for i := range assets {
@@ -438,7 +438,7 @@ func marshallCategoryAssets(assets []platform.Asset) []map[string]interface{} {
 		}
 		result[i]["name"] = asset.Name
 		result[i]["key"] = asset.Key
-		result[i]["sources"] = marshallCategoryAssetSources(asset.Sources)
+		result[i]["sources"] = flattenCategoryAssetSources(asset.Sources)
 		result[i]["tags"] = asset.Tags
 
 		if asset.Description != nil {
@@ -451,11 +451,11 @@ func marshallCategoryAssets(assets []platform.Asset) []map[string]interface{} {
 	return result
 }
 
-func unmarshallCategoryAssetDraft(u interface{}) *platform.AssetDraft {
+func expandCategoryAssetDraft(u interface{}) *platform.AssetDraft {
 	i := u.(map[string]interface{})
-	name := unmarshallLocalizedString(i["name"])
-	description := unmarshallLocalizedString(i["description"])
-	sources := unmarshallCategoryAssetSources(i)
+	name := expandLocalizedString(i["name"])
+	description := expandLocalizedString(i["description"])
+	sources := expandCategoryAssetSources(i)
 	tags := expandStringArray(i["tags"].([]interface{}))
 	key := i["key"].(string)
 	return &platform.AssetDraft{
@@ -467,20 +467,20 @@ func unmarshallCategoryAssetDraft(u interface{}) *platform.AssetDraft {
 	}
 }
 
-func unmarshallCategoryAssetDrafts(d *schema.ResourceData) []platform.AssetDraft {
+func expandCategoryAssetDrafts(d *schema.ResourceData) []platform.AssetDraft {
 	input := d.Get("assets").([]interface{})
 	var result []platform.AssetDraft
 	for _, raw := range input {
-		result = append(result, *unmarshallCategoryAssetDraft(raw))
+		result = append(result, *expandCategoryAssetDraft(raw))
 	}
 	return result
 }
 
-func unmarshallCategoryAssets(d *schema.ResourceData) []platform.Asset {
+func expandCategoryAssets(d *schema.ResourceData) []platform.Asset {
 	input := d.Get("assets").([]interface{})
 	var result []platform.Asset
 	for _, raw := range input {
-		draft := unmarshallCategoryAssetDraft(raw)
+		draft := expandCategoryAssetDraft(raw)
 		i := raw.(map[string]interface{})
 		id := i["id"].(string)
 		asset := platform.Asset{
@@ -496,7 +496,7 @@ func unmarshallCategoryAssets(d *schema.ResourceData) []platform.Asset {
 	return result
 }
 
-func marshallCategoryAssetSources(sources []platform.AssetSource) []map[string]interface{} {
+func flattenCategoryAssetSources(sources []platform.AssetSource) []map[string]interface{} {
 	result := make([]map[string]interface{}, len(sources))
 
 	for i := range sources {
@@ -519,7 +519,7 @@ func marshallCategoryAssetSources(sources []platform.AssetSource) []map[string]i
 	return result
 }
 
-func unmarshallCategoryAssetSources(i map[string]interface{}) []platform.AssetSource {
+func expandCategoryAssetSources(i map[string]interface{}) []platform.AssetSource {
 	var sources []platform.AssetSource
 	for _, item := range i["sources"].([]interface{}) {
 		s := item.(map[string]interface{})
@@ -533,7 +533,7 @@ func unmarshallCategoryAssetSources(i map[string]interface{}) []platform.AssetSo
 		}
 
 		if _, ok := s["dimensions"]; ok {
-			source.Dimensions = unmarshallCategoryAssetSourceDimensions(s)
+			source.Dimensions = expandCategoryAssetSourceDimensions(s)
 		}
 
 		sources = append(sources, source)
@@ -541,7 +541,7 @@ func unmarshallCategoryAssetSources(i map[string]interface{}) []platform.AssetSo
 	return sources
 }
 
-func unmarshallCategoryAssetSourceDimensions(s map[string]interface{}) *platform.AssetDimensions {
+func expandCategoryAssetSourceDimensions(s map[string]interface{}) *platform.AssetDimensions {
 	data, err := elementFromSlice(s, "dimensions")
 	if err != nil {
 		return nil

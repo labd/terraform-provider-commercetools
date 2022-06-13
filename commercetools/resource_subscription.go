@@ -299,13 +299,13 @@ func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	messages := unmarshallSubscriptionMessages(d)
-	changes := unmarshallSubscriptionChanges(d)
-	destination, err := unmarshallSubscriptionDestination(d)
+	messages := expandSubscriptionMessages(d)
+	changes := expandSubscriptionChanges(d)
+	destination, err := expandSubscriptionDestination(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	format, err := unmarshallSubscriptionFormat(d)
+	format, err := expandSubscriptionFormat(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -356,10 +356,10 @@ func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m int
 
 		d.Set("version", subscription.Version)
 		d.Set("key", subscription.Key)
-		d.Set("destination", marshallSubscriptionDestination(subscription.Destination, d))
-		d.Set("format", marshallSubscriptionFormat(subscription.Format))
-		d.Set("message", marshallSubscriptionMessages(subscription.Messages))
-		d.Set("changes", marshallSubscriptionChanges(subscription.Changes))
+		d.Set("destination", flattenSubscriptionDestination(subscription.Destination, d))
+		d.Set("format", flattenSubscriptionFormat(subscription.Format))
+		d.Set("message", flattenSubscriptionMessages(subscription.Messages))
+		d.Set("changes", flattenSubscriptionChanges(subscription.Changes))
 	}
 	return nil
 }
@@ -380,7 +380,7 @@ func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("destination") {
-		destination, err := unmarshallSubscriptionDestination(d)
+		destination, err := expandSubscriptionDestination(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -398,14 +398,14 @@ func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("message") {
-		messages := unmarshallSubscriptionMessages(d)
+		messages := expandSubscriptionMessages(d)
 		input.Actions = append(
 			input.Actions,
 			&platform.SubscriptionSetMessagesAction{Messages: messages})
 	}
 
 	if d.HasChange("changes") {
-		changes := unmarshallSubscriptionChanges(d)
+		changes := expandSubscriptionChanges(d)
 		input.Actions = append(
 			input.Actions,
 			&platform.SubscriptionSetChangesAction{Changes: changes})
@@ -433,7 +433,7 @@ func resourceSubscriptionDelete(ctx context.Context, d *schema.ResourceData, m i
 	return diag.FromErr(err)
 }
 
-func unmarshallSubscriptionDestination(d *schema.ResourceData) (platform.Destination, error) {
+func expandSubscriptionDestination(d *schema.ResourceData) (platform.Destination, error) {
 	dst, err := elementFromList(d, "destination")
 	if err != nil {
 		return nil, err
@@ -480,10 +480,10 @@ func unmarshallSubscriptionDestination(d *schema.ResourceData) (platform.Destina
 	}
 }
 
-func marshallSubscriptionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
+func flattenSubscriptionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
 
 	// Read the access secret from the current resource data
-	c, _ := unmarshallSubscriptionDestination(d)
+	c, _ := expandSubscriptionDestination(d)
 	accessSecret := ""
 	switch current := c.(type) {
 	case platform.SnsDestination:
@@ -536,7 +536,7 @@ func marshallSubscriptionDestination(dst platform.Destination, d *schema.Resourc
 	return []map[string]string{}
 }
 
-func marshallSubscriptionFormat(f platform.DeliveryFormat) []map[string]string {
+func flattenSubscriptionFormat(f platform.DeliveryFormat) []map[string]string {
 	switch v := f.(type) {
 	case platform.PlatformFormat:
 		return []map[string]string{{
@@ -551,7 +551,7 @@ func marshallSubscriptionFormat(f platform.DeliveryFormat) []map[string]string {
 	return []map[string]string{}
 }
 
-func unmarshallSubscriptionFormat(d *schema.ResourceData) (platform.DeliveryFormat, error) {
+func expandSubscriptionFormat(d *schema.ResourceData) (platform.DeliveryFormat, error) {
 	input := d.Get("format").([]interface{})
 
 	if len(input) == 1 {
@@ -570,7 +570,7 @@ func unmarshallSubscriptionFormat(d *schema.ResourceData) (platform.DeliveryForm
 	return nil, nil
 }
 
-func marshallSubscriptionChanges(m []platform.ChangeSubscription) []map[string]interface{} {
+func flattenSubscriptionChanges(m []platform.ChangeSubscription) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
 	for _, raw := range m {
@@ -581,7 +581,7 @@ func marshallSubscriptionChanges(m []platform.ChangeSubscription) []map[string]i
 	return result
 }
 
-func unmarshallSubscriptionChanges(d *schema.ResourceData) []platform.ChangeSubscription {
+func expandSubscriptionChanges(d *schema.ResourceData) []platform.ChangeSubscription {
 	var result []platform.ChangeSubscription
 	input := d.Get("changes").([]interface{})
 	if len(input) > 0 {
@@ -599,7 +599,7 @@ func unmarshallSubscriptionChanges(d *schema.ResourceData) []platform.ChangeSubs
 	return result
 }
 
-func marshallSubscriptionMessages(m []platform.MessageSubscription) []map[string]interface{} {
+func flattenSubscriptionMessages(m []platform.MessageSubscription) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(m))
 	for _, raw := range m {
 		result = append(result, map[string]interface{}{
@@ -610,7 +610,7 @@ func marshallSubscriptionMessages(m []platform.MessageSubscription) []map[string
 	return result
 }
 
-func unmarshallSubscriptionMessages(d *schema.ResourceData) []platform.MessageSubscription {
+func expandSubscriptionMessages(d *schema.ResourceData) []platform.MessageSubscription {
 	input := d.Get("message").([]interface{})
 	var messageObjects []platform.MessageSubscription
 	for _, raw := range input {

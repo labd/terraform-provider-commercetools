@@ -66,7 +66,7 @@ func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m i
 	client := getClient(m)
 
 	input := d.Get("location").([]interface{})
-	locations := unmarshallShippingZoneLocations(input)
+	locations := expandShippingZoneLocations(input)
 
 	draft := platform.ZoneDraft{
 		Name:        d.Get("name").(string),
@@ -121,7 +121,7 @@ func resourceShippingZoneRead(ctx context.Context, d *schema.ResourceData, m int
 		d.Set("key", shippingZone.Key)
 		d.Set("name", shippingZone.Name)
 		d.Set("description", shippingZone.Description)
-		d.Set("location", marshallShippingZoneLocations(shippingZone.Locations))
+		d.Set("location", flattenShippingZoneLocations(shippingZone.Locations))
 	}
 	return nil
 }
@@ -160,8 +160,8 @@ func resourceShippingZoneUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if d.HasChange("location") {
 		old, new := d.GetChange("location")
 
-		oldLocations := unmarshallShippingZoneLocations(old)
-		newLocations := unmarshallShippingZoneLocations(new)
+		oldLocations := expandShippingZoneLocations(old)
+		newLocations := expandShippingZoneLocations(new)
 
 		for i, location := range oldLocations {
 			if !_locationInSlice(location, newLocations) {
@@ -202,7 +202,7 @@ func resourceShippingZoneDelete(ctx context.Context, d *schema.ResourceData, m i
 	return diag.FromErr(err)
 }
 
-func unmarshallShippingZoneLocations(input interface{}) []platform.Location {
+func expandShippingZoneLocations(input interface{}) []platform.Location {
 	inputSlice := input.([]interface{})
 	result := make([]platform.Location, len(inputSlice))
 
@@ -228,7 +228,7 @@ func unmarshallShippingZoneLocations(input interface{}) []platform.Location {
 	return result
 }
 
-func marshallShippingZoneLocations(locations []platform.Location) []map[string]interface{} {
+func flattenShippingZoneLocations(locations []platform.Location) []map[string]interface{} {
 	result := make([]map[string]interface{}, len(locations))
 
 	for i := range locations {

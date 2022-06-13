@@ -225,15 +225,15 @@ func validateStackingMode(val interface{}, key string) (warns []string, errs []e
 func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	name := unmarshallLocalizedString(d.Get("name"))
-	description := unmarshallLocalizedString(d.Get("description"))
+	name := expandLocalizedString(d.Get("name"))
+	description := expandLocalizedString(d.Get("description"))
 
-	value, err := unmarshallCartDiscountValue(d)
+	value, err := expandCartDiscountValue(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	stackingMode, err := unmarshallCartDiscountStackingMode(d)
+	stackingMode, err := expandCartDiscountStackingMode(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -254,21 +254,21 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m i
 		draft.Key = key
 	}
 
-	if val, err := unmarshallCartDiscountTarget(d); err == nil {
+	if val, err := expandCartDiscountTarget(d); err == nil {
 		draft.Target = val
 	} else {
 		return diag.FromErr(err)
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
-		validFrom, err := unmarshallTime(val)
+		validFrom, err := expandTime(val)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		draft.ValidFrom = &validFrom
 	}
 	if val := d.Get("valid_until").(string); len(val) > 0 {
-		validUntil, err := unmarshallTime(val)
+		validUntil, err := expandTime(val)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -321,13 +321,13 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m int
 		d.Set("key", cartDiscount.Key)
 		d.Set("name", cartDiscount.Name)
 		d.Set("description", cartDiscount.Description)
-		d.Set("value", marshallCartDiscountValue(cartDiscount.Value))
+		d.Set("value", flattenCartDiscountValue(cartDiscount.Value))
 		d.Set("predicate", cartDiscount.CartPredicate)
-		d.Set("target", marshallCartDiscountTarget(cartDiscount.Target))
+		d.Set("target", flattenCartDiscountTarget(cartDiscount.Target))
 		d.Set("sort_order", cartDiscount.SortOrder)
 		d.Set("is_active", cartDiscount.IsActive)
-		d.Set("valid_from", marshallTime(cartDiscount.ValidFrom))
-		d.Set("valid_until", marshallTime(cartDiscount.ValidUntil))
+		d.Set("valid_from", flattenTime(cartDiscount.ValidFrom))
+		d.Set("valid_until", flattenTime(cartDiscount.ValidUntil))
 		d.Set("requires_discount_code", cartDiscount.RequiresDiscountCode)
 		d.Set("stacking_mode", cartDiscount.StackingMode)
 	}
@@ -355,21 +355,21 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CartDiscountChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := unmarshallLocalizedString(d.Get("description"))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CartDiscountSetDescriptionAction{Description: &newDescription})
 	}
 
 	if d.HasChange("value") {
-		value, err := unmarshallCartDiscountValue(d)
+		value, err := expandCartDiscountValue(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -386,7 +386,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("target") {
-		if val, err := unmarshallCartDiscountTarget(d); err == nil {
+		if val, err := expandCartDiscountTarget(d); err == nil {
 			if val != nil {
 				input.Actions = append(
 					input.Actions,
@@ -416,7 +416,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	if d.HasChange("valid_from") {
 		if val := d.Get("valid_from").(string); len(val) > 0 {
-			newValidFrom, err := unmarshallTime(d.Get("valid_from").(string))
+			newValidFrom, err := expandTime(d.Get("valid_from").(string))
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -432,7 +432,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	if d.HasChange("valid_until") {
 		if val := d.Get("valid_until").(string); len(val) > 0 {
-			newValidUntil, err := unmarshallTime(d.Get("valid_until").(string))
+			newValidUntil, err := expandTime(d.Get("valid_until").(string))
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -454,7 +454,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("stacking_mode") {
-		newStackingMode, err := unmarshallCartDiscountStackingMode(d)
+		newStackingMode, err := expandCartDiscountStackingMode(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -493,7 +493,7 @@ func resourceCartDiscountDelete(ctx context.Context, d *schema.ResourceData, m i
 	return nil
 }
 
-func marshallCartDiscountValue(val platform.CartDiscountValue) []map[string]interface{} {
+func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]interface{} {
 	if val == nil {
 		return []map[string]interface{}{}
 	}
@@ -502,12 +502,12 @@ func marshallCartDiscountValue(val platform.CartDiscountValue) []map[string]inte
 	case platform.CartDiscountValueAbsolute:
 		return []map[string]interface{}{{
 			"type":  "absolute",
-			"money": marshallTypedMoney(v.Money),
+			"money": flattenTypedMoney(v.Money),
 		}}
 	case platform.CartDiscountValueFixed:
 		return []map[string]interface{}{{
 			"type":  "fixed",
-			"money": marshallTypedMoney(v.Money),
+			"money": flattenTypedMoney(v.Money),
 		}}
 	case platform.CartDiscountValueGiftLineItem:
 		return []map[string]interface{}{{
@@ -522,10 +522,10 @@ func marshallCartDiscountValue(val platform.CartDiscountValue) []map[string]inte
 			"permyriad": v.Permyriad,
 		}}
 	}
-	panic("Unable to marshall cart discount value")
+	panic("Unable to flatten cart discount value")
 }
 
-func unmarshallCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValueDraft, error) {
+func expandCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValueDraft, error) {
 	value := d.Get("value").([]interface{})[0].(map[string]interface{})
 	switch value["type"].(string) {
 	case "relative":
@@ -533,7 +533,7 @@ func unmarshallCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountV
 			Permyriad: value["permyriad"].(int),
 		}, nil
 	case "absolute":
-		money := unmarshallTypedMoney(value)
+		money := expandTypedMoney(value)
 		return platform.CartDiscountValueAbsoluteDraft{
 			Money: money,
 		}, nil
@@ -559,7 +559,7 @@ func unmarshallCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountV
 	}
 }
 
-func marshallCartDiscountTarget(val platform.CartDiscountTarget) []map[string]interface{} {
+func flattenCartDiscountTarget(val platform.CartDiscountTarget) []map[string]interface{} {
 	switch v := val.(type) {
 	case platform.CartDiscountLineItemsTarget:
 		return []map[string]interface{}{{
@@ -577,10 +577,10 @@ func marshallCartDiscountTarget(val platform.CartDiscountTarget) []map[string]in
 		}}
 	}
 
-	panic("Unable to marshall cart discount target")
+	panic("Unable to flatten cart discount target")
 }
 
-func unmarshallCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscountTarget, error) {
+func expandCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscountTarget, error) {
 	input, err := elementFromList(d, "target")
 	if err != nil {
 		return nil, err
@@ -607,7 +607,7 @@ func unmarshallCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscount
 
 }
 
-func unmarshallCartDiscountStackingMode(d *schema.ResourceData) (platform.StackingMode, error) {
+func expandCartDiscountStackingMode(d *schema.ResourceData) (platform.StackingMode, error) {
 	switch d.Get("stacking_mode").(string) {
 	case "Stacking":
 		return platform.StackingModeStacking, nil

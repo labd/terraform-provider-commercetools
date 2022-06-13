@@ -152,8 +152,8 @@ func validateExtensionDestination(draft platform.ExtensionDraft) error {
 func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	triggers := unmarshallExtensionTriggers(d)
-	destination, err := unmarshallExtensionDestination(d)
+	triggers := expandExtensionTriggers(d)
+	destination, err := expandExtensionDestination(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -220,8 +220,8 @@ func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m int
 
 		d.Set("version", extension.Version)
 		d.Set("key", extension.Key)
-		d.Set("destination", marshallExtensionDestination(extension.Destination, d))
-		d.Set("trigger", marshallExtensionTriggers(extension.Triggers))
+		d.Set("destination", flattenExtensionDestination(extension.Destination, d))
+		d.Set("trigger", flattenExtensionTriggers(extension.Triggers))
 		d.Set("timeout_in_ms", extension.TimeoutInMs)
 	}
 	return nil
@@ -243,14 +243,14 @@ func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("trigger") {
-		triggers := unmarshallExtensionTriggers(d)
+		triggers := expandExtensionTriggers(d)
 		input.Actions = append(
 			input.Actions,
 			&platform.ExtensionChangeTriggersAction{Triggers: triggers})
 	}
 
 	if d.HasChange("destination") {
-		destination, err := unmarshallExtensionDestination(d)
+		destination, err := expandExtensionDestination(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -292,7 +292,7 @@ func resourceAPIExtensionDelete(ctx context.Context, d *schema.ResourceData, m i
 // Helper methods
 //
 
-func unmarshallExtensionDestination(d *schema.ResourceData) (platform.Destination, error) {
+func expandExtensionDestination(d *schema.ResourceData) (platform.Destination, error) {
 	input, err := elementFromList(d, "destination")
 	if err != nil {
 		return nil, err
@@ -300,7 +300,7 @@ func unmarshallExtensionDestination(d *schema.ResourceData) (platform.Destinatio
 
 	switch strings.ToLower(input["type"].(string)) {
 	case "http":
-		auth, err := unmarshallExtensionDestinationAuthentication(input)
+		auth, err := expandExtensionDestinationAuthentication(input)
 		if err != nil {
 			return nil, err
 		}
@@ -320,7 +320,7 @@ func unmarshallExtensionDestination(d *schema.ResourceData) (platform.Destinatio
 	}
 }
 
-func unmarshallExtensionDestinationAuthentication(destInput map[string]interface{}) (platform.HttpDestinationAuthentication, error) {
+func expandExtensionDestinationAuthentication(destInput map[string]interface{}) (platform.HttpDestinationAuthentication, error) {
 	authKeys := [2]string{"authorization_header", "azure_authentication"}
 	count := 0
 	for _, key := range authKeys {
@@ -349,7 +349,7 @@ func unmarshallExtensionDestinationAuthentication(destInput map[string]interface
 	return nil, nil
 }
 
-func marshallExtensionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
+func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
 
 	switch v := dst.(type) {
 	case platform.HttpDestination:
@@ -380,7 +380,7 @@ func marshallExtensionDestination(dst platform.Destination, d *schema.ResourceDa
 		// the resource.
 		if !d.GetRawState().GetAttr("version").IsNull() {
 			// Read the access secret from the current resource data
-			c, _ := unmarshallExtensionDestination(d)
+			c, _ := expandExtensionDestination(d)
 			switch current := c.(type) {
 			case platform.AWSLambdaDestination:
 				accessSecret = current.AccessSecret
@@ -398,7 +398,7 @@ func marshallExtensionDestination(dst platform.Destination, d *schema.ResourceDa
 	return []map[string]string{}
 }
 
-func marshallExtensionTriggers(triggers []platform.ExtensionTrigger) []map[string]interface{} {
+func flattenExtensionTriggers(triggers []platform.ExtensionTrigger) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(triggers))
 
 	for _, t := range triggers {
@@ -412,7 +412,7 @@ func marshallExtensionTriggers(triggers []platform.ExtensionTrigger) []map[strin
 	return result
 }
 
-func unmarshallExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger {
+func expandExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger {
 	input := d.Get("trigger").([]interface{})
 	var result []platform.ExtensionTrigger
 

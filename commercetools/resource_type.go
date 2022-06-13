@@ -237,8 +237,8 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	name := unmarshallLocalizedString(d.Get("name"))
-	description := unmarshallLocalizedString(d.Get("description"))
+	name := expandLocalizedString(d.Get("name"))
+	description := expandLocalizedString(d.Get("description"))
 
 	resourceTypeIds := []platform.ResourceTypeId{}
 	for _, item := range expandStringArray(d.Get("resource_type_ids").([]interface{})) {
@@ -306,7 +306,7 @@ func resourceTypeRead(ctx context.Context, d *schema.ResourceData, m interface{}
 		}
 		d.Set("resource_type_ids", ctType.ResourceTypeIds)
 
-		if fields, err := marshallTypeFields(ctType); err == nil {
+		if fields, err := flattenTypeFields(ctType); err == nil {
 			d.Set("field", fields)
 		} else {
 			return diag.FromErr(err)
@@ -331,14 +331,14 @@ func resourceTypeUpdate(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.TypeChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := unmarshallLocalizedString(d.Get("description"))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.TypeSetDescriptionAction{
@@ -412,7 +412,7 @@ func resourceTypeFieldChangeActions(oldValues []interface{}, newValues []interfa
 		// Check if we need to update the field label
 		oldV := oldValue.(map[string]interface{})
 		if !reflect.DeepEqual(oldV["label"], newV["label"]) {
-			newLabel := unmarshallLocalizedString(newV["label"])
+			newLabel := expandLocalizedString(newV["label"])
 			actions = append(
 				actions,
 				platform.TypeChangeLabelAction{FieldName: name, Label: newLabel})
@@ -566,7 +566,7 @@ func resourceTypeGetFieldDefinition(input map[string]interface{}) (*platform.Fie
 		return nil, err
 	}
 
-	label := unmarshallLocalizedString(input["label"])
+	label := expandLocalizedString(input["label"])
 	inputHint := platform.TypeTextInputHint(input["input_hint"].(string))
 	return &platform.FieldDefinition{
 		Type:      fieldType,
@@ -613,7 +613,7 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 		var values []platform.CustomFieldLocalizedEnumValue
 		for _, value := range valuesInput.([]interface{}) {
 			v := value.(map[string]interface{})
-			labels := unmarshallLocalizedString(v["label"])
+			labels := expandLocalizedString(v["label"])
 			values = append(values, platform.CustomFieldLocalizedEnumValue{
 				Key:   v["key"].(string),
 				Label: labels,
@@ -661,12 +661,12 @@ func getFieldType(input interface{}) (platform.FieldType, error) {
 	return nil, fmt.Errorf("unknown FieldType %s", typeName)
 }
 
-func marshallTypeFields(t *platform.Type) ([]map[string]interface{}, error) {
+func flattenTypeFields(t *platform.Type) ([]map[string]interface{}, error) {
 	fields := make([]map[string]interface{}, len(t.FieldDefinitions))
 	for i, fieldDef := range t.FieldDefinitions {
 		fieldData := make(map[string]interface{})
 		log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
-		fieldType, err := marshallTypeFieldType(fieldDef.Type, true)
+		fieldType, err := flattenTypeFieldType(fieldDef.Type, true)
 		if err != nil {
 			return nil, err
 		}
@@ -685,7 +685,7 @@ func marshallTypeFields(t *platform.Type) ([]map[string]interface{}, error) {
 	return fields, nil
 }
 
-func marshallTypeFieldType(fieldType platform.FieldType, setsAllowed bool) ([]interface{}, error) {
+func flattenTypeFieldType(fieldType platform.FieldType, setsAllowed bool) ([]interface{}, error) {
 	typeData := make(map[string]interface{})
 
 	switch val := fieldType.(type) {
@@ -709,7 +709,7 @@ func marshallTypeFieldType(fieldType platform.FieldType, setsAllowed bool) ([]in
 
 	case platform.CustomFieldLocalizedEnumType:
 		typeData["name"] = "LocalizedEnum"
-		typeData["localized_value"] = marshallTypeLocalizedEnum(val.Values)
+		typeData["localized_value"] = flattenTypeLocalizedEnum(val.Values)
 
 	case platform.CustomFieldNumberType:
 		typeData["name"] = "Number"
@@ -733,7 +733,7 @@ func marshallTypeFieldType(fieldType platform.FieldType, setsAllowed bool) ([]in
 	case platform.CustomFieldSetType:
 		typeData["name"] = "Set"
 		if setsAllowed {
-			elemType, err := marshallTypeFieldType(val.ElementType, false)
+			elemType, err := flattenTypeFieldType(val.ElementType, false)
 			if err != nil {
 				return nil, err
 			}
@@ -747,7 +747,7 @@ func marshallTypeFieldType(fieldType platform.FieldType, setsAllowed bool) ([]in
 	return []interface{}{typeData}, nil
 }
 
-func marshallTypeLocalizedEnum(values []platform.CustomFieldLocalizedEnumValue) []interface{} {
+func flattenTypeLocalizedEnum(values []platform.CustomFieldLocalizedEnumValue) []interface{} {
 	enumValues := make([]interface{}, len(values))
 	for i := range values {
 		enumValues[i] = map[string]interface{}{
