@@ -103,6 +103,11 @@ func resourceAPIExtension() *schema.Resource {
 							Required:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
+						"condition": {
+							Description: "Valid predicate that controls the conditions under which the API Extension is called.",
+							Type:        schema.TypeString,
+							Optional:    true,
+						},
 					},
 				},
 			},
@@ -400,6 +405,7 @@ func marshallExtensionTriggers(triggers []platform.ExtensionTrigger) []map[strin
 		result = append(result, map[string]interface{}{
 			"resource_type_id": t.ResourceTypeId,
 			"actions":          t.Actions,
+			"condition":        t.Condition,
 		})
 	}
 
@@ -431,9 +437,15 @@ func unmarshallExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTri
 			actions = append(actions, platform.ExtensionAction(item.(string)))
 		}
 
+		var condition *string
+		if val, ok := i["condition"].(string); ok {
+			condition = stringRef(val)
+		}
+
 		result = append(result, platform.ExtensionTrigger{
 			ResourceTypeId: typeId,
 			Actions:        actions,
+			Condition:      condition,
 		})
 	}
 	return result

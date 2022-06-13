@@ -142,6 +142,8 @@ func TestAccAPIExtension_basic(t *testing.T) {
 						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
 					resource.TestCheckResourceAttr(
 						"commercetools_api_extension.ext", "trigger.0.actions.1", "Update"),
+					resource.TestCheckResourceAttr(
+						"commercetools_api_extension.ext", "trigger.0.condition", "name = \"Michael\""),
 				),
 			},
 		},
@@ -201,6 +203,7 @@ resource "commercetools_api_extension" "ext" {
   trigger {
     resource_type_id = "customer"
     actions = ["Create", "Update"]
+	condition = "name = \"Michael\""
   }
 }
 `, name, timeoutInMs)
