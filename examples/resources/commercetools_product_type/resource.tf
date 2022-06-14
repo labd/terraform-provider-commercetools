@@ -1,5 +1,5 @@
 resource "commercetools_product_type" "some-generic-properties-product-type" {
-  key = "some-key"
+  key         = "some-key"
   name        = "Some generic product properties"
   description = "All the generic product properties"
   attribute {
@@ -16,7 +16,7 @@ resource "commercetools_product_type" "some-generic-properties-product-type" {
 }
 
 resource "commercetools_product_type" "my-product-type" {
-  key = "my-product-type-key"
+  key         = "my-product-type-key"
   name        = "Lens specification"
   description = "All the specific info concerning the lens"
   attribute {

@@ -1,11 +1,11 @@
 resource "commercetools_project_settings" "my-project" {
-  key = "my-project-key"
-  name = "My project"
-  countries = ["NL", "DE", "US", "CA"]
+  key        = "my-project-key"
+  name       = "My project"
+  countries  = ["NL", "DE", "US", "CA"]
   currencies = ["EUR", "USD", "CAD"]
-  languages = ["nl", "de", "en", "fr-CA"]
+  languages  = ["nl", "de", "en", "fr-CA"]
   external_oauth {
-    url = "https://example.com/oauth/introspection"
+    url                  = "https://example.com/oauth/introspection"
     authorization_header = "Bearer secret"
   }
   messages {
