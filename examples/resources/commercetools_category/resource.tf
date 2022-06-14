@@ -1,4 +1,6 @@
 resource "commercetools_category" "my-category" {
+  key = "my-category-key"
+
   name = {
     en = "My category"
   }
@@ -14,6 +16,8 @@ resource "commercetools_category" "my-category" {
 }
 
 resource "commercetools_category" "my-second-category" {
+  key = "my-category-key"
+
   name = {
     en = "Second category"
   }

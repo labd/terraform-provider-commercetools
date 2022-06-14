@@ -1,4 +1,5 @@
 resource "commercetools_project_settings" "my-project" {
+  key = "my-project-key"
   name = "My project"
   countries = ["NL", "DE", "US", "CA"]
   currencies = ["EUR", "USD", "CAD"]

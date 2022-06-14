@@ -1,9 +1,11 @@
 resource "commercetools_tax_category" "my-tax-category" {
+  key = "some-tax-category-key"
 	name = "My tax category"
 	description = "Example"
 }
 
 resource "commercetools_shipping_method" "my-shipping-method" {
+  key = "some-shipping-method-key"
   name = "My shipping method"
   description = "Standard method"
   is_default = true
@@ -12,6 +14,7 @@ resource "commercetools_shipping_method" "my-shipping-method" {
 }
 
 resource "commercetools_shipping_zone" "my-shipping-zone" {
+  key = "some-shipping-zone-key"
   name = "DE"
   description = "My shipping zone"
   location {

@@ -1,5 +1,5 @@
 resource "commercetools_cart_discount" "my-cart-discount" {
-  key = "my_discount"
+  key = "my-cart-discount-key"
   name = {
     en = "My Discount name"
   }
@@ -24,7 +24,7 @@ resource "commercetools_cart_discount" "my-cart-discount" {
 }
 
 resource "commercetools_cart_discount" "my-cart-discount" {
-  key = "my_discount"
+  key = "my-cart-discount-key"
   name = {
     en = "My Discount name"
   }
@@ -53,6 +53,7 @@ resource "commercetools_cart_discount" "my-cart-discount" {
 }
 
 resource "commercetools_cart_discount" "my-cart-discount" {
+  key = "my-cart-discount-key"
   name = {
     en = "My Discount name"
   }
