@@ -6,13 +6,15 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestExpandShippingZoneLocations(t *testing.T) {
-	input := []interface{}{
+	resource := resourceShippingZone().Schema["location"].Elem.(*schema.Resource)
+	input := schema.NewSet(schema.HashResource(resource), []interface{}{
 		map[string]interface{}{
 			"country": "DE",
 			"state":   "",
@@ -21,7 +23,7 @@ func TestExpandShippingZoneLocations(t *testing.T) {
 			"country": "US",
 			"state":   "Nevada",
 		},
-	}
+	})
 	actual := expandShippingZoneLocations(input)
 	expected := []platform.Location{
 		{
@@ -33,7 +35,7 @@ func TestExpandShippingZoneLocations(t *testing.T) {
 			State:   stringRef("Nevada"),
 		},
 	}
-	assert.Equal(t, expected, actual)
+	assert.ElementsMatch(t, expected, actual)
 }
 
 func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
