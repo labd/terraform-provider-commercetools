@@ -1,5 +1,5 @@
 resource "commercetools_api_extension" "my-extension" {
-  key = "test-case"
+  key = "my-extension-key"
 
   destination {
     type                 = "HTTP"
