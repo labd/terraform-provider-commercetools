@@ -65,7 +65,7 @@ func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m i
 	log.Print("[DEBUG] Creating shippingzones in commercetools")
 	client := getClient(m)
 
-	input := d.Get("location").([]interface{})
+	input := d.Get("location").(*schema.Set)
 	locations := expandShippingZoneLocations(input)
 
 	draft := platform.ZoneDraft{
@@ -160,8 +160,8 @@ func resourceShippingZoneUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if d.HasChange("location") {
 		old, new := d.GetChange("location")
 
-		oldLocations := expandShippingZoneLocations(old)
-		newLocations := expandShippingZoneLocations(new)
+		oldLocations := expandShippingZoneLocations(old.(*schema.Set))
+		newLocations := expandShippingZoneLocations(new.(*schema.Set))
 
 		for i, location := range oldLocations {
 			if !_locationInSlice(location, newLocations) {
@@ -202,9 +202,8 @@ func resourceShippingZoneDelete(ctx context.Context, d *schema.ResourceData, m i
 	return diag.FromErr(err)
 }
 
-func expandShippingZoneLocations(input interface{}) []platform.Location {
-	inputSet := input.(*schema.Set)
-	inputSlice := inputSet.List()
+func expandShippingZoneLocations(input *schema.Set) []platform.Location {
+	inputSlice := input.List()
 	result := make([]platform.Location, len(inputSlice))
 
 	for i := range inputSlice {
