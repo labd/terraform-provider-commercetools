@@ -122,24 +122,31 @@ func resourceSubscription() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ValidateFunc: func(d interface{}, v string) ([]string, []error) {
+								allowedAliases := []string{
+									subEventBridgeAlias,
+									subAzureEventGridAlias,
+									subAzureServiceBusAlias,
+									subGooglePubSubAlias,
+								}
+
 								allowed := []string{
 									subSQS,
 									subSNS,
 									subEventBridge,
-									subEventBridgeAlias,
 									subAzureEventGrid,
-									subAzureEventGridAlias,
 									subAzureServiceBus,
-									subAzureServiceBusAlias,
 									subGooglePubSub,
-									subGooglePubSubAlias,
 								}
 
 								if !stringInSlice(d.(string), allowed) {
-									return []string{}, []error{
-										fmt.Errorf("invalid destination type %s. Accepted are %s",
-											d.(string), strings.Join(allowed, ", "),
-										),
+									if !stringInSlice(d.(string), allowedAliases) {
+										return []string{}, []error{
+											fmt.Errorf("invalid destination type: %s. Accepted values are %s",
+												d.(string), strings.Join(allowed, ", "),
+											),
+										}
+									} else {
+										return []string{fmt.Sprintf("Deprecated destination type: %s. Replace with %s.", d.(string), destinationFieldAliases[d.(string)])}, nil
 									}
 								}
 
