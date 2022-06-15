@@ -36,7 +36,7 @@ func resourceShippingZone() *schema.Resource {
 			},
 			"location": {
 				Description: "[Location](https://docs.commercetoolstools.pi/projects/zones#location)",
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -203,7 +203,8 @@ func resourceShippingZoneDelete(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func expandShippingZoneLocations(input interface{}) []platform.Location {
-	inputSlice := input.([]interface{})
+	inputSet := input.(*schema.Set)
+	inputSlice := inputSet.List()
 	result := make([]platform.Location, len(inputSlice))
 
 	for i := range inputSlice {
