@@ -1,3 +1,14 @@
+v1.2.0 (2022-06-15)
+===================
+- Fix shipping_zone locations ordering by switching to a set instead of a list
+  of locations (#259)
+- Add aliases for destination and platform on subscription and extension
+  resources (#245, #247, #251)
+- Add condition field to api extension resource
+- Add support for terraform import on the api_extension resource
+- Improve error handling, show errors returned by commercetools in terraform
+  output.
+
 v1.1.0 (2022-06-01)
 ===================
 - Fix out of bounds error in the commercetools_type resource (#241)
