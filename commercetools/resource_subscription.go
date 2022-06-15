@@ -226,12 +226,13 @@ func resourceSubscription() *schema.Resource {
 				Optional: true,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if k == "format.#" && old == "1" && new == "0" {
-						fmt := d.Get("format.0.type").(string)
-						if strings.ToLower(fmt) == "platform" {
+						fmt := strings.ToLower(d.Get("format.0.type").(string))
+						if fmt == fmtPlatformAlias || fmt == fmtPlatform {
 							return true
 						}
 					}
-					if k == "format.0.type" && strings.ToLower(old) == "platform" && new == "" {
+					old = strings.ToLower(old)
+					if k == "format.0.type" && (old == fmtPlatformAlias || old == fmtPlatform) && new == "" {
 						return true
 					}
 
