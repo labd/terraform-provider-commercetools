@@ -680,21 +680,21 @@ func validateFormat(d *schema.ResourceData) error {
 		return nil
 	}
 
-	dst := input[0].(map[string]interface{})
+	format := input[0].(map[string]interface{})
 
-	dstType := dst["type"].(string)
+	formatType := format["type"].(string)
 
-	if dstTypeAlias, ok := formatFieldAliases[dstType]; ok {
-		dstType = dstTypeAlias
+	if formatTypeAlias, ok := formatFieldAliases[formatType]; ok {
+		formatType = formatTypeAlias
 	}
 
-	requiredFields, ok := formatFields[dstType]
+	requiredFields, ok := formatFields[formatType]
 	if !ok {
-		return fmt.Errorf("invalid type for format: '%v'", dstType)
+		return fmt.Errorf("invalid type for format: '%v'", formatType)
 	}
 
 	for _, field := range requiredFields {
-		value, ok := dst[field].(string)
+		value, ok := format[field].(string)
 		if !ok {
 			return fmt.Errorf("required property '%v' missing", field)
 		} else if len(value) == 0 {
