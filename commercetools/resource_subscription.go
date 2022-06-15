@@ -17,20 +17,20 @@ const (
 	// Destinations
 	subSQS                  = "SQS"
 	subSNS                  = "SNS"
-	subEventBridge          = "event_bridge"
-	subEventBridgeAlias     = "EventBridge"
-	subAzureEventGrid       = "azure_eventgrid"
-	subAzureEventGridAlias  = "EventGrid"
-	subAzureServiceBus      = "azure_servicebus"
-	subAzureServiceBusAlias = "AzureServiceBus"
-	subGooglePubSub         = "google_pubsub"
-	subGooglePubSubAlias    = "GoogleCloudPubSub"
+	subEventBridge          = "EventBridge"
+	subEventBridgeAlias     = "event_bridge"
+	subAzureEventGrid       = "EventGrid"
+	subAzureEventGridAlias  = "azure_eventgrid"
+	subAzureServiceBus      = "AzureServiceBus"
+	subAzureServiceBusAlias = "azure_servicebus"
+	subGooglePubSub         = "GoogleCloudPubSub"
+	subGooglePubSubAlias    = "google_pubsub"
 
 	// Formats
-	cloudEvents      = "cloud_events"
-	cloudEventsAlias = "CloudEvents"
-	fmtPlatform      = "platform"
-	fmtPlatformAlias = "Platform"
+	cloudEvents      = "CloudEvents"
+	cloudEventsAlias = "cloud_events"
+	fmtPlatform      = "Platform"
+	fmtPlatformAlias = "platform"
 )
 
 var destinationFields = map[string][]string{
