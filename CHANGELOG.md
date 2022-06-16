@@ -1,3 +1,9 @@
+v1.3.0 (unreleased)
+===================
+ - Improve logic to set the user-agent used in the requests. We now use the
+   provider version. For example:
+     `User-Agent: terraform-provider-commercetools/1.3.0 (bd9cae0)`
+
 v1.2.1 (2022-06-16)
 ===================
  - Fix api_extension resource to not error out when the new condition field is
