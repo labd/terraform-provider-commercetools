@@ -1,3 +1,8 @@
+v1.2.1 (2022-06-16)
+===================
+ - Fix api_extension resource to not error out when the new condition field is
+   not defined. (#261)
+
 v1.2.0 (2022-06-15)
 ===================
 - Fix shipping_zone locations ordering by switching to a set instead of a list
