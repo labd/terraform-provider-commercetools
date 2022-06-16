@@ -16,26 +16,33 @@ See also [ZoneRate API Documentation](https://docs.commercetools.com/api/project
 ## Example Usage
 
 ```terraform
-resource "commercetools_shipping_method" "standard" {
-  name = "Standard tax category"
-  key = "Standard tax category"
-  description = "Standard tax category"
-  is_default = true
-  tax_category_id = "<some tax category id>"
-  predicate = "1 = 1"
+resource "commercetools_tax_category" "my-tax-category" {
+  key         = "some-tax-category-key"
+  name        = "My tax category"
+  description = "Example"
 }
 
-resource "commercetools_shipping_zone" "de" {
-  name = "DE"
-  description = "Germany"
-  location = {
-      country = "DE"
+resource "commercetools_shipping_method" "my-shipping-method" {
+  key             = "some-shipping-method-key"
+  name            = "My shipping method"
+  description     = "Standard method"
+  is_default      = true
+  tax_category_id = commercetools_tax_category.my-tax-category.id
+  predicate       = "1 = 1"
+}
+
+resource "commercetools_shipping_zone" "my-shipping-zone" {
+  key         = "some-shipping-zone-key"
+  name        = "DE"
+  description = "My shipping zone"
+  location {
+    country = "DE"
   }
 }
 
-resource "commercetools_shipping_zone_rate" "standard-de" {
-  shipping_method_id = "${commercetools_shipping_method.standard.id}"
-  shipping_zone_id   = "${commercetools_shipping_zone.de.id}"
+resource "commercetools_shipping_zone_rate" "my-shipping-zone-rate" {
+  shipping_method_id = commercetools_shipping_method.my-shipping-method.id
+  shipping_zone_id   = commercetools_shipping_zone.my-shipping-zone.id
 
   price {
     cent_amount   = 5000
@@ -48,22 +55,22 @@ resource "commercetools_shipping_zone_rate" "standard-de" {
   }
 
   shipping_rate_price_tier {
-    type                = "CartScore"
-    score               = 10
+    type  = "CartScore"
+    score = 10
 
     price {
-      cent_amount      = 5000
-      currency_code    = "%[3]s"
+      cent_amount   = 5000
+      currency_code = "EUR"
     }
   }
 
   shipping_rate_price_tier {
-    type                = "CartScore"
-    score               = 20
+    type  = "CartScore"
+    score = 20
 
     price {
-      cent_amount      = 2000
-      currency_code    = "%[3]s"
+      cent_amount   = 2000
+      currency_code = "EUR"
     }
   }
 }
@@ -74,24 +81,27 @@ resource "commercetools_shipping_zone_rate" "standard-de" {
 
 ### Required
 
-- **price** (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--price))
-- **shipping_method_id** (String)
-- **shipping_zone_id** (String)
+- `price` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--price))
+- `shipping_method_id` (String)
+- `shipping_zone_id` (String)
 
 ### Optional
 
-- **free_above** (Block List, Max: 1) The shipping is free if the sum of the (custom) line item prices reaches the freeAbove value (see [below for nested schema](#nestedblock--free_above))
-- **id** (String) The ID of this resource.
-- **shipping_rate_price_tier** (Block List) A price tier is selected instead of the default price when a certain threshold or specific cart value is reached. If no tiered price is suitable for the cart, the base price of the shipping rate is used
+- `free_above` (Block List, Max: 1) The shipping is free if the sum of the (custom) line item prices reaches the freeAbove value (see [below for nested schema](#nestedblock--free_above))
+- `shipping_rate_price_tier` (Block List) A price tier is selected instead of the default price when a certain threshold or specific cart value is reached. If no tiered price is suitable for the cart, the base price of the shipping rate is used
 . See also [Shipping Rate Price Tier API Docs](https://docs.commercetools.com/api/projects/shippingMethods#shippingratepricetier) (see [below for nested schema](#nestedblock--shipping_rate_price_tier))
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 <a id="nestedblock--price"></a>
 ### Nested Schema for `price`
 
 Required:
 
-- **cent_amount** (Number)
-- **currency_code** (String)
+- `cent_amount` (Number)
+- `currency_code` (String)
 
 
 <a id="nestedblock--free_above"></a>
@@ -99,8 +109,8 @@ Required:
 
 Required:
 
-- **cent_amount** (Number) The amount in cents (the smallest indivisible unit of the currency)
-- **currency_code** (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
+- `cent_amount` (Number) The amount in cents (the smallest indivisible unit of the currency)
+- `currency_code` (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
 
 
 <a id="nestedblock--shipping_rate_price_tier"></a>
@@ -108,21 +118,21 @@ Required:
 
 Required:
 
-- **price** (Block List, Min: 1, Max: 1) The price of the score, value or minimum_cent_amount tier (see [below for nested schema](#nestedblock--shipping_rate_price_tier--price))
-- **type** (String) CartValue, CartScore or CartClassification
+- `price` (Block List, Min: 1, Max: 1) The price of the score, value or minimum_cent_amount tier (see [below for nested schema](#nestedblock--shipping_rate_price_tier--price))
+- `type` (String) CartValue, CartScore or CartClassification
 
 Optional:
 
-- **minimum_cent_amount** (Number) If type is CartValue this represents the cent amount of the tier
-- **score** (Number) If type is CartScore. Sets a fixed price for this score value
-- **value** (String) If type is CartClassification, must be a valid key of the CartClassification
+- `minimum_cent_amount` (Number) If type is CartValue this represents the cent amount of the tier
+- `score` (Number) If type is CartScore. Sets a fixed price for this score value
+- `value` (String) If type is CartClassification, must be a valid key of the CartClassification
 
 <a id="nestedblock--shipping_rate_price_tier--price"></a>
 ### Nested Schema for `shipping_rate_price_tier.price`
 
 Required:
 
-- **cent_amount** (Number)
-- **currency_code** (String)
+- `cent_amount` (Number)
+- `currency_code` (String)
 
 

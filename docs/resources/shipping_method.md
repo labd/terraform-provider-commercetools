@@ -16,13 +16,19 @@ See also the [Shipping Methods API Documentation](https://docs.commercetoolstool
 ## Example Usage
 
 ```terraform
+resource "commercetools_tax_category" "some-tax-category" {
+  key         = "some-tax-category-key"
+  name        = "some test cateogry"
+  description = "test category"
+}
+
 resource "commercetools_shipping_method" "standard" {
-  name = "Standard tax category"
-  key = "Standard tax category"
-  description = "Standard tax category"
-  is_default = true
-  tax_category_id = "<some tax category id>"
-  predicate = "1 = 1"
+  key             = "standard-key"
+  name            = "Standard tax category"
+  description     = "Standard tax category"
+  is_default      = true
+  tax_category_id = commercetools_tax_category.some-tax-category.id
+  predicate       = "1 = 1"
 }
 ```
 
@@ -31,20 +37,20 @@ resource "commercetools_shipping_method" "standard" {
 
 ### Required
 
-- **name** (String)
+- `name` (String)
 
 ### Optional
 
-- **description** (String)
-- **id** (String) The ID of this resource.
-- **is_default** (Boolean) One shipping method in a project can be default
-- **key** (String) User-specific unique identifier for the shipping method
-- **localized_description** (Map of String) [LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)
-- **predicate** (String) A Cart predicate which can be used to more precisely select a shipping method for a cart
-- **tax_category_id** (String) ID of a [Tax Category](https://docs.commercetoolstools.com/api/projects/taxCategories#taxcategory)
+- `description` (String)
+- `is_default` (Boolean) One shipping method in a project can be default
+- `key` (String) User-specific unique identifier for the shipping method
+- `localized_description` (Map of String) [LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)
+- `predicate` (String) A Cart predicate which can be used to more precisely select a shipping method for a cart
+- `tax_category_id` (String) ID of a [Tax Category](https://docs.commercetoolstools.com/api/projects/taxCategories#taxcategory)
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 

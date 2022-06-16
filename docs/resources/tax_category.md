@@ -16,8 +16,10 @@ See also the [Tax Category API Documentation](https://docs.commercetools.com/api
 ## Example Usage
 
 ```terraform
-resource "commercetools_tax_category" "standard" {
-  name = "Standard tax category"
+resource "commercetools_tax_category" "my-tax-category" {
+  key         = "my-tax-category-key"
+  name        = "Standard tax category"
+  description = "Example category"
 }
 ```
 
@@ -26,16 +28,16 @@ resource "commercetools_tax_category" "standard" {
 
 ### Required
 
-- **name** (String)
+- `name` (String)
 
 ### Optional
 
-- **description** (String)
-- **id** (String) The ID of this resource.
-- **key** (String) User-specific unique identifier for the category
+- `description` (String)
+- `key` (String) User-specific unique identifier for the category
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 

@@ -16,16 +16,41 @@ See also the [Stores API Documentation](https://docs.commercetools.com/api/proje
 ## Example Usage
 
 ```terraform
-resource "commercetools_store" "standard" {
+resource "commercetools_channel" "us-supply-channel" {
+  key   = "US-SUP"
+  roles = ["InventorySupply"]
   name = {
-      nl-NL = "My standard store"
+    en-US = "Supply channel"
   }
-  key = "standard-store"
+  description = {
+    en-US = "Supply channel desc"
+  }
+}
 
-  // optional
-  languages            = ["nl-NL"]
-  distribution_channels = ["NL-DIST"]
-  supply_channels = ["NL-SUP"]
+resource "commercetools_channel" "us-dist-channel" {
+  key   = "US-DIST"
+  roles = ["ProductDistribution"]
+  name = {
+    en-US = "Dist channel"
+  }
+  description = {
+    en-US = "Dist channel desc"
+  }
+}
+
+resource "commercetools_store" "my-store" {
+  key = "my-store"
+  name = {
+    en-US = "My store"
+  }
+  languages             = ["en-US"]
+  distribution_channels = ["US-DIST"]
+  supply_channels       = ["US-SUP"]
+
+  depends_on = [
+    commercetools_channel.us-supply-channel,
+    commercetools_channel.us-dist-channel,
+  ]
 }
 ```
 
@@ -34,18 +59,18 @@ resource "commercetools_store" "standard" {
 
 ### Required
 
-- **key** (String) User-specific unique identifier for the store. The key is mandatory and immutable. It is used to reference the store
+- `key` (String) User-specific unique identifier for the store. The key is mandatory and immutable. It is used to reference the store
 
 ### Optional
 
-- **distribution_channels** (List of String) Set of ResourceIdentifier to a Channel with ProductDistribution
-- **id** (String) The ID of this resource.
-- **languages** (List of String) [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)
-- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **supply_channels** (List of String) Set of ResourceIdentifier of Channels with InventorySupply
+- `distribution_channels` (List of String) Set of ResourceIdentifier to a Channel with ProductDistribution
+- `languages` (List of String) [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)
+- `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `supply_channels` (List of String) Set of ResourceIdentifier of Channels with InventorySupply
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 

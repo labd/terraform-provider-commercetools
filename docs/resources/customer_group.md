@@ -17,13 +17,13 @@ See also the [Custome Group API Documentation](https://docs.commercetools.com/ap
 
 ```terraform
 resource "commercetools_customer_group" "standard" {
+  key  = "my-customer-group-key"
   name = "Standard Customer Group"
-  key  = "standard-customer-group"
 }
 
 resource "commercetools_customer_group" "golden" {
+  key  = "my-customer-group-key"
   name = "Golden Customer Group"
-  key  = "golden-customer-group"
 }
 ```
 
@@ -32,15 +32,15 @@ resource "commercetools_customer_group" "golden" {
 
 ### Required
 
-- **name** (String) Unique within the project
+- `name` (String) Unique within the project
 
 ### Optional
 
-- **id** (String) The ID of this resource.
-- **key** (String) User-specific unique identifier for the customer group
+- `key` (String) User-specific unique identifier for the customer group
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 

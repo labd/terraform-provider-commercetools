@@ -16,21 +16,25 @@ See also [Tax Rate API Documentation](https://docs.commercetools.com/api/project
 ## Example Usage
 
 ```terraform
-resource "commercetools_tax_category" "standard" {
-  name = "Standard tax category"
-  key  = "standard-tax-category"
+resource "commercetools_tax_category" "my-tax-category" {
+  name        = "Standard tax category"
+  description = "Example category"
 }
 
 resource "commercetools_tax_category_rate" "standard-tax-category-DE" {
-  tax_category_id   = "${commercetools_tax_category.standard.id}"
+  tax_category_id   = commercetools_tax_category.my-tax-category.id
   name              = "19% MwSt"
   amount            = 0.19
   included_in_price = false
   country           = "DE"
+  sub_rate {
+    name   = "example"
+    amount = 0.19
+  }
 }
 
 resource "commercetools_tax_category_rate" "standard-tax-category-NL" {
-  tax_category_id   = "${commercetools_tax_category.standard.id}"
+  tax_category_id   = commercetools_tax_category.my-tax-category.id
   name              = "21% BTW"
   amount            = 0.21
   included_in_price = true
@@ -43,24 +47,27 @@ resource "commercetools_tax_category_rate" "standard-tax-category-NL" {
 
 ### Required
 
-- **country** (String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
-- **included_in_price** (Boolean)
-- **name** (String)
-- **tax_category_id** (String)
+- `country` (String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
+- `included_in_price` (Boolean)
+- `name` (String)
+- `tax_category_id` (String)
 
 ### Optional
 
-- **amount** (Number) Number Percentage in the range of [0..1]. The sum of the amounts of all subRates, if there are any
-- **id** (String) The ID of this resource.
-- **state** (String) The state in the country
-- **sub_rate** (Block List) For countries (for example the US) where the total tax is a combination of multiple taxes (for example state and local taxes) (see [below for nested schema](#nestedblock--sub_rate))
+- `amount` (Number) Number Percentage in the range of [0..1]. The sum of the amounts of all subRates, if there are any
+- `state` (String) The state in the country
+- `sub_rate` (Block List) For countries (for example the US) where the total tax is a combination of multiple taxes (for example state and local taxes) (see [below for nested schema](#nestedblock--sub_rate))
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 <a id="nestedblock--sub_rate"></a>
 ### Nested Schema for `sub_rate`
 
 Required:
 
-- **amount** (Number) Number Percentage in the range of [0..1]
-- **name** (String)
+- `amount` (Number) Number Percentage in the range of [0..1]
+- `name` (String)
 
 

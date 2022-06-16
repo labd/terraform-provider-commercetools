@@ -16,10 +16,10 @@ See also the [Custom Object API Documentation](https://docs.commercetools.com/ap
 ## Example Usage
 
 ```terraform
-resource "commercetools_custom_object" "my-value" {
+resource "commercetools_custom_object" "my-custom-object" {
   container = "my-container"
-  key = "my-key"
-  value = jsonencode(10)
+  key       = "my-key"
+  value     = jsonencode(10)
 }
 ```
 
@@ -28,16 +28,13 @@ resource "commercetools_custom_object" "my-value" {
 
 ### Required
 
-- **container** (String) A namespace to group custom objects matching the pattern '[-_~.a-zA-Z0-9]+'
-- **key** (String) String matching the pattern '[-_~.a-zA-Z0-9]+'
-- **value** (String) JSON types Number, String, Boolean, Array, Object
-
-### Optional
-
-- **id** (String) The ID of this resource.
+- `container` (String) A namespace to group custom objects matching the pattern '[-_~.a-zA-Z0-9]+'
+- `key` (String) String matching the pattern '[-_~.a-zA-Z0-9]+'
+- `value` (String) JSON types Number, String, Boolean, Array, Object
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 
