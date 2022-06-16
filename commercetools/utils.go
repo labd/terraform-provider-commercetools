@@ -324,6 +324,17 @@ func isNotEmpty(d map[string]interface{}, key string) (interface{}, bool) {
 	return nil, false
 }
 
+func nilIfEmpty(val *string) *string {
+	if val == nil {
+		return nil
+	}
+
+	if *val == "" {
+		return nil
+	}
+	return val
+}
+
 var validateLocalizedStringKey = validation.MapKeyMatch(
 	regexp.MustCompile("^[a-z]{2}(-[A-Z]{2})?$"),
 	"Locale keys must match pattern ^[a-z]{2}(-[A-Z]{2})?$",

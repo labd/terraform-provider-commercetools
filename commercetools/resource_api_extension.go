@@ -378,7 +378,14 @@ func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceDat
 		// If we already have a state we get the accessSecret from the state.
 		// Normally we have a state, the one exception is when we are importing
 		// the resource.
-		if !d.GetRawState().GetAttr("version").IsNull() {
+		// Check the raw state to see if the version is nil or not. If nil then
+		// we are importing.
+		isExisting := true
+		rawState := d.GetRawState()
+		if !rawState.IsNull() {
+			isExisting = !rawState.AsValueMap()["version"].IsNull()
+		}
+		if isExisting {
 			// Read the access secret from the current resource data
 			c, _ := expandExtensionDestination(d)
 			switch current := c.(type) {
@@ -405,7 +412,7 @@ func flattenExtensionTriggers(triggers []platform.ExtensionTrigger) []map[string
 		result = append(result, map[string]interface{}{
 			"resource_type_id": t.ResourceTypeId,
 			"actions":          t.Actions,
-			"condition":        t.Condition,
+			"condition":        nilIfEmpty(t.Condition),
 		})
 	}
 
@@ -439,7 +446,7 @@ func expandExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger
 
 		var condition *string
 		if val, ok := i["condition"].(string); ok {
-			condition = stringRef(val)
+			condition = nilIfEmpty(stringRef(val))
 		}
 
 		result = append(result, platform.ExtensionTrigger{
