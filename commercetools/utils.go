@@ -324,6 +324,8 @@ func isNotEmpty(d map[string]interface{}, key string) (interface{}, bool) {
 	return nil, false
 }
 
+// nilIfEmpty returns a nil value if the string is nil or empty ("") otherwise
+// it returns the value
 func nilIfEmpty(val *string) *string {
 	if val == nil {
 		return nil
