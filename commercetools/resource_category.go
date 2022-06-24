@@ -159,6 +159,7 @@ func resourceCategory() *schema.Resource {
 					},
 				},
 			},
+			"custom": CustomFieldSchema(),
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -178,6 +179,7 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 		Name:      name,
 		Slug:      slug,
 		OrderHint: stringRef(d.Get("order_hint")),
+		Custom:    CreateCustomFieldDraft(d),
 	}
 
 	if *key != "" {
@@ -279,6 +281,7 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interfa
 		if category.Assets != nil {
 			d.Set("assets", flattenCategoryAssets(category.Assets))
 		}
+		d.Set("custom", flattenCustomFields(category.Custom))
 	}
 	return nil
 }
@@ -391,6 +394,16 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 					)
 				}
 			}
+		}
+	}
+
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.CategorySetCustomTypeAction, platform.CategorySetCustomFieldAction](d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.CategoryUpdateAction))
 		}
 	}
 
