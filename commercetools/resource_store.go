@@ -141,6 +141,7 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m interface{
 		}
 		d.Set("supply_channels", channelKeys)
 	}
+	d.Set("custom", flattenCustomFields(store.Custom))
 	return nil
 }
 

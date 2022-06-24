@@ -113,6 +113,7 @@ func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interfac
 		d.Set("description", *channel.Description)
 	}
 	d.Set("roles", channel.Roles)
+	d.Set("custom", flattenCustomFields(channel.Custom))
 	return nil
 }
 
