@@ -29,6 +29,11 @@ func flattenTypedMoney(val platform.TypedMoney) map[string]interface{} {
 			"currency_code": v.CurrencyCode,
 			"cent_amount":   v.CentAmount,
 		}
+	case platform.CentPrecisionMoney:
+		return map[string]interface{}{
+			"currency_code": v.CurrencyCode,
+			"cent_amount":   v.CentAmount,
+		}
 	}
 	panic("Unknown money type")
 }
