@@ -237,9 +237,7 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading category from commercetools, with category id: %s", d.Id())
 	client := getClient(m)
-
 	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
 		if IsResourceNotFoundError(err) {

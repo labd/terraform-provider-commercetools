@@ -297,10 +297,7 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading cart discount from commercetools, with cartDiscount id: %s", d.Id())
-
 	client := getClient(m)
-
 	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
 		if IsResourceNotFoundError(err) {

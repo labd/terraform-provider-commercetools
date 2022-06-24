@@ -102,9 +102,6 @@ func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceD
 	setTaxRateState(taxRateState, taxRate)
 
 	results = append(results, taxRateState)
-
-	log.Printf("[DEBUG] Importing results: %#v", results)
-
 	return results, nil
 }
 
@@ -174,7 +171,6 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceTaxCategoryRateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Current tax rate state: %s and m: %s", stringFormatObject(d), stringFormatObject(m))
 	_, taxRate, err := readResourcesFromStateIDs(ctx, d, m)
 
 	if err != nil {
@@ -188,7 +184,6 @@ func resourceTaxCategoryRateRead(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func setTaxRateState(d *schema.ResourceData, taxRate *platform.TaxRate) {
-	log.Printf("[DEBUG] Setting state: %s to taxRate: %s", stringFormatObject(d), stringFormatObject(taxRate))
 	d.Set("name", taxRate.Name)
 	d.Set("amount", taxRate.Amount)
 	d.Set("included_in_price", taxRate.IncludedInPrice)
@@ -203,8 +198,6 @@ func setTaxRateState(d *schema.ResourceData, taxRate *platform.TaxRate) {
 		}
 	}
 	d.Set("sub_rate", subRateData)
-
-	log.Printf("[DEBUG] Updated state to: %s", stringFormatObject(d))
 }
 
 func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -284,8 +277,6 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 
 	amountRaw := d.Get("amount").(float64)
 
-	log.Printf("[DEBUG] Got amount: %f", amountRaw)
-
 	taxRateDraft := platform.TaxRateDraft{
 		Name:            d.Get("name").(string),
 		Amount:          &amountRaw,
@@ -294,8 +285,6 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 		State:           stringRef(d.Get("state")),
 		SubRates:        subrates,
 	}
-
-	log.Printf("[DEBUG] Created tax rate draft: %#v from input %#v", taxRateDraft, d)
 
 	return &taxRateDraft, nil
 }
@@ -334,8 +323,6 @@ func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m in
 	client := getClient(m)
 	taxCategoryID := d.Get("tax_category_id").(string)
 	taxRateID := d.Id()
-
-	log.Printf("[DEBUG] Reading tax category from commercetools, taxCategory ID: %s, taxRate ID: %s", taxCategoryID, taxRateID)
 
 	taxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
 

@@ -77,9 +77,7 @@ func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceTaxCategoryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading tax category from commercetools, with taxCategory id: %s", d.Id())
 	client := getClient(m)
-
 	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
 		if IsResourceNotFoundError(err) {

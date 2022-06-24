@@ -160,8 +160,6 @@ func resourceShippingZoneRateImportState(ctx context.Context, d *schema.Resource
 
 	results = append(results, shippingZoneRateState)
 
-	log.Printf("[DEBUG] Importing results: %#v", results)
-
 	return results, nil
 }
 
@@ -187,21 +185,16 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 
 	var freeAbove *platform.Money
 	if freeAboveState, ok := d.GetOk("free_above"); ok {
-		log.Printf("[DEBUG] Free above state: %s", stringFormatObject(freeAboveState))
 		freeAboveMap := freeAboveState.([]interface{})[0].(map[string]interface{})
 		freeAbove = &platform.Money{
 			CurrencyCode: freeAboveMap["currency_code"].(string),
 			CentAmount:   freeAboveMap["cent_amount"].(int),
 		}
 	}
-	log.Printf("[DEBUG] Setting freeAbove: %s", stringFormatObject(freeAbove))
-
 	shippingRatePriceTiers, err := expandShippingRatePriceTiers(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	log.Printf("[DEBUG] Setting shippingRatePriceTiers: %s", stringFormatObject(shippingRatePriceTiers))
-
 	priceCurrencyCode := price["currency_code"].(string)
 
 	zoneNotFound := true
@@ -290,12 +283,9 @@ func buildShippingZoneRateID(shippingMethodID string, shippingZoneID string, cur
 }
 
 func resourceShippingZoneRateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading shipping zone rate from commercetools, with id: %s", d.Id())
-
 	shippingMethodID, _, _ := getShippingIDs(d.Id())
 
 	client := getClient(m)
-
 	shippingMethod, err := client.ShippingMethods().WithId(shippingMethodID).Get().Execute(ctx)
 	if err != nil {
 		if IsResourceNotFoundError(err) {
@@ -523,8 +513,6 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 		return err
 	}
 
-	log.Printf("[DEBUG] Found shipping rate: %s", stringFormatObject(shippingRate))
-
 	if typedPrice, ok := shippingRate.Price.(platform.CentPrecisionMoney); ok {
 		price := map[string]interface{}{
 			"currency_code": string(typedPrice.CurrencyCode),
@@ -546,7 +534,5 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 			return err
 		}
 	}
-	log.Printf("[DEBUG] New state: %#v", d)
-
 	return nil
 }

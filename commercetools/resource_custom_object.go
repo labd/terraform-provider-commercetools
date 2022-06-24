@@ -78,9 +78,7 @@ func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m i
 func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	container := d.Get("container").(string)
 	key := d.Get("key").(string)
-	log.Printf("[DEBUG] Reading custom object from commercetools with following values\n Container: %s \n Key: %s", container, key)
 	client := getClient(m)
-
 	customObject, err := client.CustomObjects().WithContainerAndKey(container, key).Get().Execute(ctx)
 	if err != nil {
 		if IsResourceNotFoundError(err) {

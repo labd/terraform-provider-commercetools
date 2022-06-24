@@ -146,10 +146,7 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading discount code from commercetools, with discount code id: %s", d.Id())
-
 	client := getClient(m)
-
 	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
 		if IsResourceNotFoundError(err) {

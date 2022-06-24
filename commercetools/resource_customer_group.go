@@ -76,10 +76,7 @@ func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func resourceCustomerGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading customer group from commercetools, with customer group id: %s", d.Id())
-
 	client := getClient(m)
-
 	customerGroup, err := client.CustomerGroups().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
 		if IsResourceNotFoundError(err) {

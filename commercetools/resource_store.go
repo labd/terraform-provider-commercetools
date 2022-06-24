@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -125,23 +124,19 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m interface{
 		d.Set("languages", store.Languages)
 	}
 
-	log.Printf("[DEBUG] Store read, distributionChannels: %+v", store.DistributionChannels)
 	if store.DistributionChannels != nil {
 		channelKeys, err := flattenStoreChannels(store.DistributionChannels)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		log.Printf("[DEBUG] Setting channel keys to: %+v", channelKeys)
 		d.Set("distribution_channels", channelKeys)
 	}
-	log.Printf("[DEBUG] Store read, supplyChannels: %+v", store.SupplyChannels)
 
 	if store.SupplyChannels != nil {
 		channelKeys, err := flattenStoreChannels(store.SupplyChannels)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		log.Printf("[DEBUG] Setting channel keys to: %+v", channelKeys)
 		d.Set("supply_channels", channelKeys)
 	}
 	return nil
@@ -173,8 +168,6 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	if d.HasChange("distribution_channels") {
 		dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
 
-		log.Printf("[DEBUG] distributionChannels change, new identifiers: %v", dcIdentifiers)
-
 		// set action replaces current values
 		input.Actions = append(
 			input.Actions,
@@ -186,9 +179,6 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	if d.HasChange("supply_channels") {
 		scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
-
-		log.Printf("[DEBUG] supplyChannels change, new identifiers: %v", scIdentifiers)
-
 		// set action replaces current values
 		input.Actions = append(
 			input.Actions,
@@ -228,30 +218,21 @@ func convertChannelKeysToIdentifiers(channelKeys []string) []platform.ChannelRes
 		}
 		identifiers = append(identifiers, channelIdentifier)
 	}
-
-	log.Printf("[DEBUG] Converted keys: %v", identifiers)
 	return identifiers
 }
 
 func expandStoreChannels(channelData interface{}) []platform.ChannelResourceIdentifier {
-	log.Printf("[DEBUG] Expanding store channels: %v", channelData)
 	channelKeys := expandStringArray(channelData.([]interface{}))
-	log.Printf("[DEBUG] Expanding store channels, got keys: %v", channelKeys)
 	return convertChannelKeysToIdentifiers(channelKeys)
 }
 
 func flattenStoreChannels(channels []platform.ChannelReference) ([]string, error) {
-	log.Printf("[DEBUG] flattening: %+v", channels)
 	channelKeys := make([]string, 0)
 	for i := 0; i < len(channels); i++ {
-
-		log.Printf("[DEBUG] flattening checking channel: %s", stringFormatObject(channels[i]))
-		log.Printf("[DEBUG] flattening checking channel obj: %s", stringFormatObject(channels[i].Obj))
 		if channels[i].Obj == nil {
 			return nil, errors.New("failed to expand channel objects")
 		}
 		channelKeys = append(channelKeys, channels[i].Obj.Key)
 	}
-	log.Printf("[DEBUG] flattening final keys: %v", channelKeys)
 	return channelKeys, nil
 }

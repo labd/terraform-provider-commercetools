@@ -107,10 +107,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading shipping method from commercetools, with shippingMethod id: %s", d.Id())
-
 	client := getClient(m)
-
 	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
 		if IsResourceNotFoundError(err) {
