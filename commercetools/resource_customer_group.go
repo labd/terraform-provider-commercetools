@@ -2,7 +2,6 @@ package commercetools
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -38,6 +37,7 @@ func resourceCustomerGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
+			"custom": CustomFieldSchema(),
 		},
 	}
 }
@@ -47,6 +47,7 @@ func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 
 	draft := platform.CustomerGroupDraft{
 		GroupName: d.Get("name").(string),
+		Custom:    CreateCustomFieldDraft(d),
 	}
 
 	key := stringRef(d.Get("key"))
@@ -87,15 +88,12 @@ func resourceCustomerGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	if customerGroup == nil {
-		log.Print("[DEBUG] No customer group found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following customer group:")
-		log.Print(stringFormatObject(customerGroup))
-
 		d.Set("version", customerGroup.Version)
 		d.Set("name", customerGroup.Name)
 		d.Set("key", customerGroup.Key)
+		d.Set("custom", flattenCustomFields(customerGroup.Custom))
 	}
 
 	return nil
@@ -124,12 +122,18 @@ func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&platform.CustomerGroupSetKeyAction{Key: &newKey})
+			&platform.CustomerGroupSetKeyAction{Key: nilIfEmpty(&newKey)})
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.CustomerGroupSetCustomTypeAction, platform.CustomerGroupSetCustomFieldAction](d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.StoreUpdateAction))
+		}
+	}
 
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.CustomerGroups().WithId(d.Id()).Post(input).Execute(ctx)
