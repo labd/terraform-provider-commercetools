@@ -156,11 +156,13 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	if d.HasChange("custom") {
-		actions, err := channelCustomFieldUpdateActions(d)
+		actions, err := CustomFieldUpdateActions[platform.ChannelSetCustomTypeAction, platform.ChannelSetCustomFieldAction](d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		input.Actions = append(input.Actions, actions...)
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.ChannelUpdateAction))
+		}
 	}
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
@@ -186,42 +188,4 @@ func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	return nil
-}
-
-func channelCustomFieldUpdateActions(d *schema.ResourceData) ([]platform.ChannelUpdateAction, error) {
-	old, new := d.GetChange("custom")
-	old_data := firstElementFromSlice(old.([]any))
-	new_data := firstElementFromSlice(new.([]any))
-	old_type_id := old_data["type_id"]
-	new_type_id := new_data["type_id"]
-
-	// Remove custom field from resource
-	if new_type_id == nil {
-		action := platform.ChannelSetCustomTypeAction{
-			Type: nil,
-		}
-		return []platform.ChannelUpdateAction{action}, nil
-	}
-
-	if old_type_id == nil || (old_type_id.(string) != new_type_id.(string)) {
-		value := CreateCustomFieldDraftRaw(new_data)
-		action := platform.ChannelSetCustomTypeAction{
-			Type:   &value.Type,
-			Fields: value.Fields,
-		}
-		return []platform.ChannelUpdateAction{action}, nil
-	}
-
-	changes := diffSlices(
-		old_data["fields"].(map[string]interface{}),
-		new_data["fields"].(map[string]interface{}))
-
-	result := []platform.ChannelUpdateAction{}
-	for key := range changes {
-		result = append(result, platform.ChannelSetCustomFieldAction{
-			Name:  key,
-			Value: changes[key],
-		})
-	}
-	return result, nil
 }
