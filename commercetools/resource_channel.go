@@ -51,6 +51,7 @@ func resourceChannel() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"custom": CustomFieldSchema(),
 		},
 	}
 }
@@ -69,6 +70,7 @@ func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interf
 		Roles:       roles,
 		Name:        &name,
 		Description: &description,
+		Custom:      CreateCustomFieldDraft(d),
 	}
 
 	client := getClient(m)
@@ -153,6 +155,14 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			&platform.ChannelSetRolesAction{Roles: roles})
 	}
 
+	if d.HasChange("custom") {
+		actions, err := channelCustomFieldUpdateActions(d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		input.Actions = append(input.Actions, actions...)
+	}
+
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.Channels().WithId(d.Id()).Post(input).Execute(ctx)
 		return processRemoteError(err)
@@ -176,4 +186,42 @@ func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	return nil
+}
+
+func channelCustomFieldUpdateActions(d *schema.ResourceData) ([]platform.ChannelUpdateAction, error) {
+	old, new := d.GetChange("custom")
+	old_data := firstElementFromSlice(old.([]any))
+	new_data := firstElementFromSlice(new.([]any))
+	old_type_id := old_data["type_id"]
+	new_type_id := new_data["type_id"]
+
+	// Remove custom field from resource
+	if new_type_id == nil {
+		action := platform.ChannelSetCustomTypeAction{
+			Type: nil,
+		}
+		return []platform.ChannelUpdateAction{action}, nil
+	}
+
+	if old_type_id == nil || (old_type_id.(string) != new_type_id.(string)) {
+		value := CreateCustomFieldDraftRaw(new_data)
+		action := platform.ChannelSetCustomTypeAction{
+			Type:   &value.Type,
+			Fields: value.Fields,
+		}
+		return []platform.ChannelUpdateAction{action}, nil
+	}
+
+	changes := diffSlices(
+		old_data["fields"].(map[string]interface{}),
+		new_data["fields"].(map[string]interface{}))
+
+	result := []platform.ChannelUpdateAction{}
+	for key := range changes {
+		result = append(result, platform.ChannelSetCustomFieldAction{
+			Name:  key,
+			Value: changes[key],
+		})
+	}
+	return result, nil
 }
