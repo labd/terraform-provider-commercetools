@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,6 +33,16 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_store.standard", "key", key,
 					),
+					func(s *terraform.State) error {
+						res, err := testGetStore(s, "commercetools_store.standard")
+						if err != nil {
+							return err
+						}
+
+						assert.NotNil(t, res)
+						assert.EqualValues(t, res.Key, key)
+						return nil
+					},
 				),
 			},
 			{
@@ -135,24 +146,15 @@ func TestAccStore_CustomField(t *testing.T) {
 						"commercetools_store.test", "key", key,
 					),
 					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources["commercetools_store.test"]
-						if !ok {
-							return fmt.Errorf("Store not found")
-						}
-
-						client := getClient(testAccProvider.Meta())
-						result, err := client.Stores().WithId(rs.Primary.ID).Get().Execute(context.Background())
+						res, err := testGetStore(s, "commercetools_store.test")
 						if err != nil {
 							return err
 						}
-						if result == nil {
-							return fmt.Errorf("resource not found")
-						}
 
-						assert.NotNil(t, result)
-						assert.NotNil(t, result.Custom)
-						assert.NotNil(t, result.Custom.Fields)
-						assert.EqualValues(t, result.Custom.Fields["my-field"], "foobar")
+						assert.NotNil(t, res)
+						assert.NotNil(t, res.Custom)
+						assert.NotNil(t, res.Custom.Fields)
+						assert.EqualValues(t, res.Custom.Fields["my-field"], "foobar")
 						return nil
 					},
 				),
@@ -161,22 +163,13 @@ func TestAccStore_CustomField(t *testing.T) {
 				Config: testAccNewStoreConfigWithChannels(name, key, []string{}),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources["commercetools_store.test"]
-						if !ok {
-							return fmt.Errorf("Store not found")
-						}
-
-						client := getClient(testAccProvider.Meta())
-						result, err := client.Stores().WithId(rs.Primary.ID).Get().Execute(context.Background())
+						res, err := testGetStore(s, "commercetools_store.test")
 						if err != nil {
 							return err
 						}
-						if result == nil {
-							return fmt.Errorf("resource not found")
-						}
 
-						assert.NotNil(t, result)
-						assert.Nil(t, result.Custom)
+						assert.NotNil(t, res)
+						assert.Nil(t, res.Custom)
 						return nil
 					},
 				),
@@ -342,4 +335,18 @@ func testAccCheckStoreDestroy(s *terraform.State) error {
 		}
 	}
 	return nil
+}
+
+func testGetStore(s *terraform.State, identifier string) (*platform.Store, error) {
+	rs, ok := s.RootModule().Resources[identifier]
+	if !ok {
+		return nil, fmt.Errorf("Store not found")
+	}
+
+	client := getClient(testAccProvider.Meta())
+	result, err := client.Stores().WithId(rs.Primary.ID).Get().Execute(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
