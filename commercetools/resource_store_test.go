@@ -17,65 +17,96 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 	key := "test-method"
 	languages := []string{"en-US"}
 
-	newName := "new test method"
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckStoreDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStoreConfig(name, key),
+				Config: testAccStoreConfig("test", name, key),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"commercetools_store.standard", "name.en", name,
+						"commercetools_store.test", "name.en", name,
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_store.standard", "key", key,
+						"commercetools_store.test", "key", key,
 					),
 					func(s *terraform.State) error {
-						res, err := testGetStore(s, "commercetools_store.standard")
+						res, err := testGetStore(s, "commercetools_store.test")
 						if err != nil {
 							return err
 						}
 
 						assert.NotNil(t, res)
 						assert.EqualValues(t, res.Key, key)
+						assert.NotNil(t, res.Name)
+						assert.EqualValues(t, (*res.Name)["en"], name)
 						return nil
 					},
 				),
 			},
 			{
-				Config: testAccStoreConfig(newName, key),
+				Config: testAccStoreConfig("test", "new test method", key),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"commercetools_store.standard", "name.en", newName,
+						"commercetools_store.test", "name.en", "new test method",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_store.standard", "key", key,
+						"commercetools_store.test", "key", key,
 					),
+					func(s *terraform.State) error {
+						res, err := testGetStore(s, "commercetools_store.test")
+						if err != nil {
+							return err
+						}
+
+						assert.NotNil(t, res)
+						assert.EqualValues(t, (*res.Name)["en"], "new test method")
+						assert.EqualValues(t, res.Languages, []string{})
+						return nil
+					},
 				),
 			},
 			{
-				Config: testAccStoreConfigWithLanguages(name, key, languages),
+				Config: testAccStoreConfigWithLanguages("test", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"commercetools_store.standard", "languages.#", "1",
+						"commercetools_store.test", "languages.#", "1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_store.standard", "languages.0", "en-US",
+						"commercetools_store.test", "languages.0", "en-US",
 					),
+					func(s *terraform.State) error {
+						res, err := testGetStore(s, "commercetools_store.test")
+						if err != nil {
+							return err
+						}
+
+						assert.NotNil(t, res)
+						assert.EqualValues(t, res.Languages, []string{"en-US"})
+						return nil
+					},
 				),
 			},
 			{
-				Config: testAccNewStoreConfigWithLanguages(name, key, languages),
+				Config: testAccStoreConfigWithLanguages("other", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"commercetools_store.standard", "languages.#", "1",
+						"commercetools_store.other", "languages.#", "1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_store.standard", "languages.0", "en-US",
+						"commercetools_store.other", "languages.0", "en-US",
 					),
+					func(s *terraform.State) error {
+						res, err := testGetStore(s, "commercetools_store.other")
+						if err != nil {
+							return err
+						}
+
+						assert.NotNil(t, res)
+						assert.EqualValues(t, res.Languages, []string{"en-US"})
+						return nil
+					},
 				),
 			},
 		},
@@ -93,7 +124,7 @@ func TestAccStore_createAndUpdateDistributionLanguages(t *testing.T) {
 		CheckDestroy: testAccCheckStoreDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNewStoreConfigWithChannels(name, key, languages),
+				Config: testAccStoreConfigWithChannels("test", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_store.test", "distribution_channels.#", "1",
@@ -104,7 +135,7 @@ func TestAccStore_createAndUpdateDistributionLanguages(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccNewStoreConfigWithoutChannels(name, key, languages),
+				Config: testAccStoreConfigWithoutChannels("test", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_store.test", "distribution_channels.#", "0",
@@ -112,7 +143,7 @@ func TestAccStore_createAndUpdateDistributionLanguages(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccNewStoreConfigWithChannels(name, key, languages),
+				Config: testAccStoreConfigWithChannels("test", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_store.test", "distribution_channels.#", "1",
@@ -137,7 +168,7 @@ func TestAccStore_CustomField(t *testing.T) {
 		CheckDestroy: testAccCheckStoreDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNewStoreConfigWithCustomField(name, key, []string{}),
+				Config: testAccStoreConfigWithCustomField("test", name, key, []string{}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"commercetools_store.test", "name.en", name,
@@ -160,7 +191,7 @@ func TestAccStore_CustomField(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccNewStoreConfigWithChannels(name, key, []string{}),
+				Config: testAccStoreConfigWithChannels("test", name, key, []string{}),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
 						res, err := testGetStore(s, "commercetools_store.test")
@@ -178,124 +209,132 @@ func TestAccStore_CustomField(t *testing.T) {
 	})
 }
 
-func testAccStoreConfig(name string, key string) string {
-	return fmt.Sprintf(`
-	resource "commercetools_store" "standard" {
-		name = {
-			en = "%[1]s"
-			nl = "%[1]s"
-		}
-		key = "%[2]s"
-	}`, name, key)
-}
-
-func testAccStoreConfigWithLanguages(name string, key string, languages []string) string {
-	return fmt.Sprintf(`
-	resource "commercetools_store" "standard" {
-		name = {
-			en = "%[1]s"
-			nl = "%[1]s"
-		}
-		key = "%[2]s"
-		languages = %[3]q
-	}`, name, key, languages)
-}
-
-func testAccNewStoreConfigWithLanguages(name string, key string, languages []string) string {
-	return fmt.Sprintf(`
-	resource "commercetools_store" "standard" {
-		name = {
-			en = "%[1]s"
-			nl = "%[1]s"
-		}
-		key = "%[2]s"
-		languages = %[3]q
-	}`, name, key, languages)
-}
-
-func testAccNewStoreConfigWithChannels(name string, key string, languages []string) string {
-	return fmt.Sprintf(`
-	resource "commercetools_channel" "test_channel" {
-		key = "TEST"
-		roles = ["ProductDistribution"]
-	}
-
-	resource "commercetools_store" "test" {
-		name = {
-			en = "%[1]s"
-			nl = "%[1]s"
-		}
-		key = "%[2]s"
-		languages = %[3]q
-		distribution_channels = [commercetools_channel.test_channel.key]
-	}
-	`, name, key, languages)
-}
-
-func testAccNewStoreConfigWithoutChannels(name string, key string, languages []string) string {
-	return fmt.Sprintf(`
-	resource "commercetools_channel" "test_channel" {
-		key = "TEST"
-		roles = ["ProductDistribution"]
-	}
-
-	resource "commercetools_store" "test" {
-		name = {
-			en = "%[1]s"
-			nl = "%[1]s"
-		}
-		key = "%[2]s"
-		languages = %[3]q
-	}
-	`, name, key, languages)
-}
-
-func testAccNewStoreConfigWithCustomField(name string, key string, languages []string) string {
-	return fmt.Sprintf(`
-
-	resource "commercetools_type" "test" {
-		key = "test-for-store"
-		name = {
-			en = "for Store"
-		}
-		description = {
-			en = "Custom Field for store resource"
-		}
-
-		resource_type_ids = ["store"]
-
-		field {
-			name = "my-field"
-			label = {
-				en = "My Custom field"
-			}
-			type {
-				name = "String"
+func testAccStoreConfig(id, name, key string) string {
+	return hclTemplate(`
+		resource "commercetools_store" "{{ .id }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "{{ .name }}"
+				nl = "{{ .name }}"
 			}
 		}
-	}
+	`,
+		map[string]any{
+			"id":   id,
+			"name": name,
+			"key":  key,
+		})
+}
 
-	resource "commercetools_channel" "test_channel" {
-		key = "TEST"
-		roles = ["ProductDistribution"]
-	}
-
-	resource "commercetools_store" "test" {
-		name = {
-			en = "%[1]s"
-			nl = "%[1]s"
+func testAccStoreConfigWithLanguages(id, name, key string, languages []string) string {
+	return hclTemplate(`
+		resource "commercetools_store" "{{ .id }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "{{ .name }}"
+				nl = "{{ .name }}"
+			}
+			languages = {{ .languages | printf "%q" }}
 		}
-		key = "%[2]s"
-		languages = %[3]q
-		distribution_channels = [commercetools_channel.test_channel.key]
-		custom {
-			type_id = commercetools_type.test.id
-			fields = {
-				"my-field" = "foobar"
+	`, map[string]any{
+		"id":        id,
+		"name":      name,
+		"key":       key,
+		"languages": languages,
+	})
+}
+
+func testAccStoreConfigWithChannels(id, name, key string, languages []string) string {
+	return hclTemplate(`
+		resource "commercetools_channel" "{{ .id }}_channel" {
+			key = "TEST"
+			roles = ["ProductDistribution"]
+		}
+
+		resource "commercetools_store" "{{ .id }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "{{ .name }}"
+				nl = "{{ .name }}"
+			}
+			languages = {{ .languages | printf "%q" }}
+			distribution_channels = [commercetools_channel.{{ .id }}_channel.key]
+		}
+	`, map[string]any{
+		"id":        id,
+		"name":      name,
+		"key":       key,
+		"languages": languages,
+	})
+}
+
+func testAccStoreConfigWithoutChannels(id, name, key string, languages []string) string {
+	return hclTemplate(`
+		resource "commercetools_store" "{{ .id }}" {
+			name = {
+				en = "{{ .name }}"
+				nl = "{{ .name }}"
+			}
+			key = "{{ .key }}"
+			languages = {{ .languages | printf "%q" }}
+		}
+	`, map[string]any{
+		"id":        id,
+		"key":       key,
+		"name":      name,
+		"languages": languages})
+}
+
+func testAccStoreConfigWithCustomField(id, name, key string, languages []string) string {
+	return hclTemplate(`
+		resource "commercetools_type" "{{ .id }}_type" {
+			key = "test-for-store"
+			name = {
+				en = "for Store"
+			}
+			description = {
+				en = "Custom Field for store resource"
+			}
+
+			resource_type_ids = ["store"]
+
+			field {
+				name = "my-field"
+				label = {
+					en = "My Custom field"
+				}
+				type {
+					name = "String"
+				}
 			}
 		}
-	}
-	`, name, key, languages)
+
+		resource "commercetools_channel" "{{ .id }}_channel" {
+			key = "TEST"
+			roles = ["ProductDistribution"]
+		}
+
+		resource "commercetools_store" "{{ .id }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "{{ .name }}"
+				nl = "{{ .name }}"
+			}
+			languages = {{ .languages | printf "%q" }}
+			distribution_channels = [commercetools_channel.{{ .id }}_channel.key]
+			custom {
+				type_id = commercetools_type.{{ .id }}_type.id
+				fields = {
+					"my-field" = "foobar"
+				}
+			}
+		}
+	`, map[string]any{
+		"id":        id,
+		"key":       key,
+		"name":      name,
+		"languages": languages,
+	})
 }
 
 func testAccCheckStoreDestroy(s *terraform.State) error {
