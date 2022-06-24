@@ -37,14 +37,16 @@ type SetCustomTypeAction interface {
 	platform.ChannelSetCustomTypeAction |
 		platform.StoreSetCustomTypeAction |
 		platform.CategorySetCustomTypeAction |
-		platform.ShippingMethodSetCustomTypeAction
+		platform.ShippingMethodSetCustomTypeAction |
+		platform.CustomerGroupSetCustomTypeAction
 }
 
 type SetCustomFieldAction interface {
 	platform.ChannelSetCustomFieldAction |
 		platform.StoreSetCustomFieldAction |
 		platform.CategorySetCustomFieldAction |
-		platform.ShippingMethodSetCustomFieldAction
+		platform.ShippingMethodSetCustomFieldAction |
+		platform.CustomerGroupSetCustomFieldAction
 }
 
 func CustomFieldCreateFieldContainer(data map[string]interface{}) *platform.FieldContainer {
