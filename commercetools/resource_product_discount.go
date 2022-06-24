@@ -188,10 +188,6 @@ func resourceProductDiscountCreate(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	if productDiscount == nil {
-		return diag.Errorf("No product discount created")
-	}
-
 	d.SetId(productDiscount.ID)
 	d.Set("version", productDiscount.Version)
 
