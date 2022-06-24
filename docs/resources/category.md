@@ -76,6 +76,7 @@ resource "commercetools_category" "my-second-category" {
 ### Optional
 
 - `assets` (Block List) Can be used to store images, icons or movies related to this category (see [below for nested schema](#nestedblock--assets))
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `description` (Map of String)
 - `external_id` (String)
 - `key` (String) Category-specific unique identifier. Must be unique across a project
@@ -128,5 +129,19 @@ Required:
 
 - `h` (Number) The height of the asset source
 - `w` (Number) The width of the asset source
+
+
+
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
 
 

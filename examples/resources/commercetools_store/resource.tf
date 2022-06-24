@@ -20,6 +20,29 @@ resource "commercetools_channel" "us-dist-channel" {
   }
 }
 
+resource "commercetools_type" "my-store-type" {
+  key = "my-custom-store-type"
+  name = {
+    en = "My Store Type"
+  }
+  description = {
+    en = "A custom store type"
+  }
+
+  resource_type_ids = ["store"]
+
+  field {
+    name = "some-field"
+    label = {
+      en = "Some Field"
+    }
+    type {
+      name = "String"
+    }
+  }
+}
+
+
 resource "commercetools_store" "my-store" {
   key = "my-store"
   name = {
@@ -28,6 +51,13 @@ resource "commercetools_store" "my-store" {
   languages             = ["en-US"]
   distribution_channels = ["US-DIST"]
   supply_channels       = ["US-SUP"]
+
+  custom {
+    type_id = commercetools_type.my-store-type.id
+    fields = {
+      my-field = "ja"
+    }
+  }
 
   depends_on = [
     commercetools_channel.us-supply-channel,

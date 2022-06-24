@@ -36,11 +36,23 @@ resource "commercetools_customer_group" "golden" {
 
 ### Optional
 
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `key` (String) User-specific unique identifier for the customer group
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 - `version` (Number)
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
 
 

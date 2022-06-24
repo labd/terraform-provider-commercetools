@@ -38,6 +38,7 @@ resource "commercetools_channel" "my-channel" {
 
 ### Optional
 
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 
@@ -45,5 +46,16 @@ resource "commercetools_channel" "my-channel" {
 
 - `id` (String) The ID of this resource.
 - `version` (Number)
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
 
 

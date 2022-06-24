@@ -38,6 +38,29 @@ resource "commercetools_channel" "us-dist-channel" {
   }
 }
 
+resource "commercetools_type" "my-store-type" {
+  key = "my-custom-store-type"
+  name = {
+    en = "My Store Type"
+  }
+  description = {
+    en = "A custom store type"
+  }
+
+  resource_type_ids = ["store"]
+
+  field {
+    name = "some-field"
+    label = {
+      en = "Some Field"
+    }
+    type {
+      name = "String"
+    }
+  }
+}
+
+
 resource "commercetools_store" "my-store" {
   key = "my-store"
   name = {
@@ -46,6 +69,13 @@ resource "commercetools_store" "my-store" {
   languages             = ["en-US"]
   distribution_channels = ["US-DIST"]
   supply_channels       = ["US-SUP"]
+
+  custom {
+    type_id = commercetools_type.my-store-type.id
+    fields = {
+      my-field = "ja"
+    }
+  }
 
   depends_on = [
     commercetools_channel.us-supply-channel,
@@ -63,6 +93,7 @@ resource "commercetools_store" "my-store" {
 
 ### Optional
 
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `distribution_channels` (List of String) Set of ResourceIdentifier to a Channel with ProductDistribution
 - `languages` (List of String) [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)
 - `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
@@ -72,5 +103,16 @@ resource "commercetools_store" "my-store" {
 
 - `id` (String) The ID of this resource.
 - `version` (Number)
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
 
 
