@@ -372,9 +372,9 @@ func expandProductDiscountValue(d *schema.ResourceData) (platform.ProductDiscoun
 			Permyriad: value["permyriad"].(int),
 		}, nil
 	case "absolute":
-		// money := expandTypedMoney(value)
+		money := expandCentPrecisionMoneyDraft(value)
 		return platform.ProductDiscountValueAbsoluteDraft{
-			// Money: money,
+			Money: money,
 		}, nil
 	case "external":
 		return platform.ProductDiscountValueExternalDraft{}, nil
