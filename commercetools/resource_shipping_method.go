@@ -55,7 +55,7 @@ func resourceShippingMethod() *schema.Resource {
 			"tax_category_id": {
 				Description: "ID of a [Tax Category](https://docs.commercetoolstools.com/api/projects/taxCategories#taxcategory)",
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 			},
 			"predicate": {
 				Description: "A Cart predicate which can be used to more precisely select a shipping method for a cart",
