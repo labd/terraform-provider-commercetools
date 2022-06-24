@@ -3,6 +3,7 @@ package commercetools
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -298,6 +299,14 @@ func elementFromList(d *schema.ResourceData, key string) (map[string]interface{}
 	return nil, nil
 }
 
+func firstElementFromSlice(d []any) map[string]interface{} {
+	if len(d) > 0 {
+		result := d[0].(map[string]interface{})
+		return result
+	}
+	return nil
+}
+
 func elementFromSlice(d map[string]interface{}, key string) (map[string]interface{}, error) {
 	data, ok := d[key]
 	if !ok {
@@ -396,4 +405,34 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func diffSlices(old map[string]interface{}, new map[string]interface{}) map[string]interface{} {
+	result := map[string]interface{}{}
+	seen := map[string]bool{}
+
+	// Find changes against current values. If value no longer
+	// exists we set it to nil
+	for key, value := range old {
+		seen[key] = true
+		newVal, exists := new[key]
+		if !exists {
+			result[key] = nil
+			continue
+		}
+
+		if !reflect.DeepEqual(value, newVal) {
+			result[key] = newVal
+			continue
+		}
+	}
+
+	// Copy new values
+	for key, value := range new {
+		if _, exists := seen[key]; !exists {
+			result[key] = value
+		}
+	}
+
+	return result
 }
