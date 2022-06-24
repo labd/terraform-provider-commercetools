@@ -64,6 +64,16 @@ func CreateCustomFieldDraftRaw(data map[string]interface{}) *platform.CustomFiel
 	return draft
 }
 
+func flattenCustomFields(c *platform.CustomFields) any {
+	if c == nil {
+		return nil
+	}
+	result := map[string]any{}
+	result["type_id"] = c.Type.ID
+	result["fields"] = c.Fields
+	return result
+}
+
 func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](d *schema.ResourceData) ([]any, error) {
 	old, new := d.GetChange("custom")
 	old_data := firstElementFromSlice(old.([]any))
