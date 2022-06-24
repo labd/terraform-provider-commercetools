@@ -38,19 +38,31 @@ resource "commercetools_shipping_method" "standard" {
 ### Required
 
 - `name` (String)
+- `tax_category_id` (String) ID of a [Tax Category](https://docs.commercetoolstools.com/api/projects/taxCategories#taxcategory)
 
 ### Optional
 
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `description` (String)
 - `is_default` (Boolean) One shipping method in a project can be default
 - `key` (String) User-specific unique identifier for the shipping method
 - `localized_description` (Map of String) [LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)
 - `predicate` (String) A Cart predicate which can be used to more precisely select a shipping method for a cart
-- `tax_category_id` (String) ID of a [Tax Category](https://docs.commercetoolstools.com/api/projects/taxCategories#taxcategory)
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 - `version` (Number)
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
 
 

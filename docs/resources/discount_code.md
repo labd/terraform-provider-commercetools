@@ -50,6 +50,7 @@ resource "commercetools_discount_code" "my_discount_code" {
 
 ### Optional
 
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `groups` (List of String) The groups to which this discount code belong
 - `is_active` (Boolean)
@@ -64,5 +65,16 @@ resource "commercetools_discount_code" "my_discount_code" {
 
 - `id` (String) The ID of this resource.
 - `version` (Number)
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
 
 
