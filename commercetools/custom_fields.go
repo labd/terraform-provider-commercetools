@@ -52,7 +52,6 @@ type SetCustomFieldAction interface {
 }
 
 func CustomFieldCreateFieldContainer(data map[string]interface{}) *platform.FieldContainer {
-
 	if raw, ok := data["fields"].(map[string]interface{}); ok {
 		fields := platform.FieldContainer(raw)
 		return &fields
@@ -61,11 +60,11 @@ func CustomFieldCreateFieldContainer(data map[string]interface{}) *platform.Fiel
 }
 
 func CreateCustomFieldDraftRaw(data map[string]interface{}) *platform.CustomFieldsDraft {
-	draft := &platform.CustomFieldsDraft{}
 	if data["type_id"] == nil {
 		return nil
 	}
 
+	draft := &platform.CustomFieldsDraft{}
 	if val, ok := data["type_id"].(string); ok {
 		draft.Type.ID = stringRef(val)
 	}
@@ -78,7 +77,7 @@ func CreateCustomFieldDraftRaw(data map[string]interface{}) *platform.CustomFiel
 	return draft
 }
 
-func flattenCustomFields(c *platform.CustomFields) any {
+func flattenCustomFields(c *platform.CustomFields) []map[string]any {
 	if c == nil {
 		return nil
 	}
