@@ -58,6 +58,10 @@ func CustomFieldCreateFieldContainer(data map[string]interface{}) *platform.Fiel
 
 func CreateCustomFieldDraftRaw(data map[string]interface{}) *platform.CustomFieldsDraft {
 	draft := &platform.CustomFieldsDraft{}
+	if data["type_id"] == nil {
+		return nil
+	}
+
 	if val, ok := data["type_id"].(string); ok {
 		draft.Type.ID = stringRef(val)
 	}
@@ -76,8 +80,13 @@ func flattenCustomFields(c *platform.CustomFields) any {
 	}
 	result := map[string]any{}
 	result["type_id"] = c.Type.ID
-	result["fields"] = c.Fields
-	return result
+
+	fields := map[string]any{}
+	for key, value := range c.Fields {
+		fields[key] = value
+	}
+	result["fields"] = fields
+	return []map[string]any{result}
 }
 
 func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](d *schema.ResourceData) ([]any, error) {
