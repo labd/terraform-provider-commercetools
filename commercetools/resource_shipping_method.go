@@ -81,7 +81,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		LocalizedDescription: &localizedDescription,
 		IsDefault:            d.Get("is_default").(bool),
 		TaxCategory:          taxCategory,
-		Predicate:            stringRef(d.Get("predicate")),
+		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
 	}
 
 	key := stringRef(d.Get("key"))
@@ -195,10 +195,10 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	if d.HasChange("predicate") {
-		newPredicate := d.Get("predicate").(string)
+		newPredicate := nilIfEmpty(stringRef(d.Get("predicate").(string)))
 		input.Actions = append(
 			input.Actions,
-			&platform.ShippingMethodSetPredicateAction{Predicate: &newPredicate})
+			&platform.ShippingMethodSetPredicateAction{Predicate: newPredicate})
 	}
 
 	log.Printf(
