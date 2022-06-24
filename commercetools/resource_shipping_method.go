@@ -2,7 +2,6 @@ package commercetools
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -62,6 +61,7 @@ func resourceShippingMethod() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"custom": CustomFieldSchema(),
 		},
 	}
 }
@@ -82,6 +82,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		IsDefault:            d.Get("is_default").(bool),
 		TaxCategory:          taxCategory,
 		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
+		Custom:               CreateCustomFieldDraft(d),
 	}
 
 	key := stringRef(d.Get("key"))
@@ -118,12 +119,8 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if shippingMethod == nil {
-		log.Print("[DEBUG] No shipping method found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following shipping method:")
-		log.Print(stringFormatObject(shippingMethod))
-
 		d.Set("version", shippingMethod.Version)
 		d.Set("key", shippingMethod.Key)
 		d.Set("name", shippingMethod.Name)
@@ -132,6 +129,7 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m i
 		d.Set("is_default", shippingMethod.IsDefault)
 		d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
 		d.Set("predicate", shippingMethod.Predicate)
+		d.Set("custom", flattenCustomFields(shippingMethod.Custom))
 	}
 
 	return nil
@@ -201,9 +199,15 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 			&platform.ShippingMethodSetPredicateAction{Predicate: newPredicate})
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.ShippingMethodSetCustomTypeAction, platform.ShippingMethodSetCustomFieldAction](d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.ShippingMethodUpdateAction))
+		}
+	}
 
 	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)

@@ -34,11 +34,17 @@ func CreateCustomFieldDraft(d *schema.ResourceData) *platform.CustomFieldsDraft 
 }
 
 type SetCustomTypeAction interface {
-	platform.ChannelSetCustomTypeAction | platform.StoreSetCustomTypeAction | platform.CategorySetCustomTypeAction
+	platform.ChannelSetCustomTypeAction |
+		platform.StoreSetCustomTypeAction |
+		platform.CategorySetCustomTypeAction |
+		platform.ShippingMethodSetCustomTypeAction
 }
 
 type SetCustomFieldAction interface {
-	platform.ChannelSetCustomFieldAction | platform.StoreSetCustomFieldAction | platform.CategorySetCustomFieldAction
+	platform.ChannelSetCustomFieldAction |
+		platform.StoreSetCustomFieldAction |
+		platform.CategorySetCustomFieldAction |
+		platform.ShippingMethodSetCustomFieldAction
 }
 
 func CustomFieldCreateFieldContainer(data map[string]interface{}) *platform.FieldContainer {
