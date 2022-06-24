@@ -13,20 +13,17 @@ var testAccProviders map[string]*schema.Provider
 var testAccProvider *schema.Provider
 
 func init() {
-	testAccProvider = Provider()
+	testAccProvider = New("snapshot")()
 	testAccProviders = map[string]*schema.Provider{
 		"commercetools": testAccProvider,
 	}
 }
 
 func TestProvider(t *testing.T) {
-	if err := Provider().InternalValidate(); err != nil {
+	provider := New("snapshot")()
+	if err := provider.InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-}
-
-func TestProvider_impl(t *testing.T) {
-	var _ = Provider()
 }
 
 func testAccPreCheck(t *testing.T) {
