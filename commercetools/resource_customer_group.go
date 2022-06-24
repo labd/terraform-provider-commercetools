@@ -131,7 +131,7 @@ func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 			return diag.FromErr(err)
 		}
 		for i := range actions {
-			input.Actions = append(input.Actions, actions[i].(platform.StoreUpdateAction))
+			input.Actions = append(input.Actions, actions[i].(platform.CustomerGroupUpdateAction))
 		}
 	}
 
