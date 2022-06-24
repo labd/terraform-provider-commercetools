@@ -34,11 +34,11 @@ func CreateCustomFieldDraft(d *schema.ResourceData) *platform.CustomFieldsDraft 
 }
 
 type SetCustomTypeAction interface {
-	platform.ChannelSetCustomTypeAction
+	platform.ChannelSetCustomTypeAction | platform.StoreSetCustomTypeAction
 }
 
 type SetCustomFieldAction interface {
-	platform.ChannelSetCustomFieldAction
+	platform.ChannelSetCustomFieldAction | platform.StoreSetCustomFieldAction
 }
 
 func CustomFieldCreateFieldContainer(data map[string]interface{}) *platform.FieldContainer {
@@ -62,4 +62,42 @@ func CreateCustomFieldDraftRaw(data map[string]interface{}) *platform.CustomFiel
 	}
 
 	return draft
+}
+
+func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](d *schema.ResourceData) ([]any, error) {
+	old, new := d.GetChange("custom")
+	old_data := firstElementFromSlice(old.([]any))
+	new_data := firstElementFromSlice(new.([]any))
+	old_type_id := old_data["type_id"]
+	new_type_id := new_data["type_id"]
+
+	// Remove custom field from resource
+	if new_type_id == nil {
+		action := T{
+			Type: nil,
+		}
+		return []any{action}, nil
+	}
+
+	if old_type_id == nil || (old_type_id.(string) != new_type_id.(string)) {
+		value := CreateCustomFieldDraftRaw(new_data)
+		action := platform.StoreSetCustomTypeAction{
+			Type:   &value.Type,
+			Fields: value.Fields,
+		}
+		return []any{action}, nil
+	}
+
+	changes := diffSlices(
+		old_data["fields"].(map[string]interface{}),
+		new_data["fields"].(map[string]interface{}))
+
+	result := []any{}
+	for key := range changes {
+		result = append(result, F{
+			Name:  key,
+			Value: changes[key],
+		})
+	}
+	return result, nil
 }

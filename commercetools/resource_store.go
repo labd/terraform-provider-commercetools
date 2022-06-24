@@ -191,11 +191,13 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	if d.HasChange("custom") {
-		actions, err := storeCustomFieldUpdateActions(d)
+		actions, err := CustomFieldUpdateActions[platform.StoreSetCustomTypeAction, platform.StoreSetCustomFieldAction](d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		input.Actions = append(input.Actions, actions...)
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.StoreUpdateAction))
+		}
 	}
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
@@ -245,42 +247,4 @@ func flattenStoreChannels(channels []platform.ChannelReference) ([]string, error
 		channelKeys = append(channelKeys, channels[i].Obj.Key)
 	}
 	return channelKeys, nil
-}
-
-func storeCustomFieldUpdateActions(d *schema.ResourceData) ([]platform.StoreUpdateAction, error) {
-	old, new := d.GetChange("custom")
-	old_data := firstElementFromSlice(old.([]any))
-	new_data := firstElementFromSlice(new.([]any))
-	old_type_id := old_data["type_id"]
-	new_type_id := new_data["type_id"]
-
-	// Remove custom field from resource
-	if new_type_id == nil {
-		action := platform.StoreSetCustomTypeAction{
-			Type: nil,
-		}
-		return []platform.StoreUpdateAction{action}, nil
-	}
-
-	if old_type_id == nil || (old_type_id.(string) != new_type_id.(string)) {
-		value := CreateCustomFieldDraftRaw(new_data)
-		action := platform.StoreSetCustomTypeAction{
-			Type:   &value.Type,
-			Fields: value.Fields,
-		}
-		return []platform.StoreUpdateAction{action}, nil
-	}
-
-	changes := diffSlices(
-		old_data["fields"].(map[string]interface{}),
-		new_data["fields"].(map[string]interface{}))
-
-	result := []platform.StoreUpdateAction{}
-	for key := range changes {
-		result = append(result, platform.StoreSetCustomFieldAction{
-			Name:  key,
-			Value: changes[key],
-		})
-	}
-	return result, nil
 }
