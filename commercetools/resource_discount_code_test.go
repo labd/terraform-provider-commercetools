@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccDiscountCodeCreate_basic(t *testing.T) {
@@ -117,6 +118,31 @@ func TestAccDiscountCodeCreate_basic(t *testing.T) {
 					resource.TestCheckNoResourceAttr(
 						"commercetools_discount_code.standard", "cart_discounts.1",
 					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDiscountCode_CustomField(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCustomerGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDiscountCodeCustomField(),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						res, err := testGetDiscountCode(s, "commercetools_discount_code.standard")
+						if err != nil {
+							return err
+						}
+						assert.NotNil(t, res)
+						assert.NotNil(t, res.Custom)
+						return nil
+					},
 				),
 			},
 		},
@@ -330,6 +356,57 @@ func testAccDiscountCodeRemoveProperties() string {
 	  }`
 }
 
+func testAccDiscountCodeCustomField() string {
+	return `
+	resource "commercetools_type" "test" {
+		key = "test-for-discount-code"
+		name = {
+			en = "for discount-code"
+		}
+		description = {
+			en = "Custom Field for discount-code resource"
+		}
+
+		resource_type_ids = ["discount-code"]
+
+		field {
+			name = "my-field"
+			label = {
+				en = "My Custom field"
+			}
+			type {
+				name = "String"
+			}
+		}
+	}
+	resource "commercetools_discount_code" "standard" {
+		name = {
+			en = "Standard name"
+		}
+		description = {
+			en = "Standard description"
+		}
+		code        = "2"
+		valid_from  = "2020-01-02T15:04:05Z"
+		valid_until = "2021-01-02T15:04:05Z"
+		is_active   = true
+        predicate   = "1=1"
+
+        max_applications_per_customer = 10
+        max_applications              = 100
+
+		cart_discounts = []
+
+		custom {
+			type_id = commercetools_type.test.id
+			fields = {
+				"my-field" = "foobar"
+			}
+		}
+	}`
+
+}
+
 func testAccCheckDiscountCodeDestroy(s *terraform.State) error {
 	client := getClient(testAccProvider.Meta())
 
@@ -366,4 +443,18 @@ func testAccCheckDiscountCodeDestroy(s *terraform.State) error {
 		}
 	}
 	return nil
+}
+
+func testGetDiscountCode(s *terraform.State, identifier string) (*platform.DiscountCode, error) {
+	rs, ok := s.RootModule().Resources[identifier]
+	if !ok {
+		return nil, fmt.Errorf("DiscountCode not found")
+	}
+
+	client := getClient(testAccProvider.Meta())
+	result, err := client.DiscountCodes().WithId(rs.Primary.ID).Get().Execute(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

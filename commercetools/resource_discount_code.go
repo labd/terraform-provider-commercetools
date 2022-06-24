@@ -91,6 +91,7 @@ func resourceDiscountCode() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"custom": CustomFieldSchema(),
 		},
 	}
 }
@@ -111,6 +112,7 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m i
 		MaxApplications:            intRef(d.Get("max_applications")),
 		Groups:                     expandDiscountCodeGroups(d),
 		CartDiscounts:              expandDiscountCodeCartDiscounts(d),
+		Custom:                     CreateCustomFieldDraft(d),
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
@@ -175,6 +177,7 @@ func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m int
 		d.Set("valid_until", flattenTime(discountCode.ValidUntil))
 		d.Set("max_applications_per_customer", discountCode.MaxApplicationsPerCustomer)
 		d.Set("max_applications", discountCode.MaxApplications)
+		d.Set("custom", flattenCustomFields(discountCode.Custom))
 	}
 
 	return nil
@@ -286,9 +289,15 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 		}
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.DiscountCodeSetCustomTypeAction, platform.DiscountCodeSetCustomFieldAction](d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.StoreUpdateAction))
+		}
+	}
 
 	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.DiscountCodes().WithId(discountCode.ID).Post(input).Execute(ctx)
