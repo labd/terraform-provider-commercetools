@@ -38,7 +38,8 @@ type SetCustomTypeAction interface {
 		platform.StoreSetCustomTypeAction |
 		platform.CategorySetCustomTypeAction |
 		platform.ShippingMethodSetCustomTypeAction |
-		platform.CustomerGroupSetCustomTypeAction
+		platform.CustomerGroupSetCustomTypeAction |
+		platform.DiscountCodeSetCustomTypeAction
 }
 
 type SetCustomFieldAction interface {
@@ -46,7 +47,8 @@ type SetCustomFieldAction interface {
 		platform.StoreSetCustomFieldAction |
 		platform.CategorySetCustomFieldAction |
 		platform.ShippingMethodSetCustomFieldAction |
-		platform.CustomerGroupSetCustomFieldAction
+		platform.CustomerGroupSetCustomFieldAction |
+		platform.DiscountCodeSetCustomFieldAction
 }
 
 func CustomFieldCreateFieldContainer(data map[string]interface{}) *platform.FieldContainer {
