@@ -153,17 +153,13 @@ func resourceProductDiscountCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	draft := platform.ProductDiscountDraft{
+		Key:         nilIfEmpty(stringRef(d.Get("key"))),
 		Name:        name,
 		Description: &description,
 		Value:       &value,
 		Predicate:   d.Get("predicate").(string),
 		SortOrder:   d.Get("sort_order").(string),
 		IsActive:    d.Get("is_active").(bool),
-	}
-
-	key := stringRef(d.Get("key"))
-	if *key != "" {
-		draft.Key = key
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
