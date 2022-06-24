@@ -295,7 +295,7 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 			return diag.FromErr(err)
 		}
 		for i := range actions {
-			input.Actions = append(input.Actions, actions[i].(platform.StoreUpdateAction))
+			input.Actions = append(input.Actions, actions[i].(platform.DiscountCodeUpdateAction))
 		}
 	}
 
