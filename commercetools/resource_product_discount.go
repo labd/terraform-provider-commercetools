@@ -376,18 +376,26 @@ func flattenProductDiscountValue(val platform.ProductDiscountValue) []map[string
 
 	switch v := val.(type) {
 	case platform.ProductDiscountValueAbsolute:
+		manyMoney := make([]map[string]interface{}, len(v.Money))
+		for i, money := range v.Money {
+			manyMoney[i] = flattenTypedMoney(money)
+		}
 		return []map[string]interface{}{{
-			"type":  "absolute",
-			"money": flattenTypedMoney(v.Money),
+			"type":      "absolute",
+			"money":     manyMoney,
+			"permyriad": 0,
 		}}
 	case platform.ProductDiscountValueExternal:
 		return []map[string]interface{}{{
-			"type": "external",
+			"type":      "external",
+			"permyriad": 0,
+			"money":     []any{},
 		}}
 	case platform.ProductDiscountValueRelative:
 		return []map[string]interface{}{{
 			"type":      "relative",
 			"permyriad": v.Permyriad,
+			"money":     []any{},
 		}}
 	}
 	panic("Unable to flatten product discount value")
