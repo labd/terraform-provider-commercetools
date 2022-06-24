@@ -407,6 +407,8 @@ func min(a, b int) int {
 	return b
 }
 
+// diffSlices does a diff on two slices and returns the changes. If a field is
+// no longer available then nil is returned.
 func diffSlices(old map[string]interface{}, new map[string]interface{}) map[string]interface{} {
 	result := map[string]interface{}{}
 	seen := map[string]bool{}
