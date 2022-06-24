@@ -195,8 +195,6 @@ func resourceProductDiscountCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceProductDiscountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading product discount from commercetools, with productDiscount id: %s", d.Id())
-
 	client := getClient(m)
 
 	productDiscount, err := client.ProductDiscounts().WithId(d.Id()).Get().Execute(ctx)
@@ -209,12 +207,8 @@ func resourceProductDiscountRead(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	if productDiscount == nil {
-		log.Print("[DEBUG] No product discount found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following product discount:")
-		log.Print(stringFormatObject(productDiscount))
-
 		d.Set("version", productDiscount.Version)
 		d.Set("key", productDiscount.Key)
 		d.Set("name", productDiscount.Name)
