@@ -3,6 +3,8 @@ v1.3.0 (unreleased)
  - Improve logic to set the user-agent used in the requests. We now use the
    provider version. For example:
      `User-Agent: terraform-provider-commercetools/1.3.0 (bd9cae0)`
+ - Improve the error handling by better communicating the errors raised by
+   commercetools.
 
 v1.2.1 (2022-06-16)
 ===================

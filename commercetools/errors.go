@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -16,11 +17,14 @@ func processRemoteError(err error) *resource.RetryError {
 
 	switch e := err.(type) {
 	case platform.ErrorResponse:
+		if err := extractDetailedError(e); err != nil {
+			return resource.NonRetryableError(err)
+		}
 		return resource.NonRetryableError(e)
 
 	case platform.GenericRequestError:
 		{
-			if err := extractDetailedError(e.Content); err != nil {
+			if err := extractRawDetailedError(e.Content); err != nil {
 				return resource.NonRetryableError(err)
 			}
 			return resource.NonRetryableError(e)
@@ -30,7 +34,25 @@ func processRemoteError(err error) *resource.RetryError {
 	return resource.RetryableError(err)
 }
 
-func extractDetailedError(content []byte) error {
+func extractDetailedError(e platform.ErrorResponse) error {
+	for i := range e.Errors {
+		item := e.Errors[i]
+
+		metaValue := reflect.ValueOf(item)
+		message := metaValue.FieldByName("Message")
+		values := metaValue.FieldByName("ExtraValues")
+
+		if message.IsValid() && values.IsValid() {
+			data := values.Interface().(map[string]interface{})
+			if msg, ok := data["detailedErrorMessage"]; ok {
+				return fmt.Errorf("%s %s", message.String(), msg)
+			}
+		}
+	}
+	return e
+}
+
+func extractRawDetailedError(content []byte) error {
 	data := map[string]any{}
 	if err := json.Unmarshal(content, &data); err != nil {
 		return nil
