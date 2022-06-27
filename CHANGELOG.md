@@ -1,5 +1,8 @@
 v1.3.0 (unreleased)
 ===================
+ - Update documentation and examples
+ - Add support for custom fields on category, channel, customer_group,
+   discount_code, shipping_method and store resources. (#265)
  - Improve logic to set the user-agent used in the requests. We now use the
    provider version. For example:
      `User-Agent: terraform-provider-commercetools/1.3.0 (bd9cae0)`
