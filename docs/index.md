@@ -3,7 +3,7 @@ page_title: "commercetools provider"
 subcategory: ""
 description: |-
   The commercetools provider provides resources to interact with the commercetools API
-  
+
 ---
 
 # commercetools provider
@@ -14,8 +14,8 @@ able to offer support. Please contact us at
 [opensource@labdigital.nl](opensource@labdigital.nl)!
 
 ## Installation
-Terraform 0.13 added support for automatically downloading providers from
-the terraform registry. Add the following to your terraform project
+Terraform automatically downloads providers from the terraform registry. Add the
+following to your terraform project
 
 ```hcl
 terraform {
@@ -47,7 +47,6 @@ Alternatively, you can set it up directly in the terraform file:
 provider "commercetools" {
   client_id     = "<your client id>"
   client_secret = "<your client secret>"
-  project_key   = "<your project key>"
   project_key   = "<your project key>"
   scopes        = "<space seperated list of scopes>"
   api_url       = "<api url>"
