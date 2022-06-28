@@ -516,17 +516,23 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		}
 
 		newFieldType := attrDef.Type
-		oldFieldType := oldV["type"].([]interface{})[0].(map[string]interface{})
+		oldTypes := oldV["type"].([]interface{})
+		var oldFieldType map[string]interface{}
+		if len(oldTypes) > 0 {
+			oldFieldType = oldTypes[0].(map[string]interface{})
+		}
 		oldEnumKeys := make(map[string]interface{})
 		newEnumKeys := make(map[string]interface{})
 
 		actions = handleEnumTypeChanges(newFieldType, oldFieldType, newEnumKeys, actions, name, oldEnumKeys)
 
 		if enumType, ok := newFieldType.(platform.AttributeSetType); ok {
-
-			myOldFieldType := oldFieldType["element_type"].([]interface{})[0].(map[string]interface{})
+			oldElementTypes := oldFieldType["element_type"].([]interface{})
+			var myOldFieldType map[string]interface{}
+			if len(oldElementTypes) > 0 {
+				myOldFieldType = oldElementTypes[0].(map[string]interface{})
+			}
 			actions = handleEnumTypeChanges(enumType.ElementType, myOldFieldType, newEnumKeys, actions, name, oldEnumKeys)
-
 			log.Printf("[DEBUG] Set detected: %s", name)
 			log.Print(len(myOldFieldType))
 		}
@@ -575,12 +581,25 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 }
 
 func handleEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map[string]interface{}, newEnumKeys map[string]interface{}, actions []platform.ProductTypeUpdateAction, name string, oldEnumKeys map[string]interface{}) []platform.ProductTypeUpdateAction {
-	if enumType, ok := newFieldType.(platform.AttributeEnumType); ok {
-		oldEnumV := oldFieldType["values"].(map[string]interface{})
+	var (
+		oldValues          map[string]interface{}
+		oldLocalizedValues []interface{}
+		ok                 bool
+	)
 
+	if oldFieldType != nil {
+		if oldValues, ok = oldFieldType["values"].(map[string]interface{}); !ok {
+			oldValues = make(map[string]interface{}, 0)
+		}
+		if oldLocalizedValues, ok = oldFieldType["localized_value"].([]interface{}); !ok {
+			oldLocalizedValues = make([]interface{}, 0)
+		}
+	}
+
+	if enumType, ok := newFieldType.(platform.AttributeEnumType); ok {
 		for i, enumValue := range enumType.Values {
 			newEnumKeys[enumValue.Key] = enumValue
-			if _, ok := oldEnumV[enumValue.Key]; !ok {
+			if _, ok := oldValues[enumValue.Key]; !ok {
 				// Key does not appear in old enum values, so we'll add it
 				actions = append(
 					actions,
@@ -598,9 +617,7 @@ func handleEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map
 	}
 
 	if enumType, ok := newFieldType.(platform.AttributeLocalizedEnumType); ok {
-		oldEnumV := oldFieldType["localized_value"].([]interface{})
-
-		for _, value := range oldEnumV {
+		for _, value := range oldLocalizedValues {
 			v := value.(map[string]interface{})
 			oldEnumKeys[v["key"].(string)] = v
 		}
