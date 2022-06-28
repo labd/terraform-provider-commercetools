@@ -96,6 +96,8 @@ func TestExpandExtensionTriggers(t *testing.T) {
 func TestAccAPIExtension_basic(t *testing.T) {
 	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
 	timeoutInMs := acctest.RandIntRange(200, 1800)
+	identifier := "ext"
+	resourceName := "commercetools_api_extension.ext"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -103,133 +105,128 @@ func TestAccAPIExtension_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAPIExtensionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAPIExtensionConfig(name, timeoutInMs),
+				Config: testAccAPIExtensionConfig(identifier, name, timeoutInMs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAPIExtensionExists("ext"),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "key", name),
+						resourceName, "key", name),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
+						resourceName, "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "trigger.0.actions.#", "1"),
+						resourceName, "trigger.0.actions.#", "1"),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
+						resourceName, "trigger.0.actions.0", "Create"),
 				),
 			},
 			{
-				Config: testAccAPIExtensionConfigRequiredOnly(name),
+				Config: testAccAPIExtensionConfigRequiredOnly(identifier, name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccAPIExtensionExists("ext"),
+					testAccAPIExtensionExists(identifier),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "key", name),
+						resourceName, "key", name),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "trigger.0.actions.#", "1"),
+						resourceName, "trigger.0.actions.#", "1"),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
+						resourceName, "trigger.0.actions.0", "Create"),
 				),
 			},
 			{
-				Config: testAccAPIExtensionUpdate(name, timeoutInMs),
+				Config: testAccAPIExtensionUpdate(identifier, name, timeoutInMs),
 				Check: resource.ComposeTestCheckFunc(
-					testAccAPIExtensionExists("ext"),
+					testAccAPIExtensionExists(identifier),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "key", name),
+						resourceName, "key", name),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
+						resourceName, "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "trigger.0.actions.#", "2"),
+						resourceName, "trigger.0.actions.#", "2"),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "trigger.0.actions.0", "Create"),
+						resourceName, "trigger.0.actions.0", "Create"),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "trigger.0.actions.1", "Update"),
+						resourceName, "trigger.0.actions.1", "Update"),
 					resource.TestCheckResourceAttr(
-						"commercetools_api_extension.ext", "trigger.0.condition", "name = \"Michael\""),
+						resourceName, "trigger.0.condition", "name = \"Michael\""),
 				),
 			},
 		},
 	})
 }
 
-func testAccAPIExtensionConfig(name string, timeoutInMs int) string {
-	return fmt.Sprintf(`
-resource "commercetools_api_extension" "ext" {
-  key = "%s"
-  timeout_in_ms = %d
+func testAccAPIExtensionConfig(identifier, key string, timeoutInMs int) string {
+	return hclTemplate(`
+		resource "commercetools_api_extension" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			timeout_in_ms = {{ .timeoutInMs }}
 
-  destination {
-    type                 = "HTTP"
-    url                  = "https://example.com"
-    authorization_header = "Basic 12345"
-  }
+			destination {
+				type                 = "HTTP"
+				url                  = "https://example.com"
+				authorization_header = "Basic 12345"
+			}
 
-  trigger {
-    resource_type_id = "customer"
-    actions = ["Create"]
-  }
-}
-`, name, timeoutInMs)
-}
-
-func testAccAPIExtensionConfigRequiredOnly(name string) string {
-	return fmt.Sprintf(`
-resource "commercetools_api_extension" "ext" {
-  key = "%s"
-
-  destination {
-    type = "HTTP"
-    url  = "https://example.com"
-  }
-
-  trigger {
-    resource_type_id = "customer"
-    actions = ["Create"]
-  }
-}
-`, name)
+			trigger {
+				resource_type_id = "customer"
+				actions = ["Create"]
+			}
+		}
+	`, map[string]any{
+		"identifier":  identifier,
+		"key":         key,
+		"timeoutInMs": timeoutInMs,
+	})
 }
 
-func testAccAPIExtensionUpdate(name string, timeoutInMs int) string {
-	return fmt.Sprintf(`
-resource "commercetools_api_extension" "ext" {
-  key = "%s"
-  timeout_in_ms = %d
+func testAccAPIExtensionConfigRequiredOnly(identifier, key string) string {
+	return hclTemplate(`
+		resource "commercetools_api_extension" "{{ .identifier }}" {
+			key = "{{ .key }}"
 
-  destination {
-    type                 = "HTTP"
-    url                  = "https://example.com"
-    authorization_header = "Basic 12345"
-  }
+			destination {
+				type = "HTTP"
+				url  = "https://example.com"
+			}
 
-  trigger {
-    resource_type_id = "customer"
-    actions = ["Create", "Update"]
-	condition = "name = \"Michael\""
-  }
+			trigger {
+				resource_type_id = "customer"
+				actions = ["Create"]
+			}
+		}
+	`, map[string]any{
+		"identifier": identifier,
+		"key":        key,
+	})
 }
-`, name, timeoutInMs)
+
+func testAccAPIExtensionUpdate(identifier, key string, timeoutInMs int) string {
+	return hclTemplate(`
+		resource "commercetools_api_extension" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			timeout_in_ms = {{ .timeoutInMs }}
+
+			destination {
+				type                 = "HTTP"
+				url                  = "https://example.com"
+				authorization_header = "Basic 12345"
+			}
+
+			trigger {
+				resource_type_id = "customer"
+				actions = ["Create", "Update"]
+				condition = "name = \"Michael\""
+			}
+		}
+	`, map[string]any{
+		"identifier":  identifier,
+		"key":         key,
+		"timeoutInMs": timeoutInMs,
+	})
 }
 
 func testAccAPIExtensionExists(n string) resource.TestCheckFunc {
-	name := fmt.Sprintf("commercetools_api_extension.%s", n)
+	identifier := fmt.Sprintf("commercetools_api_extension.%s", n)
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Extension ID is set")
-		}
-		client := getClient(testAccProvider.Meta())
-		result, err := client.Extensions().WithId(rs.Primary.ID).Get().Execute(context.Background())
-		if err != nil {
-			return err
-		}
-		if result == nil {
-			return fmt.Errorf("Extension not found")
-		}
-
-		return nil
+		_, err := testGetExtension(s, identifier)
+		return err
 	}
 }
 
@@ -252,4 +249,18 @@ func testAccCheckAPIExtensionDestroy(s *terraform.State) error {
 		}
 	}
 	return nil
+}
+
+func testGetExtension(s *terraform.State, identifier string) (*platform.Extension, error) {
+	rs, ok := s.RootModule().Resources[identifier]
+	if !ok {
+		return nil, fmt.Errorf("API Extension %s not found", identifier)
+	}
+
+	client := getClient(testAccProvider.Meta())
+	result, err := client.Extensions().WithId(rs.Primary.ID).Get().Execute(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

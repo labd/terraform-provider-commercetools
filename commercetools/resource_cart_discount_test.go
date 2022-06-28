@@ -7,9 +7,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func TestAccCartDiscountCreate_basic(t *testing.T) {
+	identifier := "standard"
+	resourceName := "commercetools_cart_discount.standard"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -17,146 +20,146 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 		CheckDestroy: testAccCheckCartDiscountDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCartDiscountConfig(),
+				Config: testAccCartDiscountConfig(identifier, "standard"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "key", "standard",
+						resourceName, "key", "standard",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "name.en", "standard name",
+						resourceName, "name.en", "standard name",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "description.en", "Standard description",
+						resourceName, "description.en", "Standard description",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "sort_order", "0.9",
+						resourceName, "sort_order", "0.9",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "predicate", "1=1",
+						resourceName, "predicate", "1=1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "stacking_mode", "Stacking",
+						resourceName, "stacking_mode", "Stacking",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "requires_discount_code", "true",
+						resourceName, "requires_discount_code", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "valid_from", "2018-01-02T15:04:05Z",
+						resourceName, "valid_from", "2018-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "valid_until", "2019-01-02T15:04:05Z",
+						resourceName, "valid_until", "2019-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.0.type", "lineItems",
+						resourceName, "target.0.type", "lineItems",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.0.predicate", "1=1",
+						resourceName, "target.0.predicate", "1=1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "value.0.type", "relative",
+						resourceName, "value.0.type", "relative",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "value.0.permyriad", "1000",
+						resourceName, "value.0.permyriad", "1000",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "is_active", "true",
+						resourceName, "is_active", "true",
 					),
 				),
 			},
 			{
-				Config: testAccCartDiscountUpdate(),
+				Config: testAccCartDiscountUpdate(identifier, "standard_new"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "key", "standard_new",
+						resourceName, "key", "standard_new",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "name.en", "standard name",
+						resourceName, "name.en", "standard name",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "description.en", "Standard description new",
+						resourceName, "description.en", "Standard description new",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "sort_order", "0.8",
+						resourceName, "sort_order", "0.8",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "predicate", "1=1",
+						resourceName, "predicate", "1=1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "stacking_mode", "Stacking",
+						resourceName, "stacking_mode", "Stacking",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "requires_discount_code", "true",
+						resourceName, "requires_discount_code", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "valid_from", "2018-01-02T15:04:05Z",
+						resourceName, "valid_from", "2018-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "valid_until", "2019-01-02T15:04:05Z",
+						resourceName, "valid_until", "2019-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.#", "1",
+						resourceName, "target.#", "1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.0.type", "lineItems",
+						resourceName, "target.0.type", "lineItems",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.0.predicate", "1=1",
+						resourceName, "target.0.predicate", "1=1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "value.0.type", "relative",
+						resourceName, "value.0.type", "relative",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "value.0.permyriad", "1000",
+						resourceName, "value.0.permyriad", "1000",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "is_active", "false",
+						resourceName, "is_active", "false",
 					),
 				),
 			},
 			{
-				Config: testAccCartDiscountRemoveProperties(),
+				Config: testAccCartDiscountRemoveProperties(identifier, "standard_new"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "key", "standard_new",
+						resourceName, "key", "standard_new",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "name.en", "standard name",
+						resourceName, "name.en", "standard name",
 					),
 					resource.TestCheckNoResourceAttr(
-						"commercetools_cart_discount.standard", "description.en",
+						resourceName, "description.en",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "sort_order", "0.8",
+						resourceName, "sort_order", "0.8",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "predicate", "1=1",
+						resourceName, "predicate", "1=1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "stacking_mode", "Stacking",
+						resourceName, "stacking_mode", "Stacking",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "requires_discount_code", "true",
+						resourceName, "requires_discount_code", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "valid_from", "",
+						resourceName, "valid_from", "",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "valid_until", "",
+						resourceName, "valid_until", "",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.0.type", "lineItems",
+						resourceName, "target.0.type", "lineItems",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.0.predicate", "1=1",
+						resourceName, "target.0.predicate", "1=1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "value.0.type", "relative",
+						resourceName, "value.0.type", "relative",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "value.0.permyriad", "1000",
+						resourceName, "value.0.permyriad", "1000",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "is_active", "true",
+						resourceName, "is_active", "true",
 					),
 				),
 			},
@@ -164,86 +167,102 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 	})
 }
 
-func testAccCartDiscountConfig() string {
-	return `
-	resource "commercetools_cart_discount" "standard" {
-		key = "standard"
-		name = {
-		  en = "standard name"
-		}
-		description = {
-			en = "Standard description"
-		  }
-		sort_order             = "0.9"
-		predicate              = "1=1"
-		stacking_mode          = "Stacking"
-		requires_discount_code = true
-		valid_from             = "2018-01-02T15:04:05Z"
-		valid_until            = "2019-01-02T15:04:05Z"
-		target {
-		  type      = "lineItems"
-		  predicate = "1=1"
-		}
+func testAccCartDiscountConfig(identifier, key string) string {
+	return hclTemplate(`
+		resource "commercetools_cart_discount" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "standard name"
+			}
+			description = {
+				en = "Standard description"
+			}
 
-		value {
-			type      = "relative"
-			permyriad = 1000
+			sort_order             = "0.9"
+			predicate              = "1=1"
+			stacking_mode          = "Stacking"
+			requires_discount_code = true
+			valid_from             = "2018-01-02T15:04:05Z"
+			valid_until            = "2019-01-02T15:04:05Z"
+
+			target {
+				type      = "lineItems"
+				predicate = "1=1"
+			}
+
+			value {
+				type      = "relative"
+				permyriad = 1000
+			}
 		}
-	  }
-	  `
+	`, map[string]any{
+		"identifier": identifier,
+		"key":        key,
+	})
 }
 
-func testAccCartDiscountUpdate() string {
-	return `
-	resource "commercetools_cart_discount" "standard" {
-		key = "standard_new"
-		name = {
-		  en = "standard name"
-		}
-		description = {
-			en = "Standard description new"
-		  }
-		sort_order             = "0.8"
-		predicate              = "1=1"
-		stacking_mode          = "Stacking"
-		requires_discount_code = true
-		valid_from             = "2018-01-02T15:04:05Z"
-		valid_until            = "2019-01-02T15:04:05Z"
-		target {
-			type      = "lineItems"
-			predicate = "1=1"
-		}
+func testAccCartDiscountUpdate(identifier, key string) string {
+	return hclTemplate(`
+		resource "commercetools_cart_discount" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "standard name"
+			}
+			description = {
+				en = "Standard description new"
+			}
 
-		value {
-			type      = "relative"
-			permyriad = 1000
-		}
+			sort_order             = "0.8"
+			predicate              = "1=1"
+			stacking_mode          = "Stacking"
+			requires_discount_code = true
+			valid_from             = "2018-01-02T15:04:05Z"
+			valid_until            = "2019-01-02T15:04:05Z"
 
-		is_active = false
-	  }
-	  `
+			target {
+				type      = "lineItems"
+				predicate = "1=1"
+			}
+
+			value {
+				type      = "relative"
+				permyriad = 1000
+			}
+
+			is_active = false
+		}
+	`, map[string]any{
+		"identifier": identifier,
+		"key":        key,
+	})
 }
 
-func testAccCartDiscountRemoveProperties() string {
-	return `
-	resource "commercetools_cart_discount" "standard" {
-		key = "standard_new"
-		name = {
-		  en = "standard name"
+func testAccCartDiscountRemoveProperties(identifier, key string) string {
+	return hclTemplate(`
+		resource "commercetools_cart_discount" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "standard name"
+			}
+
+			sort_order             = "0.8"
+			predicate              = "1=1"
+			requires_discount_code = true
+
+			target {
+				type      = "lineItems"
+				predicate = "1=1"
+			}
+
+			value {
+				type      = "relative"
+				permyriad = 1000
+			}
 		}
-		sort_order             = "0.8"
-		predicate              = "1=1"
-		requires_discount_code = true
-		target {
-			type      = "lineItems"
-			predicate = "1=1"
-		}
-		value {
-			type      = "relative"
-			permyriad = 1000
-		}
-	  }
-	  `
+	`, map[string]any{
+		"identifier": identifier,
+		"key":        key,
+	})
 }
 
 func testAccCheckCartDiscountDestroy(s *terraform.State) error {
@@ -265,4 +284,18 @@ func testAccCheckCartDiscountDestroy(s *terraform.State) error {
 		}
 	}
 	return nil
+}
+
+func testGetCartDiscount(s *terraform.State, identifier string) (*platform.CartDiscount, error) {
+	rs, ok := s.RootModule().Resources[identifier]
+	if !ok {
+		return nil, fmt.Errorf("Cart Discount %s not found", identifier)
+	}
+
+	client := getClient(testAccProvider.Meta())
+	result, err := client.CartDiscounts().WithId(rs.Primary.ID).Get().Execute(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
