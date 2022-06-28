@@ -1,41 +1,29 @@
 package commercetools
 
 import (
+	"context"
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-var testAccProviders map[string]terraform.ResourceProvider
-var testAccProviderFactories func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory
+var testAccProviders map[string]*schema.Provider
 var testAccProvider *schema.Provider
 
 func init() {
-	testAccProvider = Provider().(*schema.Provider)
-	testAccProviders = map[string]terraform.ResourceProvider{
+	testAccProvider = New("snapshot")()
+	testAccProviders = map[string]*schema.Provider{
 		"commercetools": testAccProvider,
-	}
-	testAccProviderFactories = func(providers *[]*schema.Provider) map[string]terraform.ResourceProviderFactory {
-		return map[string]terraform.ResourceProviderFactory{
-			"commercetools": func() (terraform.ResourceProvider, error) {
-				p := Provider()
-				*providers = append(*providers, p.(*schema.Provider))
-				return p, nil
-			},
-		}
 	}
 }
 
 func TestProvider(t *testing.T) {
-	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
+	provider := New("snapshot")()
+	if err := provider.InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-}
-
-func TestProvider_impl(t *testing.T) {
-	var _ terraform.ResourceProvider = Provider()
 }
 
 func testAccPreCheck(t *testing.T) {
@@ -53,7 +41,13 @@ func testAccPreCheck(t *testing.T) {
 		}
 	}
 
-	err := testAccProvider.Configure(terraform.NewResourceConfigRaw(nil))
+	cfg := map[string]interface{}{
+		"client_id":     "dummy-client-id",
+		"client_secret": "dummy-client-secret",
+		"project_key":   "terraform-provider-commercetools",
+	}
+
+	err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(cfg))
 	if err != nil {
 		t.Fatal(err)
 	}

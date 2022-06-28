@@ -2,28 +2,28 @@ package commercetools
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceShippingZone() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceShippingZoneCreate,
-		Read:   resourceShippingZoneRead,
-		Update: resourceShippingZoneUpdate,
-		Delete: resourceShippingZoneDelete,
+		CreateContext: resourceShippingZoneCreate,
+		ReadContext:   resourceShippingZoneRead,
+		UpdateContext: resourceShippingZoneUpdate,
+		DeleteContext: resourceShippingZoneDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 			},
 			"description": {
 				Type:     schema.TypeString,
@@ -35,8 +35,8 @@ func resourceShippingZone() *schema.Resource {
 				Optional:    true,
 			},
 			"location": {
-				Description: "[Location](https://docs.commercetools.com/api/projects/zones#location)",
-				Type:        schema.TypeList,
+				Description: "[Location](https://docs.commercetoolstools.pi/projects/zones#location)",
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -61,60 +61,53 @@ func resourceShippingZone() *schema.Resource {
 	}
 }
 
-func resourceShippingZoneCreate(d *schema.ResourceData, m interface{}) error {
+func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Creating shippingzones in commercetools")
 	client := getClient(m)
 
-	var shippingZone *commercetools.Zone
+	input := d.Get("location").(*schema.Set)
+	locations := expandShippingZoneLocations(input)
 
-	input := d.Get("location").([]interface{})
-	locations := resourceShippingZoneGetLocation(input)
-
-	draft := &commercetools.ZoneDraft{
-		Key:         d.Get("key").(string),
+	draft := platform.ZoneDraft{
 		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
+		Description: stringRef(d.Get("description")),
 		Locations:   locations,
 	}
 
-	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
-		var err error
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
+	}
 
-		shippingZone, err = client.ZoneCreate(context.Background(), draft)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+	var shippingZone *platform.Zone
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		var err error
+		shippingZone, err = client.Zones().Post(draft).Execute(ctx)
+		return processRemoteError(err)
 	})
 
 	if err != nil {
-		return err
-	}
-
-	if shippingZone == nil {
-		return fmt.Errorf("Error creating shipping zone")
+		return diag.FromErr(err)
 	}
 
 	d.SetId(shippingZone.ID)
 	d.Set("version", shippingZone.Version)
 
-	return resourceShippingZoneRead(d, m)
+	return resourceShippingZoneRead(ctx, d, m)
 }
 
-func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
+func resourceShippingZoneRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading shippingzones from commercetools")
 	client := getClient(m)
 
-	shippingZone, err := client.ZoneGetWithID(context.Background(), d.Id())
+	shippingZone, err := client.Zones().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if shippingZone == nil {
@@ -128,74 +121,73 @@ func resourceShippingZoneRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("key", shippingZone.Key)
 		d.Set("name", shippingZone.Name)
 		d.Set("description", shippingZone.Description)
-		d.Set("locations", shippingZone.Locations)
+		d.Set("location", flattenShippingZoneLocations(shippingZone.Locations))
 	}
 	return nil
 }
 
-func resourceShippingZoneUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceShippingZoneUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	input := &commercetools.ZoneUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.ZoneUpdate{
 		Version: d.Get("version").(int),
-		Actions: []commercetools.ZoneUpdateAction{},
+		Actions: []platform.ZoneUpdateAction{},
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ZoneSetKeyAction{Key: newKey})
+			&platform.ZoneSetKeyAction{Key: &newKey})
 	}
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ZoneChangeNameAction{Name: newName})
+			&platform.ZoneChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
 		newDescription := d.Get("description").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ZoneSetDescriptionAction{Description: newDescription})
+			&platform.ZoneSetDescriptionAction{Description: &newDescription})
 	}
 
 	if d.HasChange("location") {
 		old, new := d.GetChange("location")
 
-		oldLocations := resourceShippingZoneGetLocation(old)
-		newLocations := resourceShippingZoneGetLocation(new)
+		oldLocations := expandShippingZoneLocations(old.(*schema.Set))
+		newLocations := expandShippingZoneLocations(new.(*schema.Set))
 
 		for i, location := range oldLocations {
 			if !_locationInSlice(location, newLocations) {
 				input.Actions = append(
 					input.Actions,
-					&commercetools.ZoneRemoveLocationAction{Location: &oldLocations[i]})
+					&platform.ZoneRemoveLocationAction{Location: oldLocations[i]})
 			}
 		}
 		for i, location := range newLocations {
 			if !_locationInSlice(location, oldLocations) {
 				input.Actions = append(
 					input.Actions,
-					&commercetools.ZoneAddLocationAction{Location: &newLocations[i]})
+					&platform.ZoneAddLocationAction{Location: newLocations[i]})
 			}
 		}
 	}
 
-	_, err := client.ZoneUpdateWithID(context.Background(), input)
+	_, err := client.Zones().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceShippingZoneRead(d, m)
+	return resourceShippingZoneRead(ctx, d, m)
 }
 
-func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
+func resourceShippingZoneDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
@@ -203,41 +195,53 @@ func resourceShippingZoneDelete(d *schema.ResourceData, m interface{}) error {
 	defer ctMutexKV.Unlock(d.Id())
 
 	version := d.Get("version").(int)
-	_, err := client.ZoneDeleteWithID(context.Background(), d.Id(), version)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.Zones().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
-func resourceShippingZoneGetLocation(input interface{}) []commercetools.Location {
-	inputSlice := input.([]interface{})
-	var result []commercetools.Location
+func expandShippingZoneLocations(input *schema.Set) []platform.Location {
+	inputSlice := input.List()
+	result := make([]platform.Location, len(inputSlice))
 
-	for _, raw := range inputSlice {
-		i := raw.(map[string]interface{})
+	for i := range inputSlice {
+		raw := inputSlice[i].(map[string]interface{})
 
-		country, ok := i["country"].(string)
+		country, ok := raw["country"].(string)
 		if !ok {
 			country = ""
 		}
 
-		state, ok := i["state"].(string)
-		if !ok {
-			state = ""
+		var stateRef *string
+		if state, ok := raw["state"].(string); ok && state != "" {
+			stateRef = &state
 		}
 
-		result = append(result, commercetools.Location{
-			Country: commercetools.CountryCode(country),
-			State:   state,
-		})
+		result[i] = platform.Location{
+			Country: country,
+			State:   stateRef,
+		}
 	}
 
 	return result
 }
 
-func _locationInSlice(needle commercetools.Location, haystack []commercetools.Location) bool {
+func flattenShippingZoneLocations(locations []platform.Location) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(locations))
+
+	for i := range locations {
+		result[i] = map[string]interface{}{
+			"country": locations[i].Country,
+			"state":   locations[i].State,
+		}
+	}
+
+	return result
+}
+
+func _locationInSlice(needle platform.Location, haystack []platform.Location) bool {
 	for _, item := range haystack {
 		if item == needle {
 			return true

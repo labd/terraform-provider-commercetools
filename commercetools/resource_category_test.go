@@ -3,13 +3,11 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccCategoryCreate_basic(t *testing.T) {
@@ -44,6 +42,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
 					),
 					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "external_id", "some external id",
+					),
+					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "meta_title.en", "meta text",
 					),
 					resource.TestCheckResourceAttr(
@@ -51,6 +52,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "meta_keywords.en", "keywords",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.#", "1",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "assets.0.name.en", "My Product Video",
@@ -85,6 +89,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
 					),
 					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "external_id", "some external id",
+					),
+					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "meta_title.en", "updated meta text",
 					),
 					resource.TestCheckResourceAttr(
@@ -92,6 +99,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "meta_keywords.en", "keywords, updated",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.#", "1",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "assets.0.name.en", "Updated name",
@@ -125,6 +135,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
 					),
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "external_id", "some external id",
+					),
 					resource.TestCheckNoResourceAttr(
 						"commercetools_category.accessories", "meta_title",
 					),
@@ -134,8 +147,8 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					resource.TestCheckNoResourceAttr(
 						"commercetools_category.accessories", "meta_keywords",
 					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_category.accessories", "assets",
+					resource.TestCheckResourceAttr(
+						"commercetools_category.accessories", "assets.#", "0",
 					),
 				),
 			},
@@ -181,6 +194,7 @@ func testAccCategoryConfig() string {
 			en = "accessories"
 		}
 		order_hint = "0.000016143365484621617765232"
+		external_id = "some external id"
 		meta_title = {
 			en = "meta text"
 		}
@@ -245,6 +259,7 @@ func testAccCategoryUpdate() string {
 			en = "accessories_updated"
 		}
 		order_hint = "0.000016143365484621617765232"
+		external_id = "some external id"
 		meta_title = {
 			en = "updated meta text"
 		}
@@ -265,6 +280,12 @@ func testAccCategoryUpdate() string {
 			sources {
 				uri = "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg"
 				key = "image"
+
+				dimensions {
+					w = 10
+					h = 20
+				}
+
 			}
 		}
 	}  `
@@ -299,26 +320,26 @@ func testAccCategoryRemoveProperties() string {
 			en = "accessories_updated"
 		}
 		order_hint = "0.000016143365484621617765232"
+		external_id = "some external id"
 	}  `
 }
 
 func testAccCategoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_category" {
 			continue
 		}
-		response, err := conn.CategoryGetWithID(context.Background(), rs.Primary.ID)
+		response, err := client.Categories().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("category (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

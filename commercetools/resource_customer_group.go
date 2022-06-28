@@ -2,12 +2,12 @@ package commercetools
 
 import (
 	"context"
-	"log"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceCustomerGroup() *schema.Resource {
@@ -15,12 +15,12 @@ func resourceCustomerGroup() *schema.Resource {
 		Description: "A Customer can be a member of a customer group (for example reseller, gold member). " +
 			"Special prices can be assigned to specific products based on a customer group.\n\n" +
 			"See also the [Custome Group API Documentation](https://docs.commercetools.com/api/projects/customerGroups)",
-		Create: resourceCustomerGroupCreate,
-		Read:   resourceCustomerGroupRead,
-		Update: resourceCustomerGroupUpdate,
-		Delete: resourceCustomerGroupDelete,
+		CreateContext: resourceCustomerGroupCreate,
+		ReadContext:   resourceCustomerGroupRead,
+		UpdateContext: resourceCustomerGroupUpdate,
+		DeleteContext: resourceCustomerGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -37,125 +37,121 @@ func resourceCustomerGroup() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
+			"custom": CustomFieldSchema(),
 		},
 	}
 }
 
-func resourceCustomerGroupCreate(d *schema.ResourceData, m interface{}) error {
+func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var customerGroup *commercetools.CustomerGroup
 
-	draft := &commercetools.CustomerGroupDraft{
+	draft := platform.CustomerGroupDraft{
 		GroupName: d.Get("name").(string),
-		Key:       d.Get("key").(string),
+		Custom:    CreateCustomFieldDraft(d),
 	}
 
-	errorResponse := resource.Retry(1*time.Minute, func() *resource.RetryError {
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
+	}
+
+	var customerGroup *platform.CustomerGroup
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
-		customerGroup, err = client.CustomerGroupCreate(context.Background(), draft)
-
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		customerGroup, err = client.CustomerGroups().Post(draft).Execute(ctx)
+		return processRemoteError(err)
 	})
 
-	if errorResponse != nil {
-		return errorResponse
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	if customerGroup == nil {
-		log.Fatal("No customer group")
+		return diag.Errorf("No customer group")
 	}
 
 	d.SetId(customerGroup.ID)
 	d.Set("version", customerGroup.Version)
 
-	return resourceCustomerGroupRead(d, m)
+	return resourceCustomerGroupRead(ctx, d, m)
 }
 
-func resourceCustomerGroupRead(d *schema.ResourceData, m interface{}) error {
-	log.Printf("[DEBUG] Reading customer group from commercetools, with customer group id: %s", d.Id())
-
+func resourceCustomerGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-
-	customerGroup, err := client.CustomerGroupGetWithID(context.Background(), d.Id())
-
+	customerGroup, err := client.CustomerGroups().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if customerGroup == nil {
-		log.Print("[DEBUG] No customer group found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following customer group:")
-		log.Print(stringFormatObject(customerGroup))
-
 		d.Set("version", customerGroup.Version)
 		d.Set("name", customerGroup.Name)
 		d.Set("key", customerGroup.Key)
+		d.Set("custom", flattenCustomFields(customerGroup.Custom))
 	}
 
 	return nil
 }
 
-func resourceCustomerGroupUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	customerGroup, err := client.CustomerGroupGetWithID(context.Background(), d.Id())
+	customerGroup, err := client.CustomerGroups().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	input := &commercetools.CustomerGroupUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.CustomerGroupUpdate{
 		Version: customerGroup.Version,
-		Actions: []commercetools.CustomerGroupUpdateAction{},
+		Actions: []platform.CustomerGroupUpdateAction{},
 	}
 
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CustomerGroupChangeNameAction{Name: newName})
+			&platform.CustomerGroupChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CustomerGroupSetKeyAction{Key: newKey})
+			&platform.CustomerGroupSetKeyAction{Key: nilIfEmpty(&newKey)})
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
-
-	_, err = client.CustomerGroupUpdateWithID(context.Background(), input)
-	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.CustomerGroupSetCustomTypeAction, platform.CustomerGroupSetCustomFieldAction](d)
+		if err != nil {
+			return diag.FromErr(err)
 		}
-		return err
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.CustomerGroupUpdateAction))
+		}
 	}
 
-	return resourceCustomerGroupRead(d, m)
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.CustomerGroups().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return resourceCustomerGroupRead(ctx, d, m)
 }
 
-func resourceCustomerGroupDelete(d *schema.ResourceData, m interface{}) error {
+func resourceCustomerGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.CustomerGroupDeleteWithID(context.Background(), d.Id(), version)
-	if err != nil {
-		log.Printf("[ERROR] Error during deleting customer group resource %s", err)
-		return nil
-	}
-	return nil
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.CustomerGroups().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }

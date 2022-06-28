@@ -5,21 +5,30 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceCategory() *schema.Resource {
 	return &schema.Resource{
 		Description: "Categories allow you to organize products into hierarchical structures.\n\n" +
 			"Also see the [Categories HTTP API documentation](https://docs.commercetools.com/api/projects/categories).",
-		Create: resourceCategoryCreate,
-		Read:   resourceCategoryRead,
-		Update: resourceCategoryUpdate,
-		Delete: resourceCategoryDelete,
+		CreateContext: resourceCategoryCreate,
+		ReadContext:   resourceCategoryRead,
+		UpdateContext: resourceCategoryUpdate,
+		DeleteContext: resourceCategoryDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceCategoryResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: migrateCategoryStateV0toV1,
+				Version: 0,
+			},
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -29,18 +38,21 @@ func resourceCategory() *schema.Resource {
 				Description: "Category-specific unique identifier. Must be unique across a project",
 			},
 			"name": {
-				Type:     TypeLocalizedString,
-				Required: true,
-				ForceNew: true,
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Required:         true,
+				ForceNew:         true,
 			},
 			"description": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"slug": {
-				Type:        TypeLocalizedString,
-				Required:    true,
-				Description: "Human readable identifiers, needs to be unique",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Required:         true,
+				Description:      "Human readable identifiers, needs to be unique",
 			},
 			"parent": {
 				Type:        schema.TypeString,
@@ -52,17 +64,25 @@ func resourceCategory() *schema.Resource {
 				Optional:    true,
 				Description: "An attribute as base for a custom category order in one level, filled with random value when left empty",
 			},
+			"external_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "",
+			},
 			"meta_title": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"meta_description": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"meta_keywords": {
-				Type:     TypeLocalizedString,
-				Optional: true,
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"assets": {
 				Type:        schema.TypeList,
@@ -70,18 +90,24 @@ func resourceCategory() *schema.Resource {
 				Description: "Can be used to store images, icons or movies related to this category",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"key": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "Optional User-defined identifier for the asset. Asset keys are unique inside their container (in this case the category)",
 						},
 						"name": {
-							Type:     TypeLocalizedString,
-							Required: true,
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Required:         true,
 						},
 						"description": {
-							Type:     TypeLocalizedString,
-							Optional: true,
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Optional:         true,
 						},
 						"sources": {
 							Type:        schema.TypeList,
@@ -100,7 +126,8 @@ func resourceCategory() *schema.Resource {
 										Description: "Unique identifier, must be unique within the Asset",
 									},
 									"dimensions": {
-										Type:     schema.TypeMap,
+										Type:     schema.TypeList,
+										MaxItems: 1,
 										Optional: true,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
@@ -132,6 +159,7 @@ func resourceCategory() *schema.Resource {
 					},
 				},
 			},
+			"custom": CustomFieldSchema(),
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -140,90 +168,85 @@ func resourceCategory() *schema.Resource {
 	}
 }
 
-func resourceCategoryCreate(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var category *commercetools.Category
 
-	name := commercetools.LocalizedString(expandStringMap(d.Get("name").(map[string]interface{})))
-	slug := commercetools.LocalizedString(expandStringMap(d.Get("slug").(map[string]interface{})))
+	name := expandLocalizedString(d.Get("name"))
+	slug := expandLocalizedString(d.Get("slug"))
+	key := stringRef(d.Get("key"))
 
-	draft := &commercetools.CategoryDraft{
-		Key:       d.Get("key").(string),
-		Name:      &name,
-		Slug:      &slug,
-		OrderHint: d.Get("order_hint").(string),
+	draft := platform.CategoryDraft{
+		Name:      name,
+		Slug:      slug,
+		OrderHint: stringRef(d.Get("order_hint")),
+		Custom:    CreateCustomFieldDraft(d),
+	}
+
+	if *key != "" {
+		draft.Key = key
 	}
 
 	if d.Get("description") != nil {
-		desc := commercetools.LocalizedString(expandStringMap(d.Get("description").(map[string]interface{})))
+		desc := expandLocalizedString(d.Get("description"))
 		draft.Description = &desc
 	}
 
 	if d.Get("meta_title") != nil {
-		metaTitle := commercetools.LocalizedString(expandStringMap(d.Get("meta_title").(map[string]interface{})))
+		metaTitle := expandLocalizedString(d.Get("meta_title"))
 		draft.MetaTitle = &metaTitle
 	}
 
 	if d.Get("meta_description") != nil {
-		metaDescription := commercetools.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
+		metaDescription := expandLocalizedString(d.Get("meta_description"))
 		draft.MetaDescription = &metaDescription
 	}
 
 	if d.Get("meta_keywords") != nil {
-		metaKeywords := commercetools.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
+		metaKeywords := expandLocalizedString(d.Get("meta_keywords"))
 		draft.MetaKeywords = &metaKeywords
 	}
 
 	if d.Get("parent").(string) != "" {
-		parent := commercetools.CategoryResourceIdentifier{}
-		parent.ID = d.Get("parent").(string)
+		parent := platform.CategoryResourceIdentifier{}
+		parent.ID = stringRef(d.Get("parent"))
 		draft.Parent = &parent
 	}
 
 	if len(d.Get("assets").([]interface{})) != 0 {
-		assets := resourceCategoryGetAssets(d)
+		assets := expandCategoryAssetDrafts(d)
 		draft.Assets = assets
 	}
 
-	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+	if d.Get("external_id").(string) != "" {
+		draft.ExternalId = stringRef(d.Get("external_id"))
+	}
+
+	var category *platform.Category
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
-		category, err = client.CategoryCreate(context.Background(), draft)
-
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		category, err = client.Categories().Post(draft).Execute(ctx)
+		return processRemoteError(err)
 	})
 
 	if err != nil {
-		return err
-	}
-
-	if category == nil {
-		log.Fatal("No  category created?")
+		return diag.FromErr(err)
 	}
 
 	d.SetId(category.ID)
 	_ = d.Set("version", category.Version)
 
-	return resourceCategoryRead(d, m)
+	return resourceCategoryRead(ctx, d, m)
 }
 
-func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
-	log.Printf("[DEBUG] Reading category from commercetools, with category id: %s", d.Id())
+func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-
-	category, err := client.CategoryGetWithID(context.Background(), d.Id())
-
+	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if category == nil {
@@ -235,9 +258,14 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 
 		d.Set("version", category.Version)
 		d.Set("key", category.Key)
-		d.Set("name", *category.Name)
-		d.Set("parent", category.Parent)
+		d.Set("name", category.Name)
+		if category.Parent != nil {
+			d.Set("parent", category.Parent.ID)
+		} else {
+			d.Set("parent", "")
+		}
 		d.Set("order_hint", category.OrderHint)
+		d.Set("external_id", category.ExternalId)
 		if category.Description != nil {
 			d.Set("description", *category.Description)
 		}
@@ -251,105 +279,131 @@ func resourceCategoryRead(d *schema.ResourceData, m interface{}) error {
 			d.Set("meta_keywords", *category.MetaKeywords)
 		}
 		if category.Assets != nil {
-			d.Set("assets", category.Assets)
+			d.Set("assets", flattenCategoryAssets(category.Assets))
 		}
+		d.Set("custom", flattenCustomFields(category.Custom))
 	}
 	return nil
 }
 
-func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	category, err := client.CategoryGetWithID(context.Background(), d.Id())
-
+	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	input := &commercetools.CategoryUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.CategoryUpdate{
 		Version: category.Version,
-		Actions: []commercetools.CategoryUpdateAction{},
+		Actions: []platform.CategoryUpdateAction{},
 	}
 
 	if d.HasChange("name") {
-		newName := commercetools.LocalizedString(expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategoryChangeNameAction{Name: &newName})
+			&platform.CategoryChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("slug") {
-		newSlug := commercetools.LocalizedString(expandStringMap(d.Get("slug").(map[string]interface{})))
+		newSlug := expandLocalizedString(d.Get("slug"))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategoryChangeSlugAction{Slug: &newSlug})
+			&platform.CategoryChangeSlugAction{Slug: newSlug})
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategorySetKeyAction{Key: newKey})
+			&platform.CategorySetKeyAction{Key: &newKey})
 	}
 
 	if d.HasChange("order_hint") {
 		newVal := d.Get("order_hint").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategoryChangeOrderHintAction{OrderHint: newVal})
+			&platform.CategoryChangeOrderHintAction{OrderHint: newVal})
+	}
+
+	if d.HasChange("external_id") {
+		newExternalID := d.Get("external_id").(string)
+		input.Actions = append(
+			input.Actions,
+			&platform.CategorySetExternalIdAction{ExternalId: &newExternalID})
 	}
 
 	if d.HasChange("description") {
-		newDescription := commercetools.LocalizedString(expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategorySetDescriptionAction{Description: &newDescription})
+			&platform.CategorySetDescriptionAction{Description: &newDescription})
 	}
 
 	if d.HasChange("parent") {
 		newParentCategoryId := d.Get("parent").(string)
-		parentId := commercetools.CategoryResourceIdentifier{ID: newParentCategoryId}
+		parentId := platform.CategoryResourceIdentifier{ID: &newParentCategoryId}
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategoryChangeParentAction{Parent: &parentId})
+			&platform.CategoryChangeParentAction{Parent: parentId})
 	}
 
 	if d.HasChange("meta_title") {
-		newMetaTitle := commercetools.LocalizedString(expandStringMap(d.Get("meta_title").(map[string]interface{})))
+		newMetaTitle := expandLocalizedString(d.Get("meta_title"))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategorySetMetaTitleAction{MetaTitle: &newMetaTitle})
+			&platform.CategorySetMetaTitleAction{MetaTitle: &newMetaTitle})
 	}
 
 	if d.HasChange("meta_description") {
-		newMetaDescription := commercetools.LocalizedString(expandStringMap(d.Get("meta_description").(map[string]interface{})))
+		newMetaDescription := expandLocalizedString(d.Get("meta_description"))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategorySetMetaDescriptionAction{MetaDescription: &newMetaDescription})
+			&platform.CategorySetMetaDescriptionAction{MetaDescription: &newMetaDescription})
 	}
 
 	if d.HasChange("meta_keywords") {
-		newMetaKeywords := commercetools.LocalizedString(expandStringMap(d.Get("meta_keywords").(map[string]interface{})))
+		newMetaKeywords := expandLocalizedString(d.Get("meta_keywords"))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.CategorySetMetaKeywordsAction{MetaKeywords: &newMetaKeywords})
+			&platform.CategorySetMetaKeywordsAction{MetaKeywords: &newMetaKeywords})
 	}
 
 	if d.HasChange("assets") {
-		assets := resourceCategoryGetAssets(d)
+		assets := expandCategoryAssets(d)
 		for _, asset := range assets {
-			input.Actions = append(
-				input.Actions,
-				&commercetools.CategoryChangeAssetNameAction{Name: asset.Name, AssetKey: asset.Key},
-				&commercetools.CategorySetAssetDescriptionAction{Description: asset.Description, AssetKey: asset.Key},
-				&commercetools.CategorySetAssetSourcesAction{Sources: asset.Sources, AssetKey: asset.Key},
-			)
-			if len(asset.Tags) > 0 {
+			if asset.ID == "" {
+				input.Actions = append(input.Actions, &platform.CategoryAddAssetAction{Asset: platform.AssetDraft{
+					Key:         asset.Key,
+					Name:        asset.Name,
+					Description: asset.Description,
+					Sources:     asset.Sources,
+					Tags:        asset.Tags,
+				}})
+			} else {
 				input.Actions = append(
 					input.Actions,
-					&commercetools.CategorySetAssetTagsAction{Tags: asset.Tags, AssetKey: asset.Key},
+					&platform.CategoryChangeAssetNameAction{Name: asset.Name, AssetKey: asset.Key},
+					&platform.CategorySetAssetDescriptionAction{Description: asset.Description, AssetKey: asset.Key},
+					&platform.CategorySetAssetSourcesAction{Sources: asset.Sources, AssetKey: asset.Key},
 				)
+				if len(asset.Tags) > 0 {
+					input.Actions = append(
+						input.Actions,
+						&platform.CategorySetAssetTagsAction{Tags: asset.Tags, AssetKey: asset.Key},
+					)
+				}
 			}
+		}
+	}
+
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.CategorySetCustomTypeAction, platform.CategorySetCustomFieldAction](d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.CategoryUpdateAction))
 		}
 	}
 
@@ -357,65 +411,140 @@ func resourceCategoryUpdate(d *schema.ResourceData, m interface{}) error {
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.CategoryUpdateWithID(context.Background(), input)
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.Categories().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceCategoryRead(d, m)
+	return resourceCategoryRead(ctx, d, m)
 }
 
-func resourceCategoryDelete(d *schema.ResourceData, m interface{}) error {
+func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	version := d.Get("version").(int)
-	_, err := client.CategoryDeleteWithID(context.Background(), d.Id(), version)
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.Categories().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceCategoryGetAssets(d *schema.ResourceData) []commercetools.AssetDraft {
-	input := d.Get("assets").([]interface{})
-	var result []commercetools.AssetDraft
+func flattenCategoryAssets(assets []platform.Asset) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(assets))
 
-	for _, raw := range input {
-		i := raw.(map[string]interface{})
+	for i := range assets {
+		asset := assets[i]
 
-		name := commercetools.LocalizedString(expandStringMap(i["name"].(map[string]interface{})))
-		description := commercetools.LocalizedString(expandStringMap(i["description"].(map[string]interface{})))
-		sources := resourceCategoryGetAssetSources(i)
+		result[i] = make(map[string]interface{})
+		if asset.ID != "" {
+			result[i]["id"] = asset.ID
+		}
+		result[i]["name"] = asset.Name
+		result[i]["key"] = asset.Key
+		result[i]["sources"] = flattenCategoryAssetSources(asset.Sources)
+		result[i]["tags"] = asset.Tags
 
-		result = append(result, commercetools.AssetDraft{
-			Key:         i["key"].(string),
-			Name:        &name,
-			Description: &description,
-			Sources:     sources,
-		})
+		if asset.Description != nil {
+			result[i]["description"] = *asset.Description
+		} else {
+			result[i]["description"] = nil
+		}
 	}
 
 	return result
 }
 
-func resourceCategoryGetAssetSources(i map[string]interface{}) []commercetools.AssetSource {
-	var sources []commercetools.AssetSource
+func expandCategoryAssetDraft(u interface{}) *platform.AssetDraft {
+	i := u.(map[string]interface{})
+	name := expandLocalizedString(i["name"])
+	description := expandLocalizedString(i["description"])
+	sources := expandCategoryAssetSources(i)
+	tags := expandStringArray(i["tags"].([]interface{}))
+	key := i["key"].(string)
+	return &platform.AssetDraft{
+		Key:         &key,
+		Name:        name,
+		Description: &description,
+		Sources:     sources,
+		Tags:        tags,
+	}
+}
+
+func expandCategoryAssetDrafts(d *schema.ResourceData) []platform.AssetDraft {
+	input := d.Get("assets").([]interface{})
+	var result []platform.AssetDraft
+	for _, raw := range input {
+		result = append(result, *expandCategoryAssetDraft(raw))
+	}
+	return result
+}
+
+func expandCategoryAssets(d *schema.ResourceData) []platform.Asset {
+	input := d.Get("assets").([]interface{})
+	var result []platform.Asset
+	for _, raw := range input {
+		draft := expandCategoryAssetDraft(raw)
+		i := raw.(map[string]interface{})
+		id := i["id"].(string)
+		asset := platform.Asset{
+			ID:          id,
+			Key:         draft.Key,
+			Name:        draft.Name,
+			Description: draft.Description,
+			Sources:     draft.Sources,
+			Tags:        draft.Tags,
+		}
+		result = append(result, asset)
+	}
+	return result
+}
+
+func flattenCategoryAssetSources(sources []platform.AssetSource) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(sources))
+
+	for i := range sources {
+		source := sources[i]
+
+		result[i] = make(map[string]interface{})
+		result[i]["key"] = source.Key
+		result[i]["uri"] = source.Uri
+		result[i]["content_type"] = source.ContentType
+
+		if source.Dimensions != nil {
+			result[i]["dimensions"] = []map[string]interface{}{
+				{
+					"h": source.Dimensions.H,
+					"w": source.Dimensions.W,
+				},
+			}
+		}
+	}
+	return result
+}
+
+func expandCategoryAssetSources(i map[string]interface{}) []platform.AssetSource {
+	var sources []platform.AssetSource
 	for _, item := range i["sources"].([]interface{}) {
 		s := item.(map[string]interface{})
+		key := s["key"].(string)
+		contentType := s["content_type"].(string)
 
-		source := commercetools.AssetSource{
-			URI:         s["uri"].(string),
-			Key:         s["key"].(string),
-			ContentType: s["content_type"].(string),
+		source := platform.AssetSource{
+			Uri:         s["uri"].(string),
+			Key:         &key,
+			ContentType: &contentType,
 		}
 
 		if _, ok := s["dimensions"]; ok {
-			assetDimensions := resourceCategoryGetAssetSourceDimensions(s)
-			source.Dimensions = &assetDimensions
+			source.Dimensions = expandCategoryAssetSourceDimensions(s)
 		}
 
 		sources = append(sources, source)
@@ -423,15 +552,151 @@ func resourceCategoryGetAssetSources(i map[string]interface{}) []commercetools.A
 	return sources
 }
 
-func resourceCategoryGetAssetSourceDimensions(s map[string]interface{}) commercetools.AssetDimensions {
-	var dimensions commercetools.AssetDimensions
-	for _, item := range s["dimensions"].(map[string]interface{}) {
-		d := item.(map[string]interface{})
+func expandCategoryAssetSourceDimensions(s map[string]interface{}) *platform.AssetDimensions {
+	data, err := elementFromSlice(s, "dimensions")
+	if err != nil {
+		return nil
+	}
 
-		dimensions = commercetools.AssetDimensions{
-			W: d["w"].(float64),
-			H: d["h"].(float64),
+	if data["w"] == nil || data["h"] == nil {
+		return nil
+	}
+
+	return &platform.AssetDimensions{
+		W: data["w"].(int),
+		H: data["h"].(int),
+	}
+}
+
+func resourceCategoryResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Category-specific unique identifier. Must be unique across a project",
+			},
+			"name": {
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Required:         true,
+				ForceNew:         true,
+			},
+			"description": {
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
+			},
+			"slug": {
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Required:         true,
+				Description:      "Human readable identifiers, needs to be unique",
+			},
+			"parent": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A category that is the parent of this category in the category tree",
+			},
+			"order_hint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "An attribute as base for a custom category order in one level, filled with random value when left empty",
+			},
+			"external_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "",
+			},
+			"meta_title": {
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
+			},
+			"meta_description": {
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
+			},
+			"meta_keywords": {
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
+			},
+			"assets": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Can be used to store images, icons or movies related to this category",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Optional User-defined identifier for the asset. Asset keys are unique inside their container (in this case the category)",
+						},
+						"name": {
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Required:         true,
+						},
+						"description": {
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Optional:         true,
+						},
+						"sources": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							MinItems:    1,
+							Description: "Array of AssetSource, Has at least one entry",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"uri": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"key": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Unique identifier, must be unique within the Asset",
+									},
+									"dimensions": {
+										Type:     schema.TypeMap,
+										Optional: true,
+										Elem: &schema.Schema{
+											Type: schema.TypeInt,
+										},
+									},
+									"content_type": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+						"tags": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func migrateCategoryStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	for _, asset := range rawState["assets"].([]interface{}) {
+		sources := asset.(map[string]interface{})["sources"]
+		for _, source := range sources.([]interface{}) {
+			transformToList(source.(map[string]interface{}), "dimensions")
 		}
 	}
-	return dimensions
+	return rawState, nil
 }

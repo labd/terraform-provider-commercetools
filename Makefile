@@ -1,6 +1,6 @@
 .PHONY: docs
 LOCAL_TEST_VERSION = 99.0.0
-OS_ARCH = darwin_amd64
+OS_ARCH = darwin_arm64
 
 build:
 	go build
@@ -13,20 +13,14 @@ build-local:
 	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/labd/commercetools/${LOCAL_TEST_VERSION}/${OS_ARCH}
 	cp terraform-provider-commercetools_${LOCAL_TEST_VERSION} ~/.terraform.d/plugins/registry.terraform.io/labd/commercetools/${LOCAL_TEST_VERSION}/${OS_ARCH}/terraform-provider-commercetools_v${LOCAL_TEST_VERSION}
 
-
 format:
 	go fmt ./...
 
 test:
 	go test -v ./...
 
-update-sdk:
-	GO111MODULE=on go get github.com/labd/commercetools-go-sdk
-	GO111MODULE=on go mod vendor
-	GO111MODULE=on go mod tidy
-
 docs:
-	tfplugindocs
+	go generate
 
 coverage-html:
 	go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...

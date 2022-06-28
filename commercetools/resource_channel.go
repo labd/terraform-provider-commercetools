@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceChannel() *schema.Resource {
@@ -14,12 +15,12 @@ func resourceChannel() *schema.Resource {
 		Description: "Channels represent a source or destination of different entities. They can be used to model " +
 			"warehouses or stores.\n\n" +
 			"See also the [Channels API Documentation](https://docs.commercetools.com/api/projects/channels)",
-		Create: resourceChannelCreate,
-		Read:   resourceChannelRead,
-		Update: resourceChannelUpdate,
-		Delete: resourceChannelDelete,
+		CreateContext: resourceChannelCreate,
+		ReadContext:   resourceChannelRead,
+		UpdateContext: resourceChannelUpdate,
+		DeleteContext: resourceChannelDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -35,75 +36,71 @@ func resourceChannel() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"description": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"custom": CustomFieldSchema(),
 		},
 	}
 }
 
-func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
-	name := commercetools.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := commercetools.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	name := expandLocalizedString(d.Get("name"))
+	description := expandLocalizedString(d.Get("description"))
 
-	roles := []commercetools.ChannelRoleEnum{}
+	roles := []platform.ChannelRoleEnum{}
 	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
-		roles = append(roles, commercetools.ChannelRoleEnum(value))
+		roles = append(roles, platform.ChannelRoleEnum(value))
 	}
 
-	draft := &commercetools.ChannelDraft{
+	draft := platform.ChannelDraft{
 		Key:         d.Get("key").(string),
 		Roles:       roles,
 		Name:        &name,
 		Description: &description,
+		Custom:      CreateCustomFieldDraft(d),
 	}
 
 	client := getClient(m)
-	var channel *commercetools.Channel
-
-	err := resource.Retry(20*time.Second, func() *resource.RetryError {
+	var channel *platform.Channel
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
-		channel, err = client.ChannelCreate(context.Background(), draft)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		channel, err = client.Channels().Post(draft).Execute(ctx)
+		return processRemoteError(err)
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(channel.ID)
 	d.Set("version", channel.Version)
-	return resourceChannelRead(d, m)
+	return resourceChannelRead(ctx, d, m)
 }
 
-func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
+func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	channel, err := client.ChannelGetWithID(context.Background(), d.Id())
+	channel, err := client.Channels().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(channel.ID)
@@ -116,65 +113,79 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("description", *channel.Description)
 	}
 	d.Set("roles", channel.Roles)
+	d.Set("custom", flattenCustomFields(channel.Custom))
 	return nil
 }
 
-func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	input := &commercetools.ChannelUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.ChannelUpdate{
 		Version: d.Get("version").(int),
-		Actions: []commercetools.ChannelUpdateAction{},
+		Actions: []platform.ChannelUpdateAction{},
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ChannelChangeKeyAction{Key: newKey})
+			&platform.ChannelChangeKeyAction{Key: newKey})
 	}
 
 	if d.HasChange("name") {
-		newName := commercetools.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ChannelChangeNameAction{Name: &newName})
+			&platform.ChannelChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := commercetools.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ChannelChangeDescriptionAction{Description: &newDescription})
+			&platform.ChannelChangeDescriptionAction{Description: newDescription})
 	}
 
 	if d.HasChange("roles") {
-		roles := []commercetools.ChannelRoleEnum{}
+		roles := []platform.ChannelRoleEnum{}
 		for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
-			roles = append(roles, commercetools.ChannelRoleEnum(value))
+			roles = append(roles, platform.ChannelRoleEnum(value))
 		}
 		input.Actions = append(
 			input.Actions,
-			&commercetools.ChannelSetRolesAction{Roles: roles})
+			&platform.ChannelSetRolesAction{Roles: roles})
 	}
 
-	_, err := client.ChannelUpdateWithID(context.Background(), input)
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.ChannelSetCustomTypeAction, platform.ChannelSetCustomFieldAction](d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.ChannelUpdateAction))
+		}
+	}
+
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Channels().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceChannelRead(d, m)
+	return resourceChannelRead(ctx, d, m)
 }
 
-func resourceChannelDelete(d *schema.ResourceData, m interface{}) error {
+func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ChannelDeleteWithID(context.Background(), d.Id(), version)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Channels().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

@@ -3,15 +3,14 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
+	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAttributeTypeElement(t *testing.T) {
@@ -43,7 +42,7 @@ func TestGetAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if _, ok := result.(commercetools.AttributeBooleanType); !ok {
+	if _, ok := result.(platform.AttributeBooleanType); !ok {
 		t.Error("Expected Boolean type")
 	}
 
@@ -66,8 +65,8 @@ func TestGetAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(commercetools.AttributeEnumType); ok {
-		assert.ElementsMatch(t, field.Values, []commercetools.AttributePlainEnumValue{
+	if field, ok := result.(platform.AttributeEnumType); ok {
+		assert.ElementsMatch(t, field.Values, []platform.AttributePlainEnumValue{
 			{Key: "value1", Label: "Value 1"},
 			{Key: "value2", Label: "Value 2"},
 		})
@@ -91,8 +90,8 @@ func TestGetAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(commercetools.AttributeReferenceType); ok {
-		assert.EqualValues(t, field.ReferenceTypeID, "product")
+	if field, ok := result.(platform.AttributeReferenceType); ok {
+		assert.EqualValues(t, field.ReferenceTypeId, "product")
 	} else {
 		t.Error("Expected Reference type")
 	}
@@ -256,7 +255,7 @@ resource "commercetools_product_type" "acctest_product_type" {
 
 				localized_value {
 				  key = "breakfast"
-	
+
 				  label = {
 					en = "Breakfast"
 					de = "Frühstück"
@@ -265,7 +264,7 @@ resource "commercetools_product_type" "acctest_product_type" {
 
 				localized_value {
 				  key = "lunch"
-	
+
 				  label = {
 					en = "Lunch"
 					de = "Mittagessen"
@@ -330,7 +329,7 @@ resource "commercetools_product_type" "acctest_product_type" {
 
 				localized_value {
 				  key = "breakfast"
-	
+
 				  label = {
 					en = "Breakfast"
 				  }
@@ -338,7 +337,7 @@ resource "commercetools_product_type" "acctest_product_type" {
 
 				localized_value {
 				  key = "lunch"
-	
+
 				  label = {
 					en = "Lunch"
 				  }
@@ -350,22 +349,21 @@ resource "commercetools_product_type" "acctest_product_type" {
 }
 
 func testAccCheckProductTypesDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_product_type" {
 			continue
 		}
-		response, err := conn.ProductTypeGetWithID(context.Background(), rs.Primary.ID)
+		response, err := client.ProductTypes().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("product type (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

@@ -4,13 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
-	"github.com/labd/commercetools-go-sdk/commercetools"
-
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccState_createAndUpdateWithID(t *testing.T) {
@@ -107,7 +104,7 @@ func testAccTransitionConfig(t *testing.T, transition string) string {
 		name = {
 			en = "State #1"
 		}
-		transitions = ["%[1]s"]
+		transitions = [commercetools_state.acctest_t2.id]
 	}
 
 	resource "commercetools_state" "acctest_t2" {
@@ -135,22 +132,21 @@ func testAccTransitionsConfig(t *testing.T, transitions string) string {
 }
 
 func testAccCheckStateDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_state" {
 			continue
 		}
-		response, err := conn.StateGetWithID(context.Background(), rs.Primary.ID)
+		response, err := client.States().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("state (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

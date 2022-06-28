@@ -3,13 +3,13 @@ package commercetools
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"reflect"
+	"regexp"
 	"strings"
-	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 // TypeLocalizedString defined merely for documentation,
@@ -17,51 +17,41 @@ import (
 // it should be used to store a LocalizedString
 const TypeLocalizedString = schema.TypeMap
 
-func getClient(m interface{}) *commercetools.Client {
-	client := m.(*commercetools.Client)
+func getClient(m interface{}) *platform.ByProjectKeyRequestBuilder {
+	client := m.(*platform.ByProjectKeyRequestBuilder)
 	return client
 }
 
-func handleCommercetoolsError(err error) *resource.RetryError {
-	if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-		return resource.NonRetryableError(ctErr)
-	}
+func stringRef(value interface{}) *string {
+	result := value.(string)
+	return &result
+}
 
-	log.Printf("[DEBUG] Received error: %s", err)
-	return resource.RetryableError(err)
+func intRef(value interface{}) *int {
+	result := value.(int)
+	return &result
+}
+
+func boolRef(value interface{}) *bool {
+	result := value.(bool)
+	return &result
 }
 
 func expandStringArray(input []interface{}) []string {
 	s := make([]string, len(input))
-	for i, v := range input {
-		s[i] = fmt.Sprint(v)
+	for i := range input {
+		s[i] = input[i].(string)
 	}
 	return s
 }
 
-func expandStringMap(input map[string]interface{}) map[string]string {
-	s := make(map[string]string)
-	for k, v := range input {
-		s[k] = fmt.Sprint(v)
-	}
-	return s
-}
-
-func localizedStringCompare(a commercetools.LocalizedString, b map[string]interface{}) bool {
+func localizedStringCompare(a platform.LocalizedString, b map[string]interface{}) bool {
 	for i, v := range a {
 		if v != b[i] {
 			return false
 		}
 	}
 	return true
-}
-
-func localizedStringToMap(input commercetools.LocalizedString) map[string]string {
-	result := make(map[string]string, len(input))
-	for k, v := range input {
-		result[k] = v
-	}
-	return result
 }
 
 func stringFormatObject(object interface{}) string {
@@ -71,24 +61,6 @@ func stringFormatObject(object interface{}) string {
 		return fmt.Sprintf("%+v", object)
 	}
 	return string(append(data, '\n'))
-}
-
-func stringFormatErrorExtras(err commercetools.ErrorResponse) string {
-	switch len(err.Errors) {
-	case 0:
-		return ""
-	case 1:
-		return "temp" // stringFormatObject(err.Errors[0].Error())
-	default:
-		{
-			messages := make([]string, len(err.Errors))
-			for i, item := range err.Errors {
-				messages[i] = fmt.Sprintf("%v", item)
-				//messages[i] = fmt.Sprintf(" %d. %s", i+1, stringFormatObject(item.Extra()))
-			}
-			return strings.Join(messages, "\n")
-		}
-	}
 }
 
 func stringFormatActions(actions ...interface{}) string {
@@ -309,6 +281,160 @@ func ValidateCurrencyCode(val interface{}, key string) (warns []string, errs []e
 	return
 }
 
-func expandDate(input string) (time.Time, error) {
-	return time.Parse(time.RFC3339, input)
+func transformToList(data map[string]interface{}, key string) {
+	newDestination := make([]interface{}, 1)
+	if data[key] != nil {
+		newDestination[0] = data[key]
+	}
+	data[key] = newDestination
+}
+
+func elementFromList(d *schema.ResourceData, key string) (map[string]interface{}, error) {
+	data := d.Get(key).([]interface{})
+
+	if len(data) > 0 {
+		result := data[0].(map[string]interface{})
+		return result, nil
+	}
+	return nil, nil
+}
+
+func firstElementFromSlice(d []any) map[string]interface{} {
+	if len(d) > 0 {
+		result := d[0].(map[string]interface{})
+		return result
+	}
+	return nil
+}
+
+func elementFromSlice(d map[string]interface{}, key string) (map[string]interface{}, error) {
+	data, ok := d[key]
+	if !ok {
+		return nil, nil
+	}
+
+	items := data.([]interface{})
+	if len(items) > 0 {
+		result := items[0].(map[string]interface{})
+		return result, nil
+	}
+	return nil, nil
+}
+
+func isNotEmpty(d map[string]interface{}, key string) (interface{}, bool) {
+	val, ok := d[key]
+	if !ok {
+		return nil, false
+	}
+
+	if val != "" {
+		return val, true
+	}
+	return nil, false
+}
+
+// nilIfEmpty returns a nil value if the string is nil or empty ("") otherwise
+// it returns the value
+func nilIfEmpty(val *string) *string {
+	if val == nil {
+		return nil
+	}
+
+	if *val == "" {
+		return nil
+	}
+	return val
+}
+
+var validateLocalizedStringKey = validation.MapKeyMatch(
+	regexp.MustCompile("^[a-z]{2}(-[A-Z]{2})?$"),
+	"Locale keys must match pattern ^[a-z]{2}(-[A-Z]{2})?$",
+)
+
+func upperStringSlice(items []string) []string {
+	s := make([]string, len(items))
+	for i, v := range items {
+		s[i] = strings.ToUpper(v)
+	}
+	return s
+}
+
+// languageCode converts an IETF language tag with mixed casing into the case-sensitive format.
+// The original item is returned if the given input is not valid.
+func languageCode(s string) string {
+	if len(s) == 2 {
+		return strings.ToLower(s)
+	}
+	parts := strings.Split(s, "-")
+	if len(parts) == 2 {
+		return strings.Join([]string{strings.ToLower(parts[0]), strings.ToUpper(parts[1])}, "-")
+	}
+	// fallback to the original
+	return s
+}
+
+func languageCodeSlice(items []string) []string {
+	codes := make([]string, len(items))
+	for i, code := range items {
+		codes[i] = languageCode(code)
+	}
+	return codes
+}
+
+func compareDateString(a, b string) bool {
+	if a == b {
+		return true
+	}
+	da, err := expandTime(a)
+	if err != nil {
+		return false
+	}
+	db, err := expandTime(b)
+	if err != nil {
+		return false
+	}
+	return da.Unix() == db.Unix()
+}
+
+func diffSuppressDateString(k, old, new string, d *schema.ResourceData) bool {
+	return compareDateString(old, new)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// diffSlices does a diff on two slices and returns the changes. If a field is
+// no longer available then nil is returned.
+func diffSlices(old map[string]interface{}, new map[string]interface{}) map[string]interface{} {
+	result := map[string]interface{}{}
+	seen := map[string]bool{}
+
+	// Find changes against current values. If value no longer
+	// exists we set it to nil
+	for key, value := range old {
+		seen[key] = true
+		newVal, exists := new[key]
+		if !exists {
+			result[key] = nil
+			continue
+		}
+
+		if !reflect.DeepEqual(value, newVal) {
+			result[key] = newVal
+			continue
+		}
+	}
+
+	// Copy new values
+	for key, value := range new {
+		if _, exists := seen[key]; !exists {
+			result[key] = value
+		}
+	}
+
+	return result
 }

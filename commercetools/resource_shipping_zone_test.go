@@ -3,14 +3,40 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
-	"github.com/labd/commercetools-go-sdk/commercetools"
-
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestExpandShippingZoneLocations(t *testing.T) {
+	resource := resourceShippingZone().Schema["location"].Elem.(*schema.Resource)
+	input := schema.NewSet(schema.HashResource(resource), []interface{}{
+		map[string]interface{}{
+			"country": "DE",
+			"state":   "",
+		},
+		map[string]interface{}{
+			"country": "US",
+			"state":   "Nevada",
+		},
+	})
+	actual := expandShippingZoneLocations(input)
+	expected := []platform.Location{
+		{
+			Country: "DE",
+			State:   nil,
+		},
+		{
+			Country: "US",
+			State:   stringRef("Nevada"),
+		},
+	}
+	assert.ElementsMatch(t, expected, actual)
+}
 
 func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 
@@ -38,6 +64,12 @@ func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "location.#", "2",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_zone.standard", "location.0.country", "DE",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_shipping_zone.standard", "location.0.state", "",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_shipping_zone.standard", "key", key,
@@ -68,12 +100,14 @@ func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 func testAccShippingZoneConfig(name string, description string, key string) string {
 	return fmt.Sprintf(`
 resource "commercetools_shipping_zone" "standard" {
-	name = "%s"
+	name        = "%s"
 	description = "%s"
-	key = "%s"
+	key         = "%s"
+
 	location {
 		country = "DE"
 	}
+
 	location {
 		country = "US"
 		state = "Nevada"
@@ -141,14 +175,17 @@ func TestAccShippingZone_createAndAddLocation(t *testing.T) {
 func testAccShippingZoneConfigLocationAdded() string {
 	return `
 resource "commercetools_shipping_zone" "standard" {
-	name = "the zone"
+	name        = "the zone"
 	description = "the description"
+
 	location {
 		country = "DE"
 	}
+
 	location {
 		country = "ES"
 	}
+
 	location {
 		country = "US"
 		state = "Nevada"
@@ -210,8 +247,9 @@ func TestAccShippingZone_createAndRemoveLocation(t *testing.T) {
 func testAccShippingZoneConfigLocationRemoved() string {
 	return `
 resource "commercetools_shipping_zone" "standard" {
-	name = "the zone"
+	name        = "the zone"
 	description = "the description"
+
 	location {
 		country = "US"
 		state = "Nevada"
@@ -220,22 +258,21 @@ resource "commercetools_shipping_zone" "standard" {
 }
 
 func testAccCheckShippingZoneDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	conn := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_shipping_zone" {
 			continue
 		}
-		response, err := conn.ZoneGetWithID(context.Background(), rs.Primary.ID)
+		response, err := conn.Zones().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("shipping zone (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

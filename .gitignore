@@ -1,4 +1,5 @@
 terraform-provider-commercetools
+terraform-provider-commercetools_*
 *.backup
 /dist/*
 coverage.txt
@@ -8,9 +9,6 @@ coverage.txt
 terraform.*
 crash.log
 
-// Editor files
-.vscode
-.idea
 
 // Local files
 /local/*

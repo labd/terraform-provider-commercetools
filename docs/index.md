@@ -3,7 +3,7 @@ page_title: "commercetools provider"
 subcategory: ""
 description: |-
   The commercetools provider provides resources to interact with the commercetools API
-  
+
 ---
 
 # commercetools provider
@@ -14,8 +14,8 @@ able to offer support. Please contact us at
 [opensource@labdigital.nl](opensource@labdigital.nl)!
 
 ## Installation
-Terraform 0.13 added support for automatically downloading providers from
-the terraform registry. Add the following to your terraform project
+Terraform automatically downloads providers from the terraform registry. Add the
+following to your terraform project
 
 ```hcl
 terraform {
@@ -48,7 +48,6 @@ provider "commercetools" {
   client_id     = "<your client id>"
   client_secret = "<your client secret>"
   project_key   = "<your project key>"
-  project_key   = "<your project key>"
   scopes        = "<space seperated list of scopes>"
   api_url       = "<api url>"
   token_url     = "<token url>"
@@ -60,12 +59,12 @@ provider "commercetools" {
 
 ### Required
 
-- **api_url** (String) The API URL of the commercetools platform. https://docs.commercetools.com/http-api
-- **client_id** (String, Sensitive) The OAuth Client ID for a commercetools platform project. https://docs.commercetools.com/http-api-authorization
-- **client_secret** (String, Sensitive) The OAuth Client Secret for a commercetools platform project. https://docs.commercetools.com/http-api-authorization
-- **project_key** (String, Sensitive) The project key of commercetools platform project. https://docs.commercetools.com/getting-started
-- **scopes** (String) A list as string of OAuth scopes assigned to a project key, to access resources in a commercetools platform project. https://docs.commercetools.com/http-api-authorization
-- **token_url** (String) The authentication URL of the commercetools platform. https://docs.commercetools.com/http-api-authorization
+- `api_url` (String) The API URL of the commercetools platform. https://docs.commercetools.com/http-api
+- `client_id` (String, Sensitive) The OAuth Client ID for a commercetools platform project. https://docs.commercetools.com/http-api-authorization
+- `client_secret` (String, Sensitive) The OAuth Client Secret for a commercetools platform project. https://docs.commercetools.com/http-api-authorization
+- `project_key` (String, Sensitive) The project key of commercetools platform project. https://docs.commercetools.com/getting-started
+- `scopes` (String) A list as string of OAuth scopes assigned to a project key, to access resources in a commercetools platform project. https://docs.commercetools.com/http-api-authorization
+- `token_url` (String) The authentication URL of the commercetools platform. https://docs.commercetools.com/http-api-authorization
 
 ## Using with docker
 
@@ -78,7 +77,7 @@ docker build . -t terraform-with-provider-commercetools:latest
 ```
 Then you can run a terraform command on files in the current directory with:
 ```sh
-docker run -v${pwd}:/config terraform-with-provider-commercetools:latest <CMD>
+docker run -v "${pwd}:/config" terraform-with-provider-commercetools:latest <CMD>
 ```
 ## Authors
 This project is developed by [Lab Digital](https://www.labdigital.nl). We

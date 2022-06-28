@@ -16,14 +16,14 @@ See also the [Channels API Documentation](https://docs.commercetools.com/api/pro
 ## Example Usage
 
 ```terraform
-resource "commercetools_channel" "project" {
-  key = "My project"
+resource "commercetools_channel" "my-channel" {
+  key   = "my-channel-key"
   roles = ["ProductDistribution"]
   name = {
-      nl-NL = "Channel"
+    nl-NL = "Channel"
   }
   description = {
-      nl-NL = "Channel"
+    nl-NL = "Channel"
   }
 }
 ```
@@ -33,17 +33,29 @@ resource "commercetools_channel" "project" {
 
 ### Required
 
-- **key** (String) Any arbitrary string key that uniquely identifies this channel within the project
-- **roles** (List of String) The [roles](https://docs.commercetools.com/api/projects/channels#channelroleenum) of this channel. Each channel must have at least one role
+- `key` (String) Any arbitrary string key that uniquely identifies this channel within the project
+- `roles` (List of String) The [roles](https://docs.commercetools.com/api/projects/channels#channelroleenum) of this channel. Each channel must have at least one role
 
 ### Optional
 
-- **description** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **id** (String) The ID of this resource.
-- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
+- `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
 
 

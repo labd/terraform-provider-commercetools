@@ -5,21 +5,22 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceTaxCategory() *schema.Resource {
 	return &schema.Resource{
 		Description: "Tax Categories define how products are to be taxed in different countries.\n\n" +
 			"See also the [Tax Category API Documentation](https://docs.commercetools.com/api/projects/taxCategories)",
-		Create: resourceTaxCategoryCreate,
-		Read:   resourceTaxCategoryRead,
-		Update: resourceTaxCategoryUpdate,
-		Delete: resourceTaxCategoryDelete,
+		CreateContext: resourceTaxCategoryCreate,
+		ReadContext:   resourceTaxCategoryRead,
+		UpdateContext: resourceTaxCategoryUpdate,
+		DeleteContext: resourceTaxCategoryDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -43,56 +44,47 @@ func resourceTaxCategory() *schema.Resource {
 	}
 }
 
-func resourceTaxCategoryCreate(d *schema.ResourceData, m interface{}) error {
+func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var taxCategory *commercetools.TaxCategory
-	emptyTaxRates := []commercetools.TaxRateDraft{}
+	emptyTaxRates := []platform.TaxRateDraft{}
 
-	draft := &commercetools.TaxCategoryDraft{
-		Key:         d.Get("key").(string),
+	draft := platform.TaxCategoryDraft{
 		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
+		Description: stringRef(d.Get("description")),
 		Rates:       emptyTaxRates,
 	}
 
-	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
-		var err error
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
+	}
 
-		taxCategory, err = client.TaxCategoryCreate(context.Background(), draft)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+	var taxCategory *platform.TaxCategory
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		var err error
+		taxCategory, err = client.TaxCategories().Post(draft).Execute(ctx)
+		return processRemoteError(err)
 	})
 
 	if err != nil {
-		return err
-	}
-
-	if taxCategory == nil {
-		log.Fatal("No tax category created?")
+		return diag.FromErr(err)
 	}
 
 	d.SetId(taxCategory.ID)
 	d.Set("version", taxCategory.Version)
 
-	return resourceTaxCategoryRead(d, m)
+	return resourceTaxCategoryRead(ctx, d, m)
 }
 
-func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
-	log.Printf("[DEBUG] Reading tax category from commercetools, with taxCategory id: %s", d.Id())
+func resourceTaxCategoryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-
-	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), d.Id())
-
+	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if taxCategory == nil {
@@ -110,74 +102,72 @@ func resourceTaxCategoryRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceTaxCategoryUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	// Lock to prevent concurrent updates due to Version number conflicts
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
-	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), d.Id())
+	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	input := &commercetools.TaxCategoryUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.TaxCategoryUpdate{
 		Version: taxCategory.Version,
-		Actions: []commercetools.TaxCategoryUpdateAction{},
+		Actions: []platform.TaxCategoryUpdateAction{},
 	}
 
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.TaxCategoryChangeNameAction{Name: newName})
+			&platform.TaxCategoryChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.TaxCategorySetKeyAction{Key: newKey})
+			&platform.TaxCategorySetKeyAction{Key: &newKey})
 	}
 
 	if d.HasChange("description") {
 		newDescription := d.Get("description").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.TaxCategorySetDescriptionAction{Description: newDescription})
+			&platform.TaxCategorySetDescriptionAction{Description: &newDescription})
 	}
 
 	log.Printf(
 		"[DEBUG] Will perform update operation with the following actions:\n%s",
 		stringFormatActions(input.Actions))
 
-	_, err = client.TaxCategoryUpdateWithID(context.Background(), input)
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.TaxCategories().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceTaxCategoryRead(d, m)
+	return resourceTaxCategoryRead(ctx, d, m)
 }
 
-func resourceTaxCategoryDelete(d *schema.ResourceData, m interface{}) error {
+func resourceTaxCategoryDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
-	taxCategory, err := client.TaxCategoryGetWithID(context.Background(), d.Id())
+	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	_, err = client.TaxCategoryDeleteWithID(context.Background(), d.Id(), taxCategory.Version)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err = client.TaxCategories().WithId(d.Id()).Delete().Version(taxCategory.Version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }

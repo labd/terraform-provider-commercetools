@@ -3,13 +3,10 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
-	"github.com/labd/commercetools-go-sdk/commercetools"
-
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccCartDiscountCreate_basic(t *testing.T) {
@@ -44,16 +41,16 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 						"commercetools_cart_discount.standard", "requires_discount_code", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "valid_from", "2020-01-02T15:04:05.000Z",
+						"commercetools_cart_discount.standard", "valid_from", "2018-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "valid_until", "2021-01-02T15:04:05.000Z",
+						"commercetools_cart_discount.standard", "valid_until", "2019-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.type", "lineItems",
+						"commercetools_cart_discount.standard", "target.0.type", "lineItems",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.predicate", "1=1",
+						"commercetools_cart_discount.standard", "target.0.predicate", "1=1",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_cart_discount.standard", "value.0.type", "relative",
@@ -91,16 +88,19 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 						"commercetools_cart_discount.standard", "requires_discount_code", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "valid_from", "2018-01-02T15:04:05.000Z",
+						"commercetools_cart_discount.standard", "valid_from", "2018-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "valid_until", "2019-01-02T15:04:05.000Z",
+						"commercetools_cart_discount.standard", "valid_until", "2019-01-02T15:04:05Z",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.type", "lineItems",
+						"commercetools_cart_discount.standard", "target.#", "1",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.predicate", "1=1",
+						"commercetools_cart_discount.standard", "target.0.type", "lineItems",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_cart_discount.standard", "target.0.predicate", "1=1",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_cart_discount.standard", "value.0.type", "relative",
@@ -123,7 +123,7 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 						"commercetools_cart_discount.standard", "name.en", "standard name",
 					),
 					resource.TestCheckNoResourceAttr(
-						"commercetools_cart_discount.standard", "description",
+						"commercetools_cart_discount.standard", "description.en",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_cart_discount.standard", "sort_order", "0.8",
@@ -144,10 +144,10 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 						"commercetools_cart_discount.standard", "valid_until", "",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.type", "lineItems",
+						"commercetools_cart_discount.standard", "target.0.type", "lineItems",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_cart_discount.standard", "target.predicate", "1=1",
+						"commercetools_cart_discount.standard", "target.0.predicate", "1=1",
 					),
 					resource.TestCheckResourceAttr(
 						"commercetools_cart_discount.standard", "value.0.type", "relative",
@@ -178,9 +178,9 @@ func testAccCartDiscountConfig() string {
 		predicate              = "1=1"
 		stacking_mode          = "Stacking"
 		requires_discount_code = true
-		valid_from             = "2020-01-02T15:04:05.000Z"
-		valid_until            = "2021-01-02T15:04:05.000Z"
-		target = {
+		valid_from             = "2018-01-02T15:04:05Z"
+		valid_until            = "2019-01-02T15:04:05Z"
+		target {
 		  type      = "lineItems"
 		  predicate = "1=1"
 		}
@@ -207,13 +207,13 @@ func testAccCartDiscountUpdate() string {
 		predicate              = "1=1"
 		stacking_mode          = "Stacking"
 		requires_discount_code = true
-		valid_from             = "2018-01-02T15:04:05.000Z"
-		valid_until            = "2019-01-02T15:04:05.000Z"
-		target = {
+		valid_from             = "2018-01-02T15:04:05Z"
+		valid_until            = "2019-01-02T15:04:05Z"
+		target {
 			type      = "lineItems"
 			predicate = "1=1"
 		}
-		
+
 		value {
 			type      = "relative"
 			permyriad = 1000
@@ -232,9 +232,9 @@ func testAccCartDiscountRemoveProperties() string {
 		  en = "standard name"
 		}
 		sort_order             = "0.8"
-		predicate              = "1=1"	
+		predicate              = "1=1"
 		requires_discount_code = true
-		target = {
+		target {
 			type      = "lineItems"
 			predicate = "1=1"
 		}
@@ -247,22 +247,21 @@ func testAccCartDiscountRemoveProperties() string {
 }
 
 func testAccCheckCartDiscountDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	client := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_cart_discount" {
 			continue
 		}
-		response, err := conn.CartDiscountGetWithID(context.Background(), rs.Primary.ID)
+		response, err := client.CartDiscounts().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("cart discount (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

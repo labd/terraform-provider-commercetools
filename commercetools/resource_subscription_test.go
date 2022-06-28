@@ -4,17 +4,16 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 	"testing"
 
-	"github.com/labd/commercetools-go-sdk/commercetools"
-
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestValidateDestination(t *testing.T) {
+func TestValidateSubscriptionDestination(t *testing.T) {
+	resource := resourceSubscription()
 	validDestinations := []map[string]interface{}{
 		{
 			"type":          "SQS",
@@ -29,7 +28,16 @@ func TestValidateDestination(t *testing.T) {
 			"access_key": "<access_key>",
 		},
 		{
+			"type":       "EventGrid",
+			"uri":        "<uri>",
+			"access_key": "<access_key>",
+		},
+		{
 			"type":              "azure_servicebus",
+			"connection_string": "<connection_string>",
+		},
+		{
+			"type":              "AzureServiceBus",
 			"connection_string": "<connection_string>",
 		},
 		{
@@ -37,11 +45,30 @@ func TestValidateDestination(t *testing.T) {
 			"project_id": "<project_id>",
 			"topic":      "<topic>",
 		},
+		{
+			"type":       "GoogleCloudPubSub",
+			"project_id": "<project_id>",
+			"topic":      "<topic>",
+		},
+		{
+			"type":       "event_bridge",
+			"region":     "<region>",
+			"account_id": "<account_id>",
+		},
+		{
+			"type":       "EventBridge",
+			"region":     "<region>",
+			"account_id": "<account_id>",
+		},
 	}
 	for _, validDestination := range validDestinations {
-		_, errs := validateDestination(validDestination, "destination")
-		if len(errs) > 0 {
-			t.Error("Expected no validation errors, but got ", errs)
+		rawData := map[string]interface{}{
+			"destination": []interface{}{validDestination},
+		}
+		data := schema.TestResourceDataRaw(t, resource.Schema, rawData)
+		err := validateSubscriptionDestination(data)
+		if err != nil {
+			t.Error("Expected no validation errors, but got ", err)
 		}
 	}
 	invalidDestinations := []map[string]interface{}{
@@ -61,10 +88,18 @@ func TestValidateDestination(t *testing.T) {
 			"type":  "google_pubsub",
 			"topic": "<topic>",
 		},
+		{
+			"type":  "event_bridge",
+			"topic": "<region>",
+		},
 	}
 	for _, validDestination := range invalidDestinations {
-		_, errs := validateDestination(validDestination, "destination")
-		if len(errs) == 0 {
+		rawData := map[string]interface{}{
+			"destination": []interface{}{validDestination},
+		}
+		data := schema.TestResourceDataRaw(t, resource.Schema, rawData)
+		err := validateSubscriptionDestination(data)
+		if err == nil {
 			t.Error("Expected validation errors, but none was reported")
 		}
 	}
@@ -95,12 +130,16 @@ func testAccSubscriptionConfig(rName string) string {
 resource "commercetools_subscription" "subscription_%[1]s" {
 	key = "commercetools-acc-%[1]s"
 
-	destination = {
+	destination {
 		type          = "SQS"
 		queue_url     = "%[2]s"
 		access_key    = "%[3]s"
 		access_secret = "%[4]s"
 		region        = "eu-west-1"
+	}
+
+	format {
+		type = "Platform"
 	}
 
 	changes {
@@ -117,22 +156,21 @@ resource "commercetools_subscription" "subscription_%[1]s" {
 }
 
 func testAccCheckSubscriptionDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	conn := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_subscription" {
 			continue
 		}
-		response, err := conn.SubscriptionGetWithID(context.Background(), rs.Primary.ID)
+		response, err := conn.Subscriptions().WithId(rs.Primary.ID).Get().Execute(context.Background())
 		if err == nil {
 			if response != nil && response.ID == rs.Primary.ID {
 				return fmt.Errorf("subscription (%s) still exists", rs.Primary.ID)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

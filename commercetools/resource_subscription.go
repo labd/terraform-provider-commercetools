@@ -4,24 +4,33 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 const (
 	// Destinations
-	subSQS             = "SQS"
-	subSNS             = "SNS"
-	subAzureEventGrid  = "azure_eventgrid"
-	subAzureServiceBus = "azure_servicebus"
-	subGooglePubSub    = "google_pubsub"
+	subSQS                  = "SQS"
+	subSNS                  = "SNS"
+	subEventBridge          = "EventBridge"
+	subEventBridgeAlias     = "event_bridge"
+	subAzureEventGrid       = "EventGrid"
+	subAzureEventGridAlias  = "azure_eventgrid"
+	subAzureServiceBus      = "AzureServiceBus"
+	subAzureServiceBusAlias = "azure_servicebus"
+	subGooglePubSub         = "GoogleCloudPubSub"
+	subGooglePubSubAlias    = "google_pubsub"
 
 	// Formats
-	cloudEvents = "cloud_events"
-	platform    = "platform"
+	cloudEvents      = "CloudEvents"
+	cloudEventsAlias = "cloud_events"
+	fmtPlatform      = "Platform"
+	fmtPlatformAlias = "platform"
 )
 
 var destinationFields = map[string][]string{
@@ -36,6 +45,10 @@ var destinationFields = map[string][]string{
 		"access_key",
 		"access_secret",
 	},
+	subEventBridge: {
+		"region",
+		"account_id",
+	},
 	subAzureEventGrid: {
 		"uri",
 		"access_key",
@@ -49,11 +62,23 @@ var destinationFields = map[string][]string{
 	},
 }
 
+var destinationFieldAliases = map[string]string{
+	subEventBridgeAlias:     subEventBridge,
+	subAzureEventGridAlias:  subAzureEventGrid,
+	subAzureServiceBusAlias: subAzureServiceBus,
+	subGooglePubSubAlias:    subGooglePubSub,
+}
+
 var formatFields = map[string][]string{
 	cloudEvents: {
 		"cloud_events_version",
 	},
-	platform: {},
+	fmtPlatform: {},
+}
+
+var formatFieldAliases = map[string]string{
+	cloudEventsAlias: cloudEvents,
+	fmtPlatformAlias: fmtPlatform,
 }
 
 func resourceSubscription() *schema.Resource {
@@ -64,12 +89,20 @@ func resourceSubscription() *schema.Resource {
 			"Credit Card after the delivery has been made, or synchronizing customer accounts to a Customer " +
 			"Relationship Management (CRM) system.\n\n" +
 			"See also the [Subscriptions API Documentation](https://docs.commercetools.com/api/projects/subscriptions)",
-		Create: resourceSubscriptionCreate,
-		Read:   resourceSubscriptionRead,
-		Update: resourceSubscriptionUpdate,
-		Delete: resourceSubscriptionDelete,
+		CreateContext: resourceSubscriptionCreate,
+		ReadContext:   resourceSubscriptionRead,
+		UpdateContext: resourceSubscriptionUpdate,
+		DeleteContext: resourceSubscriptionDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceSubscriptionResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: migrateSubscriptionStateV0toV1,
+				Version: 0,
+			},
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -80,14 +113,45 @@ func resourceSubscription() *schema.Resource {
 			"destination": {
 				Description: "The Message Queue into which the notifications are to be sent" +
 					"See also the [Destination API Docs](https://docs.commercetools.com/api/projects/subscriptions#destination)",
-				Type:         schema.TypeMap,
-				Optional:     true,
-				ValidateFunc: validateDestination,
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:     schema.TypeString,
 							Required: true,
+							ValidateFunc: func(d interface{}, v string) ([]string, []error) {
+								allowedAliases := []string{
+									subEventBridgeAlias,
+									subAzureEventGridAlias,
+									subAzureServiceBusAlias,
+									subGooglePubSubAlias,
+								}
+
+								allowed := []string{
+									subSQS,
+									subSNS,
+									subEventBridge,
+									subAzureEventGrid,
+									subAzureServiceBus,
+									subGooglePubSub,
+								}
+
+								if !stringInSlice(d.(string), allowed) {
+									if !stringInSlice(d.(string), allowedAliases) {
+										return []string{}, []error{
+											fmt.Errorf("invalid destination type: %s. Accepted values are %s",
+												d.(string), strings.Join(allowed, ", "),
+											),
+										}
+									} else {
+										return []string{fmt.Sprintf("Deprecated destination type: %s. Replace with %s.", d.(string), destinationFieldAliases[d.(string)])}, nil
+									}
+								}
+
+								return []string{}, []error{}
+							},
 						},
 						"topic_arn": {
 							Description:      "For AWS SNS",
@@ -103,46 +167,53 @@ func resourceSubscription() *schema.Resource {
 						},
 						"region": {
 							Type:             schema.TypeString,
-							Optional:         false,
-							DiffSuppressFunc: suppressIfNotDestinationType(subSQS),
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subEventBridge, subEventBridgeAlias),
+						},
+						"account_id": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subEventBridge, subEventBridgeAlias),
 						},
 						"access_key": {
 							Description:      "For AWS SNS / SQS / Azure Event Grid",
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS, subAzureEventGrid),
+							Sensitive:        true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS, subAzureEventGrid, subAzureEventGridAlias),
 						},
 						"access_secret": {
 							Description:      "For AWS SNS / SQS",
 							Type:             schema.TypeString,
 							Optional:         true,
-							ForceNew:         true,
+							Sensitive:        true,
 							DiffSuppressFunc: suppressIfNotDestinationType(subSQS, subSNS),
 						},
 						"uri": {
 							Description:      "For Azure Event Grid",
 							Type:             schema.TypeString,
-							Optional:         false,
-							DiffSuppressFunc: suppressIfNotDestinationType(subAzureEventGrid),
+							Optional:         true,
+							DiffSuppressFunc: suppressIfNotDestinationType(subAzureEventGrid, subAzureEventGridAlias),
 						},
 						"connection_string": {
 							Description:      "For Azure Service Bus",
 							Type:             schema.TypeString,
 							Optional:         true,
+							Sensitive:        true,
 							ForceNew:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subAzureServiceBus),
+							DiffSuppressFunc: suppressIfNotDestinationType(subAzureServiceBus, subAzureServiceBusAlias),
 						},
 						"project_id": {
 							Description:      "For Google Pub Sub",
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
+							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub, subGooglePubSubAlias),
 						},
 						"topic": {
 							Description:      "For Google Pub Sub",
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub),
+							DiffSuppressFunc: suppressIfNotDestinationType(subGooglePubSub, subGooglePubSubAlias),
 						},
 					},
 				},
@@ -150,9 +221,28 @@ func resourceSubscription() *schema.Resource {
 			"format": {
 				Description: "The [format](https://docs.commercetools.com/api/projects/subscriptions#format) " +
 					"in which the payload is delivered",
-				Type:         schema.TypeMap,
-				Optional:     true,
-				ValidateFunc: validateFormat,
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if k == "format.#" && old == "1" && new == "0" {
+						fmt := strings.ToLower(d.Get("format.0.type").(string))
+						if fmt == fmtPlatformAlias || fmt == fmtPlatform {
+							return true
+						}
+					}
+					old = strings.ToLower(old)
+					if k == "format.0.type" && (old == fmtPlatformAlias || old == fmtPlatform) && new == "" {
+						return true
+					}
+
+					return false
+				},
+				DefaultFunc: func() (interface{}, error) {
+					return []map[string]string{{
+						"type": "Platform",
+					}}, nil
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
@@ -163,7 +253,7 @@ func resourceSubscription() *schema.Resource {
 							Description:      "For CloudEvents",
 							Type:             schema.TypeString,
 							Optional:         true,
-							DiffSuppressFunc: suppressIfNotFormatType(cloudEvents),
+							DiffSuppressFunc: suppressIfNotFormatType(cloudEvents, cloudEventsAlias),
 						},
 					},
 				},
@@ -213,68 +303,67 @@ func resourceSubscription() *schema.Resource {
 	}
 }
 
-func resourceSubscriptionCreate(d *schema.ResourceData, m interface{}) error {
+func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	var subscription *commercetools.Subscription
+	var subscription *platform.Subscription
 
-	messages := resourceSubscriptionGetMessages(d)
-	changes := resourceSubscriptionGetChanges(d)
-	destination, err := resourceSubscriptionGetDestination(d)
-	if err != nil {
-		return err
+	if err := validateSubscriptionDestination(d); err != nil {
+		return diag.FromErr(err)
 	}
-	format, err := resourceSubscriptionGetFormat(d)
-	if err != nil {
-		return err
+	if err := validateFormat(d); err != nil {
+		return diag.FromErr(err)
 	}
 
-	draft := &commercetools.SubscriptionDraft{
-		Key:         d.Get("key").(string),
+	messages := expandSubscriptionMessages(d)
+	changes := expandSubscriptionChanges(d)
+	destination, err := expandSubscriptionDestination(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	format, err := expandSubscriptionFormat(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	draft := platform.SubscriptionDraft{
 		Destination: destination,
-		Format:      format,
+		Format:      &format,
 		Messages:    messages,
 		Changes:     changes,
 	}
 
-	err = resource.Retry(20*time.Second, func() *resource.RetryError {
-		var err error
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
+	}
 
-		subscription, err = client.SubscriptionCreate(context.Background(), draft)
-		if err != nil {
-			// Some subscription resources might not be ready yet, always keep retrying
-			return resource.RetryableError(err)
-		}
-		return nil
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		var err error
+		subscription, err = client.Subscriptions().Post(draft).Execute(ctx)
+		return processRemoteError(err)
 	})
 
 	if err != nil {
-		return err
-	}
-
-	if subscription == nil {
-		return fmt.Errorf("Error creating subscription")
+		return diag.FromErr(err)
 	}
 
 	d.SetId(subscription.ID)
 	d.Set("version", subscription.Version)
 
-	return resourceSubscriptionRead(d, m)
+	return resourceSubscriptionRead(ctx, d, m)
 }
 
-func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
+func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	log.Print("[DEBUG] Reading subscriptions from commercetools")
 	client := getClient(m)
 
-	subscription, err := client.SubscriptionGetWithID(context.Background(), d.Id())
-
+	subscription, err := client.Subscriptions().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if subscription == nil {
@@ -286,127 +375,233 @@ func resourceSubscriptionRead(d *schema.ResourceData, m interface{}) error {
 
 		d.Set("version", subscription.Version)
 		d.Set("key", subscription.Key)
-		d.Set("destination", subscription.Destination)
-		d.Set("format", subscription.Format)
-		d.Set("message", subscription.Messages)
-		d.Set("changes", subscription.Changes)
+		d.Set("destination", flattenSubscriptionDestination(subscription.Destination, d))
+		d.Set("format", flattenSubscriptionFormat(subscription.Format))
+		d.Set("message", flattenSubscriptionMessages(subscription.Messages))
+		d.Set("changes", flattenSubscriptionChanges(subscription.Changes))
 	}
 	return nil
 }
 
-func resourceSubscriptionUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	input := &commercetools.SubscriptionUpdateWithIDInput{
-		ID:      d.Id(),
+	if err := validateSubscriptionDestination(d); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := validateFormat(d); err != nil {
+		return diag.FromErr(err)
+	}
+
+	input := platform.SubscriptionUpdate{
 		Version: d.Get("version").(int),
-		Actions: []commercetools.SubscriptionUpdateAction{},
+		Actions: []platform.SubscriptionUpdateAction{},
 	}
 
 	if d.HasChange("destination") {
-		destination, err := resourceSubscriptionGetDestination(d)
+		destination, err := expandSubscriptionDestination(d)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionChangeDestinationAction{Destination: destination})
+			&platform.SubscriptionChangeDestinationAction{Destination: destination})
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionSetKeyAction{Key: newKey})
+			&platform.SubscriptionSetKeyAction{Key: &newKey})
 	}
 
 	if d.HasChange("message") {
-		messages := resourceSubscriptionGetMessages(d)
+		messages := expandSubscriptionMessages(d)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionSetMessagesAction{Messages: messages})
+			&platform.SubscriptionSetMessagesAction{Messages: messages})
 	}
 
 	if d.HasChange("changes") {
-		changes := resourceSubscriptionGetChanges(d)
+		changes := expandSubscriptionChanges(d)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.SubscriptionSetChangesAction{Changes: changes})
+			&platform.SubscriptionSetChangesAction{Changes: changes})
 	}
 
-	_, err := client.SubscriptionUpdateWithID(context.Background(), input)
+	err := resource.RetryContext(ctx, 5*time.Second, func() *resource.RetryError {
+		_, err := client.Subscriptions().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
+
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceSubscriptionRead(d, m)
+	return resourceSubscriptionRead(ctx, d, m)
 }
 
-func resourceSubscriptionDelete(d *schema.ResourceData, m interface{}) error {
+func resourceSubscriptionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.SubscriptionDeleteWithID(context.Background(), d.Id(), version)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	err := resource.RetryContext(ctx, 5*time.Second, func() *resource.RetryError {
+		_, err := client.Subscriptions().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
-func resourceSubscriptionGetDestination(d *schema.ResourceData) (commercetools.Destination, error) {
-	input := d.Get("destination").(map[string]interface{})
+func expandSubscriptionDestination(d *schema.ResourceData) (platform.Destination, error) {
+	dst, err := elementFromList(d, "destination")
+	if err != nil {
+		return nil, err
+	}
+	if dst == nil {
+		return nil, fmt.Errorf("destination is missing")
+	}
 
-	switch input["type"] {
+	switch dst["type"] {
 	case subSNS:
-		return commercetools.SnsDestination{
-			TopicArn:     input["topic_arn"].(string),
-			AccessKey:    input["access_key"].(string),
-			AccessSecret: input["access_secret"].(string),
+		return platform.SnsDestination{
+			TopicArn:     dst["topic_arn"].(string),
+			AccessKey:    dst["access_key"].(string),
+			AccessSecret: dst["access_secret"].(string),
 		}, nil
 	case subSQS:
-		return commercetools.SqsDestination{
-			QueueURL:     input["queue_url"].(string),
-			AccessKey:    input["access_key"].(string),
-			AccessSecret: input["access_secret"].(string),
-			Region:       input["region"].(string),
+		return platform.SqsDestination{
+			QueueUrl:     dst["queue_url"].(string),
+			AccessKey:    dst["access_key"].(string),
+			AccessSecret: dst["access_secret"].(string),
+			Region:       dst["region"].(string),
 		}, nil
-	case subAzureEventGrid:
-		return commercetools.AzureEventGridDestination{
-			URI:       input["uri"].(string),
-			AccessKey: input["access_key"].(string),
+	case subAzureEventGrid, subAzureEventGridAlias:
+		return platform.AzureEventGridDestination{
+			Uri:       dst["uri"].(string),
+			AccessKey: dst["access_key"].(string),
 		}, nil
-	case subAzureServiceBus:
-		return commercetools.AzureServiceBusDestination{
-			ConnectionString: input["connection_string"].(string),
+	case subAzureServiceBus, subAzureServiceBusAlias:
+		return platform.AzureServiceBusDestination{
+			ConnectionString: dst["connection_string"].(string),
 		}, nil
-	case subGooglePubSub:
-		return commercetools.GoogleCloudPubSubDestination{
-			ProjectID: input["project_id"].(string),
-			Topic:     input["topic"].(string),
+	case subGooglePubSub, subGooglePubSubAlias:
+		return platform.GoogleCloudPubSubDestination{
+			ProjectId: dst["project_id"].(string),
+			Topic:     dst["topic"].(string),
+		}, nil
+	case subEventBridge, subEventBridgeAlias:
+		return platform.EventBridgeDestination{
+			Region:    dst["region"].(string),
+			AccountId: dst["account_id"].(string),
 		}, nil
 	default:
-		return nil, fmt.Errorf("Destination type %s not implemented", input["type"])
+		return nil, fmt.Errorf("destination type %s not implemented", dst["type"])
 	}
 }
 
-func resourceSubscriptionGetFormat(d *schema.ResourceData) (commercetools.DeliveryFormat, error) {
-	input := d.Get("format").(map[string]interface{})
+func flattenSubscriptionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
 
-	switch input["type"] {
-	case cloudEvents:
-		return commercetools.DeliveryCloudEventsFormat{
-			CloudEventsVersion: input["cloud_events_version"].(string),
-		}, nil
-	case platform:
-		return commercetools.DeliveryPlatformFormat{}, nil
+	// Read the access secret from the current resource data
+	c, _ := expandSubscriptionDestination(d)
+	accessSecret := ""
+	switch current := c.(type) {
+	case platform.SnsDestination:
+		accessSecret = current.AccessSecret
+	case platform.SqsDestination:
+		accessSecret = current.AccessSecret
+	}
+
+	switch v := dst.(type) {
+	case platform.SnsDestination:
+		d.Get("destination")
+		return []map[string]string{{
+			"type":          subSNS,
+			"topic_arn":     v.TopicArn,
+			"access_key":    v.AccessKey,
+			"access_secret": accessSecret,
+		}}
+	case platform.SqsDestination:
+		return []map[string]string{{
+			"type":          subSQS,
+			"queue_url":     v.QueueUrl,
+			"access_key":    v.AccessKey,
+			"access_secret": accessSecret,
+			"region":        v.Region,
+		}}
+	case platform.AzureEventGridDestination:
+		return []map[string]string{{
+			"type":       subAzureEventGrid,
+			"uri":        v.Uri,
+			"access_key": v.AccessKey,
+		}}
+	case platform.AzureServiceBusDestination:
+		return []map[string]string{{
+			"type":              subAzureServiceBus,
+			"connection_string": v.ConnectionString,
+		}}
+	case platform.GoogleCloudPubSubDestination:
+		return []map[string]string{{
+			"type":       subGooglePubSub,
+			"project_id": v.ProjectId,
+			"topic":      v.Topic,
+		}}
+	case platform.EventBridgeDestination:
+		return []map[string]string{{
+			"type":       subEventBridge,
+			"region":     v.Region,
+			"account_id": v.AccountId,
+		}}
+	}
+	return []map[string]string{}
+}
+
+func flattenSubscriptionFormat(f platform.DeliveryFormat) []map[string]string {
+	switch v := f.(type) {
+	case platform.PlatformFormat:
+		return []map[string]string{{
+			"type": "Platform",
+		}}
+	case platform.CloudEventsFormat:
+		return []map[string]string{{
+			"type":                 "CloudEvents",
+			"cloud_events_version": v.CloudEventsVersion,
+		}}
+	}
+	return []map[string]string{}
+}
+
+func expandSubscriptionFormat(d *schema.ResourceData) (platform.DeliveryFormat, error) {
+	input := d.Get("format").([]interface{})
+
+	if len(input) == 1 {
+		format := input[0].(map[string]interface{})
+
+		switch format["type"] {
+		case cloudEvents, cloudEventsAlias:
+			return platform.CloudEventsFormat{
+				CloudEventsVersion: format["cloud_events_version"].(string),
+			}, nil
+		case fmtPlatform, fmtPlatformAlias:
+			return platform.PlatformFormat{}, nil
+		}
 	}
 
 	return nil, nil
 }
 
-func resourceSubscriptionGetChanges(d *schema.ResourceData) []commercetools.ChangeSubscription {
-	var result []commercetools.ChangeSubscription
+func flattenSubscriptionChanges(m []platform.ChangeSubscription) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	for _, raw := range m {
+		result = append(result, map[string]interface{}{
+			"resource_type_ids": raw.ResourceTypeId,
+		})
+	}
+	return result
+}
+
+func expandSubscriptionChanges(d *schema.ResourceData) []platform.ChangeSubscription {
+	var result []platform.ChangeSubscription
 	input := d.Get("changes").([]interface{})
 	if len(input) > 0 {
 		for _, raw := range input {
@@ -414,8 +609,8 @@ func resourceSubscriptionGetChanges(d *schema.ResourceData) []commercetools.Chan
 			rawTypeIds := expandStringArray(i["resource_type_ids"].([]interface{}))
 
 			for _, item := range rawTypeIds {
-				result = append(result, commercetools.ChangeSubscription{
-					ResourceTypeID: item,
+				result = append(result, platform.ChangeSubscription{
+					ResourceTypeId: item,
 				})
 			}
 		}
@@ -423,13 +618,24 @@ func resourceSubscriptionGetChanges(d *schema.ResourceData) []commercetools.Chan
 	return result
 }
 
-func resourceSubscriptionGetMessages(d *schema.ResourceData) []commercetools.MessageSubscription {
+func flattenSubscriptionMessages(m []platform.MessageSubscription) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(m))
+	for _, raw := range m {
+		result = append(result, map[string]interface{}{
+			"resource_type_id": raw.ResourceTypeId,
+			"types":            raw.Types,
+		})
+	}
+	return result
+}
+
+func expandSubscriptionMessages(d *schema.ResourceData) []platform.MessageSubscription {
 	input := d.Get("message").([]interface{})
-	var messageObjects []commercetools.MessageSubscription
+	var messageObjects []platform.MessageSubscription
 	for _, raw := range input {
 		i := raw.(map[string]interface{})
-		messageObjects = append(messageObjects, commercetools.MessageSubscription{
-			ResourceTypeID: i["resource_type_id"].(string),
+		messageObjects = append(messageObjects, platform.MessageSubscription{
+			ResourceTypeId: i["resource_type_id"].(string),
 			Types:          expandStringArray(i["types"].([]interface{})),
 		})
 	}
@@ -437,53 +643,84 @@ func resourceSubscriptionGetMessages(d *schema.ResourceData) []commercetools.Mes
 	return messageObjects
 }
 
-func validateTypeAttribute(val interface{}, key string, attributeFields map[string][]string) (warns []string, errs []error) {
-	valueAsMap := val.(map[string]interface{})
+func validateSubscriptionDestination(d *schema.ResourceData) error {
+	input := d.Get("destination").([]interface{})
 
-	attributeType, ok := valueAsMap["type"]
-
-	if !ok {
-		errs = append(errs, fmt.Errorf("Property 'type' missing"))
-		return warns, errs
+	if len(input) != 1 {
+		return fmt.Errorf("destination is missing")
 	}
 
-	attributeTypeAsString, ok := attributeType.(string)
-	if !ok {
-		errs = append(errs, fmt.Errorf("Property 'type' has wrong type"))
-		return warns, errs
-	}
-	fields, ok := attributeFields[attributeTypeAsString]
-	if !ok {
-		errs = append(errs, fmt.Errorf("Property 'type' has invalid value '%v'", attributeTypeAsString))
-		return warns, errs
+	dst := input[0].(map[string]interface{})
+
+	dstType := dst["type"].(string)
+
+	if dstTypeAlias, ok := destinationFieldAliases[dstType]; ok {
+		dstType = dstTypeAlias
 	}
 
-	for _, field := range fields {
-		value, ok := valueAsMap[field].(string)
+	requiredFields, ok := destinationFields[dstType]
+	if !ok {
+		return fmt.Errorf("invalid type for destination: '%v'", dstType)
+	}
+
+	for _, field := range requiredFields {
+		value, ok := dst[field].(string)
 		if !ok {
-			errs = append(errs, fmt.Errorf("Required property '%v' missing", field))
+			return fmt.Errorf("required property '%v' missing", field)
 		} else if len(value) == 0 {
-			errs = append(errs, fmt.Errorf("Required property '%v' is empty", field))
+			return fmt.Errorf("required property '%v' is empty", field)
 		}
 	}
-
-	return warns, errs
+	return nil
 }
 
-func validateDestination(val interface{}, key string) (warns []string, errs []error) {
-	return validateTypeAttribute(val, key, destinationFields)
-}
+func validateFormat(d *schema.ResourceData) error {
+	input := d.Get("format").([]interface{})
+	if len(input) < 1 {
+		return nil
+	}
 
-func validateFormat(val interface{}, key string) (warns []string, errs []error) {
-	return validateTypeAttribute(val, key, formatFields)
+	format := input[0].(map[string]interface{})
+
+	formatType := format["type"].(string)
+
+	if formatTypeAlias, ok := formatFieldAliases[formatType]; ok {
+		formatType = formatTypeAlias
+	}
+
+	requiredFields, ok := formatFields[formatType]
+	if !ok {
+		return fmt.Errorf("invalid type for format: '%v'", formatType)
+	}
+
+	for _, field := range requiredFields {
+		value, ok := format[field].(string)
+		if !ok {
+			return fmt.Errorf("required property '%v' missing", field)
+		} else if len(value) == 0 {
+			return fmt.Errorf("required property '%v' is empty", field)
+		}
+	}
+	return nil
+
 }
 
 func suppressFuncForAttribute(attribute string, t ...string) schema.SchemaDiffSuppressFunc {
 	return func(k string, old string, new string, d *schema.ResourceData) bool {
-		input := d.Get(attribute).(map[string]interface{})
-		for _, val := range t {
-			if val == input["type"] {
-				return false
+		switch input := d.Get(attribute).(type) {
+		case []interface{}:
+			for _, dest := range input {
+				for _, val := range t {
+					if val == dest.(map[string]interface{})["type"] {
+						return false
+					}
+				}
+			}
+		case map[string]interface{}:
+			for _, val := range t {
+				if val == input["type"] {
+					return false
+				}
 			}
 		}
 		return true
@@ -496,4 +733,82 @@ func suppressIfNotDestinationType(t ...string) schema.SchemaDiffSuppressFunc {
 
 func suppressIfNotFormatType(t ...string) schema.SchemaDiffSuppressFunc {
 	return suppressFuncForAttribute("format", t...)
+}
+
+func resourceSubscriptionResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"key": {
+				Description: "User-specific unique identifier for the subscription",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"destination": {
+				Description: "The Message Queue into which the notifications are to be sent" +
+					"See also the [Destination API Docs](https://docs.commercetools.com/api/projects/subscriptions#destination)",
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{},
+				},
+			},
+			"format": {
+				Description: "The [format](https://docs.commercetools.com/api/projects/subscriptions#format) " +
+					"in which the payload is delivered",
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"changes": {
+				Description: "The change notifications subscribed to",
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"resource_type_ids": {
+							Description: "[Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)",
+							Type:        schema.TypeList,
+							Optional:    true,
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+			"message": {
+				Description: "The messages subscribed to",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"resource_type_id": {
+							Description: "[Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)",
+							Type:        schema.TypeString,
+							Optional:    true,
+						},
+						"types": {
+							Description: "types must contain valid message types for this resource, for example for " +
+								"resource type product the message type ProductPublished is valid. If no types of " +
+								"messages are given, the subscription is valid for all messages of this resource",
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func migrateSubscriptionStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	transformToList(rawState, "destination")
+	transformToList(rawState, "format")
+	return rawState, nil
 }

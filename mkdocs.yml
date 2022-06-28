@@ -1,7 +1,0 @@
-repo_url: https://github.com/labd/terraform-provider-commercetools
-site_name: Commercetools Terraform provider
-theme: readthedocs
-markdown_extensions:
-  - admonition
-google_analytics: ['UA-113995939-3', "commercetools-terraform-provider.readthedocs.io"]
-docs_dir: docs-rtd

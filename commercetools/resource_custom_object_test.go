@@ -3,13 +3,11 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccCustomObjectCreate_basic(t *testing.T) {
@@ -87,6 +85,23 @@ func TestAccCustomObjectCreate_basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				Config: testAccCustomScalarNumber(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_custom_object.scalar_value", "container", "foobar",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_custom_object.scalar_value", "key", "somekey1",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_custom_object.scalar_value", "value", "20",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_custom_object.scalar_value", "version", "1",
+					),
+				),
+			},
 		},
 	})
 }
@@ -125,7 +140,7 @@ func testAccCustomObjectNumber() string {
 		container = "foobar"
 		key = "value"
 		value = jsonencode({
-			number = 10			
+			number = 10
 		})
 	  }`
 }
@@ -136,7 +151,7 @@ func testAccCustomObjectNumberUpdateValue() string {
 		container = "foobar"
 		key = "value"
 		value = jsonencode({
-			number = 20			
+			number = 20
 		})
 	  }`
 }
@@ -147,7 +162,7 @@ func testAccCustomObjectNumberUpdateKey() string {
 		container = "foobar"
 		key = "newvalue"
 		value = jsonencode({
-			number = 20			
+			number = 20
 		})
 	  }`
 }
@@ -158,7 +173,7 @@ func testAccCustomObjectNumberUpdateContainer() string {
 		container = "newbar"
 		key = "newvalue"
 		value = jsonencode({
-			number = 20			
+			number = 20
 		})
 	  }`
 }
@@ -181,24 +196,33 @@ func testAccCustomObjectNestedData() string {
 	  }`
 }
 
+func testAccCustomScalarNumber() string {
+	return `
+	resource "commercetools_custom_object" "scalar_value" {
+		container = "foobar"
+		key = "somekey1"
+		value = 20
+	  }`
+}
+
 func testAccCheckCustomObjectDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*commercetools.Client)
+	conn := getClient(testAccProvider.Meta())
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_custom_object" {
 			continue
 		}
 		container := rs.Primary.Attributes["container"]
-		response, err := conn.CustomObjectGetWithContainer(context.Background(), container)
+		response, err := conn.CustomObjects().WithContainer(container).Get().Execute(context.Background())
 		if err == nil {
-			if response != nil && response.ID == rs.Primary.ID {
+			if response != nil && response.Count > 0 {
 				return fmt.Errorf("custom object container (%s) still exists", container)
 			}
 			return nil
 		}
-		// If we don't get a was not found error, return the actual error. Otherwise resource is destroyed
-		if !strings.Contains(err.Error(), "was not found") && !strings.Contains(err.Error(), "Not Found (404)") {
-			return err
+
+		if newErr := checkApiResult(err); newErr != nil {
+			return newErr
 		}
 	}
 	return nil

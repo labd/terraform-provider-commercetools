@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceAPIClient() *schema.Resource {
@@ -17,11 +18,11 @@ func resourceAPIClient() *schema.Resource {
 			"resulting in a new API client being created everytime Terraform is run. In this case, " +
 			"fix your scopes accordingly to match what is returned by Commercetools.\n\n" +
 			"Also see the [API client HTTP API documentation](https://docs.commercetools.com//http-api-projects-api-clients).",
-		Create: resourceAPIClientCreate,
-		Read:   resourceAPIClientRead,
-		Delete: resourceAPIClientDelete,
+		CreateContext: resourceAPIClientCreate,
+		ReadContext:   resourceAPIClientRead,
+		DeleteContext: resourceAPIClientDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -46,7 +47,7 @@ func resourceAPIClient() *schema.Resource {
 	}
 }
 
-func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
+func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	name := d.Get("name").(string)
 	scopes := d.Get("scope").(*schema.Set).List()
 
@@ -55,47 +56,41 @@ func resourceAPIClientCreate(d *schema.ResourceData, m interface{}) error {
 		scopeParts = append(scopeParts, scopes[i].(string))
 	}
 
-	draft := &commercetools.APIClientDraft{
+	draft := platform.ApiClientDraft{
 		Name:  name,
 		Scope: strings.Join(scopeParts, " "),
 	}
 
 	client := getClient(m)
 
-	var apiClient *commercetools.APIClient
+	var apiClient *platform.ApiClient
 
-	err := resource.Retry(20*time.Second, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
-
-		apiClient, err = client.APIClientCreate(context.Background(), draft)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		apiClient, err = client.ApiClients().Post(draft).Execute(ctx)
+		return processRemoteError(err)
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(apiClient.ID)
 	d.Set("secret", apiClient.Secret)
 
-	return resourceAPIClientRead(d, m)
+	return resourceAPIClientRead(ctx, d, m)
 }
 
-func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
+func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	apiClient, err := client.APIClientGetWithID(context.Background(), d.Id())
+	apiClient, err := client.ApiClients().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(apiClient.ID)
@@ -106,13 +101,13 @@ func resourceAPIClientRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceAPIClientDelete(d *schema.ResourceData, m interface{}) error {
+func resourceAPIClientDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	_, err := client.APIClientDeleteWithID(context.Background(), d.Id())
-	if err != nil {
-		return err
-	}
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ApiClients().WithId(d.Id()).Delete().Execute(ctx)
+		return processRemoteError(err)
+	})
 
-	return nil
+	return diag.FromErr(err)
 }

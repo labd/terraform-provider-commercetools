@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/labd/commercetools-go-sdk/commercetools"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func resourceState() *schema.Resource {
@@ -16,12 +17,12 @@ func resourceState() *schema.Resource {
 			"items, products, reviews, and payments to define finite state machines reflecting the business " +
 			"logic you'd like to implement.\n\n" +
 			"See also the [State API Documentation](https://docs.commercetools.com/api/projects/states)",
-		Create: resourceStateCreate,
-		Read:   resourceStateRead,
-		Update: resourceStateUpdate,
-		Delete: resourceStateDelete,
+		CreateContext: resourceStateCreate,
+		ReadContext:   resourceStateRead,
+		UpdateContext: resourceStateUpdate,
+		DeleteContext: resourceStateDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
@@ -38,22 +39,24 @@ func resourceState() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ValidateFunc: validation.StringInSlice([]string{
-					string(commercetools.StateTypeEnumOrderState),
-					string(commercetools.StateTypeEnumLineItemState),
-					string(commercetools.StateTypeEnumProductState),
-					string(commercetools.StateTypeEnumReviewState),
-					string(commercetools.StateTypeEnumPaymentState),
+					string(platform.StateTypeEnumOrderState),
+					string(platform.StateTypeEnumLineItemState),
+					string(platform.StateTypeEnumProductState),
+					string(platform.StateTypeEnumReviewState),
+					string(platform.StateTypeEnumPaymentState),
 				}, false),
 			},
 			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"description": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"initial": {
 				Description: "A state can be declared as an initial state for any state machine. When a workflow " +
@@ -68,8 +71,8 @@ func resourceState() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 					ValidateFunc: validation.StringInSlice([]string{
-						string(commercetools.StateRoleEnumReviewIncludedInStatistics),
-						string(commercetools.StateRoleEnumReturn),
+						string(platform.StateRoleEnumReviewIncludedInStatistics),
+						string(platform.StateRoleEnumReturn),
 					}, false),
 				},
 			},
@@ -90,72 +93,63 @@ func resourceState() *schema.Resource {
 	}
 }
 
-func resourceStateCreate(d *schema.ResourceData, m interface{}) error {
-	name := commercetools.LocalizedString(
-		expandStringMap(d.Get("name").(map[string]interface{})))
-	description := commercetools.LocalizedString(
-		expandStringMap(d.Get("description").(map[string]interface{})))
+func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	name := expandLocalizedString(d.Get("name"))
+	description := expandLocalizedString(d.Get("description"))
 
-	roles := []commercetools.StateRoleEnum{}
+	roles := []platform.StateRoleEnum{}
 	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
-		roles = append(roles, commercetools.StateRoleEnum(value))
+		roles = append(roles, platform.StateRoleEnum(value))
 	}
 
-	var transitions []commercetools.StateResourceIdentifier
+	var transitions []platform.StateResourceIdentifier
 	for _, value := range d.Get("transitions").(*schema.Set).List() {
-		transitions = append(transitions, commercetools.StateResourceIdentifier{
-			Key: value.(string),
+		transitions = append(transitions, platform.StateResourceIdentifier{
+			ID: stringRef(value),
 		})
 	}
 
-	draft := &commercetools.StateDraft{
+	draft := platform.StateDraft{
 		Key:         d.Get("key").(string),
-		Type:        commercetools.StateTypeEnum(d.Get("type").(string)),
+		Type:        platform.StateTypeEnum(d.Get("type").(string)),
 		Name:        &name,
 		Description: &description,
 		Roles:       roles,
 		Transitions: transitions,
 	}
 
-	// Note the use of GetOkExists since it's an optional bool type
-	if _, exists := d.GetOkExists("initial"); exists {
-		draft.Initial = d.Get("initial").(bool)
+	// Note the use of GetOk since it's an optional bool type
+	if _, exists := d.GetOk("initial"); exists {
+		draft.Initial = boolRef(d.Get("initial"))
 	}
 
 	client := getClient(m)
-	var state *commercetools.State
+	var state *platform.State
 
-	err := resource.Retry(20*time.Second, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
-
-		state, err = client.StateCreate(context.Background(), draft)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		state, err = client.States().Post(draft).Execute(ctx)
+		return processRemoteError(err)
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(state.ID)
 	d.Set("version", state.Version)
-	return resourceStateRead(d, m)
+	return resourceStateRead(ctx, d, m)
 }
 
-func resourceStateRead(d *schema.ResourceData, m interface{}) error {
+func resourceStateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
-	state, err := client.StateGetWithID(context.Background(), d.Id())
-
+	state, err := client.States().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		if ctErr, ok := err.(commercetools.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(state.ID)
@@ -173,96 +167,103 @@ func resourceStateRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("roles", state.Roles)
 	}
 	if state.Transitions != nil {
-		d.Set("transitions", state.Transitions)
+		d.Set("transitions", flattenStateTransitions(state.Transitions))
 	}
 	return nil
 }
 
-func resourceStateUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 
-	input := &commercetools.StateUpdateWithIDInput{
-		ID:      d.Id(),
+	input := platform.StateUpdate{
 		Version: d.Get("version").(int),
-		Actions: []commercetools.StateUpdateAction{},
+		Actions: []platform.StateUpdateAction{},
 	}
 
 	if d.HasChange("name") {
-		newName := commercetools.LocalizedString(
-			expandStringMap(d.Get("name").(map[string]interface{})))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StateSetNameAction{Name: &newName})
+			&platform.StateSetNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := commercetools.LocalizedString(
-			expandStringMap(d.Get("description").(map[string]interface{})))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StateSetDescriptionAction{Description: &newDescription})
+			&platform.StateSetDescriptionAction{Description: newDescription})
 	}
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StateChangeKeyAction{Key: newKey})
+			&platform.StateChangeKeyAction{Key: newKey})
 	}
 
 	if d.HasChange("type") {
-		newType := d.Get("type").(commercetools.StateTypeEnum)
+		newType := d.Get("type").(platform.StateTypeEnum)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StateChangeTypeAction{Type: newType})
+			&platform.StateChangeTypeAction{Type: newType})
 	}
 
 	if d.HasChange("initial") {
 		newInitial := d.Get("initial").(bool)
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StateChangeInitialAction{Initial: newInitial})
+			&platform.StateChangeInitialAction{Initial: newInitial})
 	}
 
 	if d.HasChange("roles") {
-		roles := []commercetools.StateRoleEnum{}
+		roles := []platform.StateRoleEnum{}
 		for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
-			roles = append(roles, commercetools.StateRoleEnum(value))
+			roles = append(roles, platform.StateRoleEnum(value))
 		}
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StateSetRolesAction{Roles: roles})
+			&platform.StateSetRolesAction{Roles: roles})
 	}
 
 	if d.HasChange("transitions") {
-		var transitions []commercetools.StateResourceIdentifier
+		var transitions []platform.StateResourceIdentifier
 		for _, value := range d.Get("transitions").(*schema.Set).List() {
-			transitions = append(transitions, commercetools.StateResourceIdentifier{
-				Key: value.(string),
+			transitions = append(transitions, platform.StateResourceIdentifier{
+				ID: stringRef(value),
 			})
 		}
 		input.Actions = append(
 			input.Actions,
-			&commercetools.StateSetTransitionsAction{
+			&platform.StateSetTransitionsAction{
 				Transitions: transitions,
 			})
 	}
 
-	_, err := client.StateUpdateWithID(context.Background(), input)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.States().WithId(d.Id()).Post(input).Execute(ctx)
+		return processRemoteError(err)
+	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceStateRead(d, m)
+	return resourceStateRead(ctx, d, m)
 }
 
-func resourceStateDelete(d *schema.ResourceData, m interface{}) error {
+func resourceStateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.StateDeleteWithID(context.Background(), d.Id(), version)
-	if err != nil {
-		return err
-	}
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.States().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return processRemoteError(err)
+	})
+	return diag.FromErr(err)
+}
 
-	return nil
+func flattenStateTransitions(values []platform.StateReference) []string {
+	result := make([]string, len(values))
+	for i := range values {
+		result[i] = values[i].ID
+	}
+	return result
 }

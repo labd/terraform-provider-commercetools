@@ -1,3 +1,57 @@
+v1.3.0 (unreleased)
+===================
+ - Update documentation and examples
+ - Add support for custom fields on category, channel, customer_group,
+   discount_code, shipping_method and store resources. (#265)
+ - Improve logic to set the user-agent used in the requests. We now use the
+   provider version. For example:
+     `User-Agent: terraform-provider-commercetools/1.3.0 (bd9cae0)`
+ - Improve the error handling by better communicating the errors raised by
+   commercetools.
+
+v1.2.1 (2022-06-16)
+===================
+ - Fix api_extension resource to not error out when the new condition field is
+   not defined. (#261)
+
+v1.2.0 (2022-06-15)
+===================
+- Fix shipping_zone locations ordering by switching to a set instead of a list
+  of locations (#259)
+- Add aliases for destination and platform on subscription and extension
+  resources (#245, #247, #251)
+- Add condition field to api extension resource
+- Add support for terraform import on the api_extension resource
+- Improve error handling, show errors returned by commercetools in terraform
+  output.
+
+v1.1.0 (2022-06-01)
+===================
+- Fix out of bounds error in the commercetools_type resource (#241)
+- Handle changes to access_secret in api_extension resource (#243)
+
+v1.0.1 (2022-05-25)
+===================
+- Minor release to fix hash error
+
+v1.0.0 (2022-05-23)
+===================
+- Use terraform plugin sdk v2. This changed required various changes and should
+  have made the codebase more robust.
+- Fix marshalling the commercetools to terraform state for various resources.
+- Move documentation to the terraform registry, see
+  https://registry.terraform.io/providers/labd/commercetools/latest/docs
+- Use Go 1.18
+- Add support for AWS EventBridge subscription
+- Resource updates:
+  - project_settings: do case insensitive comparison of the languages, currencies
+    and countries
+  - shipping_zone: make the name required
+  - api_extension: Fix handling of timeout_in_ms when empty
+  - category: add support for setting external_id
+  - category: fix empty key being set on creation
+
+
 v0.30.0 (2021-08-04)
 ====================
 - Resource project: Add `shipping_rate_input_type` setting to enable tiered pricing for a project
