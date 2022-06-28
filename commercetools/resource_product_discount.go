@@ -79,6 +79,12 @@ func resourceProductDiscount() *schema.Resource {
 										Type:        schema.TypeInt,
 										Required:    true,
 									},
+									"fraction_digits": {
+										Description: "The number of default fraction digits for the given currency, like 2 for EUR or 0 for JPY",
+										Type:        schema.TypeInt,
+										Optional:    true,
+										Computed:    true,
+									},
 								},
 							},
 						},

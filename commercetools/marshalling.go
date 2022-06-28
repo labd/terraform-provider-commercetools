@@ -31,8 +31,9 @@ func flattenTypedMoney(val platform.TypedMoney) map[string]interface{} {
 		}
 	case platform.CentPrecisionMoney:
 		return map[string]interface{}{
-			"currency_code": v.CurrencyCode,
-			"cent_amount":   v.CentAmount,
+			"currency_code":   v.CurrencyCode,
+			"cent_amount":     v.CentAmount,
+			"fraction_digits": v.FractionDigits,
 		}
 	}
 	panic("Unknown money type")
@@ -79,6 +80,9 @@ func expandCentPrecisionMoneyDraft(d map[string]interface{}) []platform.CentPrec
 		}
 		if centAmount, ok := data["cent_amount"].(int); ok {
 			item.CentAmount = centAmount
+		}
+		if fractionDigits, ok := data["fraction_digits"].(int); ok {
+			item.FractionDigits = &fractionDigits
 		}
 		result = append(result, item)
 	}
