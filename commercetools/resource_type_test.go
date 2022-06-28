@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/labd/commercetools-go-sdk/platform"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFieldTypeElement(t *testing.T) {
@@ -130,18 +129,21 @@ func TestGetFieldType(t *testing.T) {
 }
 
 func TestAccTypes_basic(t *testing.T) {
-	name := "acctest_type"
+	key := "acctest-type"
+	identifier := "acctest_type"
+	resourceName := fmt.Sprintf("commercetools_type.%s", identifier)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckTypesDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTypeConfig(name),
+				Config: testAccTypeConfig(identifier, key),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTypeExists("acctest_type"),
+					testAccTypeExists(identifier),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "key", name),
+						resourceName, "key", key),
 				),
 			},
 		},
@@ -149,54 +151,57 @@ func TestAccTypes_basic(t *testing.T) {
 }
 
 func TestAccTypes_UpdateWithID(t *testing.T) {
-	name := "acctest_type"
+	key := "acctest-type"
+	identifier := "acctest_type"
+	resourceName := fmt.Sprintf("commercetools_type.%s", identifier)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckTypesDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTypeConfig(name),
+				Config: testAccTypeConfig(identifier, key),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTypeExists("acctest_type"),
+					testAccTypeExists(identifier),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "key", name),
+						resourceName, "key", key),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.0.name", "skype_name"),
+						resourceName, "field.0.name", "skype_name"),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.1.name", "existing_enum"),
+						resourceName, "field.1.name", "existing_enum"),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.1.type.0.element_type.0.values.%", "2"),
+						resourceName, "field.1.type.0.element_type.0.values.%", "2"),
 				),
 			},
 			{
-				Config: testAccTypeUpdateWithID(name),
+				Config: testAccTypeUpdateWithID(identifier, key),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTypeExists("acctest_type"),
+					testAccTypeExists(identifier),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "key", name),
+						resourceName, "key", key),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.#", "12"),
+						resourceName, "field.#", "12"),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.3.name", "icq_uin"),
+						resourceName, "field.3.name", "icq_uin"),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.4.name", "testing"),
+						resourceName, "field.4.name", "testing"),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.1.name", "existing_enum"),
+						resourceName, "field.1.name", "existing_enum"),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.1.type.0.element_type.0.values.%", "3"),
+						resourceName, "field.1.type.0.element_type.0.values.%", "3"),
 					resource.TestCheckResourceAttr(
-						"commercetools_type.acctest_type", "field.1.type.0.element_type.0.values.evening", "Evening Changed"),
+						resourceName, "field.1.type.0.element_type.0.values.evening", "Evening Changed"),
 				),
 			},
 		},
 	})
 }
 
-func testAccTypeConfig(name string) string {
-	return fmt.Sprintf(`
-resource "commercetools_type" "%s" {
-	key = "%s"
+func testAccTypeConfig(identifier, key string) string {
+	return hclTemplate(`
+resource "commercetools_type" "{{ .identifier }}" {
+	key = "{{ .key }}"
 	name = {
 		en = "Contact info"
 		nl = "Contact informatie"
@@ -237,10 +242,13 @@ resource "commercetools_type" "%s" {
 		}
 	}
 
-}`, name, name)
+}`, map[string]interface{}{
+		"identifier": identifier,
+		"key":        key,
+	})
 }
 
-func testAccTypeUpdateWithID(name string) string {
+func testAccTypeUpdateWithID(identifier, key string) string {
 	newFields := []string{
 		"Boolean",
 		"LocalizedString",
@@ -253,24 +261,28 @@ func testAccTypeUpdateWithID(name string) string {
 	var newFieldsBuffer bytes.Buffer
 	for _, newType := range newFields {
 		newFieldsBuffer.WriteString(
-			fmt.Sprintf(`
+			hclTemplate(`
 		field {
-			name = "%[1]s"
+			name = "{{ .name }}"
 			label = {
-				en = "%[1]s"
-				nl = "%[1]s"
+				en = "{{ .label }}"
+				nl = "{{ .label }}"
 			}
 
 			type {
-				name = "%[1]s"
+				name = "{{ .typeName }}"
 			}
 		}
-		`, newType))
+		`, map[string]interface{}{
+				"name":     newType,
+				"label":    newType,
+				"typeName": newType,
+			}))
 	}
 
-	return fmt.Sprintf(`
-resource "commercetools_type" "%s" {
-	key = "%s"
+	return hclTemplate(`
+resource "commercetools_type" "{{ .identifier }}" {
+	key = "{{ .key }}"
 	name = {
 		en = "Contact info"
 		nl = "Contact informatie"
@@ -362,32 +374,19 @@ resource "commercetools_type" "%s" {
 		}
 	}
 
-	%s
-}`, name, name, newFieldsBuffer.String())
+	{{ .newFields }}
+
+}`, map[string]interface{}{
+		"identifier": identifier,
+		"key":        key,
+		"newFields":  newFieldsBuffer.String(),
+	})
 }
 
 func testAccTypeExists(n string) resource.TestCheckFunc {
-	name := fmt.Sprintf("commercetools_type.%s", n)
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Type ID is set")
-		}
-
-		client := getClient(testAccProvider.Meta())
-		result, err := client.Types().WithId(rs.Primary.ID).Get().Execute(context.Background())
-		if err != nil {
-			return err
-		}
-		if result == nil {
-			return fmt.Errorf("Type not found")
-		}
-
-		return nil
+		_, err := testGetType(s, fmt.Sprintf("commercetools_type.%s", n))
+		return err
 	}
 }
 
@@ -410,4 +409,18 @@ func testAccCheckTypesDestroy(s *terraform.State) error {
 		}
 	}
 	return nil
+}
+
+func testGetType(s *terraform.State, identifier string) (*platform.Type, error) {
+	rs, ok := s.RootModule().Resources[identifier]
+	if !ok {
+		return nil, fmt.Errorf("Type %s not found", identifier)
+	}
+
+	client := getClient(testAccProvider.Meta())
+	result, err := client.Types().WithId(rs.Primary.ID).Get().Execute(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
