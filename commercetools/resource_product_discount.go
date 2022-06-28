@@ -82,26 +82,6 @@ func resourceProductDiscount() *schema.Resource {
 								},
 							},
 						},
-						"product_id": {
-							Description: "Gift Line Item discount specific field",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"variant": {
-							Description: "Gift Line Item discount specific field",
-							Type:        schema.TypeInt,
-							Optional:    true,
-						},
-						"supply_channel_id": {
-							Description: "Gift Line Item discount specific field",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"distribution_channel_id": {
-							Description: "Gift Line Item discount specific field",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
 					},
 				},
 			},
