@@ -175,6 +175,189 @@ func TestAccProductDiscountCreate_basic(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccProductDiscountUpdateValue(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "key", "standard_new",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "name.en", "standard name new",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "description.en", "Standard description new",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "sort_order", "0.8",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "predicate", "1=1",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "valid_from", "2017-01-02T15:04:05Z",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "valid_until", "2018-01-02T15:04:05Z",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "value.0.type", "absolute",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "value.0.permyriad", "0",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "value.0.money.0.cent_amount", "100",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "value.0.money.0.currency_code", "EUR",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "is_active", "false",
+					),
+					func(s *terraform.State) error {
+						res, err := testGetProductDiscount(s, "commercetools_product_discount.standard")
+						if err != nil {
+							return err
+						}
+
+						key := "standard_new"
+
+						validFrom, _ := expandTime("2017-01-02T15:04:05Z")
+						validUntil, _ := expandTime("2018-01-02T15:04:05Z")
+
+						expected := &platform.ProductDiscount{
+							ID:             res.ID,
+							Version:        res.Version,
+							CreatedAt:      res.CreatedAt,
+							CreatedBy:      res.CreatedBy,
+							LastModifiedAt: res.LastModifiedAt,
+							LastModifiedBy: res.LastModifiedBy,
+
+							References: res.References, // TODO
+
+							ValidFrom:  &validFrom,
+							ValidUntil: &validUntil,
+
+							Key: &key,
+							Name: platform.LocalizedString{
+								"en": "standard name new",
+							},
+							Description: &platform.LocalizedString{
+								"en": "Standard description new",
+							},
+							IsActive:  false,
+							Predicate: "1=1",
+							SortOrder: "0.8",
+							Value: platform.ProductDiscountValueAbsolute{
+								Money: []platform.CentPrecisionMoney{
+									{
+										CentAmount:     100,
+										CurrencyCode:   "EUR",
+										FractionDigits: 2,
+									},
+								},
+							},
+						}
+
+						assert.EqualValues(t, expected, res)
+
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccProductDiscountUpdateValueFractionDigits(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "key", "standard_new",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "name.en", "standard name new",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "description.en", "Standard description new",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "sort_order", "0.8",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "predicate", "1=1",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "valid_from", "2017-01-02T15:04:05Z",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "valid_until", "2018-01-02T15:04:05Z",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "value.0.type", "absolute",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "value.0.permyriad", "0",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "value.0.money.0.cent_amount", "100",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "value.0.money.0.currency_code", "EUR",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "value.0.money.0.fraction_digits", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"commercetools_product_discount.standard", "is_active", "false",
+					),
+					func(s *terraform.State) error {
+						res, err := testGetProductDiscount(s, "commercetools_product_discount.standard")
+						if err != nil {
+							return err
+						}
+
+						key := "standard_new"
+
+						validFrom, _ := expandTime("2017-01-02T15:04:05Z")
+						validUntil, _ := expandTime("2018-01-02T15:04:05Z")
+
+						expected := &platform.ProductDiscount{
+							ID:             res.ID,
+							Version:        res.Version,
+							CreatedAt:      res.CreatedAt,
+							CreatedBy:      res.CreatedBy,
+							LastModifiedAt: res.LastModifiedAt,
+							LastModifiedBy: res.LastModifiedBy,
+
+							References: res.References, // TODO
+
+							ValidFrom:  &validFrom,
+							ValidUntil: &validUntil,
+
+							Key: &key,
+							Name: platform.LocalizedString{
+								"en": "standard name new",
+							},
+							Description: &platform.LocalizedString{
+								"en": "Standard description new",
+							},
+							IsActive:  false,
+							Predicate: "1=1",
+							SortOrder: "0.8",
+							Value: platform.ProductDiscountValueAbsolute{
+								Money: []platform.CentPrecisionMoney{
+									{
+										CentAmount:     100,
+										CurrencyCode:   "EUR",
+										FractionDigits: 1,
+									},
+								},
+							},
+						}
+
+						assert.EqualValues(t, expected, res)
+
+						return nil
+					},
+				),
+			},
+			{
 				Config: testAccProductDiscountRemoveProperties(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -301,6 +484,63 @@ func testAccProductDiscountUpdate() string {
 		value {
 			type      = "relative"
 			permyriad = 856
+		}
+
+		is_active = false
+	  }
+	  `
+}
+
+func testAccProductDiscountUpdateValue() string {
+	return `
+	resource "commercetools_product_discount" "standard" {
+		key = "standard_new"
+		name = {
+		  en = "standard name new"
+		}
+		description = {
+			en = "Standard description new"
+		  }
+		sort_order             = "0.8"
+		predicate              = "1=1"
+		valid_from             = "2017-01-02T15:04:05Z"
+		valid_until            = "2018-01-02T15:04:05Z"
+
+		value {
+			type      = "absolute"
+			money {
+				cent_amount = 100
+				currency_code = "EUR"
+			}
+		}
+
+		is_active = false
+	  }
+	  `
+}
+
+func testAccProductDiscountUpdateValueFractionDigits() string {
+	return `
+	resource "commercetools_product_discount" "standard" {
+		key = "standard_new"
+		name = {
+		  en = "standard name new"
+		}
+		description = {
+			en = "Standard description new"
+		  }
+		sort_order             = "0.8"
+		predicate              = "1=1"
+		valid_from             = "2017-01-02T15:04:05Z"
+		valid_until            = "2018-01-02T15:04:05Z"
+
+		value {
+			type      = "absolute"
+			money {
+				cent_amount = 100
+				currency_code = "EUR"
+				fraction_digits = 1
+			}
 		}
 
 		is_active = false
