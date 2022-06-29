@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccCartDiscountCreate_basic(t *testing.T) {
@@ -22,48 +23,33 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 			{
 				Config: testAccCartDiscountConfig(identifier, "standard"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						resourceName, "key", "standard",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "name.en", "standard name",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "description.en", "Standard description",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "sort_order", "0.9",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "predicate", "1=1",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "stacking_mode", "Stacking",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "requires_discount_code", "true",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "valid_from", "2018-01-02T15:04:05Z",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "valid_until", "2019-01-02T15:04:05Z",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "target.0.type", "lineItems",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "target.0.predicate", "1=1",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "value.0.type", "relative",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "value.0.permyriad", "1000",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "is_active", "true",
-					),
+					resource.TestCheckResourceAttr(resourceName, "key", "standard"),
+					resource.TestCheckResourceAttr(resourceName, "name.en", "standard name"),
+					resource.TestCheckResourceAttr(resourceName, "description.en", "Standard description"),
+					resource.TestCheckResourceAttr(resourceName, "sort_order", "0.9"),
+					resource.TestCheckResourceAttr(resourceName, "predicate", "1=1"),
+					resource.TestCheckResourceAttr(resourceName, "stacking_mode", "Stacking"),
+					resource.TestCheckResourceAttr(resourceName, "requires_discount_code", "true"),
+					resource.TestCheckResourceAttr(resourceName, "valid_from", "2018-01-02T15:04:05Z"),
+					resource.TestCheckResourceAttr(resourceName, "valid_until", "2019-01-02T15:04:05Z"),
+					resource.TestCheckResourceAttr(resourceName, "target.0.type", "lineItems"),
+					resource.TestCheckResourceAttr(resourceName, "target.0.predicate", "1=1"),
+					resource.TestCheckResourceAttr(resourceName, "value.0.type", "relative"),
+					resource.TestCheckResourceAttr(resourceName, "value.0.permyriad", "1000"),
+					resource.TestCheckResourceAttr(resourceName, "is_active", "true"),
+					func(s *terraform.State) error {
+						res, err := testGetCartDiscount(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						assert.NotNil(t, res)
+						assert.EqualValues(t, res.Name["en"], "standard name")
+						assert.EqualValues(t, (*res.Key), "standard")
+						assert.True(t, res.IsActive)
+						assert.True(t, res.RequiresDiscountCode)
+						return nil
+					},
 				),
 			},
 			{
