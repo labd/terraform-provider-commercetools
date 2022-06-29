@@ -1,6 +1,8 @@
 {
     "go.testEnvVars": {
         "TF_ACC": "1",
+        "TF_LOG": "INFO",
+        "CTP_DEBUG": 1,
         "CTP_CLIENT_ID": "unittest",
         "CTP_CLIENT_SECRET": "x",
         "CTP_PROJECT_KEY": "unittest",
