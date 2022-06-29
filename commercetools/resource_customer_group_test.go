@@ -111,67 +111,66 @@ func TestAccCustomerGroupCreate_CustomField(t *testing.T) {
 }
 
 func testAccCustomerGroupConfig() string {
-	return `
-resource "commercetools_customer_group" "standard" {
-	name = "Standard name"
-	key  = "standard-key"
-}
-`
+	return hclTemplate(`
+		resource "commercetools_customer_group" "standard" {
+			name = "Standard name"
+			key  = "standard-key"
+		}`,
+		map[string]any{})
 }
 
 func testAccCustomerGroupUpdate() string {
-	return `
-resource "commercetools_customer_group" "standard" {
-	name = "Standard name new"
-	key  = "standard-key-new"
-}
-`
+	return hclTemplate(`
+		resource "commercetools_customer_group" "standard" {
+			name = "Standard name new"
+			key  = "standard-key-new"
+		}`,
+		map[string]any{})
 }
 
 func testAccCustomerGroupRemoveProperties() string {
-	return `
-resource "commercetools_customer_group" "standard" {
-	name = "Standard name new"
-}
-`
+	return hclTemplate(`
+		resource "commercetools_customer_group" "standard" {
+			name = "Standard name new"
+		}`,
+		map[string]any{})
 }
 
 func testAccCustomerGroupCustomField() string {
-	return `
-
-	resource "commercetools_type" "test" {
-		key = "test-for-customer-group"
-		name = {
-			en = "for customer-group"
-		}
-		description = {
-			en = "Custom Field for customer-group resource"
-		}
-
-		resource_type_ids = ["customer-group"]
-
-		field {
-			name = "my-field"
-			label = {
-				en = "My Custom field"
+	return hclTemplate(`
+		resource "commercetools_type" "test" {
+			key = "test-for-customer-group"
+			name = {
+				en = "for customer-group"
 			}
-			type {
-				name = "String"
+			description = {
+				en = "Custom Field for customer-group resource"
 			}
-		}
-	}
 
-	resource "commercetools_customer_group" "standard" {
-		name = "Standard name"
-		key  = "standard-key"
-		custom {
-			type_id = commercetools_type.test.id
-			fields = {
-				"my-field" = "bar"
+			resource_type_ids = ["customer-group"]
+
+			field {
+				name = "my-field"
+				label = {
+					en = "My Custom field"
+				}
+				type {
+					name = "String"
+				}
 			}
 		}
-	}
-	`
+
+		resource "commercetools_customer_group" "standard" {
+			name = "Standard name"
+			key  = "standard-key"
+			custom {
+				type_id = commercetools_type.test.id
+				fields = {
+					"my-field" = "bar"
+				}
+			}
+		}`,
+		map[string]any{})
 }
 
 func testAccCheckCustomerGroupDestroy(s *terraform.State) error {

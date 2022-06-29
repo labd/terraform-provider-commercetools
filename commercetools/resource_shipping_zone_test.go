@@ -43,6 +43,7 @@ func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 	key := "key"
 	name := "name"
 	description := "description"
+	resourceName := "commercetools_shipping_zone.standard"
 
 	newKey := "new-key"
 	newName := "new name"
@@ -56,69 +57,55 @@ func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 			{
 				Config: testAccShippingZoneConfig(name, description, key),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "name", name,
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "description", description,
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.#", "2",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.0.country", "DE",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.0.state", "",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "key", key,
-					),
+					resource.TestCheckResourceAttr(resourceName, "name", name),
+					resource.TestCheckResourceAttr(resourceName, "description", description),
+					resource.TestCheckResourceAttr(resourceName, "location.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "location.0.country", "DE"),
+					resource.TestCheckResourceAttr(resourceName, "location.0.state", ""),
+					resource.TestCheckResourceAttr(resourceName, "key", key),
 				),
 			},
 			{
 				Config: testAccShippingZoneConfig(newName, newDescription, newKey),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "name", newName,
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "description", newDescription,
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.#", "2",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "key", newKey,
-					),
+					resource.TestCheckResourceAttr(resourceName, "name", newName),
+					resource.TestCheckResourceAttr(resourceName, "description", newDescription),
+					resource.TestCheckResourceAttr(resourceName, "location.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "key", newKey),
 				),
 			},
 		},
 	})
 }
 
-func testAccShippingZoneConfig(name string, description string, key string) string {
-	return fmt.Sprintf(`
-resource "commercetools_shipping_zone" "standard" {
-	name        = "%s"
-	description = "%s"
-	key         = "%s"
+func testAccShippingZoneConfig(name, description, key string) string {
+	return hclTemplate(`
+		resource "commercetools_shipping_zone" "standard" {
+			name        = "{{ .name }}"
+			description = "{{ .description }}"
+			key         = "{{ .key }}"
 
-	location {
-		country = "DE"
-	}
+			location {
+				country = "DE"
+			}
 
-	location {
-		country = "US"
-		state = "Nevada"
-	}
-}`, name, description, key)
+			location {
+				country = "US"
+				state = "Nevada"
+			}
+		}`,
+		map[string]any{
+			"name":        name,
+			"description": description,
+			"key":         key,
+		})
 }
 
 func TestAccShippingZone_createAndAddLocation(t *testing.T) {
 
 	name := "name"
 	description := "description"
+	resourceName := "commercetools_shipping_zone.standard"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -128,44 +115,22 @@ func TestAccShippingZone_createAndAddLocation(t *testing.T) {
 			{
 				Config: testAccShippingZoneConfig(name, description, name),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "name", name,
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.0.country", "DE",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.1.country", "US",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.1.state", "Nevada",
-					),
+					resource.TestCheckResourceAttr(resourceName, "name", name),
+					resource.TestCheckResourceAttr(resourceName, "location.0.country", "DE"),
+					resource.TestCheckResourceAttr(resourceName, "location.1.country", "US"),
+					resource.TestCheckResourceAttr(resourceName, "location.1.state", "Nevada"),
 				),
 			},
 			{
 				Config: testAccShippingZoneConfigLocationAdded(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "name", "the zone",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "description", "the description",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.#", "3",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.0.country", "DE",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.1.country", "ES",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.2.country", "US",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.2.state", "Nevada",
-					),
+					resource.TestCheckResourceAttr(resourceName, "name", "the zone"),
+					resource.TestCheckResourceAttr(resourceName, "description", "the description"),
+					resource.TestCheckResourceAttr(resourceName, "location.#", "3"),
+					resource.TestCheckResourceAttr(resourceName, "location.0.country", "DE"),
+					resource.TestCheckResourceAttr(resourceName, "location.1.country", "ES"),
+					resource.TestCheckResourceAttr(resourceName, "location.2.country", "US"),
+					resource.TestCheckResourceAttr(resourceName, "location.2.state", "Nevada"),
 				),
 			},
 		},
@@ -173,30 +138,31 @@ func TestAccShippingZone_createAndAddLocation(t *testing.T) {
 }
 
 func testAccShippingZoneConfigLocationAdded() string {
-	return `
-resource "commercetools_shipping_zone" "standard" {
-	name        = "the zone"
-	description = "the description"
+	return hclTemplate(`
+		resource "commercetools_shipping_zone" "standard" {
+			name        = "the zone"
+			description = "the description"
 
-	location {
-		country = "DE"
-	}
+			location {
+				country = "DE"
+			}
 
-	location {
-		country = "ES"
-	}
+			location {
+				country = "ES"
+			}
 
-	location {
-		country = "US"
-		state = "Nevada"
-	}
-}`
+			location {
+				country = "US"
+				state = "Nevada"
+			}
+		}`, map[string]any{})
 }
 
 func TestAccShippingZone_createAndRemoveLocation(t *testing.T) {
 
 	name := "name"
 	description := "description"
+	resourceName := "commercetools_shipping_zone.standard"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -206,38 +172,20 @@ func TestAccShippingZone_createAndRemoveLocation(t *testing.T) {
 			{
 				Config: testAccShippingZoneConfig(name, description, name),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "name", name,
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.0.country", "DE",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.1.country", "US",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.1.state", "Nevada",
-					),
+					resource.TestCheckResourceAttr(resourceName, "name", name),
+					resource.TestCheckResourceAttr(resourceName, "location.0.country", "DE"),
+					resource.TestCheckResourceAttr(resourceName, "location.1.country", "US"),
+					resource.TestCheckResourceAttr(resourceName, "location.1.state", "Nevada"),
 				),
 			},
 			{
 				Config: testAccShippingZoneConfigLocationRemoved(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "name", "the zone",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "description", "the description",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.0.country", "US",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_shipping_zone.standard", "location.0.state", "Nevada",
-					),
+					resource.TestCheckResourceAttr(resourceName, "name", "the zone"),
+					resource.TestCheckResourceAttr(resourceName, "description", "the description"),
+					resource.TestCheckResourceAttr(resourceName, "location.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "location.0.country", "US"),
+					resource.TestCheckResourceAttr(resourceName, "location.0.state", "Nevada"),
 				),
 			},
 		},
@@ -245,16 +193,16 @@ func TestAccShippingZone_createAndRemoveLocation(t *testing.T) {
 }
 
 func testAccShippingZoneConfigLocationRemoved() string {
-	return `
-resource "commercetools_shipping_zone" "standard" {
-	name        = "the zone"
-	description = "the description"
+	return hclTemplate(`
+		resource "commercetools_shipping_zone" "standard" {
+			name        = "the zone"
+			description = "the description"
 
-	location {
-		country = "US"
-		state = "Nevada"
-	}
-}`
+			location {
+				country = "US"
+				state = "Nevada"
+			}
+		}`, map[string]any{})
 }
 
 func testAccCheckShippingZoneDestroy(s *terraform.State) error {

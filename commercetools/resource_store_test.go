@@ -14,6 +14,7 @@ import (
 func TestAccStore_createAndUpdateWithID(t *testing.T) {
 
 	name := "test method"
+	resourceName := "commercetools_store.test"
 	key := "test-method"
 	languages := []string{"en-US"}
 
@@ -25,14 +26,10 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 			{
 				Config: testAccStoreConfig("test", name, key),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "name.en", name,
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "key", key,
-					),
+					resource.TestCheckResourceAttr(resourceName, "name.en", name),
+					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						res, err := testGetStore(s, "commercetools_store.test")
+						res, err := testGetStore(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -48,14 +45,10 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 			{
 				Config: testAccStoreConfig("test", "new test method", key),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "name.en", "new test method",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "key", key,
-					),
+					resource.TestCheckResourceAttr(resourceName, "name.en", "new test method"),
+					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						res, err := testGetStore(s, "commercetools_store.test")
+						res, err := testGetStore(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -70,14 +63,10 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 			{
 				Config: testAccStoreConfigWithLanguages("test", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "languages.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "languages.0", "en-US",
-					),
+					resource.TestCheckResourceAttr(resourceName, "languages.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "languages.0", "en-US"),
 					func(s *terraform.State) error {
-						res, err := testGetStore(s, "commercetools_store.test")
+						res, err := testGetStore(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -91,12 +80,8 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 			{
 				Config: testAccStoreConfigWithLanguages("other", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_store.other", "languages.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_store.other", "languages.0", "en-US",
-					),
+					resource.TestCheckResourceAttr("commercetools_store.other", "languages.#", "1"),
+					resource.TestCheckResourceAttr("commercetools_store.other", "languages.0", "en-US"),
 					func(s *terraform.State) error {
 						res, err := testGetStore(s, "commercetools_store.other")
 						if err != nil {
@@ -114,6 +99,7 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 }
 
 func TestAccStore_createAndUpdateDistributionLanguages(t *testing.T) {
+	resourceName := "commercetools_store.test"
 	name := "test dl"
 	key := "test-dl"
 	languages := []string{"en-US"}
@@ -126,31 +112,21 @@ func TestAccStore_createAndUpdateDistributionLanguages(t *testing.T) {
 			{
 				Config: testAccStoreConfigWithChannels("test", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "distribution_channels.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "distribution_channels.0", "TEST",
-					),
+					resource.TestCheckResourceAttr(resourceName, "distribution_channels.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "distribution_channels.0", "TEST"),
 				),
 			},
 			{
 				Config: testAccStoreConfigWithoutChannels("test", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "distribution_channels.#", "0",
-					),
+					resource.TestCheckResourceAttr(resourceName, "distribution_channels.#", "0"),
 				),
 			},
 			{
 				Config: testAccStoreConfigWithChannels("test", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "distribution_channels.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "distribution_channels.0", "TEST",
-					),
+					resource.TestCheckResourceAttr(resourceName, "distribution_channels.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "distribution_channels.0", "TEST"),
 				),
 			},
 		},
@@ -158,7 +134,7 @@ func TestAccStore_createAndUpdateDistributionLanguages(t *testing.T) {
 }
 
 func TestAccStore_CustomField(t *testing.T) {
-
+	resourceName := "commercetools_store.test"
 	name := "test method"
 	key := "standard"
 
@@ -170,14 +146,10 @@ func TestAccStore_CustomField(t *testing.T) {
 			{
 				Config: testAccStoreConfigWithCustomField("test", name, key, []string{}),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "name.en", name,
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_store.test", "key", key,
-					),
+					resource.TestCheckResourceAttr(resourceName, "name.en", name),
+					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						res, err := testGetStore(s, "commercetools_store.test")
+						res, err := testGetStore(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -194,7 +166,7 @@ func TestAccStore_CustomField(t *testing.T) {
 				Config: testAccStoreConfigWithChannels("test", name, key, []string{}),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
-						res, err := testGetStore(s, "commercetools_store.test")
+						res, err := testGetStore(s, resourceName)
 						if err != nil {
 							return err
 						}

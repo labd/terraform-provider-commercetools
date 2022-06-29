@@ -74,49 +74,49 @@ func TestAccChannel_CustomField(t *testing.T) {
 }
 
 func testAccNewChannel() string {
-	return `
-	resource "commercetools_channel" "test" {
-		key = "test"
-		roles = ["ProductDistribution"]
-	}
-	`
+	return hclTemplate(`
+		resource "commercetools_channel" "test" {
+			key = "test"
+			roles = ["ProductDistribution"]
+		}
+	`, map[string]any{})
 }
 
 func testAccNewChannelConfigWithCustomField() string {
-	return `
-	resource "commercetools_type" "test" {
-		key = "test-for-channel"
-		name = {
-			en = "for channel"
-		}
-		description = {
-			en = "Custom Field for channel resource"
-		}
-
-		resource_type_ids = ["channel"]
-
-		field {
-			name = "my-field"
-			label = {
-				en = "My Custom field"
+	return hclTemplate(`
+		resource "commercetools_type" "test" {
+			key = "test-for-channel"
+			name = {
+				en = "for channel"
 			}
-			type {
-				name = "String"
+			description = {
+				en = "Custom Field for channel resource"
 			}
-		}
-	}
 
-	resource "commercetools_channel" "test" {
-		key = "test"
-		roles = ["ProductDistribution"]
-		custom {
-			type_id = commercetools_type.test.id
-			fields = {
-				"my-field" = "foobar"
+			resource_type_ids = ["channel"]
+
+			field {
+				name = "my-field"
+				label = {
+					en = "My Custom field"
+				}
+				type {
+					name = "String"
+				}
 			}
 		}
-	}
-	`
+
+		resource "commercetools_channel" "test" {
+			key = "test"
+			roles = ["ProductDistribution"]
+			custom {
+				type_id = commercetools_type.test.id
+				fields = {
+					"my-field" = "foobar"
+				}
+			}
+		}
+	`, map[string]any{})
 }
 
 func testAccCheckChannelDestroy(s *terraform.State) error {

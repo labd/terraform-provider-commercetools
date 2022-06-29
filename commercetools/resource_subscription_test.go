@@ -107,6 +107,7 @@ func TestValidateSubscriptionDestination(t *testing.T) {
 
 func TestAccSubscription_basic(t *testing.T) {
 	rName := acctest.RandString(5)
+	key := fmt.Sprintf("commercetools-acc-%s", rName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -114,45 +115,52 @@ func TestAccSubscription_basic(t *testing.T) {
 		CheckDestroy: testAccCheckSubscriptionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccSubscriptionConfig(rName),
+				Config:      testAccSubscriptionConfig("subscription", key),
 				ExpectError: regexp.MustCompile(".*A test message could not be delivered to this destination: SQS.*"),
 			},
 		},
 	})
 }
 
-func testAccSubscriptionConfig(rName string) string {
+func testAccSubscriptionConfig(identifier, key string) string {
 	queueURL := "https://sqs.eu-west-1.amazonaws.com/0000000000/some-queue"
 	accessKey := "some-access-key"
 	secretKey := "some-secret-key"
 
-	return fmt.Sprintf(`
-resource "commercetools_subscription" "subscription_%[1]s" {
-	key = "commercetools-acc-%[1]s"
+	return hclTemplate(`
+		resource "commercetools_subscription" "{{ .identifier }}" {
+			key = "commercetools-acc-{{ .key }}"
 
-	destination {
-		type          = "SQS"
-		queue_url     = "%[2]s"
-		access_key    = "%[3]s"
-		access_secret = "%[4]s"
-		region        = "eu-west-1"
-	}
+			destination {
+				type          = "SQS"
+				queue_url     = "{{ .queueURL }}"
+				access_key    = "{{ .accessKey }}"
+				access_secret = "{{ .secretKey }}"
+				region        = "eu-west-1"
+			}
 
-	format {
-		type = "Platform"
-	}
+			format {
+				type = "Platform"
+			}
 
-	changes {
-		resource_type_ids = ["customer"]
-	}
+			changes {
+				resource_type_ids = ["customer"]
+			}
 
-	message {
-		resource_type_id = "product"
+			message {
+				resource_type_id = "product"
 
-		types = ["ProductPublished", "ProductCreated"]
-	}
-}
-`, rName, queueURL, accessKey, secretKey)
+				types = ["ProductPublished", "ProductCreated"]
+			}
+		}
+		`,
+		map[string]any{
+			"identifier": identifier,
+			"key":        key,
+			"queueURL":   queueURL,
+			"accessKey":  accessKey,
+			"secretKey":  secretKey,
+		})
 }
 
 func testAccCheckSubscriptionDestroy(s *terraform.State) error {

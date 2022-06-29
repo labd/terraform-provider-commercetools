@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccCustomObjectCreate_basic(t *testing.T) {
@@ -135,74 +134,80 @@ func TestAccCustomObjectCreate_object(t *testing.T) {
 }
 
 func testAccCustomObjectNumber() string {
-	return `
-	resource "commercetools_custom_object" "test_number" {
-		container = "foobar"
-		key = "value"
-		value = jsonencode({
-			number = 10
-		})
-	  }`
+	return hclTemplate(`
+		resource "commercetools_custom_object" "test_number" {
+			container = "foobar"
+			key = "value"
+			value = jsonencode({
+				number = 10
+			})
+		}`,
+		map[string]any{})
 }
 
 func testAccCustomObjectNumberUpdateValue() string {
-	return `
-	resource "commercetools_custom_object" "test_number" {
-		container = "foobar"
-		key = "value"
-		value = jsonencode({
-			number = 20
-		})
-	  }`
+	return hclTemplate(`
+		resource "commercetools_custom_object" "test_number" {
+			container = "foobar"
+			key = "value"
+			value = jsonencode({
+				number = 20
+			})
+		}`,
+		map[string]any{})
 }
 
 func testAccCustomObjectNumberUpdateKey() string {
-	return `
-	resource "commercetools_custom_object" "test_number" {
-		container = "foobar"
-		key = "newvalue"
-		value = jsonencode({
-			number = 20
-		})
-	  }`
+	return hclTemplate(`
+		resource "commercetools_custom_object" "test_number" {
+			container = "foobar"
+			key = "newvalue"
+			value = jsonencode({
+				number = 20
+			})
+	  	}`,
+		map[string]any{})
 }
 
 func testAccCustomObjectNumberUpdateContainer() string {
-	return `
-	resource "commercetools_custom_object" "test_number" {
-		container = "newbar"
-		key = "newvalue"
-		value = jsonencode({
-			number = 20
-		})
-	  }`
+	return hclTemplate(`
+		resource "commercetools_custom_object" "test_number" {
+			container = "newbar"
+			key = "newvalue"
+			value = jsonencode({
+				number = 20
+			})
+		}`,
+		map[string]any{})
 }
 
 func testAccCustomObjectNestedData() string {
-	return `
-	resource "commercetools_custom_object" "test_nested" {
-		container = "foobar"
-		key = "nested"
-		value = jsonencode({
-			address = {
-				street = "foo"
-				number = 10
-			}
-			user = {
-				name = "John"
-				last_name = "Smith"
-			}
-		})
-	  }`
+	return hclTemplate(`
+		resource "commercetools_custom_object" "test_nested" {
+			container = "foobar"
+			key = "nested"
+			value = jsonencode({
+				address = {
+					street = "foo"
+					number = 10
+				}
+				user = {
+					name = "John"
+					last_name = "Smith"
+				}
+			})
+		}`,
+		map[string]any{})
 }
 
 func testAccCustomScalarNumber() string {
-	return `
-	resource "commercetools_custom_object" "scalar_value" {
-		container = "foobar"
-		key = "somekey1"
-		value = 20
-	  }`
+	return hclTemplate(`
+		resource "commercetools_custom_object" "scalar_value" {
+			container = "foobar"
+			key = "somekey1"
+			value = 20
+		}`,
+		map[string]any{})
 }
 
 func testAccCheckCustomObjectDestroy(s *terraform.State) error {

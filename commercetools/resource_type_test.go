@@ -262,125 +262,127 @@ func testAccTypeUpdateWithID(identifier, key string) string {
 	for _, newType := range newFields {
 		newFieldsBuffer.WriteString(
 			hclTemplate(`
-		field {
-			name = "{{ .name }}"
-			label = {
-				en = "{{ .label }}"
-				nl = "{{ .label }}"
-			}
+				field {
+					name = "{{ .name }}"
+					label = {
+						en = "{{ .label }}"
+						nl = "{{ .label }}"
+					}
 
-			type {
-				name = "{{ .typeName }}"
-			}
-		}
-		`, map[string]interface{}{
-				"name":     newType,
-				"label":    newType,
-				"typeName": newType,
-			}))
+					type {
+						name = "{{ .typeName }}"
+					}
+				}
+			`,
+				map[string]interface{}{
+					"name":     newType,
+					"label":    newType,
+					"typeName": newType,
+				}))
 	}
 
 	return hclTemplate(`
-resource "commercetools_type" "{{ .identifier }}" {
-	key = "{{ .key }}"
-	name = {
-		en = "Contact info"
-		nl = "Contact informatie"
-	}
-	description = {
-		en = "All things related communication"
-		nl = "Alle communicatie-gerelateerde zaken"
-	}
-
-	resource_type_ids = ["customer"]
-
-	field {
-		name = "new_enum"
-		label = {
-			en = "new enum"
-			nl = "nieuwe enum"
-		}
-		type {
-			name = "Enum"
-			values = {
-				day = "Daytime"
-				evening = "Evening"
+		resource "commercetools_type" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "Contact info"
+				nl = "Contact informatie"
 			}
-		}
-	}
-
-	field {
-		name = "existing_enum"
-		label = {
-			en = "existing enum"
-			de = "existierendes enum"
-		}
-		type {
-			name = "Set"
-			element_type {
-				name = "Enum"
-				values = {
-					day = "Daytime"
-					evening = "Evening Changed"
-					later   = "later"
-				}
+			description = {
+				en = "All things related communication"
+				nl = "Alle communicatie-gerelateerde zaken"
 			}
-		}
-	}
 
-	field {
-		name = "new_localized_enum"
-		input_hint = "MultiLine"
-		label = {
-			en = "New localized enum"
-			nl = "Nieuwe localized enum"
-		}
-		type {
-			name = "LocalizedEnum"
-			localized_value {
-				key = "phone"
+			resource_type_ids = ["customer"]
+
+			field {
+				name = "new_enum"
 				label = {
-					en = "Phone"
-					nl = "Telefoon"
+					en = "new enum"
+					nl = "nieuwe enum"
+				}
+				type {
+					name = "Enum"
+					values = {
+						day = "Daytime"
+						evening = "Evening"
+					}
 				}
 			}
-			localized_value {
-				key = "skype"
+
+			field {
+				name = "existing_enum"
 				label = {
-					en = "Skype"
-					nl = "Skype"
+					en = "existing enum"
+					de = "existierendes enum"
+				}
+				type {
+					name = "Set"
+					element_type {
+						name = "Enum"
+						values = {
+							day = "Daytime"
+							evening = "Evening Changed"
+							later   = "later"
+						}
+					}
 				}
 			}
-		}
-	}
 
-	field {
-		name = "icq_uin"
-		label = {
-			en = "UIN"
-		}
-		type {
-			name = "String"
-		}
-	}
+			field {
+				name = "new_localized_enum"
+				input_hint = "MultiLine"
+				label = {
+					en = "New localized enum"
+					nl = "Nieuwe localized enum"
+				}
+				type {
+					name = "LocalizedEnum"
+					localized_value {
+						key = "phone"
+						label = {
+							en = "Phone"
+							nl = "Telefoon"
+						}
+					}
+					localized_value {
+						key = "skype"
+						label = {
+							en = "Skype"
+							nl = "Skype"
+						}
+					}
+				}
+			}
 
-	field {
-		name = "testing"
-		label = {
-			en = "test"
-		}
-		type {
-			name = "String"
-		}
-	}
+			field {
+				name = "icq_uin"
+				label = {
+					en = "UIN"
+				}
+				type {
+					name = "String"
+				}
+			}
 
-	{{ .newFields }}
+			field {
+				name = "testing"
+				label = {
+					en = "test"
+				}
+				type {
+					name = "String"
+				}
+			}
 
-}`, map[string]interface{}{
-		"identifier": identifier,
-		"key":        key,
-		"newFields":  newFieldsBuffer.String(),
-	})
+			{{ .newFields }}
+
+		}`,
+		map[string]any{
+			"identifier": identifier,
+			"key":        key,
+			"newFields":  newFieldsBuffer.String(),
+		})
 }
 
 func testAccTypeExists(n string) resource.TestCheckFunc {

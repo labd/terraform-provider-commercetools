@@ -55,98 +55,40 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 			{
 				Config: testAccCartDiscountUpdate(identifier, "standard_new"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						resourceName, "key", "standard_new",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "name.en", "standard name",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "description.en", "Standard description new",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "sort_order", "0.8",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "predicate", "1=1",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "stacking_mode", "Stacking",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "requires_discount_code", "true",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "valid_from", "2018-01-02T15:04:05Z",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "valid_until", "2019-01-02T15:04:05Z",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "target.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "target.0.type", "lineItems",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "target.0.predicate", "1=1",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "value.0.type", "relative",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "value.0.permyriad", "1000",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "is_active", "false",
-					),
+					resource.TestCheckResourceAttr(resourceName, "key", "standard_new"),
+					resource.TestCheckResourceAttr(resourceName, "name.en", "standard name"),
+					resource.TestCheckResourceAttr(resourceName, "description.en", "Standard description new"),
+					resource.TestCheckResourceAttr(resourceName, "sort_order", "0.8"),
+					resource.TestCheckResourceAttr(resourceName, "predicate", "1=1"),
+					resource.TestCheckResourceAttr(resourceName, "stacking_mode", "Stacking"),
+					resource.TestCheckResourceAttr(resourceName, "requires_discount_code", "true"),
+					resource.TestCheckResourceAttr(resourceName, "valid_from", "2018-01-02T15:04:05Z"),
+					resource.TestCheckResourceAttr(resourceName, "valid_until", "2019-01-02T15:04:05Z"),
+					resource.TestCheckResourceAttr(resourceName, "target.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "target.0.type", "lineItems"),
+					resource.TestCheckResourceAttr(resourceName, "target.0.predicate", "1=1"),
+					resource.TestCheckResourceAttr(resourceName, "value.0.type", "relative"),
+					resource.TestCheckResourceAttr(resourceName, "value.0.permyriad", "1000"),
+					resource.TestCheckResourceAttr(resourceName, "is_active", "false"),
 				),
 			},
 			{
 				Config: testAccCartDiscountRemoveProperties(identifier, "standard_new"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						resourceName, "key", "standard_new",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "name.en", "standard name",
-					),
-					resource.TestCheckNoResourceAttr(
-						resourceName, "description.en",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "sort_order", "0.8",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "predicate", "1=1",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "stacking_mode", "Stacking",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "requires_discount_code", "true",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "valid_from", "",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "valid_until", "",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "target.0.type", "lineItems",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "target.0.predicate", "1=1",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "value.0.type", "relative",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "value.0.permyriad", "1000",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "is_active", "true",
-					),
+					resource.TestCheckResourceAttr(resourceName, "key", "standard_new"),
+					resource.TestCheckResourceAttr(resourceName, "name.en", "standard name"),
+					resource.TestCheckNoResourceAttr(resourceName, "description.en"),
+					resource.TestCheckResourceAttr(resourceName, "sort_order", "0.8"),
+					resource.TestCheckResourceAttr(resourceName, "predicate", "1=1"),
+					resource.TestCheckResourceAttr(resourceName, "stacking_mode", "Stacking"),
+					resource.TestCheckResourceAttr(resourceName, "requires_discount_code", "true"),
+					resource.TestCheckResourceAttr(resourceName, "valid_from", ""),
+					resource.TestCheckResourceAttr(resourceName, "valid_until", ""),
+					resource.TestCheckResourceAttr(resourceName, "target.0.type", "lineItems"),
+					resource.TestCheckResourceAttr(resourceName, "target.0.predicate", "1=1"),
+					resource.TestCheckResourceAttr(resourceName, "value.0.type", "relative"),
+					resource.TestCheckResourceAttr(resourceName, "value.0.permyriad", "1000"),
+					resource.TestCheckResourceAttr(resourceName, "is_active", "true"),
 				),
 			},
 		},

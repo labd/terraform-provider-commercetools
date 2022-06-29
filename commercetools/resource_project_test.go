@@ -12,6 +12,7 @@ import (
 )
 
 func TestAccProjectCreate_basic(t *testing.T) {
+	resourceName := "commercetools_project_settings.acctest_project_settings"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,40 +20,40 @@ func TestAccProjectCreate_basic(t *testing.T) {
 		CheckDestroy: testAccCheckProjectDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProjectConfig(),
+				Config: testAccProjectConfig("acctest_project_settings"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "name", "Test this thing",
+						resourceName, "name", "Test this thing",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "countries.#", "3",
+						resourceName, "countries.#", "3",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "currencies.#", "2",
+						resourceName, "currencies.#", "2",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "languages.#", "4",
+						resourceName, "languages.#", "4",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "messages.0.enabled", "true",
+						resourceName, "messages.0.enabled", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.url", "https://example.com/oauth/token",
+						resourceName, "external_oauth.0.url", "https://example.com/oauth/token",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.authorization_header", "Bearer secret",
+						resourceName, "external_oauth.0.authorization_header", "Bearer secret",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_input_type", "CartValue",
+						resourceName, "shipping_rate_input_type", "CartValue",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled", "true",
+						resourceName, "carts.0.country_tax_rate_fallback_enabled", "true",
 					),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification", "7"),
+						resourceName, "carts.0.delete_days_after_last_modification", "7"),
 
 					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources["commercetools_project_settings.acctest_project_settings"]
+						rs, ok := s.RootModule().Resources[resourceName]
 						if !ok {
 							return fmt.Errorf("Project not found")
 						}
@@ -84,139 +85,84 @@ func TestAccProjectCreate_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProjectConfigUpdate(),
+				Config: testAccProjectConfigUpdate("acctest_project_settings"),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", "Test this thing new"),
+					resource.TestCheckResourceAttr(resourceName, "countries.#", "4"),
+					resource.TestCheckResourceAttr(resourceName, "currencies.#", "3"),
+					resource.TestCheckResourceAttr(resourceName, "languages.#", "5"),
+					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "false"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "name", "Test this thing new",
-					),
+						resourceName, "external_oauth.0.url", "https://new-example.com/oauth/token"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "countries.#", "4",
-					),
+						resourceName, "external_oauth.0.authorization_header", "Bearer new-secret"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "currencies.#", "3",
-					),
+						resourceName, "shipping_rate_input_type", "CartClassification"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "languages.#", "5",
-					),
+						resourceName, "shipping_rate_cart_classification_value.#", "2"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "messages.0.enabled", "false",
-					),
+						resourceName, "shipping_rate_cart_classification_value.0.key", "Small"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.url", "https://new-example.com/oauth/token",
-					),
+						resourceName, "shipping_rate_cart_classification_value.0.label.en", "Small"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.authorization_header", "Bearer new-secret",
-					),
+						resourceName, "shipping_rate_cart_classification_value.0.label.nl", "Klein"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_input_type", "CartClassification",
-					),
+						resourceName, "shipping_rate_cart_classification_value.1.key", "Medium"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.#", "2",
-					),
+						resourceName, "shipping_rate_cart_classification_value.1.label.en", "Medium"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.0.key", "Small",
-					),
+						resourceName, "shipping_rate_cart_classification_value.1.label.nl", "Middel"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.0.label.en", "Small",
-					),
+						resourceName, "carts.0.country_tax_rate_fallback_enabled", "false"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.0.label.nl", "Klein",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.1.key", "Medium",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.1.label.en", "Medium",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.1.label.nl", "Middel",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled", "false",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification", "21",
-					),
+						resourceName, "carts.0.delete_days_after_last_modification", "21"),
 				),
 			},
 			{
-				Config: testAccProjectConfigDeleteOAuthAndCarts(),
+				Config: testAccProjectConfigDeleteOAuthAndCarts("acctest_project_settings"),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", "Test this thing new"),
+					resource.TestCheckResourceAttr(resourceName, "countries.#", "4"),
+					resource.TestCheckResourceAttr(resourceName, "currencies.#", "3"),
+					resource.TestCheckResourceAttr(resourceName, "languages.#", "5"),
+					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "false"),
+					resource.TestCheckNoResourceAttr(resourceName,
+						"external_oauth.0.url"),
+					resource.TestCheckNoResourceAttr(resourceName,
+						"external_oauth.0.authorization_header"),
+					resource.TestCheckResourceAttr(resourceName,
+						"shipping_rate_input_type", "CartClassification"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "name", "Test this thing new",
-					),
+						resourceName, "shipping_rate_cart_classification_value.#", "1"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "countries.#", "4",
-					),
+						resourceName, "shipping_rate_cart_classification_value.0.key", "Small"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "currencies.#", "3",
-					),
+						resourceName, "shipping_rate_cart_classification_value.0.label.en", "Small"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "languages.#", "5",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "messages.0.enabled", "false",
-					),
+						resourceName, "shipping_rate_cart_classification_value.0.label.nl", "Klein"),
 					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.url",
-					),
+						resourceName, "carts.0.country_tax_rate_fallback_enabled"),
 					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.authorization_header",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_input_type", "CartClassification",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.0.key", "Small",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.0.label.en", "Small",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_cart_classification_value.0.label.nl", "Klein",
-					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled",
-					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.delete_days_after_last_modification",
-					),
+						resourceName, "carts.0.delete_days_after_last_modification"),
 				),
 			},
 			// Running this step again so project settings match what later shipping_zone_rate_test will need
 			{
-				Config: testAccProjectConfig(),
+				Config: testAccProjectConfig("acctest_project_settings"),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", "Test this thing"),
+					resource.TestCheckResourceAttr(resourceName, "countries.#", "3"),
+					resource.TestCheckResourceAttr(resourceName, "currencies.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "languages.#", "4"),
+					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "true"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "name", "Test this thing",
-					),
+						resourceName, "external_oauth.0.url", "https://example.com/oauth/token"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "countries.#", "3",
-					),
+						resourceName, "external_oauth.0.authorization_header", "Bearer secret"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "currencies.#", "2",
-					),
+						resourceName, "shipping_rate_input_type", "CartValue"),
 					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "languages.#", "4",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "messages.0.enabled", "true",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.url", "https://example.com/oauth/token",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "external_oauth.0.authorization_header", "Bearer secret",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "shipping_rate_input_type", "CartValue",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_project_settings.acctest_project_settings", "carts.0.country_tax_rate_fallback_enabled", "true",
-					),
+						resourceName, "carts.0.country_tax_rate_fallback_enabled", "true"),
 				),
 			},
 		},
@@ -227,9 +173,9 @@ func testAccCheckProjectDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccProjectConfig() string {
-	return `
-		resource "commercetools_project_settings" "acctest_project_settings" {
+func testAccProjectConfig(identifier string) string {
+	return hclTemplate(`
+		resource "commercetools_project_settings" "{{ .identifier }}" {
 			name       = "Test this thing"
 			countries  = ["NL", "DE", "US"]
 			currencies = ["EUR", "USD"]
@@ -241,21 +187,21 @@ func testAccProjectConfig() string {
 			}
 
 			messages {
-			  enabled = true
+				enabled = true
 			}
 
 			carts {
-              country_tax_rate_fallback_enabled = true
-              delete_days_after_last_modification = 7
-            }
+				country_tax_rate_fallback_enabled = true
+				delete_days_after_last_modification = 7
+			}
 
 			shipping_rate_input_type = "CartValue"
-		}`
+		}`, map[string]any{})
 }
 
-func testAccProjectConfigUpdate() string {
-	return `
-		resource "commercetools_project_settings" "acctest_project_settings" {
+func testAccProjectConfigUpdate(identifier string) string {
+	return hclTemplate(`
+		resource "commercetools_project_settings" "{{ .identifier }}" {
 			name       = "Test this thing new"
 			countries  = ["nL", "De", "us", "gb"]
 			currencies = ["Eur", "UsD", "GbP"]
@@ -265,18 +211,18 @@ func testAccProjectConfigUpdate() string {
 				authorization_header = "Bearer new-secret"
 			}
 			messages {
-			  enabled = false
+				enabled = false
 			}
 
 			carts {
-              country_tax_rate_fallback_enabled = false
-              delete_days_after_last_modification = 21
-            }
+				country_tax_rate_fallback_enabled = false
+				delete_days_after_last_modification = 21
+			}
 
 			enable_search_index_products = true
 			enable_search_index_orders = true
 
-            shipping_rate_input_type = "CartClassification"
+			shipping_rate_input_type = "CartClassification"
 			shipping_rate_cart_classification_value {
 				key = "Small"
 				label = {
@@ -292,18 +238,18 @@ func testAccProjectConfigUpdate() string {
 					"nl" = "Middel"
 				}
 			}
-		}`
+		}`, map[string]any{})
 }
 
-func testAccProjectConfigDeleteOAuthAndCarts() string {
-	return `
-		resource "commercetools_project_settings" "acctest_project_settings" {
+func testAccProjectConfigDeleteOAuthAndCarts(identifier string) string {
+	return hclTemplate(`
+		resource "commercetools_project_settings" "{{ .identifier }}" {
 			name       = "Test this thing new"
 			countries  = ["NL", "DE", "US", "GB"]
 			currencies = ["EUR", "USD", "GBP"]
 			languages  = ["nl", "de", "en", "en-US", "fr"]
 			messages {
-			  enabled = false
+				enabled = false
 			}
 
 			shipping_rate_input_type = "CartClassification"
@@ -314,5 +260,5 @@ func testAccProjectConfigDeleteOAuthAndCarts() string {
 					"nl" = "Klein"
 				}
 			}
-		}`
+		}`, map[string]any{})
 }
