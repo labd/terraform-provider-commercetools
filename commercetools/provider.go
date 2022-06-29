@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -98,15 +99,19 @@ func providerConfigure(version string, p *schema.Provider) func(context.Context,
 		projectKey := d.Get("project_key").(string)
 		scopesRaw := d.Get("scopes").(string)
 		apiURL := d.Get("api_url").(string)
-		authURL := d.Get("token_url").(string)
 
-		oauthScopes := strings.Split(scopesRaw, " ")
+		tokenURL, err := url.Parse(d.Get("token_url").(string))
+		if err != nil {
+			return nil, diag.FromErr(err)
+
+		}
+		tokenURL = tokenURL.ResolveReference(&url.URL{Path: "oauth/token"})
 
 		oauth2Config := &clientcredentials.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			Scopes:       oauthScopes,
-			TokenURL:     fmt.Sprintf("%s/oauth/token", authURL),
+			Scopes:       strings.Split(scopesRaw, " "),
+			TokenURL:     tokenURL.String(),
 		}
 
 		httpClient := &http.Client{

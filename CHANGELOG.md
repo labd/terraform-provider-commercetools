@@ -8,6 +8,7 @@ v1.3.0 (unreleased)
      `User-Agent: terraform-provider-commercetools/1.3.0 (bd9cae0)`
  - Improve the error handling by better communicating the errors raised by
    commercetools.
+ - Accept a trailing slash in the token url (#182)
 
 v1.2.1 (2022-06-16)
 ===================
