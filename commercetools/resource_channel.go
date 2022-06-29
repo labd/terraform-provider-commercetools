@@ -47,11 +47,28 @@ func resourceChannel() *schema.Resource {
 				ValidateDiagFunc: validateLocalizedStringKey,
 				Optional:         true,
 			},
+			"address": AddressFieldSchema(),
+			"custom":  CustomFieldSchema(),
+			"geolocation": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"coordinates": {
+							Type:     schema.TypeList,
+							Elem:     &schema.Schema{Type: schema.TypeFloat},
+							MinItems: 2,
+							MaxItems: 2,
+							Required: true,
+						},
+					},
+				},
+			},
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"custom": CustomFieldSchema(),
 		},
 	}
 }
@@ -70,7 +87,9 @@ func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interf
 		Roles:       roles,
 		Name:        &name,
 		Description: &description,
+		Address:     CreateAddressFieldDraft(d),
 		Custom:      CreateCustomFieldDraft(d),
+		GeoLocation: expandGeoLocation(d),
 	}
 
 	client := getClient(m)
@@ -105,7 +124,6 @@ func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interfac
 
 	d.SetId(channel.ID)
 	d.Set("version", channel.Version)
-
 	if channel.Name != nil {
 		d.Set("name", *channel.Name)
 	}
@@ -113,6 +131,8 @@ func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interfac
 		d.Set("description", *channel.Description)
 	}
 	d.Set("roles", channel.Roles)
+	d.Set("address", flattenAddress(channel.Address))
+	d.Set("geolocation", flattenGeoLocation(channel.GeoLocation))
 	d.Set("custom", flattenCustomFields(channel.Custom))
 	return nil
 }
@@ -156,6 +176,20 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			&platform.ChannelSetRolesAction{Roles: roles})
 	}
 
+	if d.HasChange("address") {
+		newAddr := CreateAddressFieldDraft(d)
+		input.Actions = append(
+			input.Actions,
+			&platform.ChannelSetAddressAction{Address: newAddr})
+	}
+
+	if d.HasChange("geolocation") {
+		newGeoLocation := expandGeoLocation(d)
+		input.Actions = append(
+			input.Actions,
+			&platform.ChannelSetGeoLocationAction{GeoLocation: newGeoLocation})
+	}
+
 	if d.HasChange("custom") {
 		actions, err := CustomFieldUpdateActions[platform.ChannelSetCustomTypeAction, platform.ChannelSetCustomFieldAction](d)
 		if err != nil {
@@ -188,5 +222,35 @@ func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interf
 		return diag.FromErr(err)
 	}
 
+	return nil
+}
+
+func flattenGeoLocation(loc platform.GeoJson) []map[string]any {
+	switch l := loc.(type) {
+	case platform.GeoJsonPoint:
+		return []map[string]any{
+			{
+				"coordinates": l.Coordinates,
+			},
+		}
+	}
+
+	return []map[string]any{}
+}
+
+func expandGeoLocation(d *schema.ResourceData) platform.GeoJson {
+	if geolocation, err := elementFromList(d, "geolocation"); err == nil {
+		if geolocation == nil {
+			return nil
+		}
+
+		points := geolocation["coordinates"].([]any)
+		return platform.GeoJsonPoint{
+			Coordinates: []float64{
+				points[0].(float64),
+				points[1].(float64),
+			},
+		}
+	}
 	return nil
 }

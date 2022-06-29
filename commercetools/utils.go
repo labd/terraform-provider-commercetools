@@ -23,6 +23,9 @@ func getClient(m interface{}) *platform.ByProjectKeyRequestBuilder {
 }
 
 func stringRef(value interface{}) *string {
+	if value == nil {
+		return nil
+	}
 	result := value.(string)
 	return &result
 }
