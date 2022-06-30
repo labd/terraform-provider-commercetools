@@ -13,6 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type TestTypeFieldData struct {
+	Name string
+	Type string
+}
+
 func TestFieldTypeElement(t *testing.T) {
 	elem := fieldTypeElement(true)
 	elemType, ok := elem.Schema["element_type"]
@@ -33,15 +38,15 @@ func TestFieldTypeElement(t *testing.T) {
 	}
 }
 
-func TestResourceTypeGetFieldDefinition(t *testing.T) {
-	input := map[string]interface{}{
+func TestExpandTypeFieldDefinitionItem(t *testing.T) {
+	input := map[string]any{
 		"name": "test",
-		"label": map[string]interface{}{
+		"label": map[string]any{
 			"en": "Test",
 			"nl": "Test",
 		},
-		"type": []interface{}{
-			map[string]interface{}{
+		"type": []any{
+			map[string]any{
 				"name": "String",
 			},
 		},
@@ -49,18 +54,18 @@ func TestResourceTypeGetFieldDefinition(t *testing.T) {
 		"input_hint": "SingleLine",
 	}
 
-	_, err := resourceTypeGetFieldDefinition(input)
+	_, err := expandTypeFieldDefinitionItem(input)
 	if err != nil {
 		t.Error("Got an unexpected error")
 	}
 }
 
-func TestGetFieldType(t *testing.T) {
+func TestExpandTypeFieldType(t *testing.T) {
 	// Test Boolean
 	input := map[string]interface{}{
 		"name": "Boolean",
 	}
-	result, err := getFieldType(input)
+	result, err := expandTypeFieldType(input)
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -72,7 +77,7 @@ func TestGetFieldType(t *testing.T) {
 	input = map[string]interface{}{
 		"name": "Enum",
 	}
-	_, err = getFieldType(input)
+	_, err = expandTypeFieldType(input)
 	if err == nil {
 		t.Error("No error returned while Enum requires values")
 	}
@@ -83,7 +88,7 @@ func TestGetFieldType(t *testing.T) {
 			"value2": "Value 2",
 		},
 	}
-	result, err = getFieldType(input)
+	result, err = expandTypeFieldType(input)
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -100,7 +105,7 @@ func TestGetFieldType(t *testing.T) {
 	input = map[string]interface{}{
 		"name": "Reference",
 	}
-	_, err = getFieldType(input)
+	_, err = expandTypeFieldType(input)
 	if err == nil {
 		t.Error("No error returned while Reference requires reference_type_id")
 	}
@@ -108,7 +113,7 @@ func TestGetFieldType(t *testing.T) {
 		"name":              "Reference",
 		"reference_type_id": "product",
 	}
-	result, err = getFieldType(input)
+	result, err = expandTypeFieldType(input)
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -122,10 +127,71 @@ func TestGetFieldType(t *testing.T) {
 	input = map[string]interface{}{
 		"name": "Set",
 	}
-	_, err = getFieldType(input)
+	_, err = expandTypeFieldType(input)
 	if err == nil {
 		t.Error("No error returned while Set requires element_type")
 	}
+}
+
+func TestResourceTypeValidateField(t *testing.T) {
+	old := []any{
+		map[string]any{
+			"name": "field-one",
+			"type": []any{
+				map[string]any{
+					"name": "String",
+				},
+			},
+		},
+	}
+	new := []any{
+		map[string]any{
+			"name": "field-one",
+			"type": []any{
+				map[string]any{
+					"name": "Boolean",
+				},
+			},
+		},
+	}
+	err := resourceTypeValidateField(old, new)
+	assert.NotNil(t, err)
+}
+
+func TestResourceTypeValidateFieldSet(t *testing.T) {
+
+	old := []any{
+		map[string]any{
+			"name": "field-one",
+			"type": []any{
+				map[string]any{
+					"name": "Set",
+					"element_type": []any{
+						map[string]any{
+							"name": "String",
+						},
+					},
+				},
+			},
+		},
+	}
+	new := []any{
+		map[string]any{
+			"name": "field-one",
+			"type": []any{
+				map[string]any{
+					"name": "Set",
+					"element_type": []any{
+						map[string]any{
+							"name": "Enum",
+						},
+					},
+				},
+			},
+		},
+	}
+	err := resourceTypeValidateField(old, new)
+	assert.NotNil(t, err)
 }
 
 func TestAccTypes_basic(t *testing.T) {
@@ -141,9 +207,15 @@ func TestAccTypes_basic(t *testing.T) {
 			{
 				Config: testAccTypeConfig(identifier, key),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTypeExists(identifier),
-					resource.TestCheckResourceAttr(
-						resourceName, "key", key),
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetType(s, resourceName)
+						if err != nil {
+							return err
+						}
+						assert.EqualValues(t, resource.Key, key)
+						return nil
+					},
 				),
 			},
 		},
@@ -163,25 +235,28 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 			{
 				Config: testAccTypeConfig(identifier, key),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTypeExists(identifier),
-					resource.TestCheckResourceAttr(
-						resourceName, "key", key),
+					resource.TestCheckResourceAttr(resourceName, "key", key),
 					resource.TestCheckResourceAttr(
 						resourceName, "field.0.name", "skype_name"),
 					resource.TestCheckResourceAttr(
 						resourceName, "field.1.name", "existing_enum"),
 					resource.TestCheckResourceAttr(
 						resourceName, "field.1.type.0.element_type.0.values.%", "2"),
+					func(s *terraform.State) error {
+						resource, err := testGetType(s, resourceName)
+						if err != nil {
+							return err
+						}
+						assert.EqualValues(t, resource.Key, key)
+						return nil
+					},
 				),
 			},
 			{
 				Config: testAccTypeUpdateWithID(identifier, key),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTypeExists(identifier),
-					resource.TestCheckResourceAttr(
-						resourceName, "key", key),
-					resource.TestCheckResourceAttr(
-						resourceName, "field.#", "12"),
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					resource.TestCheckResourceAttr(resourceName, "field.#", "12"),
 					resource.TestCheckResourceAttr(
 						resourceName, "field.3.name", "icq_uin"),
 					resource.TestCheckResourceAttr(
@@ -192,6 +267,239 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 						resourceName, "field.1.type.0.element_type.0.values.%", "3"),
 					resource.TestCheckResourceAttr(
 						resourceName, "field.1.type.0.element_type.0.values.evening", "Evening Changed"),
+					func(s *terraform.State) error {
+						resource, err := testGetType(s, resourceName)
+						if err != nil {
+							return err
+						}
+						assert.EqualValues(t, resource.Key, key)
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestAccTypes_FieldOrderUpdates(t *testing.T) {
+	key := "acctest-type"
+	identifier := "acctest_type"
+	resourceName := fmt.Sprintf("commercetools_type.%s", identifier)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckTypesDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfigFields(
+					key, "acctest_type",
+					[]TestTypeFieldData{
+						{Name: "field-one", Type: "String"},
+						{Name: "field-two", Type: "String"},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TypeTextInputHintSingleLine
+						expected := []platform.FieldDefinition{
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-one",
+								Label:     platform.LocalizedString{"en": "field-one"},
+								InputHint: &SingleText,
+							},
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-two",
+								Label:     platform.LocalizedString{"en": "field-two"},
+								InputHint: &SingleText,
+							},
+						}
+						assert.EqualValues(t, resource.Key, key)
+						assert.EqualValues(t, expected, resource.FieldDefinitions)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccConfigFields(
+					key, "acctest_type",
+					[]TestTypeFieldData{
+						{Name: "field-one", Type: "String"},
+						{Name: "field-two", Type: "String"},
+						{Name: "field-three", Type: "String"},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TypeTextInputHintSingleLine
+						expected := []platform.FieldDefinition{
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-one",
+								Label:     platform.LocalizedString{"en": "field-one"},
+								InputHint: &SingleText,
+							},
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-two",
+								Label:     platform.LocalizedString{"en": "field-two"},
+								InputHint: &SingleText,
+							},
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-three",
+								Label:     platform.LocalizedString{"en": "field-three"},
+								InputHint: &SingleText,
+							},
+						}
+						assert.EqualValues(t, resource.Key, key)
+						assert.EqualValues(t, expected, resource.FieldDefinitions)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccConfigFields(
+					key, "acctest_type",
+					[]TestTypeFieldData{
+						{Name: "field-one", Type: "String"},
+						{Name: "field-three", Type: "String"},
+						{Name: "field-two", Type: "String"},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TypeTextInputHintSingleLine
+						expected := []platform.FieldDefinition{
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-one",
+								Label:     platform.LocalizedString{"en": "field-one"},
+								InputHint: &SingleText,
+							},
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-three",
+								Label:     platform.LocalizedString{"en": "field-three"},
+								InputHint: &SingleText,
+							},
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-two",
+								Label:     platform.LocalizedString{"en": "field-two"},
+								InputHint: &SingleText,
+							},
+						}
+
+						assert.EqualValues(t, resource.Key, key)
+						assert.EqualValues(t, expected, resource.FieldDefinitions)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccConfigFields(
+					key, "acctest_type",
+					[]TestTypeFieldData{
+						{Name: "field-one", Type: "String"},
+						{Name: "field-four", Type: "String"},
+						{Name: "field-three", Type: "String"},
+						{Name: "field-two", Type: "String"},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TypeTextInputHintSingleLine
+						expected := []platform.FieldDefinition{
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-one",
+								Label:     platform.LocalizedString{"en": "field-one"},
+								InputHint: &SingleText,
+							},
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-four",
+								Label:     platform.LocalizedString{"en": "field-four"},
+								InputHint: &SingleText,
+							},
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-three",
+								Label:     platform.LocalizedString{"en": "field-three"},
+								InputHint: &SingleText,
+							},
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-two",
+								Label:     platform.LocalizedString{"en": "field-two"},
+								InputHint: &SingleText,
+							},
+						}
+
+						assert.EqualValues(t, resource.Key, key)
+						assert.EqualValues(t, expected, resource.FieldDefinitions)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccConfigFields(
+					key, "acctest_type",
+					[]TestTypeFieldData{
+						{Name: "field-one", Type: "String"},
+						{Name: "field-two", Type: "String"},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TypeTextInputHintSingleLine
+						expected := []platform.FieldDefinition{
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-one",
+								Label:     platform.LocalizedString{"en": "field-one"},
+								InputHint: &SingleText,
+							},
+							{
+								Type:      platform.CustomFieldStringType{},
+								Name:      "field-two",
+								Label:     platform.LocalizedString{"en": "field-two"},
+								InputHint: &SingleText,
+							},
+						}
+
+						assert.EqualValues(t, resource.Key, key)
+						assert.EqualValues(t, expected, resource.FieldDefinitions)
+						return nil
+					},
 				),
 			},
 		},
@@ -385,11 +693,28 @@ func testAccTypeUpdateWithID(identifier, key string) string {
 		})
 }
 
-func testAccTypeExists(n string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		_, err := testGetType(s, fmt.Sprintf("commercetools_type.%s", n))
-		return err
-	}
+func testAccConfigFields(key, identifier string, fields []TestTypeFieldData) string {
+	return hclTemplate(`
+		resource "commercetools_type" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = { "en": "{{ .key }}" }
+			resource_type_ids = ["customer"]
+
+			{{range $t := .fields}}
+			field {
+				name = "{{ $t.Name }}"
+				label = { en = "{{ $t.Name }}" }
+				type { name = "{{ $t.Type }}" }
+			}
+			{{end}}
+		}
+		`, map[string]any{
+		"key":        key,
+		"identifier": identifier,
+		"fields":     fields,
+	},
+	)
+
 }
 
 func testAccCheckTypesDestroy(s *terraform.State) error {
