@@ -81,9 +81,6 @@ func expandCentPrecisionMoneyDraft(d map[string]interface{}) []platform.CentPrec
 		if centAmount, ok := data["cent_amount"].(int); ok {
 			item.CentAmount = centAmount
 		}
-		if fractionDigits, ok := data["fraction_digits"].(int); ok {
-			item.FractionDigits = &fractionDigits
-		}
 		result = append(result, item)
 	}
 	return result
