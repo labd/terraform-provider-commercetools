@@ -132,7 +132,7 @@ func testAccTaxCategoryRateSubRatesConfig(name string, amount float64, includedI
 			name              = "{{ .name }}"
 			amount            = {{ .amount }}
 			included_in_price = {{ .includedInPrice }}
-			country           = "{{ .countrty }}"
+			country           = "{{ .country }}"
 
 			{{ if .addSubrates }}
 			sub_rate {
@@ -150,6 +150,7 @@ func testAccTaxCategoryRateSubRatesConfig(name string, amount float64, includedI
 		"amount":          amount,
 		"includedInPrice": includedInPrice,
 		"country":         country,
+		"addSubrates":     addSubrates,
 	})
 }
 
@@ -205,7 +206,7 @@ func testAccTaxCategoryRateDualUpdateConfig(description string, name string, amo
 			name              = "{{ .name }}"
 			amount            = {{ .amount }}
 			included_in_price = {{ .includedInPrice }}
-			country           = "{{ .countrty }}"
+			country           = "{{ .country }}"
 		}
 	`, map[string]any{
 		"name":            name,
