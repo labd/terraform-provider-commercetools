@@ -95,6 +95,9 @@ func IsResourceNotFoundError(err error) bool {
 
 	case platform.ErrorResponse:
 		return e.StatusCode == 404
+
+	case platform.GenericRequestError:
+		return e.StatusCode == 404
 	}
 	return false
 }
