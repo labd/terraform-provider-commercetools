@@ -22,36 +22,18 @@ func TestAccProjectCreate_basic(t *testing.T) {
 			{
 				Config: testAccProjectConfig("acctest_project_settings"),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", "Test this thing"),
+					resource.TestCheckResourceAttr(resourceName, "countries.#", "3"),
+					resource.TestCheckResourceAttr(resourceName, "currencies.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "languages.#", "4"),
+					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "true"),
 					resource.TestCheckResourceAttr(
-						resourceName, "name", "Test this thing",
-					),
+						resourceName, "external_oauth.0.url", "https://example.com/oauth/token"),
 					resource.TestCheckResourceAttr(
-						resourceName, "countries.#", "3",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "currencies.#", "2",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "languages.#", "4",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "messages.0.enabled", "true",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "external_oauth.0.url", "https://example.com/oauth/token",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "external_oauth.0.authorization_header", "Bearer secret",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "shipping_rate_input_type", "CartValue",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "carts.0.country_tax_rate_fallback_enabled", "true",
-					),
-					resource.TestCheckResourceAttr(
-						resourceName, "carts.0.delete_days_after_last_modification", "7"),
-
+						resourceName, "external_oauth.0.authorization_header", "Bearer secret"),
+					resource.TestCheckResourceAttr(resourceName, "shipping_rate_input_type", "CartValue"),
+					resource.TestCheckResourceAttr(resourceName, "carts.0.country_tax_rate_fallback_enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "carts.0.delete_days_after_last_modification", "7"),
 					func(s *terraform.State) error {
 						rs, ok := s.RootModule().Resources[resourceName]
 						if !ok {
@@ -238,7 +220,9 @@ func testAccProjectConfigUpdate(identifier string) string {
 					"nl" = "Middel"
 				}
 			}
-		}`, map[string]any{})
+		}`, map[string]any{
+		"identifier": identifier,
+	})
 }
 
 func testAccProjectConfigDeleteOAuthAndCarts(identifier string) string {
@@ -260,5 +244,7 @@ func testAccProjectConfigDeleteOAuthAndCarts(identifier string) string {
 					"nl" = "Klein"
 				}
 			}
-		}`, map[string]any{})
+		}`, map[string]any{
+		"identifier": identifier,
+	})
 }
