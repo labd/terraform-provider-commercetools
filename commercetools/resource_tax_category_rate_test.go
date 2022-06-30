@@ -197,7 +197,7 @@ func testAccTaxCategoryRateDualUpdateConfig(description string, name string, amo
 		resource "commercetools_tax_category" "standard" {
 			name        = "test-rate-category"
 			key         = "test-rate-category"
-			description = "{{ .description "
+			description = "{{ .description }}"
 		}
 
 		resource "commercetools_tax_category_rate" "test_rate" {
