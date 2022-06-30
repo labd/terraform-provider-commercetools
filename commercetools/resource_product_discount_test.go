@@ -70,7 +70,7 @@ func TestAccProductDiscountCreate_basic(t *testing.T) {
 							LastModifiedAt: res.LastModifiedAt,
 							LastModifiedBy: res.LastModifiedBy,
 
-							References: res.References, // TODO
+							References: res.References,
 
 							ValidFrom:  &validFrom,
 							ValidUntil: &validUntil,
@@ -148,7 +148,7 @@ func TestAccProductDiscountCreate_basic(t *testing.T) {
 							LastModifiedAt: res.LastModifiedAt,
 							LastModifiedBy: res.LastModifiedBy,
 
-							References: res.References, // TODO
+							References: res.References,
 
 							ValidFrom:  &validFrom,
 							ValidUntil: &validUntil,
@@ -232,7 +232,7 @@ func TestAccProductDiscountCreate_basic(t *testing.T) {
 							LastModifiedAt: res.LastModifiedAt,
 							LastModifiedBy: res.LastModifiedBy,
 
-							References: res.References, // TODO
+							References: res.References,
 
 							ValidFrom:  &validFrom,
 							ValidUntil: &validUntil,
@@ -319,7 +319,7 @@ func TestAccProductDiscountCreate_basic(t *testing.T) {
 							LastModifiedAt: res.LastModifiedAt,
 							LastModifiedBy: res.LastModifiedBy,
 
-							References: res.References, // TODO
+							References: res.References,
 
 							Key: &key,
 							Name: platform.LocalizedString{
