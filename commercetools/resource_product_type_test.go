@@ -12,6 +12,66 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestResourceProductTypeValidateAttribute(t *testing.T) {
+	old := []any{
+		map[string]any{
+			"name": "attr-one",
+			"type": []any{
+				map[string]any{
+					"name": "String",
+				},
+			},
+		},
+	}
+	new := []any{
+		map[string]any{
+			"name": "attr-one",
+			"type": []any{
+				map[string]any{
+					"name": "Boolean",
+				},
+			},
+		},
+	}
+	err := resourceProductTypeValidateAttribute(old, new)
+	assert.NotNil(t, err)
+}
+
+func TestResourceProductTypeValidateAttributeSet(t *testing.T) {
+	old := []any{
+		map[string]any{
+			"name": "attr-one",
+			"type": []any{
+				map[string]any{
+					"name": "Set",
+					"element_type": []any{
+						map[string]any{
+							"name": "String",
+						},
+					},
+				},
+			},
+		},
+	}
+	new := []any{
+		map[string]any{
+			"name": "attr-one",
+			"type": []any{
+				map[string]any{
+					"name": "Set",
+					"element_type": []any{
+						map[string]any{
+							"name": "Enum",
+						},
+					},
+				},
+			},
+		},
+	}
+	err := resourceProductTypeValidateAttribute(old, new)
+	assert.NotNil(t, err)
+}
+
 func TestAttributeTypeElement(t *testing.T) {
 	elem := attributeTypeElement(true)
 	elemType, ok := elem.Schema["element_type"]
