@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/elliotchance/orderedmap/v2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -223,13 +224,13 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m an
 }
 
 func flattenProductTypeAttributes(t *platform.ProductType) ([]map[string]any, error) {
-	fields := make([]map[string]any, len(t.Attributes))
+	attrs := make([]map[string]any, len(t.Attributes))
 	for i, attrDef := range t.Attributes {
 		attrType, err := flattenProductTypeAttributeType(attrDef.Type, true)
 		if err != nil {
 			return nil, err
 		}
-		fields[i] = map[string]any{
+		attrs[i] = map[string]any{
 			"type":       attrType,
 			"name":       attrDef.Name,
 			"label":      attrDef.Label,
@@ -239,10 +240,10 @@ func flattenProductTypeAttributes(t *platform.ProductType) ([]map[string]any, er
 			"searchable": attrDef.IsSearchable,
 		}
 		if attrDef.InputTip != nil {
-			fields[i]["input_tip"] = *attrDef.InputTip
+			attrs[i]["input_tip"] = *attrDef.InputTip
 		}
 	}
-	return fields, nil
+	return attrs, nil
 }
 
 func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -356,13 +357,12 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m an
 
 	if d.HasChange("attribute") {
 		old, new := d.GetChange("attribute")
-		attributeChangeActions, err := resourceProductTypeAttributeChangeActions(
+		attrChangeActions, err := resourceProductTypeAttributeChangeActions(
 			old.([]any), new.([]any))
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		input.Actions = append(input.Actions, attributeChangeActions...)
+		input.Actions = append(input.Actions, attrChangeActions...)
 	}
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
@@ -442,229 +442,322 @@ func resourceProductTypeValidateAttribute(old, new []any) error {
 }
 
 func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any) ([]platform.ProductTypeUpdateAction, error) {
-	oldLookup := createLookup(oldValues, "name")
-	newLookup := createLookup(newValues, "name")
-	newAttrDefinitions := []platform.AttributeDefinition{}
-	actions := []platform.ProductTypeUpdateAction{}
-	checkAttributeOrder := true
+	oldAttrs, err := mapAttributeDefinition(oldValues)
+	if err != nil {
+		return nil, err
+	}
 
-	for name := range oldLookup {
-		if _, ok := newLookup[name]; !ok {
-			log.Printf("[DEBUG] Attribute deleted: %s", name)
+	newAttrs, err := mapAttributeDefinition(newValues)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a copy of the attribute order for commercetools. When we
+	// delete attributes commercetools already re-orders the attributes and we need
+	// to not send a reorder command when the order already matches
+	attrOrder := []string{}
+	attrOrder = append(attrOrder, oldAttrs.Keys()...)
+
+	actions := []platform.ProductTypeUpdateAction{}
+
+	// Check if we have attributes which are removed and generate the corresponding
+	// remove attribute actions
+	for _, name := range oldAttrs.Keys() {
+		if _, ok := newAttrs.Get(name); !ok {
 			actions = append(actions, platform.ProductTypeRemoveAttributeDefinitionAction{Name: name})
-			checkAttributeOrder = false
+			attrOrder = removeValueFromSlice(attrOrder, name)
 		}
 	}
 
-	for _, value := range newValues {
-		newV := value.(map[string]any)
-		name := newV["name"].(string)
-		oldValue, existingAttr := oldLookup[name]
+	for _, name := range newAttrs.Keys() {
+		newAttr, _ := newAttrs.Get(name)
+		oldAttr, isExisting := oldAttrs.Get(name)
 
-		var attrDef platform.AttributeDefinition
-		if output, err := expandProductTypeAttributeDefinitionItem(newV, false); err == nil {
-			attrDef = output.(platform.AttributeDefinition)
-		} else {
-			return nil, err
-		}
-
-		var attrDefDraft platform.AttributeDefinitionDraft
-		if output, err := expandProductTypeAttributeDefinitionItem(newV, true); err == nil {
-			attrDefDraft = output.(platform.AttributeDefinitionDraft)
-		} else {
-			return nil, err
-		}
-
-		newAttrDefinitions = append(newAttrDefinitions, attrDef)
-
-		if !existingAttr {
-			log.Printf("[DEBUG] Attribute added: %s", name)
+		// A new attribute is added. Create the update action skip the rest of the
+		// loop since there cannot be any change if the attribute didn't exist yet.
+		if !isExisting {
 			actions = append(
 				actions,
-				platform.ProductTypeAddAttributeDefinitionAction{Attribute: attrDefDraft})
-			checkAttributeOrder = false
+				platform.ProductTypeAddAttributeDefinitionAction{
+					Attribute: platform.AttributeDefinitionDraft{
+						Type:                newAttr.Type,
+						Name:                newAttr.Name,
+						Label:               newAttr.Label,
+						IsRequired:          newAttr.IsRequired,
+						AttributeConstraint: &newAttr.AttributeConstraint,
+						InputTip:            newAttr.InputTip,
+						InputHint:           &newAttr.InputHint,
+						IsSearchable:        &newAttr.IsSearchable,
+					},
+				})
+			attrOrder = append(attrOrder, newAttr.Name)
 			continue
 		}
 
-		oldV := oldValue.(map[string]any)
-		if !reflect.DeepEqual(oldV["label"], newV["label"]) {
+		// This should not be able to happen due to checks earlier
+		if reflect.TypeOf(oldAttr.Type) != reflect.TypeOf(newAttr.Type) {
+			return nil, fmt.Errorf("changing attribute types is not supported in commercetools")
+		}
+
+		// Check if we need to update the attribute label
+		if !reflect.DeepEqual(oldAttr.Label, newAttr.Label) {
 			actions = append(
 				actions,
 				platform.ProductTypeChangeLabelAction{
-					AttributeName: name, Label: attrDef.Label})
+					AttributeName: name,
+					Label:         newAttr.Label,
+				})
 		}
-		if oldV["name"] != newV["name"] {
+
+		if !reflect.DeepEqual(oldAttr.Name, newAttr.Name) {
 			actions = append(
 				actions,
-				platform.ProductTypeChangeAttributeNameAction{
-					AttributeName: name, NewAttributeName: attrDef.Name})
+				platform.ProductTypeChangeNameAction{
+					Name: newAttr.Name,
+				})
 		}
-		if oldV["searchable"] != newV["searchable"] {
+
+		if !reflect.DeepEqual(oldAttr.IsSearchable, newAttr.IsSearchable) {
 			actions = append(
 				actions,
 				platform.ProductTypeChangeIsSearchableAction{
-					AttributeName: name, IsSearchable: attrDef.IsSearchable})
+					AttributeName: name,
+					IsSearchable:  newAttr.IsSearchable,
+				})
 		}
-		if oldV["input_hint"] != newV["input_hint"] {
+
+		// Update the input hint if this is changed
+		if !reflect.DeepEqual(oldAttr.InputHint, newAttr.InputHint) {
 			actions = append(
 				actions,
 				platform.ProductTypeChangeInputHintAction{
-					AttributeName: name, NewValue: attrDef.InputHint})
+					AttributeName: name,
+					NewValue:      newAttr.InputHint,
+				})
 		}
-		if !reflect.DeepEqual(oldV["input_tip"], newV["input_tip"]) {
+
+		if !reflect.DeepEqual(oldAttr.InputTip, newAttr.InputTip) {
 			actions = append(
 				actions,
 				platform.ProductTypeSetInputTipAction{
 					AttributeName: name,
-					InputTip:      attrDef.InputTip,
+					InputTip:      newAttr.InputTip,
 				})
 		}
-		if oldV["constraint"] != newV["constraint"] {
+
+		if !reflect.DeepEqual(oldAttr.AttributeConstraint, newAttr.AttributeConstraint) {
 			actions = append(
 				actions,
 				platform.ProductTypeChangeAttributeConstraintAction{
 					AttributeName: name,
-					NewValue:      platform.AttributeConstraintEnumDraft(attrDef.AttributeConstraint),
+					NewValue:      platform.AttributeConstraintEnumDraft(newAttr.AttributeConstraint),
 				})
 		}
 
-		newattrType := attrDef.Type
-		oldTypes := oldV["type"].([]any)
-		var oldattrType map[string]any
-		if len(oldTypes) > 0 {
-			oldattrType = oldTypes[0].(map[string]any)
-		}
-		oldEnumKeys := make(map[string]any)
-		newEnumKeys := make(map[string]any)
+		// Specific updates for EnumType, LocalizedEnumType and a Set of these
+		switch t := newAttr.Type.(type) {
 
-		actions = handleEnumTypeChanges(newattrType, oldattrType, newEnumKeys, actions, name, oldEnumKeys)
-
-		if enumType, ok := newattrType.(platform.AttributeSetType); ok {
-			oldElementTypes := oldattrType["element_type"].([]any)
-			var myOldattrType map[string]any
-			if len(oldElementTypes) > 0 {
-				myOldattrType = oldElementTypes[0].(map[string]any)
+		case platform.AttributeLocalizedEnumType:
+			ot := oldAttr.Type.(platform.AttributeLocalizedEnumType)
+			subActions, err := updateAttributeLocalizedEnumType(name, ot, t)
+			if err != nil {
+				return nil, err
 			}
-			actions = handleEnumTypeChanges(enumType.ElementType, myOldattrType, newEnumKeys, actions, name, oldEnumKeys)
-			log.Printf("[DEBUG] Set detected: %s", name)
-			log.Print(len(myOldattrType))
-		}
+			actions = append(actions, subActions...)
 
-		removeEnumKeys := []string{}
-		for key := range oldEnumKeys {
-			if _, ok := newEnumKeys[key]; !ok {
-				removeEnumKeys = append(removeEnumKeys, key)
+		case platform.AttributeEnumType:
+			ot := oldAttr.Type.(platform.AttributeEnumType)
+			subActions, err := updateAttributeEnumType(name, ot, t)
+			if err != nil {
+				return nil, err
+			}
+			actions = append(actions, subActions...)
+
+		case platform.AttributeSetType:
+			ot := oldAttr.Type.(platform.AttributeSetType)
+
+			// This should not be able to happen due to checks earlier
+			if reflect.TypeOf(ot.ElementType) != reflect.TypeOf(t.ElementType) {
+				return nil, fmt.Errorf("changing attribute types is not supported in commercetools")
+			}
+
+			switch st := t.ElementType.(type) {
+
+			case platform.AttributeEnumType:
+				ost := ot.ElementType.(platform.AttributeEnumType)
+				subActions, err := updateAttributeEnumType(name, ost, st)
+				if err != nil {
+					return nil, err
+				}
+				actions = append(actions, subActions...)
+
+			case platform.AttributeLocalizedEnumType:
+				ost := ot.ElementType.(platform.AttributeLocalizedEnumType)
+				subActions, err := updateAttributeLocalizedEnumType(name, ost, st)
+				if err != nil {
+					return nil, err
+				}
+				actions = append(actions, subActions...)
 			}
 		}
 
-		if len(removeEnumKeys) > 0 {
-			actions = append(
-				actions,
-				platform.ProductTypeRemoveEnumValuesAction{
-					AttributeName: name,
-					Keys:          removeEnumKeys,
-				})
+	}
+
+	if !reflect.DeepEqual(attrOrder, newAttrs.Keys()) {
+		attrs := make([]platform.AttributeDefinition, newAttrs.Len())
+		for i, key := range newAttrs.Keys() {
+			if el, ok := newAttrs.Get(key); ok {
+				attrs[i] = el
+			}
 		}
-
-	}
-
-	oldNames := make([]string, len(oldValues))
-	newNames := make([]string, len(newValues))
-
-	for i, value := range oldValues {
-		v := value.(map[string]any)
-		oldNames[i] = v["name"].(string)
-	}
-	for i, value := range newValues {
-		v := value.(map[string]any)
-		newNames[i] = v["name"].(string)
-	}
-
-	if checkAttributeOrder && !reflect.DeepEqual(oldNames, newNames) {
 		actions = append(
 			actions,
 			platform.ProductTypeChangeAttributeOrderAction{
-				Attributes: newAttrDefinitions,
+				Attributes: attrs,
 			})
 	}
-
-	log.Printf("[DEBUG] Construction Attribute change actions")
 
 	return actions, nil
 }
 
-func handleEnumTypeChanges(newattrType platform.AttributeType, oldattrType map[string]any, newEnumKeys map[string]any, actions []platform.ProductTypeUpdateAction, name string, oldEnumKeys map[string]any) []platform.ProductTypeUpdateAction {
-	var (
-		oldValues          map[string]any
-		oldLocalizedValues []any
-		ok                 bool
-	)
+func updateAttributeEnumType(attrName string, old, new platform.AttributeEnumType) ([]platform.ProductTypeUpdateAction, error) {
+	oldValues := orderedmap.NewOrderedMap[string, platform.AttributePlainEnumValue]()
+	for i := range old.Values {
+		oldValues.Set(old.Values[i].Key, old.Values[i])
+	}
 
-	if oldattrType != nil {
-		if oldValues, ok = oldattrType["values"].(map[string]any); !ok {
-			oldValues = make(map[string]any, 0)
+	newValues := orderedmap.NewOrderedMap[string, platform.AttributePlainEnumValue]()
+	for i := range new.Values {
+		newValues.Set(new.Values[i].Key, new.Values[i])
+	}
+
+	valueOrder := []string{}
+	valueOrder = append(valueOrder, oldValues.Keys()...)
+
+	actions := []platform.ProductTypeUpdateAction{}
+	for _, key := range newValues.Keys() {
+		newValue, _ := newValues.Get(key)
+
+		// Check if this is a new value
+		if _, ok := oldValues.Get(key); !ok {
+			actions = append(
+				actions,
+				platform.ProductTypeAddPlainEnumValueAction{
+					AttributeName: attrName,
+					Value:         newValue,
+				})
+			valueOrder = append(valueOrder, newValue.Key)
+			continue
 		}
-		if oldLocalizedValues, ok = oldattrType["localized_value"].([]any); !ok {
-			oldLocalizedValues = make([]any, 0)
+
+		oldValue, _ := oldValues.Get(key)
+
+		// Check if the label is changed and create an update action
+		if !reflect.DeepEqual(oldValue.Label, newValue.Label) {
+			actions = append(
+				actions,
+				platform.ProductTypeChangePlainEnumValueLabelAction{
+					AttributeName: attrName,
+					NewValue:      newValue,
+				})
 		}
 	}
 
-	if enumType, ok := newattrType.(platform.AttributeEnumType); ok {
-		for i, enumValue := range enumType.Values {
-			newEnumKeys[enumValue.Key] = enumValue
-			if _, ok := oldValues[enumValue.Key]; !ok {
-				// Key does not appear in old enum values, so we'll add it
-				actions = append(
-					actions,
-					platform.ProductTypeAddPlainEnumValueAction{
-						AttributeName: name,
-						Value:         enumType.Values[i],
-					})
+	// Check if the order is changed. We compare this against valueOrder to take
+	// into account new attributes added to the end by commercetools
+	if !reflect.DeepEqual(valueOrder, newValues.Keys()) {
+		values := make([]platform.AttributePlainEnumValue, newValues.Len())
+		for i, key := range newValues.Keys() {
+			if el, ok := newValues.Get(key); ok {
+				values[i] = el
 			}
 		}
-
-		return actions
-		// Action: changePlainEnumValueOrder
-		// TODO: Change the order of EnumValues: https://docs.commercetools.com/http-api-projects-productTypes.html#change-the-order-of-enumvalues
-
+		actions = append(
+			actions,
+			platform.ProductTypeChangePlainEnumValueOrderAction{
+				AttributeName: attrName,
+				Values:        values,
+			})
 	}
 
-	if enumType, ok := newattrType.(platform.AttributeLocalizedEnumType); ok {
-		for _, value := range oldLocalizedValues {
-			v := value.(map[string]any)
-			oldEnumKeys[v["key"].(string)] = v
+	return actions, nil
+}
+
+func updateAttributeLocalizedEnumType(attrName string, old, new platform.AttributeLocalizedEnumType) ([]platform.ProductTypeUpdateAction, error) {
+	oldValues := orderedmap.NewOrderedMap[string, platform.AttributeLocalizedEnumValue]()
+	for i := range old.Values {
+		oldValues.Set(old.Values[i].Key, old.Values[i])
+	}
+
+	newValues := orderedmap.NewOrderedMap[string, platform.AttributeLocalizedEnumValue]()
+	for i := range new.Values {
+		newValues.Set(new.Values[i].Key, new.Values[i])
+	}
+
+	valueOrder := []string{}
+	valueOrder = append(valueOrder, oldValues.Keys()...)
+
+	actions := []platform.ProductTypeUpdateAction{}
+	for _, key := range newValues.Keys() {
+		newValue, _ := newValues.Get(key)
+
+		// Check if this is a new value
+		if _, ok := oldValues.Get(key); !ok {
+			actions = append(
+				actions,
+				platform.ProductTypeAddLocalizedEnumValueAction{
+					AttributeName: attrName,
+					Value:         newValue,
+				})
+			valueOrder = append(valueOrder, newValue.Key)
+			continue
 		}
 
-		for i, enumValue := range enumType.Values {
-			newEnumKeys[enumValue.Key] = enumValue
-			if _, ok := oldEnumKeys[enumValue.Key]; !ok {
-				// Key does not appear in old enum values, so we'll add it
-				actions = append(
-					actions,
-					platform.ProductTypeAddLocalizedEnumValueAction{
-						AttributeName: name,
-						Value:         enumType.Values[i],
-					})
-			} else {
-				oldEnumValue := oldEnumKeys[enumValue.Key].(map[string]any)
-				oldLocalizedLabel := oldEnumValue["label"].(map[string]any)
-				labelChanged := !localizedStringCompare(enumValue.Label, oldLocalizedLabel)
-				if labelChanged {
-					actions = append(
-						actions,
-						platform.ProductTypeChangeLocalizedEnumValueLabelAction{
-							AttributeName: name,
-							NewValue:      enumType.Values[i],
-						})
-				}
+		oldValue, _ := oldValues.Get(key)
+
+		// Check if the label is changed and create an update action
+		if !reflect.DeepEqual(oldValue.Label, newValue.Label) {
+			actions = append(
+				actions,
+				platform.ProductTypeChangeLocalizedEnumValueLabelAction{
+					AttributeName: attrName,
+					NewValue:      newValue,
+				})
+		}
+	}
+
+	// Check if the order is changed. We compare this against valueOrder to take
+	// into account new attributes added to the end by commercetools
+	if !reflect.DeepEqual(valueOrder, newValues.Keys()) {
+		values := make([]platform.AttributeLocalizedEnumValue, newValues.Len())
+		for i, key := range newValues.Keys() {
+			if el, ok := newValues.Get(key); ok {
+				values[i] = el
 			}
 		}
-
-		return actions
-		// Action: changeLocalizedEnumValueOrder
-		// TODO: Change the order of LocalizedEnumValues: https://docs.commercetools.com/http-api-projects-productTypes.html#change-the-order-of-localizedenumvalues
+		actions = append(
+			actions,
+			platform.ProductTypeChangeLocalizedEnumValueOrderAction{
+				AttributeName: attrName,
+				Values:        values,
+			})
 	}
-	return actions
+
+	return actions, nil
+}
+
+func mapAttributeDefinition(values []any) (*orderedmap.OrderedMap[string, platform.AttributeDefinition], error) {
+	attrs := orderedmap.NewOrderedMap[string, platform.AttributeDefinition]()
+	for i := range values {
+		raw := values[i].(map[string]any)
+		attr, err := expandProductTypeAttributeDefinitionItem(raw, false)
+		if err != nil {
+			return nil, err
+		}
+
+		attrs.Set(attr.(platform.AttributeDefinition).Name, attr.(platform.AttributeDefinition))
+	}
+	return attrs, nil
 }
 
 func expandProductTypeAttributeDefinition(d *schema.ResourceData) ([]platform.AttributeDefinitionDraft, error) {
