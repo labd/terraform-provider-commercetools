@@ -223,7 +223,6 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m an
 }
 
 func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	log.Print("[DEBUG] Reading product type from commercetools")
 	client := getClient(m)
 
 	ctType, err := client.ProductTypes().WithId(d.Id()).Get().Execute(ctx)
@@ -236,12 +235,8 @@ func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any)
 	}
 
 	if ctType == nil {
-		log.Print("[DEBUG] No product type found")
 		d.SetId("")
 	} else {
-		log.Printf("[DEBUG] Found following product type: %#v", ctType)
-		log.Print(stringFormatObject(ctType))
-
 		attributes := make([]map[string]any, len(ctType.Attributes))
 		for i, attrDef := range ctType.Attributes {
 			attrData := make(map[string]any)
@@ -368,10 +363,6 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m an
 
 		input.Actions = append(input.Actions, attributeChangeActions...)
 	}
-
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(ctx)
