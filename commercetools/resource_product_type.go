@@ -243,26 +243,26 @@ func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any)
 		log.Print(stringFormatObject(ctType))
 
 		attributes := make([]map[string]any, len(ctType.Attributes))
-		for i, fieldDef := range ctType.Attributes {
-			fieldData := make(map[string]any)
-			log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
-			fieldType, err := resourceProductTypeReadAttributeType(fieldDef.Type, true)
+		for i, attrDef := range ctType.Attributes {
+			attrData := make(map[string]any)
+			log.Printf("[DEBUG] reading attribute: %s: %#v", attrDef.Name, attrDef)
+			attrType, err := resourceProductTypeReadAttributeType(attrDef.Type, true)
 			if err != nil {
 				return diag.FromErr(err)
 			}
 
-			fieldData["type"] = fieldType
-			fieldData["name"] = fieldDef.Name
-			fieldData["label"] = fieldDef.Label
-			fieldData["required"] = fieldDef.IsRequired
-			fieldData["input_hint"] = fieldDef.InputHint
-			if fieldDef.InputTip != nil {
-				fieldData["input_tip"] = *fieldDef.InputTip
+			attrData["type"] = attrType
+			attrData["name"] = attrDef.Name
+			attrData["label"] = attrDef.Label
+			attrData["required"] = attrDef.IsRequired
+			attrData["input_hint"] = attrDef.InputHint
+			if attrDef.InputTip != nil {
+				attrData["input_tip"] = *attrDef.InputTip
 			}
-			fieldData["constraint"] = fieldDef.AttributeConstraint
-			fieldData["searchable"] = fieldDef.IsSearchable
+			attrData["constraint"] = attrDef.AttributeConstraint
+			attrData["searchable"] = attrDef.IsSearchable
 
-			attributes[i] = fieldData
+			attributes[i] = attrData
 		}
 
 		log.Printf("[DEBUG] Created attributes %#v", attributes)
@@ -467,7 +467,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 	for _, value := range newValues {
 		newV := value.(map[string]any)
 		name := newV["name"].(string)
-		oldValue, existingField := oldLookup[name]
+		oldValue, existingAttr := oldLookup[name]
 
 		var attrDef platform.AttributeDefinition
 		if output, err := resourceProductTypeGetAttributeDefinition(newV, false); err == nil {
@@ -485,7 +485,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 
 		newAttrDefinitions = append(newAttrDefinitions, attrDef)
 
-		if !existingField {
+		if !existingAttr {
 			log.Printf("[DEBUG] Attribute added: %s", name)
 			actions = append(
 				actions,
@@ -536,26 +536,26 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 				})
 		}
 
-		newFieldType := attrDef.Type
+		newattrType := attrDef.Type
 		oldTypes := oldV["type"].([]any)
-		var oldFieldType map[string]any
+		var oldattrType map[string]any
 		if len(oldTypes) > 0 {
-			oldFieldType = oldTypes[0].(map[string]any)
+			oldattrType = oldTypes[0].(map[string]any)
 		}
 		oldEnumKeys := make(map[string]any)
 		newEnumKeys := make(map[string]any)
 
-		actions = handleEnumTypeChanges(newFieldType, oldFieldType, newEnumKeys, actions, name, oldEnumKeys)
+		actions = handleEnumTypeChanges(newattrType, oldattrType, newEnumKeys, actions, name, oldEnumKeys)
 
-		if enumType, ok := newFieldType.(platform.AttributeSetType); ok {
-			oldElementTypes := oldFieldType["element_type"].([]any)
-			var myOldFieldType map[string]any
+		if enumType, ok := newattrType.(platform.AttributeSetType); ok {
+			oldElementTypes := oldattrType["element_type"].([]any)
+			var myOldattrType map[string]any
 			if len(oldElementTypes) > 0 {
-				myOldFieldType = oldElementTypes[0].(map[string]any)
+				myOldattrType = oldElementTypes[0].(map[string]any)
 			}
-			actions = handleEnumTypeChanges(enumType.ElementType, myOldFieldType, newEnumKeys, actions, name, oldEnumKeys)
+			actions = handleEnumTypeChanges(enumType.ElementType, myOldattrType, newEnumKeys, actions, name, oldEnumKeys)
 			log.Printf("[DEBUG] Set detected: %s", name)
-			log.Print(len(myOldFieldType))
+			log.Print(len(myOldattrType))
 		}
 
 		removeEnumKeys := []string{}
@@ -601,23 +601,23 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 	return actions, nil
 }
 
-func handleEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map[string]any, newEnumKeys map[string]any, actions []platform.ProductTypeUpdateAction, name string, oldEnumKeys map[string]any) []platform.ProductTypeUpdateAction {
+func handleEnumTypeChanges(newattrType platform.AttributeType, oldattrType map[string]any, newEnumKeys map[string]any, actions []platform.ProductTypeUpdateAction, name string, oldEnumKeys map[string]any) []platform.ProductTypeUpdateAction {
 	var (
 		oldValues          map[string]any
 		oldLocalizedValues []any
 		ok                 bool
 	)
 
-	if oldFieldType != nil {
-		if oldValues, ok = oldFieldType["values"].(map[string]any); !ok {
+	if oldattrType != nil {
+		if oldValues, ok = oldattrType["values"].(map[string]any); !ok {
 			oldValues = make(map[string]any, 0)
 		}
-		if oldLocalizedValues, ok = oldFieldType["localized_value"].([]any); !ok {
+		if oldLocalizedValues, ok = oldattrType["localized_value"].([]any); !ok {
 			oldLocalizedValues = make([]any, 0)
 		}
 	}
 
-	if enumType, ok := newFieldType.(platform.AttributeEnumType); ok {
+	if enumType, ok := newattrType.(platform.AttributeEnumType); ok {
 		for i, enumValue := range enumType.Values {
 			newEnumKeys[enumValue.Key] = enumValue
 			if _, ok := oldValues[enumValue.Key]; !ok {
@@ -637,7 +637,7 @@ func handleEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map
 
 	}
 
-	if enumType, ok := newFieldType.(platform.AttributeLocalizedEnumType); ok {
+	if enumType, ok := newattrType.(platform.AttributeLocalizedEnumType); ok {
 		for _, value := range oldLocalizedValues {
 			v := value.(map[string]any)
 			oldEnumKeys[v["key"].(string)] = v
@@ -680,13 +680,13 @@ func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]platf
 	var result []platform.AttributeDefinitionDraft
 
 	for _, raw := range input {
-		fieldDef, err := resourceProductTypeGetAttributeDefinition(raw.(map[string]any), true)
+		attrDef, err := resourceProductTypeGetAttributeDefinition(raw.(map[string]any), true)
 
 		if err != nil {
 			return nil, err
 		}
 
-		result = append(result, fieldDef.(platform.AttributeDefinitionDraft))
+		result = append(result, attrDef.(platform.AttributeDefinitionDraft))
 	}
 
 	return result, nil
