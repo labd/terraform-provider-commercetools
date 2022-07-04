@@ -222,6 +222,29 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m an
 	return resourceProductTypeRead(ctx, d, m)
 }
 
+func flattenProductTypeAttributes(t *platform.ProductType) ([]map[string]any, error) {
+	fields := make([]map[string]any, len(t.Attributes))
+	for i, attrDef := range t.Attributes {
+		attrType, err := flattenProductTypeAttributeType(attrDef.Type, true)
+		if err != nil {
+			return nil, err
+		}
+		fields[i] = map[string]any{
+			"type":       attrType,
+			"name":       attrDef.Name,
+			"label":      attrDef.Label,
+			"required":   attrDef.IsRequired,
+			"input_hint": attrDef.InputHint,
+			"constraint": attrDef.AttributeConstraint,
+			"searchable": attrDef.IsSearchable,
+		}
+		if attrDef.InputTip != nil {
+			fields[i]["input_tip"] = *attrDef.InputTip
+		}
+	}
+	return fields, nil
+}
+
 func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
@@ -237,43 +260,21 @@ func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any)
 	if ctType == nil {
 		d.SetId("")
 	} else {
-		attributes := make([]map[string]any, len(ctType.Attributes))
-		for i, attrDef := range ctType.Attributes {
-			attrData := make(map[string]any)
-			log.Printf("[DEBUG] reading attribute: %s: %#v", attrDef.Name, attrDef)
-			attrType, err := resourceProductTypeReadAttributeType(attrDef.Type, true)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			attrData["type"] = attrType
-			attrData["name"] = attrDef.Name
-			attrData["label"] = attrDef.Label
-			attrData["required"] = attrDef.IsRequired
-			attrData["input_hint"] = attrDef.InputHint
-			if attrDef.InputTip != nil {
-				attrData["input_tip"] = *attrDef.InputTip
-			}
-			attrData["constraint"] = attrDef.AttributeConstraint
-			attrData["searchable"] = attrDef.IsSearchable
-
-			attributes[i] = attrData
-		}
-
-		log.Printf("[DEBUG] Created attributes %#v", attributes)
 		d.Set("version", ctType.Version)
 		d.Set("key", ctType.Key)
 		d.Set("name", ctType.Name)
 		d.Set("description", ctType.Description)
-		err = d.Set("attribute", attributes)
-		if err != nil {
+
+		if attrs, err := flattenProductTypeAttributes(ctType); err != nil {
+			d.Set("attribute", attrs)
+		} else {
 			return diag.FromErr(err)
 		}
 	}
 	return nil
 }
 
-func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsAllowed bool) ([]any, error) {
+func flattenProductTypeAttributeType(attrType platform.AttributeType, setsAllowed bool) ([]any, error) {
 	typeData := make(map[string]any)
 
 	if _, ok := attrType.(platform.AttributeBooleanType); ok {
@@ -291,7 +292,7 @@ func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsA
 		typeData["values"] = enumValues
 	} else if f, ok := attrType.(platform.AttributeLocalizedEnumType); ok {
 		typeData["name"] = "lenum"
-		typeData["localized_value"] = readAttributeLocalizedEnum(f.Values)
+		typeData["localized_value"] = flattenProductTypeLocalizedEnum(f.Values)
 	} else if _, ok := attrType.(platform.AttributeNumberType); ok {
 		typeData["name"] = "number"
 	} else if _, ok := attrType.(platform.AttributeMoneyType); ok {
@@ -311,7 +312,7 @@ func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsA
 	} else if f, ok := attrType.(platform.AttributeSetType); ok {
 		typeData["name"] = "set"
 		if setsAllowed {
-			elemType, err := resourceProductTypeReadAttributeType(f.ElementType, false)
+			elemType, err := flattenProductTypeAttributeType(f.ElementType, false)
 			if err != nil {
 				return nil, err
 			}
@@ -821,7 +822,7 @@ func expandProductTypeAttributeType(input any) (platform.AttributeType, error) {
 	return nil, fmt.Errorf("unknown AttributeType %s", typeName)
 }
 
-func readAttributeLocalizedEnum(values []platform.AttributeLocalizedEnumValue) []any {
+func flattenProductTypeLocalizedEnum(values []platform.AttributeLocalizedEnumValue) []any {
 	enumValues := make([]any, len(values))
 	for i, value := range values {
 		enumValues[i] = map[string]any{
@@ -829,6 +830,5 @@ func readAttributeLocalizedEnum(values []platform.AttributeLocalizedEnumValue) [
 			"label": value.Label,
 		}
 	}
-	log.Printf("[DEBUG] readLocalizedEnum values: %#v", enumValues)
 	return enumValues
 }
