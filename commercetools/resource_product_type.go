@@ -187,7 +187,7 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
-	attributes, err := expandProductTypeAttributeDefinitions(d)
+	attributes, err := expandProductTypeAttributeDefinition(d)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -461,14 +461,14 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 		oldValue, existingAttr := oldLookup[name]
 
 		var attrDef platform.AttributeDefinition
-		if output, err := expandProductTypeAttributeDefinition(newV, false); err == nil {
+		if output, err := expandProductTypeAttributeDefinitionItem(newV, false); err == nil {
 			attrDef = output.(platform.AttributeDefinition)
 		} else {
 			return nil, err
 		}
 
 		var attrDefDraft platform.AttributeDefinitionDraft
-		if output, err := expandProductTypeAttributeDefinition(newV, true); err == nil {
+		if output, err := expandProductTypeAttributeDefinitionItem(newV, true); err == nil {
 			attrDefDraft = output.(platform.AttributeDefinitionDraft)
 		} else {
 			return nil, err
@@ -666,12 +666,12 @@ func handleEnumTypeChanges(newattrType platform.AttributeType, oldattrType map[s
 	return actions
 }
 
-func expandProductTypeAttributeDefinitions(d *schema.ResourceData) ([]platform.AttributeDefinitionDraft, error) {
+func expandProductTypeAttributeDefinition(d *schema.ResourceData) ([]platform.AttributeDefinitionDraft, error) {
 	input := d.Get("attribute").([]any)
 	var result []platform.AttributeDefinitionDraft
 
 	for _, raw := range input {
-		attrDef, err := expandProductTypeAttributeDefinition(raw.(map[string]any), true)
+		attrDef, err := expandProductTypeAttributeDefinitionItem(raw.(map[string]any), true)
 
 		if err != nil {
 			return nil, err
@@ -683,7 +683,7 @@ func expandProductTypeAttributeDefinitions(d *schema.ResourceData) ([]platform.A
 	return result, nil
 }
 
-func expandProductTypeAttributeDefinition(input map[string]any, draft bool) (any, error) {
+func expandProductTypeAttributeDefinitionItem(input map[string]any, draft bool) (any, error) {
 	attrTypes := input["type"].([]any)
 	attrType, err := getAttributeType(attrTypes[0])
 	if err != nil {
