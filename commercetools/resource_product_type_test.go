@@ -166,8 +166,9 @@ func TestExpandProductTypeAttributeType(t *testing.T) {
 }
 
 func TestAccProductTypes_basic(t *testing.T) {
-	name := "acctest_producttype"
-	resourceName := "commercetools_product_type.acctest_product_type"
+	key := "acctest-producttype"
+	identifier := "acctest_producttype"
+	resourceName := "commercetools_product_type.acctest_producttype"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -175,11 +176,17 @@ func TestAccProductTypes_basic(t *testing.T) {
 		CheckDestroy: testAccCheckProductTypesDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccProductTypeConfig(name),
+				Config: testAccProductTypeConfig(identifier, key),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						resourceName, "key", name,
-					),
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+						assert.EqualValues(t, *resource.Key, key)
+						return nil
+					},
 					resource.TestCheckResourceAttr(
 						resourceName, "name", "Shipping info",
 					),
@@ -216,10 +223,10 @@ func TestAccProductTypes_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccProductTypeConfigLabelChange(name),
+				Config: testAccProductTypeConfigLabelChange(identifier, key),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						resourceName, "key", name,
+						resourceName, "key", key,
 					),
 					resource.TestCheckResourceAttr(
 						resourceName, "name", "Shipping info",
@@ -257,15 +264,23 @@ func TestAccProductTypes_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						resourceName, "attribute.2.type.0.element_type.0.localized_value.1.label.de", "Mittagessen",
 					),
+					func(s *terraform.State) error {
+						resource, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+						assert.EqualValues(t, *resource.Key, key)
+						return nil
+					},
 				),
 			},
 		},
 	})
 }
 
-func testAccProductTypeConfigLabelChange(key string) string {
+func testAccProductTypeConfigLabelChange(identifier, key string) string {
 	return hclTemplate(`
-		resource "commercetools_product_type" "acctest_product_type" {
+		resource "commercetools_product_type" "{{ .identifier }}" {
 			key = "{{ .key }}"
 			name = "Shipping info"
 			description = "All things related shipping"
@@ -334,12 +349,12 @@ func testAccProductTypeConfigLabelChange(key string) string {
 					}
 				}
 			}
-		}`, map[string]any{"key": key})
+		}`, map[string]any{"key": key, "identifier": identifier})
 }
 
-func testAccProductTypeConfig(key string) string {
+func testAccProductTypeConfig(identifier, key string) string {
 	return hclTemplate(`
-		resource "commercetools_product_type" "acctest_product_type" {
+		resource "commercetools_product_type" "{{ .identifier }}" {
 			key = "{{ .key }}"
 			name = "Shipping info"
 			description = "All things related shipping"
@@ -405,7 +420,7 @@ func testAccProductTypeConfig(key string) string {
 					}
 				}
 			}
-		}`, map[string]any{"key": key})
+		}`, map[string]any{"key": key, "identifier": identifier})
 }
 
 func testAccCheckProductTypesDestroy(s *terraform.State) error {
@@ -427,4 +442,18 @@ func testAccCheckProductTypesDestroy(s *terraform.State) error {
 		}
 	}
 	return nil
+}
+
+func testGetProductType(s *terraform.State, identifier string) (*platform.ProductType, error) {
+	rs, ok := s.RootModule().Resources[identifier]
+	if !ok {
+		return nil, fmt.Errorf("ProductType %s not found", identifier)
+	}
+
+	client := getClient(testAccProvider.Meta())
+	result, err := client.ProductTypes().WithId(rs.Primary.ID).Get().Execute(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
