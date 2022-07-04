@@ -684,8 +684,12 @@ func expandProductTypeAttributeDefinition(d *schema.ResourceData) ([]platform.At
 }
 
 func expandProductTypeAttributeDefinitionItem(input map[string]any, draft bool) (any, error) {
-	attrTypes := input["type"].([]any)
-	attrType, err := getAttributeType(attrTypes[0])
+	attrData, err := elementFromSlice(input, "type")
+	if err != nil {
+		return nil, err
+	}
+
+	attrType, err := expandProductTypeAttributeType(attrData)
 	if err != nil {
 		return nil, err
 	}
@@ -727,7 +731,7 @@ func expandProductTypeAttributeDefinitionItem(input map[string]any, draft bool) 
 	}, nil
 }
 
-func getAttributeType(input any) (platform.AttributeType, error) {
+func expandProductTypeAttributeType(input any) (platform.AttributeType, error) {
 	config := input.(map[string]any)
 	typeName, ok := config["name"].(string)
 
@@ -783,13 +787,13 @@ func getAttributeType(input any) (platform.AttributeType, error) {
 	case "datetime":
 		return platform.AttributeDateTimeType{}, nil
 	case "reference":
-		refTypeID, refTypeIDOk := config["reference_type_id"].(string)
-		if !refTypeIDOk {
-			return nil, fmt.Errorf("no reference_type_id specified for Reference type")
+		if ref, ok := config["reference_type_id"].(string); ok {
+			result := platform.AttributeReferenceType{
+				ReferenceTypeId: platform.ReferenceTypeId(ref),
+			}
+			return result, nil
 		}
-		return platform.AttributeReferenceType{
-			ReferenceTypeId: platform.ReferenceTypeId(refTypeID),
-		}, nil
+		return nil, fmt.Errorf("no reference_type_id specified for Reference type")
 	case "nested":
 		typeReference, typeReferenceOk := config["type_reference"].(string)
 		if !typeReferenceOk {
@@ -799,16 +803,12 @@ func getAttributeType(input any) (platform.AttributeType, error) {
 			TypeReference: platform.ProductTypeReference{ID: typeReference},
 		}, nil
 	case "set":
-		elementTypes, elementTypesOk := config["element_type"]
-		if !elementTypesOk {
-			return nil, fmt.Errorf("no element_type specified for Set type")
-		}
-		elementTypeList := elementTypes.([]any)
-		if len(elementTypeList) == 0 {
+		data, err := elementFromSlice(config, "element_type")
+		if err != nil {
 			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 
-		setAttrType, err := getAttributeType(elementTypeList[0])
+		setAttrType, err := expandProductTypeAttributeType(data)
 		if err != nil {
 			return nil, err
 		}

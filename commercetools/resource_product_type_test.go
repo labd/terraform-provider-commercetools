@@ -32,12 +32,12 @@ func TestAttributeTypeElement(t *testing.T) {
 	}
 }
 
-func TestGetAttributeType(t *testing.T) {
+func TestExpandProductTypeAttributeType(t *testing.T) {
 	// Test Boolean
 	input := map[string]interface{}{
 		"name": "boolean",
 	}
-	result, err := getAttributeType(input)
+	result, err := expandProductTypeAttributeType(input)
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -49,7 +49,7 @@ func TestGetAttributeType(t *testing.T) {
 	input = map[string]interface{}{
 		"name": "enum",
 	}
-	_, err = getAttributeType(input)
+	_, err = expandProductTypeAttributeType(input)
 	if err == nil {
 		t.Error("No error returned while enum requires values")
 	}
@@ -60,7 +60,7 @@ func TestGetAttributeType(t *testing.T) {
 			"value2": "Value 2",
 		},
 	}
-	result, err = getAttributeType(input)
+	result, err = expandProductTypeAttributeType(input)
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -77,7 +77,7 @@ func TestGetAttributeType(t *testing.T) {
 	input = map[string]interface{}{
 		"name": "reference",
 	}
-	_, err = getAttributeType(input)
+	_, err = expandProductTypeAttributeType(input)
 	if err == nil {
 		t.Error("No error returned while Reference requires reference_type_id")
 	}
@@ -85,7 +85,7 @@ func TestGetAttributeType(t *testing.T) {
 		"name":              "reference",
 		"reference_type_id": "product",
 	}
-	result, err = getAttributeType(input)
+	result, err = expandProductTypeAttributeType(input)
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -99,7 +99,7 @@ func TestGetAttributeType(t *testing.T) {
 	input = map[string]interface{}{
 		"name": "set",
 	}
-	_, err = getAttributeType(input)
+	_, err = expandProductTypeAttributeType(input)
 	if err == nil {
 		t.Error("No error returned while set requires element_type")
 	}
