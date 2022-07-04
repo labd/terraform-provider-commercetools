@@ -92,7 +92,7 @@ func resourceProductType() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  platform.AttributeConstraintEnumNone,
-							ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+							ValidateFunc: func(val any, key string) (warns []string, errs []error) {
 								v := val.(string)
 
 								if _, ok := constraintMap[v]; !ok {
@@ -145,7 +145,7 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 		"name": {
 			Type:     schema.TypeString,
 			Required: true,
-			ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+			ValidateFunc: func(val any, key string) (warns []string, errs []error) {
 				v := val.(string)
 				if !setsAllowed && v == "set" {
 					errs = append(errs, fmt.Errorf("sets in another Set are not allowed"))
@@ -184,7 +184,7 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 	return &schema.Resource{Schema: result}
 }
 
-func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	attributes, err := resourceProductTypeGetAttributeDefinitions(d)
@@ -222,7 +222,7 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceProductTypeRead(ctx, d, m)
 }
 
-func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	log.Print("[DEBUG] Reading product type from commercetools")
 	client := getClient(m)
 
@@ -242,9 +242,9 @@ func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m inte
 		log.Printf("[DEBUG] Found following product type: %#v", ctType)
 		log.Print(stringFormatObject(ctType))
 
-		attributes := make([]map[string]interface{}, len(ctType.Attributes))
+		attributes := make([]map[string]any, len(ctType.Attributes))
 		for i, fieldDef := range ctType.Attributes {
-			fieldData := make(map[string]interface{})
+			fieldData := make(map[string]any)
 			log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
 			fieldType, err := resourceProductTypeReadAttributeType(fieldDef.Type, true)
 			if err != nil {
@@ -278,8 +278,8 @@ func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m inte
 	return nil
 }
 
-func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsAllowed bool) ([]interface{}, error) {
-	typeData := make(map[string]interface{})
+func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsAllowed bool) ([]any, error) {
+	typeData := make(map[string]any)
 
 	if _, ok := attrType.(platform.AttributeBooleanType); ok {
 		typeData["name"] = "boolean"
@@ -288,7 +288,7 @@ func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsA
 	} else if _, ok := attrType.(platform.AttributeLocalizableTextType); ok {
 		typeData["name"] = "ltext"
 	} else if f, ok := attrType.(platform.AttributeEnumType); ok {
-		enumValues := make(map[string]interface{}, len(f.Values))
+		enumValues := make(map[string]any, len(f.Values))
 		for _, value := range f.Values {
 			enumValues[value.Key] = value.Label
 		}
@@ -326,10 +326,10 @@ func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsA
 		return nil, fmt.Errorf("unknown resource Type %T", attrType)
 	}
 
-	return []interface{}{typeData}, nil
+	return []any{typeData}, nil
 }
 
-func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ProductTypeUpdate{
@@ -361,7 +361,7 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m in
 	if d.HasChange("attribute") {
 		old, new := d.GetChange("attribute")
 		attributeChangeActions, err := resourceProductTypeAttributeChangeActions(
-			old.([]interface{}), new.([]interface{}))
+			old.([]any), new.([]any))
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -384,7 +384,7 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceProductTypeRead(ctx, d, m)
 }
 
-func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
@@ -449,7 +449,7 @@ func resourceTypeValidateAttribute(old, new []any) error {
 	return nil
 }
 
-func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValues []interface{}) ([]platform.ProductTypeUpdateAction, error) {
+func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any) ([]platform.ProductTypeUpdateAction, error) {
 	oldLookup := createLookup(oldValues, "name")
 	newLookup := createLookup(newValues, "name")
 	newAttrDefinitions := []platform.AttributeDefinition{}
@@ -465,7 +465,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 	}
 
 	for _, value := range newValues {
-		newV := value.(map[string]interface{})
+		newV := value.(map[string]any)
 		name := newV["name"].(string)
 		oldValue, existingField := oldLookup[name]
 
@@ -494,7 +494,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 			continue
 		}
 
-		oldV := oldValue.(map[string]interface{})
+		oldV := oldValue.(map[string]any)
 		if !reflect.DeepEqual(oldV["label"], newV["label"]) {
 			actions = append(
 				actions,
@@ -537,21 +537,21 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 		}
 
 		newFieldType := attrDef.Type
-		oldTypes := oldV["type"].([]interface{})
-		var oldFieldType map[string]interface{}
+		oldTypes := oldV["type"].([]any)
+		var oldFieldType map[string]any
 		if len(oldTypes) > 0 {
-			oldFieldType = oldTypes[0].(map[string]interface{})
+			oldFieldType = oldTypes[0].(map[string]any)
 		}
-		oldEnumKeys := make(map[string]interface{})
-		newEnumKeys := make(map[string]interface{})
+		oldEnumKeys := make(map[string]any)
+		newEnumKeys := make(map[string]any)
 
 		actions = handleEnumTypeChanges(newFieldType, oldFieldType, newEnumKeys, actions, name, oldEnumKeys)
 
 		if enumType, ok := newFieldType.(platform.AttributeSetType); ok {
-			oldElementTypes := oldFieldType["element_type"].([]interface{})
-			var myOldFieldType map[string]interface{}
+			oldElementTypes := oldFieldType["element_type"].([]any)
+			var myOldFieldType map[string]any
 			if len(oldElementTypes) > 0 {
-				myOldFieldType = oldElementTypes[0].(map[string]interface{})
+				myOldFieldType = oldElementTypes[0].(map[string]any)
 			}
 			actions = handleEnumTypeChanges(enumType.ElementType, myOldFieldType, newEnumKeys, actions, name, oldEnumKeys)
 			log.Printf("[DEBUG] Set detected: %s", name)
@@ -580,11 +580,11 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 	newNames := make([]string, len(newValues))
 
 	for i, value := range oldValues {
-		v := value.(map[string]interface{})
+		v := value.(map[string]any)
 		oldNames[i] = v["name"].(string)
 	}
 	for i, value := range newValues {
-		v := value.(map[string]interface{})
+		v := value.(map[string]any)
 		newNames[i] = v["name"].(string)
 	}
 
@@ -601,19 +601,19 @@ func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValue
 	return actions, nil
 }
 
-func handleEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map[string]interface{}, newEnumKeys map[string]interface{}, actions []platform.ProductTypeUpdateAction, name string, oldEnumKeys map[string]interface{}) []platform.ProductTypeUpdateAction {
+func handleEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map[string]any, newEnumKeys map[string]any, actions []platform.ProductTypeUpdateAction, name string, oldEnumKeys map[string]any) []platform.ProductTypeUpdateAction {
 	var (
-		oldValues          map[string]interface{}
-		oldLocalizedValues []interface{}
+		oldValues          map[string]any
+		oldLocalizedValues []any
 		ok                 bool
 	)
 
 	if oldFieldType != nil {
-		if oldValues, ok = oldFieldType["values"].(map[string]interface{}); !ok {
-			oldValues = make(map[string]interface{}, 0)
+		if oldValues, ok = oldFieldType["values"].(map[string]any); !ok {
+			oldValues = make(map[string]any, 0)
 		}
-		if oldLocalizedValues, ok = oldFieldType["localized_value"].([]interface{}); !ok {
-			oldLocalizedValues = make([]interface{}, 0)
+		if oldLocalizedValues, ok = oldFieldType["localized_value"].([]any); !ok {
+			oldLocalizedValues = make([]any, 0)
 		}
 	}
 
@@ -639,7 +639,7 @@ func handleEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map
 
 	if enumType, ok := newFieldType.(platform.AttributeLocalizedEnumType); ok {
 		for _, value := range oldLocalizedValues {
-			v := value.(map[string]interface{})
+			v := value.(map[string]any)
 			oldEnumKeys[v["key"].(string)] = v
 		}
 
@@ -654,8 +654,8 @@ func handleEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map
 						Value:         enumType.Values[i],
 					})
 			} else {
-				oldEnumValue := oldEnumKeys[enumValue.Key].(map[string]interface{})
-				oldLocalizedLabel := oldEnumValue["label"].(map[string]interface{})
+				oldEnumValue := oldEnumKeys[enumValue.Key].(map[string]any)
+				oldLocalizedLabel := oldEnumValue["label"].(map[string]any)
 				labelChanged := !localizedStringCompare(enumValue.Label, oldLocalizedLabel)
 				if labelChanged {
 					actions = append(
@@ -676,11 +676,11 @@ func handleEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map
 }
 
 func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]platform.AttributeDefinitionDraft, error) {
-	input := d.Get("attribute").([]interface{})
+	input := d.Get("attribute").([]any)
 	var result []platform.AttributeDefinitionDraft
 
 	for _, raw := range input {
-		fieldDef, err := resourceProductTypeGetAttributeDefinition(raw.(map[string]interface{}), true)
+		fieldDef, err := resourceProductTypeGetAttributeDefinition(raw.(map[string]any), true)
 
 		if err != nil {
 			return nil, err
@@ -692,8 +692,8 @@ func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]platf
 	return result, nil
 }
 
-func resourceProductTypeGetAttributeDefinition(input map[string]interface{}, draft bool) (interface{}, error) {
-	attrTypes := input["type"].([]interface{})
+func resourceProductTypeGetAttributeDefinition(input map[string]any, draft bool) (any, error) {
+	attrTypes := input["type"].([]any)
 	attrType, err := getAttributeType(attrTypes[0])
 	if err != nil {
 		return nil, err
@@ -736,8 +736,8 @@ func resourceProductTypeGetAttributeDefinition(input map[string]interface{}, dra
 	}, nil
 }
 
-func getAttributeType(input interface{}) (platform.AttributeType, error) {
-	config := input.(map[string]interface{})
+func getAttributeType(input any) (platform.AttributeType, error) {
+	config := input.(map[string]any)
 	typeName, ok := config["name"].(string)
 
 	if !ok {
@@ -752,7 +752,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "ltext":
 		return platform.AttributeLocalizableTextType{}, nil
 	case "enum":
-		valuesInput, valuesOk := config["values"].(map[string]interface{})
+		valuesInput, valuesOk := config["values"].(map[string]any)
 		if !valuesOk {
 			return nil, fmt.Errorf("no values specified for Enum type: %+v", valuesInput)
 		}
@@ -770,8 +770,8 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 			return nil, fmt.Errorf("no localized_value elements specified for LocalizedEnum type")
 		}
 		var values []platform.AttributeLocalizedEnumValue
-		for _, value := range valuesInput.([]interface{}) {
-			v := value.(map[string]interface{})
+		for _, value := range valuesInput.([]any) {
+			v := value.(map[string]any)
 			labels := expandLocalizedString(v["label"])
 
 			values = append(values, platform.AttributeLocalizedEnumValue{
@@ -812,7 +812,7 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 		if !elementTypesOk {
 			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
-		elementTypeList := elementTypes.([]interface{})
+		elementTypeList := elementTypes.([]any)
 		if len(elementTypeList) == 0 {
 			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
@@ -830,10 +830,10 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	return nil, fmt.Errorf("unknown AttributeType %s", typeName)
 }
 
-func readAttributeLocalizedEnum(values []platform.AttributeLocalizedEnumValue) []interface{} {
-	enumValues := make([]interface{}, len(values))
+func readAttributeLocalizedEnum(values []platform.AttributeLocalizedEnumValue) []any {
+	enumValues := make([]any, len(values))
 	for i, value := range values {
-		enumValues[i] = map[string]interface{}{
+		enumValues[i] = map[string]any{
 			"key":   value.Key,
 			"label": value.Label,
 		}
