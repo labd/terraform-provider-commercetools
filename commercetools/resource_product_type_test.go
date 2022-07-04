@@ -18,7 +18,7 @@ func TestResourceProductTypeValidateAttribute(t *testing.T) {
 			"name": "attr-one",
 			"type": []any{
 				map[string]any{
-					"name": "String",
+					"name": "text",
 				},
 			},
 		},
@@ -46,7 +46,7 @@ func TestResourceProductTypeValidateAttributeSet(t *testing.T) {
 					"name": "Set",
 					"element_type": []any{
 						map[string]any{
-							"name": "String",
+							"name": "text",
 						},
 					},
 				},
@@ -85,10 +85,10 @@ func TestAttributeTypeElement(t *testing.T) {
 	// The element_type itself may not contain an 'element_type'.
 	// This is because we don't allow infinite nested 'Set' elements
 	if _, ok := elemTypeResource.Schema["name"]; !ok {
-		t.Error("element_type Schema does not contain 'name' field")
+		t.Error("element_type Schema does not contain 'name' attribute")
 	}
 	if _, ok := elemTypeResource.Schema["element_type"]; ok {
-		t.Error("element_type Schema should not include another 'element_type' field")
+		t.Error("element_type Schema should not include another 'element_type' attribute")
 	}
 }
 
@@ -124,8 +124,8 @@ func TestExpandProductTypeAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(platform.AttributeEnumType); ok {
-		assert.ElementsMatch(t, field.Values, []platform.AttributePlainEnumValue{
+	if attr, ok := result.(platform.AttributeEnumType); ok {
+		assert.ElementsMatch(t, attr.Values, []platform.AttributePlainEnumValue{
 			{Key: "value1", Label: "Value 1"},
 			{Key: "value2", Label: "Value 2"},
 		})
@@ -149,8 +149,8 @@ func TestExpandProductTypeAttributeType(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
-	if field, ok := result.(platform.AttributeReferenceType); ok {
-		assert.EqualValues(t, field.ReferenceTypeId, "product")
+	if attr, ok := result.(platform.AttributeReferenceType); ok {
+		assert.EqualValues(t, attr.ReferenceTypeId, "product")
 	} else {
 		t.Error("Expected Reference type")
 	}
@@ -352,6 +352,231 @@ func testAccProductTypeConfigLabelChange(identifier, key string) string {
 		}`, map[string]any{"key": key, "identifier": identifier})
 }
 
+func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
+	key := "acctest-producttype"
+	identifier := "acctest_producttype"
+	resourceName := fmt.Sprintf("commercetools_product_type.%s", identifier)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckTypesDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfigAttributes(
+					key, "acctest_producttype",
+					[]TestProductTypeAttrData{
+						{Name: "attr-one", Type: "text"},
+						{Name: "attr-two", Type: "text"},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TextInputHintSingleLine
+						expected := []platform.AttributeDefinition{
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-one",
+								Label:     platform.LocalizedString{"en": "attr-one"},
+								InputHint: SingleText,
+							},
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-two",
+								Label:     platform.LocalizedString{"en": "attr-two"},
+								InputHint: SingleText,
+							},
+						}
+						assert.EqualValues(t, *resource.Key, key)
+						assert.EqualValues(t, expected, resource.Attributes)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccConfigAttributes(
+					key, "acctest_producttype",
+					[]TestProductTypeAttrData{
+						{Name: "attr-one", Type: "text"},
+						{Name: "attr-two", Type: "text"},
+						{Name: "attr-three", Type: "text"},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TextInputHintSingleLine
+						expected := []platform.AttributeDefinition{
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-one",
+								Label:     platform.LocalizedString{"en": "attr-one"},
+								InputHint: SingleText,
+							},
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-two",
+								Label:     platform.LocalizedString{"en": "attr-two"},
+								InputHint: SingleText,
+							},
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-three",
+								Label:     platform.LocalizedString{"en": "attr-three"},
+								InputHint: SingleText,
+							},
+						}
+						assert.EqualValues(t, *resource.Key, key)
+						assert.EqualValues(t, expected, resource.Attributes)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccConfigAttributes(
+					key, "acctest_producttype",
+					[]TestProductTypeAttrData{
+						{Name: "attr-one", Type: "text"},
+						{Name: "attr-three", Type: "text"},
+						{Name: "attr-two", Type: "text"},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TextInputHintSingleLine
+						expected := []platform.AttributeDefinition{
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-one",
+								Label:     platform.LocalizedString{"en": "attr-one"},
+								InputHint: SingleText,
+							},
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-three",
+								Label:     platform.LocalizedString{"en": "attr-three"},
+								InputHint: SingleText,
+							},
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-two",
+								Label:     platform.LocalizedString{"en": "attr-two"},
+								InputHint: SingleText,
+							},
+						}
+
+						assert.EqualValues(t, *resource.Key, key)
+						assert.EqualValues(t, expected, resource.Attributes)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccConfigAttributes(
+					key, "acctest_producttype",
+					[]TestProductTypeAttrData{
+						{Name: "attr-one", Type: "text"},
+						{Name: "attr-four", Type: "text"},
+						{Name: "attr-three", Type: "text"},
+						{Name: "attr-two", Type: "text"},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TextInputHintSingleLine
+						expected := []platform.AttributeDefinition{
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-one",
+								Label:     platform.LocalizedString{"en": "attr-one"},
+								InputHint: SingleText,
+							},
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-four",
+								Label:     platform.LocalizedString{"en": "attr-four"},
+								InputHint: SingleText,
+							},
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-three",
+								Label:     platform.LocalizedString{"en": "attr-three"},
+								InputHint: SingleText,
+							},
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-two",
+								Label:     platform.LocalizedString{"en": "attr-two"},
+								InputHint: SingleText,
+							},
+						}
+
+						assert.EqualValues(t, *resource.Key, key)
+						assert.EqualValues(t, expected, resource.Attributes)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccConfigAttributes(
+					key, "acctest_producttype",
+					[]TestProductTypeAttrData{
+						{Name: "attr-one", Type: "text"},
+						{Name: "attr-two", Type: "text"},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TextInputHintSingleLine
+						expected := []platform.AttributeDefinition{
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-one",
+								Label:     platform.LocalizedString{"en": "attr-one"},
+								InputHint: SingleText,
+							},
+							{
+								Type:      platform.AttributeTextType{},
+								Name:      "attr-two",
+								Label:     platform.LocalizedString{"en": "attr-two"},
+								InputHint: SingleText,
+							},
+						}
+
+						assert.EqualValues(t, *resource.Key, key)
+						assert.EqualValues(t, expected, resource.Attributes)
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func testAccProductTypeConfig(identifier, key string) string {
 	return hclTemplate(`
 		resource "commercetools_product_type" "{{ .identifier }}" {
@@ -421,6 +646,33 @@ func testAccProductTypeConfig(identifier, key string) string {
 				}
 			}
 		}`, map[string]any{"key": key, "identifier": identifier})
+}
+
+type TestProductTypeAttrData struct {
+	Name string
+	Type string
+}
+
+func testAccConfigAttributes(key, identifier string, attrs []TestProductTypeAttrData) string {
+	return hclTemplate(`
+		resource "commercetools_product_type" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = "{{ .key }}"
+
+			{{range $t := .fields}}
+			attribute {
+				name = "{{ $t.Name }}"
+				label = { en = "{{ $t.Name }}" }
+				type { name = "{{ $t.Type }}" }
+			}
+			{{end}}
+		}
+		`, map[string]any{
+		"key":        key,
+		"identifier": identifier,
+		"attributes": attrs,
+	},
+	)
 }
 
 func testAccCheckProductTypesDestroy(s *terraform.State) error {
