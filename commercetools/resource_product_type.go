@@ -770,7 +770,7 @@ func getAttributeType(input any) (platform.AttributeType, error) {
 				Label: labels,
 			})
 		}
-		log.Printf("[DEBUG] GetAttributeType localized enum values: %#v", values)
+		log.Printf("[DEBUG] expandProductTypeAttributeType localized enum values: %#v", values)
 		return platform.AttributeLocalizedEnumType{Values: values}, nil
 	case "number":
 		return platform.AttributeNumberType{}, nil
