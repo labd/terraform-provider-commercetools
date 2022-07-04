@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -133,44 +134,9 @@ func resourceProductType() *schema.Resource {
 				Computed: true,
 			},
 		},
-		CustomizeDiff: customdiff.All(
-			customdiff.ValidateChange("attribute", func(ctx context.Context, old, new, meta interface{}) error {
-				log.Printf("[DEBUG] Start attribute validation")
-				oldLookup := createLookup(old.([]interface{}), "name")
-				newV := new.([]interface{})
-
-				for _, field := range newV {
-					newF := field.(map[string]interface{})
-					name := newF["name"].(string)
-					oldF, ok := oldLookup[name].(map[string]interface{})
-					if !ok {
-						// It means this is a new field, that's ok.
-						log.Printf("[DEBUG] Found new attribute: %s", name)
-						continue
-					}
-
-					log.Printf("[DEBUG] Checking %s", oldF["name"])
-					oldType := oldF["type"].([]interface{})[0].(map[string]interface{})
-					newType := newF["type"].([]interface{})[0].(map[string]interface{})
-
-					if oldType["name"] != newType["name"] {
-						if oldType["name"] != "" || newType["name"] == "" {
-							continue
-						}
-						return fmt.Errorf(
-							"field '%s' type changed from %s to %s. Changing types is not supported; please remove the attribute first and re-define it later",
-							name, oldType["name"], newType["name"])
-					}
-
-					if oldF["required"] != newF["required"] {
-						return fmt.Errorf(
-							"error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
-							name)
-					}
-				}
-				return nil
-			}),
-		),
+		CustomizeDiff: customdiff.ValidateChange("attribute", func(ctx context.Context, old, new, meta any) error {
+			return resourceTypeValidateAttribute(old.([]any), new.([]any))
+		}),
 	}
 }
 
@@ -426,6 +392,61 @@ func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m in
 		return processRemoteError(err)
 	})
 	return diag.FromErr(err)
+}
+
+func resourceTypeValidateAttribute(old, new []any) error {
+	oldLookup := createLookup(old, "name")
+
+	for _, attribute := range new {
+		newF := attribute.(map[string]any)
+		name := newF["name"].(string)
+		oldF, ok := oldLookup[name].(map[string]any)
+		if !ok {
+			continue
+		}
+
+		oldType := firstElementFromSlice(oldF["type"].([]any))
+		newType := firstElementFromSlice(newF["type"].([]any))
+
+		oldTypeName := oldType["name"].(string)
+		newTypeName := newType["name"].(string)
+
+		if oldTypeName != newTypeName {
+			if oldTypeName == "" || newTypeName == "" {
+				continue
+			}
+
+			return fmt.Errorf(
+				"attribute '%s' type changed from %s to %s."+
+					" Changing types is not supported;"+
+					" please remove the attribute first and re-define it later",
+				name, oldTypeName, newTypeName)
+		}
+
+		if strings.EqualFold(newTypeName, "Set") {
+			oldElement, _ := elementFromSlice(oldType, "element_type")
+			newElement, _ := elementFromSlice(newType, "element_type")
+			oldElementName := oldElement["name"].(string)
+			newElementName := newElement["name"].(string)
+
+			if oldElementName != newElementName {
+				return fmt.Errorf(
+					"attribute '%s' element type changed from %s to %s."+
+						" Changing element types is not supported;"+
+						" please remove the attribute first and re-define it later",
+					name, oldElementName, newElementName)
+			}
+		}
+
+		if oldF["required"] != newF["required"] {
+			return fmt.Errorf(
+				"error on the '%s' attribute: "+
+					"Updating the 'required' attribute is not supported."+
+					"Consider removing the attribute first and then re-adding it",
+				name)
+		}
+	}
+	return nil
 }
 
 func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValues []interface{}) ([]platform.ProductTypeUpdateAction, error) {
