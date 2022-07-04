@@ -135,7 +135,7 @@ func resourceProductType() *schema.Resource {
 			},
 		},
 		CustomizeDiff: customdiff.ValidateChange("attribute", func(ctx context.Context, old, new, meta any) error {
-			return resourceTypeValidateAttribute(old.([]any), new.([]any))
+			return resourceProductTypeValidateAttribute(old.([]any), new.([]any))
 		}),
 	}
 }
@@ -187,7 +187,7 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
-	attributes, err := resourceProductTypeGetAttributeDefinitions(d)
+	attributes, err := expandProductTypeGetAttributeDefinitions(d)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -394,7 +394,7 @@ func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m an
 	return diag.FromErr(err)
 }
 
-func resourceTypeValidateAttribute(old, new []any) error {
+func resourceProductTypeValidateAttribute(old, new []any) error {
 	oldLookup := createLookup(old, "name")
 
 	for _, attribute := range new {
@@ -470,14 +470,14 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 		oldValue, existingAttr := oldLookup[name]
 
 		var attrDef platform.AttributeDefinition
-		if output, err := resourceProductTypeGetAttributeDefinition(newV, false); err == nil {
+		if output, err := expandProductTypeGetAttributeDefinition(newV, false); err == nil {
 			attrDef = output.(platform.AttributeDefinition)
 		} else {
 			return nil, err
 		}
 
 		var attrDefDraft platform.AttributeDefinitionDraft
-		if output, err := resourceProductTypeGetAttributeDefinition(newV, true); err == nil {
+		if output, err := expandProductTypeGetAttributeDefinition(newV, true); err == nil {
 			attrDefDraft = output.(platform.AttributeDefinitionDraft)
 		} else {
 			return nil, err
@@ -675,12 +675,12 @@ func handleEnumTypeChanges(newattrType platform.AttributeType, oldattrType map[s
 	return actions
 }
 
-func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]platform.AttributeDefinitionDraft, error) {
+func expandProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]platform.AttributeDefinitionDraft, error) {
 	input := d.Get("attribute").([]any)
 	var result []platform.AttributeDefinitionDraft
 
 	for _, raw := range input {
-		attrDef, err := resourceProductTypeGetAttributeDefinition(raw.(map[string]any), true)
+		attrDef, err := expandProductTypeGetAttributeDefinition(raw.(map[string]any), true)
 
 		if err != nil {
 			return nil, err
@@ -692,7 +692,7 @@ func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]platf
 	return result, nil
 }
 
-func resourceProductTypeGetAttributeDefinition(input map[string]any, draft bool) (any, error) {
+func expandProductTypeGetAttributeDefinition(input map[string]any, draft bool) (any, error) {
 	attrTypes := input["type"].([]any)
 	attrType, err := getAttributeType(attrTypes[0])
 	if err != nil {
