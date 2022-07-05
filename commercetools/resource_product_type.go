@@ -635,6 +635,24 @@ func updateAttributeEnumType(attrName string, old, new platform.AttributeEnumTyp
 	valueOrder = append(valueOrder, oldValues.Keys()...)
 
 	actions := []platform.ProductTypeUpdateAction{}
+
+	// Delete enum values
+	removeKeys := []string{}
+	for _, key := range oldValues.Keys() {
+		if _, ok := newValues.Get(key); !ok {
+			removeKeys = append(removeKeys, key)
+			valueOrder = removeValueFromSlice(valueOrder, key)
+		}
+	}
+	if len(removeKeys) > 0 {
+		actions = append(
+			actions,
+			platform.ProductTypeRemoveEnumValuesAction{
+				AttributeName: attrName,
+				Keys:          removeKeys,
+			})
+	}
+
 	for _, key := range newValues.Keys() {
 		newValue, _ := newValues.Get(key)
 
@@ -698,6 +716,24 @@ func updateAttributeLocalizedEnumType(attrName string, old, new platform.Attribu
 	valueOrder = append(valueOrder, oldValues.Keys()...)
 
 	actions := []platform.ProductTypeUpdateAction{}
+
+	// Delete enum values
+	removeKeys := []string{}
+	for _, key := range oldValues.Keys() {
+		if _, ok := newValues.Get(key); !ok {
+			removeKeys = append(removeKeys, key)
+			valueOrder = removeValueFromSlice(valueOrder, key)
+		}
+	}
+	if len(removeKeys) > 0 {
+		actions = append(
+			actions,
+			platform.ProductTypeRemoveEnumValuesAction{
+				AttributeName: attrName,
+				Keys:          removeKeys,
+			})
+	}
+
 	for _, key := range newValues.Keys() {
 		newValue, _ := newValues.Get(key)
 
