@@ -9,6 +9,8 @@ v1.3.0 (unreleased)
  - Improve the error handling by better communicating the errors raised by
    commercetools.
  - Accept a trailing slash in the token url (#182)
+ - Large rewrite of the `type` and `product_type` resources to fix a number
+   of issues (#165, #262, #263, #267)
 
 v1.2.1 (2022-06-16)
 ===================
