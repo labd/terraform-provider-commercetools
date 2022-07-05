@@ -659,7 +659,7 @@ func testAccConfigAttributes(key, identifier string, attrs []TestProductTypeAttr
 			key = "{{ .key }}"
 			name = "{{ .key }}"
 
-			{{range $t := .fields}}
+			{{range $t := .attributes}}
 			attribute {
 				name = "{{ $t.Name }}"
 				label = { en = "{{ $t.Name }}" }
