@@ -380,16 +380,20 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 						SingleText := platform.TextInputHintSingleLine
 						expected := []platform.AttributeDefinition{
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-one",
-								Label:     platform.LocalizedString{"en": "attr-one"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-one",
+								Label:               platform.LocalizedString{"en": "attr-one"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
+								InputTip:            nil,
 							},
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-two",
-								Label:     platform.LocalizedString{"en": "attr-two"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-two",
+								Label:               platform.LocalizedString{"en": "attr-two"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
+								InputTip:            nil,
 							},
 						}
 						assert.EqualValues(t, *resource.Key, key)
@@ -417,22 +421,28 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 						SingleText := platform.TextInputHintSingleLine
 						expected := []platform.AttributeDefinition{
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-one",
-								Label:     platform.LocalizedString{"en": "attr-one"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-one",
+								Label:               platform.LocalizedString{"en": "attr-one"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
+								InputTip:            nil,
 							},
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-two",
-								Label:     platform.LocalizedString{"en": "attr-two"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-two",
+								Label:               platform.LocalizedString{"en": "attr-two"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
+								InputTip:            nil,
 							},
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-three",
-								Label:     platform.LocalizedString{"en": "attr-three"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-three",
+								Label:               platform.LocalizedString{"en": "attr-three"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
+								InputTip:            nil,
 							},
 						}
 						assert.EqualValues(t, *resource.Key, key)
@@ -460,22 +470,25 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 						SingleText := platform.TextInputHintSingleLine
 						expected := []platform.AttributeDefinition{
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-one",
-								Label:     platform.LocalizedString{"en": "attr-one"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-one",
+								Label:               platform.LocalizedString{"en": "attr-one"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
 							},
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-three",
-								Label:     platform.LocalizedString{"en": "attr-three"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-three",
+								Label:               platform.LocalizedString{"en": "attr-three"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
 							},
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-two",
-								Label:     platform.LocalizedString{"en": "attr-two"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-two",
+								Label:               platform.LocalizedString{"en": "attr-two"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
 							},
 						}
 
@@ -505,28 +518,32 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 						SingleText := platform.TextInputHintSingleLine
 						expected := []platform.AttributeDefinition{
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-one",
-								Label:     platform.LocalizedString{"en": "attr-one"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-one",
+								Label:               platform.LocalizedString{"en": "attr-one"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
 							},
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-four",
-								Label:     platform.LocalizedString{"en": "attr-four"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-four",
+								Label:               platform.LocalizedString{"en": "attr-four"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
 							},
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-three",
-								Label:     platform.LocalizedString{"en": "attr-three"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-three",
+								Label:               platform.LocalizedString{"en": "attr-three"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
 							},
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-two",
-								Label:     platform.LocalizedString{"en": "attr-two"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-two",
+								Label:               platform.LocalizedString{"en": "attr-two"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
 							},
 						}
 
@@ -554,16 +571,18 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 						SingleText := platform.TextInputHintSingleLine
 						expected := []platform.AttributeDefinition{
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-one",
-								Label:     platform.LocalizedString{"en": "attr-one"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-one",
+								Label:               platform.LocalizedString{"en": "attr-one"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
 							},
 							{
-								Type:      platform.AttributeTextType{},
-								Name:      "attr-two",
-								Label:     platform.LocalizedString{"en": "attr-two"},
-								InputHint: SingleText,
+								Type:                platform.AttributeTextType{},
+								Name:                "attr-two",
+								Label:               platform.LocalizedString{"en": "attr-two"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
 							},
 						}
 
