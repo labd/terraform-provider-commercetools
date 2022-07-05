@@ -48,15 +48,6 @@ func expandStringArray(input []interface{}) []string {
 	return s
 }
 
-func localizedStringCompare(a platform.LocalizedString, b map[string]interface{}) bool {
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 func stringFormatObject(object interface{}) string {
 	data, err := json.MarshalIndent(object, "", "    ")
 
