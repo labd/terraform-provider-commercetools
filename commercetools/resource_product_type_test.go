@@ -12,6 +12,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type TestProductTypeAttrData struct {
+	Name        string
+	Type        string
+	Values      []TestProductTypeEnumValue
+	ElementType *TestProductTypeElementType
+}
+
+type TestProductTypeEnumValue struct {
+	Key   string
+	Label string
+}
+
+type TestProductTypeElementType struct {
+	Name   string
+	Values []TestProductTypeEnumValue
+}
+
 func TestResourceProductTypeValidateAttribute(t *testing.T) {
 	old := []any{
 		map[string]any{
@@ -278,80 +295,6 @@ func TestAccProductTypes_basic(t *testing.T) {
 	})
 }
 
-func testAccProductTypeConfigLabelChange(identifier, key string) string {
-	return hclTemplate(`
-		resource "commercetools_product_type" "{{ .identifier }}" {
-			key = "{{ .key }}"
-			name = "Shipping info"
-			description = "All things related shipping"
-
-			attribute {
-				name = "location"
-				label = {
-					en = "Location change"
-					nl = "Locatie"
-				}
-				type {
-					name = "text"
-				}
-			}
-
-			attribute {
-				name = "meal"
-				label = {
-					en = "meal"
-					nl = "maaltijd"
-				}
-
-				type {
-					name = "lenum"
-
-					localized_value {
-						key = "snack"
-
-						label = {
-							en = "snack"
-							nl = "nomnom"
-							de = "happen"
-						}
-					}
-				}
-			}
-
-			attribute {
-				name = "types"
-				label = {
-					en = "meal types"
-				}
-
-				type {
-					name = "set"
-					element_type {
-						name = "lenum"
-
-						localized_value {
-							key = "breakfast"
-
-							label = {
-								en = "Breakfast"
-								de = "Frühstück"
-							}
-						}
-
-						localized_value {
-							key = "lunch"
-
-							label = {
-								en = "Lunch"
-								de = "Mittagessen"
-							}
-						}
-					}
-				}
-			}
-		}`, map[string]any{"key": key, "identifier": identifier})
-}
-
 func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 	key := "acctest-producttype"
 	identifier := "acctest_producttype"
@@ -596,6 +539,263 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 	})
 }
 
+func TestAccProductTypes_EnumValues(t *testing.T) {
+	key := "acctest-producttype"
+	identifier := "acctest_producttype"
+	resourceName := fmt.Sprintf("commercetools_product_type.%s", identifier)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckTypesDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfigAttributes(
+					key, "acctest_producttype",
+					[]TestProductTypeAttrData{
+						{
+							Name: "attr-one",
+							Type: "enum",
+							Values: []TestProductTypeEnumValue{
+								{
+									Key:   "value_1",
+									Label: "Value-1",
+								},
+								{
+									Key:   "value_2",
+									Label: "Value-2",
+								},
+							}},
+						{
+							Name: "attr-two",
+							Type: "set",
+							ElementType: &TestProductTypeElementType{
+								Name: "enum",
+								Values: []TestProductTypeEnumValue{
+									{
+										Key:   "set_value_1",
+										Label: "Set-value-1",
+									},
+									{
+										Key:   "set_value_2",
+										Label: "Set-value-2",
+									},
+								},
+							},
+						},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TextInputHintSingleLine
+						expected := []platform.AttributeDefinition{
+							{
+								Type: platform.AttributeEnumType{
+									Values: []platform.AttributePlainEnumValue{
+										{
+											Key:   "value_1",
+											Label: "Value-1",
+										},
+										{
+											Key:   "value_2",
+											Label: "Value-2",
+										},
+									},
+								},
+								Name:                "attr-one",
+								Label:               platform.LocalizedString{"en": "attr-one"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
+								InputTip:            nil,
+							},
+							{
+								Type: platform.AttributeSetType{
+									ElementType: platform.AttributeEnumType{
+										Values: []platform.AttributePlainEnumValue{
+											{
+												Key:   "set_value_1",
+												Label: "Set-value-1",
+											},
+											{
+												Key:   "set_value_2",
+												Label: "Set-value-2",
+											},
+										},
+									},
+								},
+								Name:                "attr-two",
+								Label:               platform.LocalizedString{"en": "attr-two"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
+								InputTip:            nil,
+							},
+						}
+						assert.EqualValues(t, *resource.Key, key)
+						assert.EqualValues(t, expected, resource.Attributes)
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccConfigAttributes(
+					key, "acctest_producttype",
+					[]TestProductTypeAttrData{
+						{
+							Name: "attr-one",
+							Type: "enum",
+							Values: []TestProductTypeEnumValue{
+								{
+									Key:   "value_2",
+									Label: "Value-2",
+								},
+							},
+						},
+						{
+							Name: "attr-two",
+							Type: "set",
+							ElementType: &TestProductTypeElementType{
+								Name: "enum",
+								Values: []TestProductTypeEnumValue{
+									{
+										Key:   "set_value_2",
+										Label: "Set-value-2",
+									},
+								},
+							},
+						},
+					}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", key),
+					func(s *terraform.State) error {
+						resource, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						SingleText := platform.TextInputHintSingleLine
+						expected := []platform.AttributeDefinition{
+							{
+								Type: platform.AttributeEnumType{
+									Values: []platform.AttributePlainEnumValue{
+										{
+											Key:   "value_2",
+											Label: "Value-2",
+										},
+									},
+								},
+								Name:                "attr-one",
+								Label:               platform.LocalizedString{"en": "attr-one"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
+								InputTip:            nil,
+							},
+							{
+								Type: platform.AttributeSetType{
+									ElementType: platform.AttributeEnumType{
+										Values: []platform.AttributePlainEnumValue{
+											{
+												Key:   "set_value_2",
+												Label: "Set-value-2",
+											},
+										},
+									},
+								},
+								Name:                "attr-two",
+								Label:               platform.LocalizedString{"en": "attr-two"},
+								InputHint:           SingleText,
+								AttributeConstraint: platform.AttributeConstraintEnumNone,
+								InputTip:            nil,
+							},
+						}
+						assert.EqualValues(t, *resource.Key, key)
+						assert.EqualValues(t, expected, resource.Attributes)
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
+func testAccProductTypeConfigLabelChange(identifier, key string) string {
+	return hclTemplate(`
+		resource "commercetools_product_type" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = "Shipping info"
+			description = "All things related shipping"
+
+			attribute {
+				name = "location"
+				label = {
+					en = "Location change"
+					nl = "Locatie"
+				}
+				type {
+					name = "text"
+				}
+			}
+
+			attribute {
+				name = "meal"
+				label = {
+					en = "meal"
+					nl = "maaltijd"
+				}
+
+				type {
+					name = "lenum"
+
+					localized_value {
+						key = "snack"
+
+						label = {
+							en = "snack"
+							nl = "nomnom"
+							de = "happen"
+						}
+					}
+				}
+			}
+
+			attribute {
+				name = "types"
+				label = {
+					en = "meal types"
+				}
+
+				type {
+					name = "set"
+					element_type {
+						name = "lenum"
+
+						localized_value {
+							key = "breakfast"
+
+							label = {
+								en = "Breakfast"
+								de = "Frühstück"
+							}
+						}
+
+						localized_value {
+							key = "lunch"
+
+							label = {
+								en = "Lunch"
+								de = "Mittagessen"
+							}
+						}
+					}
+				}
+			}
+		}`, map[string]any{"key": key, "identifier": identifier})
+}
+
 func testAccProductTypeConfig(identifier, key string) string {
 	return hclTemplate(`
 		resource "commercetools_product_type" "{{ .identifier }}" {
@@ -667,13 +867,8 @@ func testAccProductTypeConfig(identifier, key string) string {
 		}`, map[string]any{"key": key, "identifier": identifier})
 }
 
-type TestProductTypeAttrData struct {
-	Name string
-	Type string
-}
-
 func testAccConfigAttributes(key, identifier string, attrs []TestProductTypeAttrData) string {
-	return hclTemplate(`
+	output := hclTemplate(`
 		resource "commercetools_product_type" "{{ .identifier }}" {
 			key = "{{ .key }}"
 			name = "{{ .key }}"
@@ -682,7 +877,31 @@ func testAccConfigAttributes(key, identifier string, attrs []TestProductTypeAttr
 			attribute {
 				name = "{{ $t.Name }}"
 				label = { en = "{{ $t.Name }}" }
-				type { name = "{{ $t.Type }}" }
+				type {
+					name = "{{ $t.Type }}"
+
+					{{ if eq $t.Type "set" }}
+					element_type {
+						name = "{{ $t.ElementType.Name }}"
+						{{ if $t.ElementType.Values }}
+						values = {
+						{{ range $v := $t.ElementType.Values }}
+							{{ $v.Key }} = "{{ $v.Label }}",
+						{{ end }}
+						}
+						{{ end }}
+					}
+					{{ end }}
+
+					{{ if eq $t.Type "enum" }}
+					values = {
+					{{ range $v := $t.Values }}
+						{{ $v.Key }} = "{{ $v.Label }}",
+					{{ end }}
+					}
+					{{ end }}
+				}
+
 			}
 			{{end}}
 		}
@@ -692,6 +911,8 @@ func testAccConfigAttributes(key, identifier string, attrs []TestProductTypeAttr
 		"attributes": attrs,
 	},
 	)
+	fmt.Println(output)
+	return output
 }
 
 func testAccCheckProductTypesDestroy(s *terraform.State) error {
