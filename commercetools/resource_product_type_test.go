@@ -130,12 +130,12 @@ func TestExpandProductTypeAttributeType(t *testing.T) {
 	if err == nil {
 		t.Error("No error returned while enum requires values")
 	}
+	inputValue := make([]interface{}, 2)
+	inputValue[0] = map[string]interface{}{"key": "value1", "label": "Value 1"}
+	inputValue[1] = map[string]interface{}{"key": "value2", "label": "Value 2"}
 	input = map[string]interface{}{
-		"name": "enum",
-		"values": map[string]interface{}{
-			"value1": "Value 1",
-			"value2": "Value 2",
-		},
+		"name":  "enum",
+		"value": inputValue,
 	}
 	result, err = expandProductTypeAttributeType(input)
 	if err != nil {
@@ -904,21 +904,23 @@ func testAccConfigAttributes(key, identifier string, attrs []TestProductTypeAttr
 					element_type {
 						name = "{{ $t.ElementType.Name }}"
 						{{ if $t.ElementType.Values }}
-						values = {
-						{{ range $v := $t.ElementType.Values }}
-							{{ $v.Key }} = "{{ $v.Label }}",
-						{{ end }}
-						}
+							{{ range $v := $t.ElementType.Values }}
+								value {
+									key = "{{ $v.Key }}"
+									label = "{{ $v.Label }}"
+								}
+							{{ end }}
 						{{ end }}
 					}
 					{{ end }}
 
 					{{ if eq $t.Type "enum" }}
-					values = {
-					{{ range $v := $t.Values }}
-						{{ $v.Key }} = "{{ $v.Label }}",
-					{{ end }}
-					}
+						{{ range $v := $t.Values }}
+							value {
+								key = "{{ $v.Key }}"
+								label = "{{ $v.Label }}"
+							}
+						{{ end }}
 					{{ end }}
 				}
 
@@ -931,7 +933,6 @@ func testAccConfigAttributes(key, identifier string, attrs []TestProductTypeAttr
 		"attributes": attrs,
 	},
 	)
-	fmt.Println(output)
 	return output
 }
 
