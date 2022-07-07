@@ -36,6 +36,14 @@ func resourceProductType() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceProductTypeResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: migrateProductTypeStateV0toV1,
+				Version: 0,
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -154,9 +162,10 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 				return
 			},
 		},
-		"values": {
-			Type:     schema.TypeMap,
+		"value": {
+			Type:     schema.TypeList,
 			Optional: true,
+			Elem:     valueElement(),
 		},
 		"localized_value": {
 			Type:     schema.TypeList,
@@ -285,12 +294,8 @@ func flattenProductTypeAttributeType(attrType platform.AttributeType, setsAllowe
 	} else if _, ok := attrType.(platform.AttributeLocalizableTextType); ok {
 		typeData["name"] = "ltext"
 	} else if f, ok := attrType.(platform.AttributeEnumType); ok {
-		enumValues := make(map[string]any, len(f.Values))
-		for _, value := range f.Values {
-			enumValues[value.Key] = value.Label
-		}
 		typeData["name"] = "enum"
-		typeData["values"] = enumValues
+		typeData["value"] = flattenProductTypePlainEnum(f.Values)
 	} else if f, ok := attrType.(platform.AttributeLocalizedEnumType); ok {
 		typeData["name"] = "lenum"
 		typeData["localized_value"] = flattenProductTypeLocalizedEnum(f.Values)
@@ -877,17 +882,19 @@ func expandProductTypeAttributeType(input any) (platform.AttributeType, error) {
 	case "ltext":
 		return platform.AttributeLocalizableTextType{}, nil
 	case "enum":
-		valuesInput, valuesOk := config["values"].(map[string]any)
+		valuesInput, valuesOk := config["value"]
 		if !valuesOk {
-			return nil, fmt.Errorf("no values specified for Enum type: %+v", valuesInput)
+			return nil, fmt.Errorf("no value elements specified for PlainEnum type")
 		}
 		var values []platform.AttributePlainEnumValue
-		for k, v := range valuesInput {
+		for _, value := range valuesInput.([]any) {
+			v := value.(map[string]any)
 			values = append(values, platform.AttributePlainEnumValue{
-				Key:   k,
-				Label: v.(string),
+				Key:   v["key"].(string),
+				Label: v["label"].(string),
 			})
 		}
+		log.Printf("[DEBUG] expandProductTypeAttributeType plain enum values: %#v", values)
 		return platform.AttributeEnumType{Values: values}, nil
 	case "lenum":
 		valuesInput, valuesOk := config["localized_value"]
@@ -960,4 +967,226 @@ func flattenProductTypeLocalizedEnum(values []platform.AttributeLocalizedEnumVal
 		}
 	}
 	return enumValues
+}
+
+func flattenProductTypePlainEnum(values []platform.AttributePlainEnumValue) []any {
+	enumValues := make([]any, len(values))
+	for i, value := range values {
+		enumValues[i] = map[string]any{
+			"key":   value.Key,
+			"label": value.Label,
+		}
+	}
+	return enumValues
+}
+
+func attributeTypeElementV0(setsAllowed bool) *schema.Resource {
+	result := map[string]*schema.Schema{
+		"name": {
+			Type:     schema.TypeString,
+			Required: true,
+			ValidateFunc: func(val any, key string) (warns []string, errs []error) {
+				v := val.(string)
+				if !setsAllowed && v == "set" {
+					errs = append(errs, fmt.Errorf("sets in another Set are not allowed"))
+				}
+				return
+			},
+		},
+		"value": {
+			Type:     schema.TypeMap,
+			Optional: true,
+		},
+		"localized_value": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem:     localizedValueElement(),
+		},
+		"reference_type_id": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"type_reference": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+	}
+
+	if setsAllowed {
+		result["element_type"] = &schema.Schema{
+			Type:     schema.TypeList,
+			MaxItems: 1,
+			Optional: true,
+			Elem:     attributeTypeElement(false),
+		}
+	}
+
+	return &schema.Resource{Schema: result}
+}
+
+func resourceProductTypeResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"key": {
+				Description: "User-specific unique identifier for the product type (max. 256 characters)",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"attribute": {
+				Description: "[Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition)",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Description: "[AttributeType](https://docs.commercetools.com/api/projects/productTypes#attributetype)",
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Required:    true,
+							Elem:        attributeTypeElementV0(true),
+						},
+						"name": {
+							Description: "The unique name of the attribute used in the API. The name must be between " +
+								"two and 256 characters long and can contain the ASCII letters A to Z in lowercase or " +
+								"uppercase, digits, underscores (_) and the hyphen-minus (-).\n" +
+								"When using the same name for an attribute in two or more product types all fields " +
+								"of the AttributeDefinition of this attribute need to be the same across the product " +
+								"types, otherwise an AttributeDefinitionAlreadyExists error code will be returned. " +
+								"An exception to this are the values of an enum or lenum type and sets thereof",
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"label": {
+							Description:      "A human-readable label for the attribute",
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Required:         true,
+						},
+						"required": {
+							Description: "Whether the attribute is required to have a value",
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+						},
+						"constraint": {
+							Description: "Describes how an attribute or a set of attributes should be validated " +
+								"across all variants of a product. " +
+								"See also [Attribute Constraint](https://docs.commercetools.com/api/projects/productTypes#attributeconstraint-enum)",
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  platform.AttributeConstraintEnumNone,
+							ValidateFunc: func(val any, key string) (warns []string, errs []error) {
+								v := val.(string)
+								if _, ok := constraintMap[v]; !ok {
+									allowedConstraints := []string{}
+									for key := range constraintMap {
+										allowedConstraints = append(allowedConstraints, key)
+									}
+									errs = append(errs, fmt.Errorf(
+										"unkown attribute constraint '%v'. Possible values are %v", v, allowedConstraints))
+								}
+								return
+							},
+						},
+						"input_tip": {
+							Description: "Additional information about the attribute that aids content managers " +
+								"when setting product details",
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Optional:         true,
+						},
+						"input_hint": {
+							Description: "Provides a visual representation type for this attribute. " +
+								"only relevant for text-based attribute types like TextType and LocalizableTextType",
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  platform.TextInputHintSingleLine,
+						},
+						"searchable": {
+							Description: "Whether the attribute's values should generally be activated in product search",
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+						},
+					},
+				},
+			},
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func migrateProductTypeStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	if attr, ok := rawState["attribute"].([]any); ok {
+		// iterate over all attributes
+		for _, item := range attr {
+			if m, ok := item.(map[string]interface{}); ok {
+				// check attribute.type
+				if itemTypes, ok := m["type"].([]any); ok {
+					// it should only contain 1 element, which is an array
+					if len(itemTypes) == 1 {
+						if itemType, ok := itemTypes[0].(map[string]any); ok {
+							// if we are dealing with a set type, we go one level below
+							// to also migrate the value found in element_type.
+							if itemTypeName, ok := itemType["name"].(string); ok {
+								if itemTypeName == "set" {
+									if itemTypeElementType, ok := itemType["element_type"].([]any); ok {
+										// this should also contain only 1 element
+										if len(itemTypeElementType) == 1 {
+											if itemTypeElementTypeValues, ok := itemTypeElementType[0].(map[string]any)["values"]; ok {
+												if itemTypeElementTypeValues, ok := itemTypeElementTypeValues.(map[string]any); ok {
+													// "values" and "value" cannot co exist, so this needs an upgrade
+													value := make([]map[string]string, len(itemTypeElementTypeValues))
+													i := 0
+													for _, itemTypeElementTypeValue := range itemTypeElementTypeValues {
+														value[i] = map[string]string{
+															"key":   itemTypeElementTypeValue.(string),
+															"label": itemTypeElementTypeValue.(string),
+														}
+														i++
+													}
+													// add "value"
+													itemTypeElementType[0].(map[string]any)["value"] = value
+													// remove "values"
+													delete(itemTypeElementType[0].(map[string]any), "values")
+												}
+											}
+										}
+									}
+								}
+							}
+							if itemTypeValues, ok := itemType["values"].(map[string]any); ok {
+								// "values" and "value" cannot co exist, so this needs an upgrade
+								value := make([]map[string]string, len(itemTypeValues))
+								i := 0
+								for _, itemTypeValue := range itemTypeValues {
+									value[i] = map[string]string{
+										"key":   itemTypeValue.(string),
+										"label": itemTypeValue.(string),
+									}
+									i++
+								}
+								// add "value"
+								itemType["value"] = value
+								// remove "values"
+								delete(itemType, "values")
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return rawState, nil
 }
