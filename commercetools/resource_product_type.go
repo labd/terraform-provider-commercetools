@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 	"time"
@@ -884,7 +883,7 @@ func expandProductTypeAttributeType(input any) (platform.AttributeType, error) {
 	case "enum":
 		valuesInput, valuesOk := config["value"]
 		if !valuesOk {
-			return nil, fmt.Errorf("no value elements specified for PlainEnum type")
+			return nil, fmt.Errorf("no value elements specified for Enum type")
 		}
 		var values []platform.AttributePlainEnumValue
 		for _, value := range valuesInput.([]any) {
@@ -894,7 +893,6 @@ func expandProductTypeAttributeType(input any) (platform.AttributeType, error) {
 				Label: v["label"].(string),
 			})
 		}
-		log.Printf("[DEBUG] expandProductTypeAttributeType plain enum values: %#v", values)
 		return platform.AttributeEnumType{Values: values}, nil
 	case "lenum":
 		valuesInput, valuesOk := config["localized_value"]
@@ -911,7 +909,6 @@ func expandProductTypeAttributeType(input any) (platform.AttributeType, error) {
 				Label: labels,
 			})
 		}
-		log.Printf("[DEBUG] expandProductTypeAttributeType localized enum values: %#v", values)
 		return platform.AttributeLocalizedEnumType{Values: values}, nil
 	case "number":
 		return platform.AttributeNumberType{}, nil
@@ -1137,12 +1134,9 @@ func migrateProductTypeStateV0toV1(ctx context.Context, rawState map[string]inte
 					// it should only contain 1 element, which is an array
 					if len(itemTypes) == 1 {
 						if itemType, ok := itemTypes[0].(map[string]any); ok {
-							// if we are dealing with a set type, we go one level below
-							// to also migrate the value found in element_type.
 							if itemTypeName, ok := itemType["name"].(string); ok {
 								if itemTypeName == "set" {
 									if itemTypeElementType, ok := itemType["element_type"].([]any); ok {
-										// this should also contain only 1 element
 										if len(itemTypeElementType) == 1 {
 											if itemTypeElementTypeValues, ok := itemTypeElementType[0].(map[string]any)["values"]; ok {
 												if itemTypeElementTypeValues, ok := itemTypeElementTypeValues.(map[string]any); ok {
