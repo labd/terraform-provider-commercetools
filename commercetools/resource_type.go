@@ -317,6 +317,21 @@ func localizedValueElement() *schema.Resource {
 	}
 }
 
+func valueElement() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"key": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"label": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
+	}
+}
+
 func fieldTypeElement(setsAllowed bool) *schema.Resource {
 	result := map[string]*schema.Schema{
 		"name": {
