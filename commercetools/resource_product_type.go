@@ -1164,23 +1164,24 @@ func migrateProductTypeStateV0toV1(ctx context.Context, rawState map[string]inte
 											}
 										}
 									}
-								}
-							}
-							if itemTypeValues, ok := itemType["values"].(map[string]any); ok {
-								// "values" and "value" cannot co exist, so this needs an upgrade
-								value := make([]map[string]string, len(itemTypeValues))
-								i := 0
-								for _, itemTypeValue := range itemTypeValues {
-									value[i] = map[string]string{
-										"key":   itemTypeValue.(string),
-										"label": itemTypeValue.(string),
+								} else if itemTypeName == "enum" {
+									if itemTypeValues, ok := itemType["values"].(map[string]any); ok {
+										// "values" and "value" cannot co exist, so this needs an upgrade
+										value := make([]map[string]string, len(itemTypeValues))
+										i := 0
+										for _, itemTypeValue := range itemTypeValues {
+											value[i] = map[string]string{
+												"key":   itemTypeValue.(string),
+												"label": itemTypeValue.(string),
+											}
+											i++
+										}
+										// add "value"
+										itemType["value"] = value
+										// remove "values"
+										delete(itemType, "values")
 									}
-									i++
 								}
-								// add "value"
-								itemType["value"] = value
-								// remove "values"
-								delete(itemType, "values")
 							}
 						}
 					}
