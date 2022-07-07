@@ -81,12 +81,12 @@ func TestExpandTypeFieldType(t *testing.T) {
 	if err == nil {
 		t.Error("No error returned while Enum requires values")
 	}
+	inputValue := make([]interface{}, 2)
+	inputValue[0] = map[string]interface{}{"key": "value1", "label": "Value 1"}
+	inputValue[1] = map[string]interface{}{"key": "value2", "label": "Value 2"}
 	input = map[string]interface{}{
-		"name": "Enum",
-		"values": map[string]interface{}{
-			"value1": "Value 1",
-			"value2": "Value 2",
-		},
+		"name":  "Enum",
+		"value": inputValue,
 	}
 	result, err = expandTypeFieldType(input)
 	if err != nil {
@@ -241,7 +241,7 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						resourceName, "field.1.name", "existing_enum"),
 					resource.TestCheckResourceAttr(
-						resourceName, "field.1.type.0.element_type.0.values.%", "2"),
+						resourceName, "field.1.type.0.element_type.0.value.#", "2"),
 					func(s *terraform.State) error {
 						resource, err := testGetType(s, resourceName)
 						if err != nil {
@@ -264,9 +264,9 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						resourceName, "field.1.name", "existing_enum"),
 					resource.TestCheckResourceAttr(
-						resourceName, "field.1.type.0.element_type.0.values.%", "3"),
+						resourceName, "field.1.type.0.element_type.0.value.#", "3"),
 					resource.TestCheckResourceAttr(
-						resourceName, "field.1.type.0.element_type.0.values.evening", "Evening Changed"),
+						resourceName, "field.1.type.0.element_type.0.value.1.label", "Evening Changed"),
 					func(s *terraform.State) error {
 						resource, err := testGetType(s, resourceName)
 						if err != nil {
@@ -542,10 +542,14 @@ resource "commercetools_type" "{{ .identifier }}" {
 			name = "Set"
 			element_type {
 				name = "Enum"
-				values = {
-					day = "Daytime"
-					evening = "Evening"
-				}
+        value {
+          key = "day"
+          label = "Daytime"
+        }
+        value {
+          key = "evening"
+          label = "Evening"
+        }
 			}
 		}
 	}
@@ -611,9 +615,13 @@ func testAccTypeUpdateWithID(identifier, key string) string {
 				}
 				type {
 					name = "Enum"
-					values = {
-						day = "Daytime"
-						evening = "Evening"
+					value {
+						key = "day"
+						label = "Daytime"
+					}
+					value {
+						key = "evening"
+						label = "Evening"
 					}
 				}
 			}
@@ -628,10 +636,17 @@ func testAccTypeUpdateWithID(identifier, key string) string {
 					name = "Set"
 					element_type {
 						name = "Enum"
-						values = {
-							day = "Daytime"
-							evening = "Evening Changed"
-							later   = "later"
+						value {
+							key = "day"
+							label = "Daytime"
+						}
+						value {
+							key = "evening"
+							label = "Evening Changed"
+						}
+						value {
+							key = "later"
+							label = "later"
 						}
 					}
 				}
