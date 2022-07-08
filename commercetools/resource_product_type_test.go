@@ -636,27 +636,7 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 							},
 						}
 						assert.EqualValues(t, *resource.Key, key)
-						// FIXME: Since the enum values are not ordered we cannot
-						// consistenly compare the items.
-						// assert.EqualValues(t, expected, resource.Attributes)
-						assert.EqualValues(t, len(resource.Attributes), len(expected))
-
-						// TODO: Temporary workaround to compare until attribute
-						// ordering is fixed
-						if val, ok := resource.Attributes[0].Type.(platform.AttributeEnumType); ok {
-							assert.Len(t, val.Values, 2)
-						} else {
-							assert.Fail(t, "Unexpected type")
-						}
-						if val, ok := resource.Attributes[1].Type.(platform.AttributeSetType); ok {
-							if sub, ok := val.ElementType.(platform.AttributeEnumType); ok {
-								assert.Len(t, sub.Values, 2)
-							} else {
-								assert.Fail(t, "Unexpected type")
-							}
-						} else {
-							assert.Fail(t, "Unexpected type")
-						}
+						assert.EqualValues(t, expected, resource.Attributes)
 						return nil
 					},
 				),
