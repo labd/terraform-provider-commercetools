@@ -542,14 +542,14 @@ resource "commercetools_type" "{{ .identifier }}" {
 			name = "Set"
 			element_type {
 				name = "Enum"
-        value {
-          key = "day"
-          label = "Daytime"
-        }
-        value {
-          key = "evening"
-          label = "Evening"
-        }
+				value {
+					key = "day"
+					label = "Daytime"
+				}
+				value {
+					key = "evening"
+					label = "Evening"
+				}
 			}
 		}
 	}
