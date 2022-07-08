@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/elliotchance/orderedmap/v2"
+	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -350,6 +351,28 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 			Required: true,
 			ValidateFunc: func(val any, key string) (warns []string, errs []error) {
 				v := val.(string)
+				validValues := []string{
+					"Boolean",
+					"Number",
+					"String",
+					"LocalizedString",
+					"Enum",
+					"LocalizedEnum",
+					"Money",
+					"Date",
+					"Time",
+					"DateTime",
+					"Reference",
+					"Set",
+				}
+
+				if !pie.Contains(validValues, v) {
+					errs = append(errs, fmt.Errorf("%s is not a valid type. Valid types are: %s",
+						v, strings.Join(pie.SortStableUsing(validValues, func(a, b string) bool {
+							return a < b
+						}), ", ")))
+				}
+
 				if !setsAllowed && v == "Set" {
 					errs = append(errs, fmt.Errorf("sets in another Set are not allowed"))
 				}
