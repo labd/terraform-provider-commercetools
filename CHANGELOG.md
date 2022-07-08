@@ -1,5 +1,35 @@
 v1.3.0 (unreleased)
 ===================
+  - **Backwards incompatible** Use a list type for enum values instead of a map
+    to keep the ordering intact. This change requires an update to the way the
+    values are defined (#98, #278):
+
+      ```hcl
+      type {
+        name = "enum"
+        values {
+          FLAG-1 = "Flag 1"
+          FLAG-2 = "Flag 2"
+        }
+      }
+      ```
+
+      to
+
+      ```hcl
+      type {
+        name = "enum"
+        value {
+          key   = "FLAG-1"
+          label = "Flag 1"
+        }
+        value {
+          key   = "FLAG-2"
+          label = "FLAG-2"
+        }
+      }
+      ```
+
  - Update documentation and examples
  - Add support for custom fields on category, channel, customer_group,
    discount_code, shipping_method and store resources. (#265)
