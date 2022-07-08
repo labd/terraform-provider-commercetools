@@ -1038,7 +1038,7 @@ func resourceProductTypeResourceV0() *schema.Resource {
 				Optional:    true,
 			},
 			"attribute": {
-				Description: "[Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition)",
+				Description: "[Product attribute definition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition)",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Elem: &schema.Resource{
