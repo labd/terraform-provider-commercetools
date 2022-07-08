@@ -133,67 +133,6 @@ func TestExpandTypeFieldType(t *testing.T) {
 	}
 }
 
-func TestResourceTypeValidateField(t *testing.T) {
-	old := []any{
-		map[string]any{
-			"name": "field-one",
-			"type": []any{
-				map[string]any{
-					"name": "String",
-				},
-			},
-		},
-	}
-	new := []any{
-		map[string]any{
-			"name": "field-one",
-			"type": []any{
-				map[string]any{
-					"name": "Boolean",
-				},
-			},
-		},
-	}
-	err := resourceTypeValidateField(old, new)
-	assert.NotNil(t, err)
-}
-
-func TestResourceTypeValidateFieldSet(t *testing.T) {
-
-	old := []any{
-		map[string]any{
-			"name": "field-one",
-			"type": []any{
-				map[string]any{
-					"name": "Set",
-					"element_type": []any{
-						map[string]any{
-							"name": "String",
-						},
-					},
-				},
-			},
-		},
-	}
-	new := []any{
-		map[string]any{
-			"name": "field-one",
-			"type": []any{
-				map[string]any{
-					"name": "Set",
-					"element_type": []any{
-						map[string]any{
-							"name": "Enum",
-						},
-					},
-				},
-			},
-		},
-	}
-	err := resourceTypeValidateField(old, new)
-	assert.NotNil(t, err)
-}
-
 func TestAccTypes_basic(t *testing.T) {
 	key := "acctest-type"
 	identifier := "acctest_type"

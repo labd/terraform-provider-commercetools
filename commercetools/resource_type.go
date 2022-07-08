@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/elliotchance/orderedmap/v2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -114,9 +112,6 @@ func resourceType() *schema.Resource {
 				Computed: true,
 			},
 		},
-		CustomizeDiff: customdiff.ValidateChange("field", func(ctx context.Context, old, new, meta any) error {
-			return resourceTypeValidateField(old.([]any), new.([]any))
-		}),
 	}
 }
 
@@ -254,61 +249,6 @@ func resourceTypeDelete(ctx context.Context, d *schema.ResourceData, m any) diag
 	return diag.FromErr(err)
 }
 
-func resourceTypeValidateField(old, new []any) error {
-	oldLookup := createLookup(old, "name")
-
-	for _, field := range new {
-		newF := field.(map[string]any)
-		name := newF["name"].(string)
-		oldF, ok := oldLookup[name].(map[string]any)
-		if !ok {
-			continue
-		}
-
-		oldType := firstElementFromSlice(oldF["type"].([]any))
-		newType := firstElementFromSlice(newF["type"].([]any))
-
-		oldTypeName := oldType["name"].(string)
-		newTypeName := newType["name"].(string)
-
-		if oldTypeName != newTypeName {
-			if oldTypeName == "" || newTypeName == "" {
-				continue
-			}
-
-			return fmt.Errorf(
-				"field '%s' type changed from %s to %s."+
-					" Changing types is not supported;"+
-					" please remove the field first and re-define it later",
-				name, oldTypeName, newTypeName)
-		}
-
-		if strings.EqualFold(newTypeName, "Set") {
-			oldElement, _ := elementFromSlice(oldType, "element_type")
-			newElement, _ := elementFromSlice(newType, "element_type")
-			oldElementName := oldElement["name"].(string)
-			newElementName := newElement["name"].(string)
-
-			if oldElementName != newElementName {
-				return fmt.Errorf(
-					"field '%s' element type changed from %s to %s."+
-						" Changing element types is not supported;"+
-						" please remove the field first and re-define it later",
-					name, oldElementName, newElementName)
-			}
-		}
-
-		if oldF["required"] != newF["required"] {
-			return fmt.Errorf(
-				"error on the '%s' field: "+
-					"Updating the 'required' attribute is not supported."+
-					"Consider removing the field first and then re-adding it",
-				name)
-		}
-	}
-	return nil
-}
-
 func localizedValueElement() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
@@ -345,6 +285,7 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 		"name": {
 			Type:     schema.TypeString,
 			Required: true,
+			ForceNew: true,
 			ValidateFunc: func(val any, key string) (warns []string, errs []error) {
 				v := val.(string)
 				if !setsAllowed && v == "Set" {
@@ -959,6 +900,7 @@ func resourceTypeResourceV0() *schema.Resource {
 						"required": {
 							Description: "Whether the field is required to have a value",
 							Type:        schema.TypeBool,
+							ForceNew:    true,
 							Optional:    true,
 							Default:     false,
 						},
