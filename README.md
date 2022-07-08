@@ -5,9 +5,9 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/labd/terraform-provider-commercetools)](https://goreportcard.com/report/github.com/labd/terraform-provider-commercetools)
 
 
-The Terraform commercetools provider allows you to configure 
+The Terraform commercetools provider allows you to configure
 your [commercetools](https://commercetools.com/) project with
-infrastructure-as-code principles. 
+infrastructure-as-code principles.
 
 # Commercial support
 
@@ -79,7 +79,7 @@ make update-sdk
 
 There are two environment settings for troubleshooting:
 
-- `TF_LOG=1` enables debug output for Terraform.
+- `TF_LOG=INFO` enables debug output for Terraform.
 - `CTP_DEBUG=1` enables debug output for the Commercetools GO SDK this provider uses.
 
 Note this generates a lot of output!

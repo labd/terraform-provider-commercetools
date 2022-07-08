@@ -141,35 +141,44 @@ Optional:
 
 Required:
 
-- `name` (String)
+- `name` (String) Name of the field type. Some types require extra fields to be set. Note that changing the type after creating is not supported. You need to delete the attribute and re-add it.
 
 Optional:
 
 - `element_type` (Block List, Max: 1) (see [below for nested schema](#nestedblock--field--type--element_type))
-- `localized_value` (Block List) (see [below for nested schema](#nestedblock--field--type--localized_value))
-- `reference_type_id` (String)
-- `values` (Map of String)
+- `localized_value` (Block List) Localized values for the `lenum` type. (see [below for nested schema](#nestedblock--field--type--localized_value))
+- `reference_type_id` (String) Resource type the Custom Field can reference. Required when type is `reference`
+- `value` (Block List) Values for the `enum` type. (see [below for nested schema](#nestedblock--field--type--value))
 
 <a id="nestedblock--field--type--element_type"></a>
 ### Nested Schema for `field.type.element_type`
 
 Required:
 
-- `name` (String)
+- `name` (String) Name of the field type. Some types require extra fields to be set. Note that changing the type after creating is not supported. You need to delete the attribute and re-add it.
 
 Optional:
 
-- `localized_value` (Block List) (see [below for nested schema](#nestedblock--field--type--element_type--localized_value))
-- `reference_type_id` (String)
-- `values` (Map of String)
+- `localized_value` (Block List) Localized values for the `lenum` type. (see [below for nested schema](#nestedblock--field--type--element_type--localized_value))
+- `reference_type_id` (String) Resource type the Custom Field can reference. Required when type is `reference`
+- `value` (Block List) Values for the `enum` type. (see [below for nested schema](#nestedblock--field--type--element_type--value))
 
 <a id="nestedblock--field--type--element_type--localized_value"></a>
-### Nested Schema for `field.type.element_type.values`
+### Nested Schema for `field.type.element_type.value`
 
 Required:
 
 - `key` (String)
 - `label` (Map of String)
+
+
+<a id="nestedblock--field--type--element_type--value"></a>
+### Nested Schema for `field.type.element_type.value`
+
+Required:
+
+- `key` (String)
+- `label` (String)
 
 
 
@@ -180,5 +189,14 @@ Required:
 
 - `key` (String)
 - `label` (Map of String)
+
+
+<a id="nestedblock--field--type--value"></a>
+### Nested Schema for `field.type.value`
+
+Required:
+
+- `key` (String)
+- `label` (String)
 
 

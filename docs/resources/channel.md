@@ -38,14 +38,54 @@ resource "commercetools_channel" "my-channel" {
 
 ### Optional
 
+- `address` (Block List, Max: 1) (see [below for nested schema](#nestedblock--address))
 - `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `geolocation` (Block List, Max: 1) (see [below for nested schema](#nestedblock--geolocation))
 - `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 - `version` (Number)
+
+<a id="nestedblock--address"></a>
+### Nested Schema for `address`
+
+Required:
+
+- `country` (String)
+
+Optional:
+
+- `additional_address_info` (String)
+- `additional_street_info` (String)
+- `apartment` (String)
+- `building` (String)
+- `city` (String)
+- `company` (String)
+- `department` (String)
+- `email` (String)
+- `external_id` (String)
+- `fax` (String)
+- `first_name` (String)
+- `key` (String)
+- `last_name` (String)
+- `mobile` (String)
+- `phone` (String)
+- `po_box` (String)
+- `postal_code` (String)
+- `region` (String)
+- `salutation` (String)
+- `state` (String)
+- `street_name` (String)
+- `street_number` (String)
+- `title` (String)
+
+Read-Only:
+
+- `id` (String) The ID of this resource.
+
 
 <a id="nestedblock--custom"></a>
 ### Nested Schema for `custom`
@@ -57,5 +97,13 @@ Required:
 Optional:
 
 - `fields` (Map of String)
+
+
+<a id="nestedblock--geolocation"></a>
+### Nested Schema for `geolocation`
+
+Required:
+
+- `coordinates` (List of Number)
 
 
