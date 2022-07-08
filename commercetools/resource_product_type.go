@@ -151,7 +151,10 @@ func resourceProductType() *schema.Resource {
 func attributeTypeElement(setsAllowed bool) *schema.Resource {
 	result := map[string]*schema.Schema{
 		"name": {
-			Type:     schema.TypeString,
+			Type: schema.TypeString,
+			Description: "Name of the field type. Some types require extra " +
+				"fields to be set. Note that changing the type after creating is " +
+				"not supported. You need to delete the attribute and re-add it",
 			Required: true,
 			ValidateFunc: func(val any, key string) (warns []string, errs []error) {
 				v := val.(string)
@@ -162,22 +165,26 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 			},
 		},
 		"value": {
-			Type:     schema.TypeList,
-			Optional: true,
-			Elem:     valueElement(),
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "Values for the `enum` type.",
+			Elem:        valueElement(),
 		},
 		"localized_value": {
-			Type:     schema.TypeList,
-			Optional: true,
-			Elem:     localizedValueElement(),
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "Localized values for the `lenum` type.",
+			Elem:        localizedValueElement(),
 		},
 		"reference_type_id": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Resource type the Custom Field can reference. Required when type is `reference`",
 		},
 		"type_reference": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:        schema.TypeString,
+			Description: "Reference to another product type. Required when type is `nested`.",
+			Optional:    true,
 		},
 	}
 
