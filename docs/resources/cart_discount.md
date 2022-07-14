@@ -29,7 +29,7 @@ resource "commercetools_cart_discount" "my-cart-discount" {
     permyriad = 1000
   }
   predicate = "1=1"
-  target = {
+  target {
     type      = "lineItems"
     predicate = "1=1"
   }
@@ -61,7 +61,7 @@ resource "commercetools_cart_discount" "my-cart-discount" {
     }
   }
   predicate = "any-predicate"
-  target = {
+  target {
     type = "shipping"
   }
   sort_order             = "0.8"
@@ -83,7 +83,7 @@ resource "commercetools_cart_discount" "my-cart-discount" {
     distribution_channel_id = "distribution-channel-id"
   }
   predicate = "any-predicate"
-  target = {
+  target {
     type = "shipping"
   }
   sort_order = "0.8"
