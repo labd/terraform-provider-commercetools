@@ -1,4 +1,4 @@
-v1.3.0 (unreleased)
+v1.3.0 (2022-08-03)
 ===================
   - **Backwards incompatible** Use a list type for enum values instead of a map
     to keep the ordering intact. This change requires an update to the way the
