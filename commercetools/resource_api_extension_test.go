@@ -62,7 +62,7 @@ func TestAPIExtensionExpandExtensionDestinationAuthentication(t *testing.T) {
 	}
 
 	auth, err = expandExtensionDestinationAuthentication(input)
-	httpAuth, ok := auth.(*platform.AuthorizationHeaderAuthentication)
+	httpAuth, ok := auth.(platform.AuthorizationHeaderAuthentication)
 	assert.True(t, ok)
 	assert.Equal(t, "12345", httpAuth.HeaderValue)
 	assert.NotNil(t, auth)
