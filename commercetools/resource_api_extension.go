@@ -307,7 +307,7 @@ func expandExtensionDestination(d *schema.ResourceData) (platform.Destination, e
 
 		return platform.HttpDestination{
 			Url:            input["url"].(string),
-			Authentication: &auth,
+			Authentication: auth,
 		}, nil
 	case "awslambda":
 		return platform.AWSLambdaDestination{
@@ -336,12 +336,12 @@ func expandExtensionDestinationAuthentication(destInput map[string]interface{}) 
 	}
 
 	if val, ok := isNotEmpty(destInput, "authorization_header"); ok {
-		return &platform.AuthorizationHeaderAuthentication{
+		return platform.AuthorizationHeaderAuthentication{
 			HeaderValue: val.(string),
 		}, nil
 	}
 	if val, ok := isNotEmpty(destInput, "azure_authentication"); ok {
-		return &platform.AzureFunctionsAuthentication{
+		return platform.AzureFunctionsAuthentication{
 			Key: val.(string),
 		}, nil
 	}
@@ -351,15 +351,39 @@ func expandExtensionDestinationAuthentication(destInput map[string]interface{}) 
 
 func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
 
+	// Check the raw state to see if the version is nil or not. If nil then
+	// we are importing. We need to know if this is an existing resource for
+	// looking up the secret
+	isExisting := true
+	rawState := d.GetRawState()
+	if !rawState.IsNull() {
+		isExisting = !rawState.AsValueMap()["version"].IsNull()
+	}
+
 	switch v := dst.(type) {
 	case platform.HttpDestination:
 		switch a := v.Authentication.(type) {
+
 		case platform.AuthorizationHeaderAuthentication:
+
+			// The headerValue value is masked when retrieved from commercetools,
+			// so use the value from the state file instead (if it exists)
+			headerValue := ""
+			if isExisting {
+				c, _ := expandExtensionDestination(d)
+				if current, ok := c.(platform.HttpDestination); ok {
+					if auth, ok := current.Authentication.(platform.AuthorizationHeaderAuthentication); ok {
+						headerValue = auth.HeaderValue
+					}
+				}
+			}
+
 			return []map[string]string{{
 				"type":                 "HTTP",
 				"url":                  v.Url,
-				"authorization_header": a.HeaderValue,
+				"authorization_header": headerValue,
 			}}
+
 		case platform.AzureFunctionsAuthentication:
 			return []map[string]string{{
 				"type":                 "HTTP",
@@ -367,6 +391,7 @@ func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceDat
 				"azure_authentication": a.Key,
 			}}
 		}
+
 		return []map[string]string{{
 			"type": "HTTP",
 			"url":  v.Url,
@@ -375,18 +400,9 @@ func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceDat
 	case platform.AWSLambdaDestination:
 		accessSecret := ""
 
-		// If we already have a state we get the accessSecret from the state.
-		// Normally we have a state, the one exception is when we are importing
-		// the resource.
-		// Check the raw state to see if the version is nil or not. If nil then
-		// we are importing.
-		isExisting := true
-		rawState := d.GetRawState()
-		if !rawState.IsNull() {
-			isExisting = !rawState.AsValueMap()["version"].IsNull()
-		}
+		// The accessSecret value is masked when retrieved from commercetools,
+		// so use the value from the state file instead (if it exists)
 		if isExisting {
-			// Read the access secret from the current resource data
 			c, _ := expandExtensionDestination(d)
 			switch current := c.(type) {
 			case platform.AWSLambdaDestination:
