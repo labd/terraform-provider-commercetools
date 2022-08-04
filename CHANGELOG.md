@@ -1,5 +1,35 @@
-v1.3.0 (unreleased)
+v1.3.0 (2022-08-03)
 ===================
+  - **Backwards incompatible** Use a list type for enum values instead of a map
+    to keep the ordering intact. This change requires an update to the way the
+    values are defined (#98, #278):
+
+      ```hcl
+      type {
+        name = "enum"
+        values {
+          FLAG-1 = "Flag 1"
+          FLAG-2 = "Flag 2"
+        }
+      }
+      ```
+
+      to
+
+      ```hcl
+      type {
+        name = "enum"
+        value {
+          key   = "FLAG-1"
+          label = "Flag 1"
+        }
+        value {
+          key   = "FLAG-2"
+          label = "FLAG-2"
+        }
+      }
+      ```
+
  - Update documentation and examples
  - Add support for custom fields on category, channel, customer_group,
    discount_code, shipping_method and store resources. (#265)
@@ -9,6 +39,8 @@ v1.3.0 (unreleased)
  - Improve the error handling by better communicating the errors raised by
    commercetools.
  - Accept a trailing slash in the token url (#182)
+ - Large rewrite of the `type` and `product_type` resources to fix a number
+   of issues (#165, #262, #263, #267)
 
 v1.2.1 (2022-06-16)
 ===================

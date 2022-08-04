@@ -48,15 +48,6 @@ func expandStringArray(input []interface{}) []string {
 	return s
 }
 
-func localizedStringCompare(a platform.LocalizedString, b map[string]interface{}) bool {
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 func stringFormatObject(object interface{}) string {
 	data, err := json.MarshalIndent(object, "", "    ")
 
@@ -403,17 +394,19 @@ func diffSuppressDateString(k, old, new string, d *schema.ResourceData) bool {
 	return compareDateString(old, new)
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
+func removeValueFromSlice(items []string, value string) []string {
+	for i, v := range items {
+		if v == value {
+			return append(items[:i], items[i+1:]...)
+		}
 	}
-	return b
+	return items
 }
 
 // diffSlices does a diff on two slices and returns the changes. If a field is
 // no longer available then nil is returned.
-func diffSlices(old map[string]interface{}, new map[string]interface{}) map[string]interface{} {
-	result := map[string]interface{}{}
+func diffSlices(old, new map[string]any) map[string]interface{} {
+	result := map[string]any{}
 	seen := map[string]bool{}
 
 	// Find changes against current values. If value no longer

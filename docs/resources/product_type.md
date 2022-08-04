@@ -37,6 +37,7 @@ resource "commercetools_product_type" "my-product-type" {
   key         = "my-product-type-key"
   name        = "Lens specification"
   description = "All the specific info concerning the lens"
+
   attribute {
     name = "autofocus"
     label = {
@@ -48,6 +49,7 @@ resource "commercetools_product_type" "my-product-type" {
       name = "boolean"
     }
   }
+
   attribute {
     name = "lens_product_no"
     label = {
@@ -88,6 +90,55 @@ resource "commercetools_product_type" "my-product-type" {
     type {
       name           = "nested"
       type_reference = commercetools_product_type.some-generic-properties-product-type.id
+    }
+  }
+
+  attribute {
+    name = "some-flag"
+    label = {
+      en = "Some flag"
+      nl = "Een vlag"
+    }
+    required = false
+    type {
+      name = "enum"
+      value {
+        key   = "FLAG-1"
+        label = "Flag 1"
+      }
+      value {
+        key   = "FLAG-2"
+        label = "FLAG-2"
+      }
+    }
+  }
+
+  attribute {
+    name = "origin"
+    label = {
+      en = "Origin country"
+      nl = "Land van herkomst"
+    }
+    required = false
+    type {
+      name = "set"
+      element_type {
+        type = "lenum"
+        localized_value {
+          key = "NL"
+          label = {
+            en = "Netherlands"
+            nl = "Nederland"
+          }
+        }
+        localized_value {
+          key = "DE"
+          label = {
+            en = "Germany"
+            nl = "Duitsland"
+          }
+        }
+      }
     }
   }
 }
@@ -134,37 +185,46 @@ Optional:
 
 Required:
 
-- `name` (String)
+- `name` (String) Name of the field type. Some types require extra fields to be set. Note that changing the type after creating is not supported. You need to delete the attribute and re-add it
 
 Optional:
 
 - `element_type` (Block List, Max: 1) (see [below for nested schema](#nestedblock--attribute--type--element_type))
-- `localized_value` (Block List) (see [below for nested schema](#nestedblock--attribute--type--localized_value))
-- `reference_type_id` (String)
-- `type_reference` (String)
-- `values` (Map of String)
+- `localized_value` (Block List) Localized values for the `lenum` type. (see [below for nested schema](#nestedblock--attribute--type--localized_value))
+- `reference_type_id` (String) Resource type the Custom Field can reference. Required when type is `reference`
+- `type_reference` (String) Reference to another product type. Required when type is `nested`.
+- `value` (Block List) Values for the `enum` type. (see [below for nested schema](#nestedblock--attribute--type--value))
 
 <a id="nestedblock--attribute--type--element_type"></a>
 ### Nested Schema for `attribute.type.element_type`
 
 Required:
 
-- `name` (String)
+- `name` (String) Name of the field type. Some types require extra fields to be set. Note that changing the type after creating is not supported. You need to delete the attribute and re-add it
 
 Optional:
 
-- `localized_value` (Block List) (see [below for nested schema](#nestedblock--attribute--type--element_type--localized_value))
-- `reference_type_id` (String)
-- `type_reference` (String)
-- `values` (Map of String)
+- `localized_value` (Block List) Localized values for the `lenum` type. (see [below for nested schema](#nestedblock--attribute--type--element_type--localized_value))
+- `reference_type_id` (String) Resource type the Custom Field can reference. Required when type is `reference`
+- `type_reference` (String) Reference to another product type. Required when type is `nested`.
+- `value` (Block List) Values for the `enum` type. (see [below for nested schema](#nestedblock--attribute--type--element_type--value))
 
 <a id="nestedblock--attribute--type--element_type--localized_value"></a>
-### Nested Schema for `attribute.type.element_type.values`
+### Nested Schema for `attribute.type.element_type.value`
 
 Required:
 
 - `key` (String)
 - `label` (Map of String)
+
+
+<a id="nestedblock--attribute--type--element_type--value"></a>
+### Nested Schema for `attribute.type.element_type.value`
+
+Required:
+
+- `key` (String)
+- `label` (String)
 
 
 
@@ -175,5 +235,14 @@ Required:
 
 - `key` (String)
 - `label` (Map of String)
+
+
+<a id="nestedblock--attribute--type--value"></a>
+### Nested Schema for `attribute.type.value`
+
+Required:
+
+- `key` (String)
+- `label` (String)
 
 

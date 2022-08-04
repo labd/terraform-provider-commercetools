@@ -19,6 +19,7 @@ resource "commercetools_product_type" "my-product-type" {
   key         = "my-product-type-key"
   name        = "Lens specification"
   description = "All the specific info concerning the lens"
+
   attribute {
     name = "autofocus"
     label = {
@@ -30,6 +31,7 @@ resource "commercetools_product_type" "my-product-type" {
       name = "boolean"
     }
   }
+
   attribute {
     name = "lens_product_no"
     label = {
@@ -70,6 +72,55 @@ resource "commercetools_product_type" "my-product-type" {
     type {
       name           = "nested"
       type_reference = commercetools_product_type.some-generic-properties-product-type.id
+    }
+  }
+
+  attribute {
+    name = "some-flag"
+    label = {
+      en = "Some flag"
+      nl = "Een vlag"
+    }
+    required = false
+    type {
+      name = "enum"
+      value {
+        key   = "FLAG-1"
+        label = "Flag 1"
+      }
+      value {
+        key   = "FLAG-2"
+        label = "FLAG-2"
+      }
+    }
+  }
+
+  attribute {
+    name = "origin"
+    label = {
+      en = "Origin country"
+      nl = "Land van herkomst"
+    }
+    required = false
+    type {
+      name = "set"
+      element_type {
+        name = "lenum"
+        localized_value {
+          key = "NL"
+          label = {
+            en = "Netherlands"
+            nl = "Nederland"
+          }
+        }
+        localized_value {
+          key = "DE"
+          label = {
+            en = "Germany"
+            nl = "Duitsland"
+          }
+        }
+      }
     }
   }
 }
