@@ -209,6 +209,9 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 
 	taxCategory, _, err := readResourcesFromStateIDs(ctx, d, m)
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
@@ -222,6 +225,9 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 	if d.HasChange("name") || d.HasChange("amount") || d.HasChange("included_in_price") || d.HasChange("country") || d.HasChange("state") || d.HasChange("sub_rate") {
 		taxRateDraft, err := createTaxRateDraft(d)
 		if err != nil {
+			// Workaround invalid state to be written, see
+			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+			d.Partial(true)
 			return diag.FromErr(err)
 		}
 		input.Actions = append(input.Actions, platform.TaxCategoryReplaceTaxRateAction{
@@ -240,6 +246,9 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 		return processRemoteError(err)
 	})
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
@@ -247,11 +256,17 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 	// then the ID returned in the response
 	updatedTaxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
 	if newTaxRate == nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.Errorf("No tax category rate created?")
 	}
 

@@ -155,6 +155,9 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m i
 	triggers := expandExtensionTriggers(d)
 	destination, err := expandExtensionDestination(d)
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
@@ -252,6 +255,9 @@ func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m i
 	if d.HasChange("destination") {
 		destination, err := expandExtensionDestination(d)
 		if err != nil {
+			// Workaround invalid state to be written, see
+			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+			d.Partial(true)
 			return diag.FromErr(err)
 		}
 		input.Actions = append(
@@ -272,6 +278,9 @@ func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m i
 	})
 
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 

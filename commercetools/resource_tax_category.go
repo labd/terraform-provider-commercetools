@@ -110,6 +110,9 @@ func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m in
 	client := getClient(m)
 	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
@@ -148,6 +151,9 @@ func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m in
 		return processRemoteError(err)
 	})
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 

@@ -135,6 +135,9 @@ func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag
 	fields, err := expandTypeFieldDefinition(d)
 
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
@@ -155,6 +158,9 @@ func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag
 	})
 
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
@@ -229,6 +235,9 @@ func resourceTypeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag
 		old, new := d.GetChange("field")
 		fieldChangeActions, err := resourceTypeFieldChangeActions(old.([]any), new.([]any))
 		if err != nil {
+			// Workaround invalid state to be written, see
+			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+			d.Partial(true)
 			return diag.FromErr(err)
 		}
 		input.Actions = append(input.Actions, fieldChangeActions...)
@@ -240,6 +249,9 @@ func resourceTypeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag
 	})
 
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 

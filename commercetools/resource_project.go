@@ -392,7 +392,14 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 		_, err := client.Post(input).Execute(ctx)
 		return processRemoteError(err)
 	})
-	return diag.FromErr(err)
+
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func getStringSlice(d *schema.ResourceData, field string) []string {

@@ -181,6 +181,9 @@ func resourceShippingZoneUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	_, err := client.Zones().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
