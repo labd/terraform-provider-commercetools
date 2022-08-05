@@ -181,7 +181,7 @@ func resourceProjectSettings() *schema.Resource {
 	}
 }
 
-func resourceProjectExists(d *schema.ResourceData, m interface{}) (bool, error) {
+func resourceProjectExists(d *schema.ResourceData, m any) (bool, error) {
 	client := getClient(m)
 
 	_, err := client.Get().Execute(context.Background())
@@ -194,7 +194,7 @@ func resourceProjectExists(d *schema.ResourceData, m interface{}) (bool, error) 
 	return true, nil
 }
 
-func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	project, err := client.Get().Execute(ctx)
 
@@ -212,7 +212,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 	return resourceProjectRead(ctx, d, m)
 }
 
-func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	project, err := client.Get().Execute(ctx)
@@ -240,7 +240,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 	return nil
 }
 
-func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	diags := projectUpdate(ctx, d, client, version)
@@ -250,7 +250,7 @@ func resourceProjectUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	return resourceProjectRead(ctx, d, m)
 }
 
-func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	d.SetId("")
 	return nil
 }
@@ -398,7 +398,7 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 }
 
 func getStringSlice(d *schema.ResourceData, field string) []string {
-	input := d.Get(field).([]interface{})
+	input := d.Get(field).([]any)
 	var currencyObjects []string
 	for _, raw := range input {
 		currencyObjects = append(currencyObjects, raw.(string))
@@ -426,10 +426,10 @@ func getShippingRateInputType(d *schema.ResourceData) (platform.ShippingRateInpu
 
 func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomFieldLocalizedEnumValue, error) {
 	var values []platform.CustomFieldLocalizedEnumValue
-	data := d.Get("shipping_rate_cart_classification_value").([]interface{})
+	data := d.Get("shipping_rate_cart_classification_value").([]any)
 	for _, item := range data {
-		itemMap := item.(map[string]interface{})
-		label := expandLocalizedString(itemMap["label"].(map[string]interface{}))
+		itemMap := item.(map[string]any)
+		label := expandLocalizedString(itemMap["label"].(map[string]any))
 		values = append(values, platform.CustomFieldLocalizedEnumValue{
 			Label: label,
 			Key:   itemMap["key"].(string),
@@ -438,12 +438,12 @@ func getCartClassificationValues(d *schema.ResourceData) ([]platform.CustomField
 	return values, nil
 }
 
-func flattenProjectCarts(val platform.CartsConfiguration) []map[string]interface{} {
+func flattenProjectCarts(val platform.CartsConfiguration) []map[string]any {
 	if !*val.CountryTaxRateFallbackEnabled && val.DeleteDaysAfterLastModification == nil {
-		return []map[string]interface{}{}
+		return []map[string]any{}
 	}
 
-	result := []map[string]interface{}{
+	result := []map[string]any{
 		{
 			"country_tax_rate_fallback_enabled":   val.CountryTaxRateFallbackEnabled,
 			"delete_days_after_last_modification": val.DeleteDaysAfterLastModification,
@@ -452,21 +452,21 @@ func flattenProjectCarts(val platform.CartsConfiguration) []map[string]interface
 	return result
 }
 
-func flattenProjectExternalOAuth(val *platform.ExternalOAuth, current interface{}) []map[string]interface{} {
+func flattenProjectExternalOAuth(val *platform.ExternalOAuth, current any) []map[string]any {
 	if val == nil {
-		return []map[string]interface{}{}
+		return []map[string]any{}
 	}
 
 	// Get the current value since this we cannot read this value from commercetools
 	var authHeader string
-	if val, ok := current.([]interface{}); ok {
+	if val, ok := current.([]any); ok {
 		if len(val) > 0 {
-			if items, ok := val[0].(map[string]interface{}); ok {
+			if items, ok := val[0].(map[string]any); ok {
 				authHeader = items["authorization_header"].(string)
 			}
 		}
 	}
-	return []map[string]interface{}{
+	return []map[string]any{
 		{
 			"url":                  val.Url,
 			"authorization_header": authHeader,
@@ -508,14 +508,14 @@ func flattenProjectShippingRateInputType(val platform.ShippingRateInputType) str
 	return ""
 }
 
-func flattenProjectMessages(val platform.MessagesConfiguration, d *schema.ResourceData) []map[string]interface{} {
-	if current, ok := d.Get("messages").([]interface{}); ok {
+func flattenProjectMessages(val platform.MessagesConfiguration, d *schema.ResourceData) []map[string]any {
+	if current, ok := d.Get("messages").([]any); ok {
 		if len(current) == 0 && !val.Enabled {
 			return nil
 		}
 
 	}
-	return []map[string]interface{}{
+	return []map[string]any{
 		{
 			"enabled": val.Enabled,
 		},
@@ -613,7 +613,7 @@ func resourceProjectSettingsResourceV0() *schema.Resource {
 	}
 }
 
-func migrateResourceProjectSettingsStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+func migrateResourceProjectSettingsStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
 	transformToList(rawState, "messages")
 	transformToList(rawState, "external_oauth")
 	transformToList(rawState, "carts")

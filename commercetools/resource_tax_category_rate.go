@@ -76,7 +76,7 @@ func resourceTaxCategoryRate() *schema.Resource {
 	}
 }
 
-func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	client := getClient(meta)
 	taxRateID := d.Id()
 	// Arbitrary number, safe to assume there won't be more than 500 tax categories...
@@ -104,11 +104,11 @@ func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceD
 	return results, nil
 }
 
-func resourceTaxCategoryRateGetSubRates(input []interface{}) ([]platform.SubRate, error) {
+func resourceTaxCategoryRateGetSubRates(input []any) ([]platform.SubRate, error) {
 	result := []platform.SubRate{}
 
 	for _, raw := range input {
-		raw := raw.(map[string]interface{})
+		raw := raw.(map[string]any)
 		amount := raw["amount"].(float64)
 		result = append(result, platform.SubRate{
 			Name:   raw["name"].(string),
@@ -118,7 +118,7 @@ func resourceTaxCategoryRateGetSubRates(input []interface{}) ([]platform.SubRate
 	return result, nil
 }
 
-func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	taxCategoryID := d.Get("tax_category_id").(string)
 
@@ -169,7 +169,7 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 	return resourceTaxCategoryRateRead(ctx, d, m)
 }
 
-func resourceTaxCategoryRateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryRateRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	_, taxRate, err := readResourcesFromStateIDs(ctx, d, m)
 
 	if err != nil {
@@ -189,9 +189,9 @@ func setTaxRateState(d *schema.ResourceData, taxRate *platform.TaxRate) {
 	d.Set("country", taxRate.Country)
 	d.Set("state", taxRate.State)
 
-	subRateData := make([]map[string]interface{}, len(taxRate.SubRates))
+	subRateData := make([]map[string]any, len(taxRate.SubRates))
 	for srIndex, subrate := range taxRate.SubRates {
-		subRateData[srIndex] = map[string]interface{}{
+		subRateData[srIndex] = map[string]any{
 			"name":   subrate.Name,
 			"amount": subrate.Amount,
 		}
@@ -199,7 +199,7 @@ func setTaxRateState(d *schema.ResourceData, taxRate *platform.TaxRate) {
 	d.Set("sub_rate", subRateData)
 }
 
-func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	taxCategoryID := d.Get("tax_category_id").(string)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
@@ -274,7 +274,7 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 	var subrates []platform.SubRate
 	var err error
 	if subRateRaw, ok := d.GetOk("sub_rate"); ok {
-		subrates, err = resourceTaxCategoryRateGetSubRates(subRateRaw.([]interface{}))
+		subrates, err = resourceTaxCategoryRateGetSubRates(subRateRaw.([]any))
 		if err != nil {
 			return nil, err
 		}
@@ -299,7 +299,7 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 	return &taxRateDraft, nil
 }
 
-func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	taxCategoryID := d.Get("tax_category_id").(string)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
@@ -329,7 +329,7 @@ func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, 
 	return diag.FromErr(err)
 }
 
-func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m interface{}) (*platform.TaxCategory, *platform.TaxRate, error) {
+func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m any) (*platform.TaxCategory, *platform.TaxRate, error) {
 	client := getClient(m)
 	taxCategoryID := d.Get("tax_category_id").(string)
 	taxRateID := d.Id()
@@ -347,7 +347,7 @@ func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m in
 	return taxCategory, taxRate, nil
 }
 
-func validateTaxRateAmount(val interface{}, key string) (warns []string, errs []error) {
+func validateTaxRateAmount(val any, key string) (warns []string, errs []error) {
 	v := val.(float64)
 	if v < 0 || v > 1 {
 		errs = append(errs, fmt.Errorf("%q must be between 0 and 1 inclusive, got: %f", key, v))

@@ -15,22 +15,22 @@ import (
 )
 
 func TestAPIExtensionExpandExtensionDestination(t *testing.T) {
-	rawDestination := map[string]interface{}{
+	rawDestination := map[string]any{
 		"type":          "AWSLambda",
 		"arn":           "arn:aws:lambda:eu-west-1:111111111:function:api_extensions",
 		"access_key":    "ABCSDF123123123",
 		"access_secret": "****abc/",
 	}
 
-	resourceDataMap := map[string]interface{}{
+	resourceDataMap := map[string]any{
 		"id":             "2845b936-e407-4f29-957b-f8deb0fcba97",
 		"version":        1,
 		"createdAt":      "2018-12-03T16:13:03.969Z",
 		"lastModifiedAt": "2018-12-04T09:06:59.491Z",
-		"destination":    []interface{}{rawDestination},
-		"triggers": []interface{}{
-			map[string]interface{}{
-				"triggers": []interface{}{"Create", "Update"},
+		"destination":    []any{rawDestination},
+		"triggers": []any{
+			map[string]any{
+				"triggers": []any{"Create", "Update"},
 			},
 		},
 		"timeout_in_ms": 1,
@@ -48,7 +48,7 @@ func TestAPIExtensionExpandExtensionDestination(t *testing.T) {
 }
 
 func TestAPIExtensionExpandExtensionDestinationAuthentication(t *testing.T) {
-	var input = map[string]interface{}{
+	var input = map[string]any{
 		"authorization_header": "12345",
 		"azure_authentication": "AzureKey",
 	}
@@ -57,7 +57,7 @@ func TestAPIExtensionExpandExtensionDestinationAuthentication(t *testing.T) {
 	assert.Nil(t, auth)
 	assert.NotNil(t, err)
 
-	input = map[string]interface{}{
+	input = map[string]any{
 		"authorization_header": "12345",
 	}
 
@@ -70,15 +70,15 @@ func TestAPIExtensionExpandExtensionDestinationAuthentication(t *testing.T) {
 }
 
 func TestExpandExtensionTriggers(t *testing.T) {
-	resourceDataMap := map[string]interface{}{
+	resourceDataMap := map[string]any{
 		"id":             "2845b936-e407-4f29-957b-f8deb0fcba97",
 		"version":        1,
 		"createdAt":      "2018-12-03T16:13:03.969Z",
 		"lastModifiedAt": "2018-12-04T09:06:59.491Z",
-		"trigger": []interface{}{
-			map[string]interface{}{
+		"trigger": []any{
+			map[string]any{
 				"resource_type_id": "cart",
-				"actions":          []interface{}{"Create", "Update"},
+				"actions":          []any{"Create", "Update"},
 			},
 		},
 		"timeout_in_ms": 1,

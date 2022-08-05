@@ -66,7 +66,7 @@ func resourceShippingMethod() *schema.Resource {
 	}
 }
 
-func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	taxCategory := platform.TaxCategoryResourceIdentifier{}
 	if taxCategoryID, ok := d.GetOk("tax_category_id"); ok {
@@ -107,7 +107,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 	return resourceShippingMethodRead(ctx, d, m)
 }
 
-func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -135,7 +135,7 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m i
 	return nil
 }
 
-func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
@@ -223,7 +223,7 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 	return resourceShippingMethodRead(ctx, d, m)
 }
 
-func resourceShippingMethodDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingMethodDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	ctMutexKV.Lock(d.Id())

@@ -93,12 +93,12 @@ func resourceState() *schema.Resource {
 	}
 }
 
-func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	name := expandLocalizedString(d.Get("name"))
 	description := expandLocalizedString(d.Get("description"))
 
 	roles := []platform.StateRoleEnum{}
-	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
+	for _, value := range expandStringArray(d.Get("roles").([]any)) {
 		roles = append(roles, platform.StateRoleEnum(value))
 	}
 
@@ -141,7 +141,7 @@ func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m interfac
 	return resourceStateRead(ctx, d, m)
 }
 
-func resourceStateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStateRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	state, err := client.States().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -172,7 +172,7 @@ func resourceStateRead(ctx context.Context, d *schema.ResourceData, m interface{
 	return nil
 }
 
-func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.StateUpdate{
@@ -217,7 +217,7 @@ func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	if d.HasChange("roles") {
 		roles := []platform.StateRoleEnum{}
-		for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
+		for _, value := range expandStringArray(d.Get("roles").([]any)) {
 			roles = append(roles, platform.StateRoleEnum(value))
 		}
 		input.Actions = append(
@@ -253,7 +253,7 @@ func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	return resourceStateRead(ctx, d, m)
 }
 
-func resourceStateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStateDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {

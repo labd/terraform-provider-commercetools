@@ -49,7 +49,7 @@ func resourceCustomObject() *schema.Resource {
 	}
 }
 
-func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	value := _decodeCustomObjectValue(d.Get("value").(string))
 
@@ -74,7 +74,7 @@ func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m i
 	return nil
 }
 
-func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	container := d.Get("container").(string)
 	key := d.Get("key").(string)
 	client := getClient(m)
@@ -94,7 +94,7 @@ func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m int
 	return nil
 }
 
-func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	value := _decodeCustomObjectValue(d.Get("value").(string))
 	originalKey, newKey := d.GetChange("key")
@@ -171,7 +171,7 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m i
 	return nil
 }
 
-func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	container := d.Get("container").(string)
 	key := d.Get("key").(string)
 
@@ -212,8 +212,8 @@ func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m i
 	return nil
 }
 
-func _decodeCustomObjectValue(value string) interface{} {
-	var data interface{}
+func _decodeCustomObjectValue(value string) any {
+	var data any
 	json.Unmarshal([]byte(value), &data)
 	return data
 }

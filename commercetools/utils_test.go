@@ -8,12 +8,12 @@ import (
 )
 
 func TestCreateLookup(t *testing.T) {
-	input := []interface{}{
-		map[string]interface{}{
+	input := []any{
+		map[string]any{
 			"name":  "name1",
 			"value": "Value 1",
 		},
-		map[string]interface{}{
+		map[string]any{
 			"name":  "name2",
 			"value": "Value 2",
 		},

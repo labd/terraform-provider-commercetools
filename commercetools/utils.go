@@ -16,12 +16,12 @@ import (
 // it should be used to store a LocalizedString
 const TypeLocalizedString = schema.TypeMap
 
-func getClient(m interface{}) *platform.ByProjectKeyRequestBuilder {
+func getClient(m any) *platform.ByProjectKeyRequestBuilder {
 	client := m.(*platform.ByProjectKeyRequestBuilder)
 	return client
 }
 
-func stringRef(value interface{}) *string {
+func stringRef(value any) *string {
 	if value == nil {
 		return nil
 	}
@@ -29,17 +29,17 @@ func stringRef(value interface{}) *string {
 	return &result
 }
 
-func intRef(value interface{}) *int {
+func intRef(value any) *int {
 	result := value.(int)
 	return &result
 }
 
-func boolRef(value interface{}) *bool {
+func boolRef(value any) *bool {
 	result := value.(bool)
 	return &result
 }
 
-func expandStringArray(input []interface{}) []string {
+func expandStringArray(input []any) []string {
 	s := make([]string, len(input))
 	for i := range input {
 		s[i] = input[i].(string)
@@ -47,10 +47,10 @@ func expandStringArray(input []interface{}) []string {
 	return s
 }
 
-func createLookup(objects []interface{}, key string) map[string]interface{} {
-	lookup := make(map[string]interface{})
+func createLookup(objects []any, key string) map[string]any {
+	lookup := make(map[string]any)
 	for _, field := range objects {
-		f := field.(map[string]interface{})
+		f := field.(map[string]any)
 		lookup[f[key].(string)] = field
 	}
 	return lookup
@@ -246,7 +246,7 @@ var currencyCodes = map[string]bool{
 }
 
 // ValidateCurrencyCode checks if a currency string is valid according to https://en.wikipedia.org/wiki/ISO_4217
-func ValidateCurrencyCode(val interface{}, key string) (warns []string, errs []error) {
+func ValidateCurrencyCode(val any, key string) (warns []string, errs []error) {
 	currency := val.(string)
 	if _, exists := currencyCodes[currency]; !exists {
 		errs = append(errs, fmt.Errorf("%q unknown currency code, must be valid ISO 4217 code, got: %s", key, currency))
@@ -254,47 +254,47 @@ func ValidateCurrencyCode(val interface{}, key string) (warns []string, errs []e
 	return
 }
 
-func transformToList(data map[string]interface{}, key string) {
-	newDestination := make([]interface{}, 1)
+func transformToList(data map[string]any, key string) {
+	newDestination := make([]any, 1)
 	if data[key] != nil {
 		newDestination[0] = data[key]
 	}
 	data[key] = newDestination
 }
 
-func elementFromList(d *schema.ResourceData, key string) (map[string]interface{}, error) {
-	data := d.Get(key).([]interface{})
+func elementFromList(d *schema.ResourceData, key string) (map[string]any, error) {
+	data := d.Get(key).([]any)
 
 	if len(data) > 0 {
-		result := data[0].(map[string]interface{})
+		result := data[0].(map[string]any)
 		return result, nil
 	}
 	return nil, nil
 }
 
-func firstElementFromSlice(d []any) map[string]interface{} {
+func firstElementFromSlice(d []any) map[string]any {
 	if len(d) > 0 {
-		result := d[0].(map[string]interface{})
+		result := d[0].(map[string]any)
 		return result
 	}
 	return nil
 }
 
-func elementFromSlice(d map[string]interface{}, key string) (map[string]interface{}, error) {
+func elementFromSlice(d map[string]any, key string) (map[string]any, error) {
 	data, ok := d[key]
 	if !ok {
 		return nil, nil
 	}
 
-	items := data.([]interface{})
+	items := data.([]any)
 	if len(items) > 0 {
-		result := items[0].(map[string]interface{})
+		result := items[0].(map[string]any)
 		return result, nil
 	}
 	return nil, nil
 }
 
-func isNotEmpty(d map[string]interface{}, key string) (interface{}, bool) {
+func isNotEmpty(d map[string]any, key string) (any, bool) {
 	val, ok := d[key]
 	if !ok {
 		return nil, false
@@ -384,7 +384,7 @@ func removeValueFromSlice(items []string, value string) []string {
 
 // diffSlices does a diff on two slices and returns the changes. If a field is
 // no longer available then nil is returned.
-func diffSlices(old, new map[string]any) map[string]interface{} {
+func diffSlices(old, new map[string]any) map[string]any {
 	result := map[string]any{}
 	seen := map[string]bool{}
 

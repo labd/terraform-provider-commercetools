@@ -183,7 +183,7 @@ func resourceCartDiscount() *schema.Resource {
 	}
 }
 
-func validateValueType(val interface{}, key string) (warns []string, errs []error) {
+func validateValueType(val any, key string) (warns []string, errs []error) {
 	switch val {
 	case
 		"relative",
@@ -196,7 +196,7 @@ func validateValueType(val interface{}, key string) (warns []string, errs []erro
 	return
 }
 
-func validateTargetType(val interface{}, key string) (warns []string, errs []error) {
+func validateTargetType(val any, key string) (warns []string, errs []error) {
 	switch val {
 	case
 		"lineItems",
@@ -209,7 +209,7 @@ func validateTargetType(val interface{}, key string) (warns []string, errs []err
 	return
 }
 
-func validateStackingMode(val interface{}, key string) (warns []string, errs []error) {
+func validateStackingMode(val any, key string) (warns []string, errs []error) {
 	switch val {
 	case
 		"Stacking",
@@ -221,7 +221,7 @@ func validateStackingMode(val interface{}, key string) (warns []string, errs []e
 	return
 }
 
-func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	name := expandLocalizedString(d.Get("name"))
@@ -295,7 +295,7 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceCartDiscountRead(ctx, d, m)
 }
 
-func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -322,7 +322,7 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m int
 	return nil
 }
 
-func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -465,7 +465,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceCartDiscountRead(ctx, d, m)
 }
 
-func resourceCartDiscountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCartDiscountDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 
@@ -479,31 +479,31 @@ func resourceCartDiscountDelete(ctx context.Context, d *schema.ResourceData, m i
 	return nil
 }
 
-func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]interface{} {
+func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]any {
 	if val == nil {
-		return []map[string]interface{}{}
+		return []map[string]any{}
 	}
 
 	switch v := val.(type) {
 	case platform.CartDiscountValueAbsolute:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":  "absolute",
 			"money": flattenTypedMoney(v.Money),
 		}}
 	case platform.CartDiscountValueFixed:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":  "fixed",
 			"money": flattenTypedMoney(v.Money),
 		}}
 	case platform.CartDiscountValueGiftLineItem:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":                    "giftLineItem",
 			"supply_channel_id":       v.SupplyChannel.ID,
 			"distribution_channel_id": v.DistributionChannel.ID,
 			"product_id":              v.Product.ID,
 		}}
 	case platform.CartDiscountValueRelative:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":      "relative",
 			"permyriad": v.Permyriad,
 		}}
@@ -512,7 +512,7 @@ func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]inter
 }
 
 func expandCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValueDraft, error) {
-	value := d.Get("value").([]interface{})[0].(map[string]interface{})
+	value := d.Get("value").([]any)[0].(map[string]any)
 	switch value["type"].(string) {
 	case "relative":
 		return platform.CartDiscountValueRelativeDraft{
@@ -545,20 +545,20 @@ func expandCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValue
 	}
 }
 
-func flattenCartDiscountTarget(val platform.CartDiscountTarget) []map[string]interface{} {
+func flattenCartDiscountTarget(val platform.CartDiscountTarget) []map[string]any {
 	switch v := val.(type) {
 	case platform.CartDiscountLineItemsTarget:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":      "lineItems",
 			"predicate": v.Predicate,
 		}}
 	case platform.CartDiscountCustomLineItemsTarget:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":      "customLineItems",
 			"predicate": v.Predicate,
 		}}
 	case platform.CartDiscountShippingCostTarget:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type": "shipping",
 		}}
 	}
@@ -745,7 +745,7 @@ func resourceCartDiscountResourceV0() *schema.Resource {
 	}
 }
 
-func migrateCartDiscountStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+func migrateCartDiscountStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
 	transformToList(rawState, "target")
 	return rawState, nil
 }

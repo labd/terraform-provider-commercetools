@@ -51,15 +51,15 @@ type SetCustomFieldAction interface {
 		platform.DiscountCodeSetCustomFieldAction
 }
 
-func CustomFieldCreateFieldContainer(data map[string]interface{}) *platform.FieldContainer {
-	if raw, ok := data["fields"].(map[string]interface{}); ok {
+func CustomFieldCreateFieldContainer(data map[string]any) *platform.FieldContainer {
+	if raw, ok := data["fields"].(map[string]any); ok {
 		fields := platform.FieldContainer(raw)
 		return &fields
 	}
 	return nil
 }
 
-func CreateCustomFieldDraftRaw(data map[string]interface{}) *platform.CustomFieldsDraft {
+func CreateCustomFieldDraftRaw(data map[string]any) *platform.CustomFieldsDraft {
 	if data["type_id"] == nil {
 		return nil
 	}
@@ -69,7 +69,7 @@ func CreateCustomFieldDraftRaw(data map[string]interface{}) *platform.CustomFiel
 		draft.Type.ID = stringRef(val)
 	}
 
-	if raw, ok := data["fields"].(map[string]interface{}); ok {
+	if raw, ok := data["fields"].(map[string]any); ok {
 		container := platform.FieldContainer(raw)
 		draft.Fields = &container
 	}
@@ -117,8 +117,8 @@ func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](d *
 	}
 
 	changes := diffSlices(
-		old_data["fields"].(map[string]interface{}),
-		new_data["fields"].(map[string]interface{}))
+		old_data["fields"].(map[string]any),
+		new_data["fields"].(map[string]any))
 
 	result := []any{}
 	for key := range changes {

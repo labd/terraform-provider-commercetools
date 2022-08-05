@@ -43,7 +43,7 @@ func extractDetailedError(e platform.ErrorResponse) error {
 		values := metaValue.FieldByName("ExtraValues")
 
 		if message.IsValid() && values.IsValid() {
-			data := values.Interface().(map[string]interface{})
+			data := values.Interface().(map[string]any)
 			if msg, ok := data["detailedErrorMessage"]; ok {
 				return fmt.Errorf("%s %s", message.String(), msg)
 			}
@@ -60,9 +60,9 @@ func extractRawDetailedError(content []byte) error {
 
 	// Iterate over the errors. This is a list of objects containing the
 	// code, message and detailedErrorMessage values.
-	if val, ok := data["errors"].([]interface{}); ok {
+	if val, ok := data["errors"].([]any); ok {
 		for i := range val {
-			if error, ok := val[i].(map[string]interface{}); ok {
+			if error, ok := val[i].(map[string]any); ok {
 				var message string
 
 				if detail, ok := error["message"].(string); ok {

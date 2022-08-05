@@ -120,7 +120,7 @@ func resourceSubscription() *schema.Resource {
 						"type": {
 							Type:     schema.TypeString,
 							Required: true,
-							ValidateFunc: func(d interface{}, v string) ([]string, []error) {
+							ValidateFunc: func(d any, v string) ([]string, []error) {
 								allowedAliases := []string{
 									subEventBridgeAlias,
 									subAzureEventGridAlias,
@@ -237,7 +237,7 @@ func resourceSubscription() *schema.Resource {
 
 					return false
 				},
-				DefaultFunc: func() (interface{}, error) {
+				DefaultFunc: func() (any, error) {
 					return []map[string]string{{
 						"type": "Platform",
 					}}, nil
@@ -302,7 +302,7 @@ func resourceSubscription() *schema.Resource {
 	}
 }
 
-func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	var subscription *platform.Subscription
 
@@ -352,7 +352,7 @@ func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceSubscriptionRead(ctx, d, m)
 }
 
-func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	subscription, err := client.Subscriptions().WithId(d.Id()).Get().Execute(ctx)
@@ -373,7 +373,7 @@ func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m int
 	return nil
 }
 
-func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	if err := validateSubscriptionDestination(d); err != nil {
@@ -434,7 +434,7 @@ func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceSubscriptionRead(ctx, d, m)
 }
 
-func resourceSubscriptionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSubscriptionDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	err := resource.RetryContext(ctx, 5*time.Second, func() *resource.RetryError {
@@ -563,10 +563,10 @@ func flattenSubscriptionFormat(f platform.DeliveryFormat) []map[string]string {
 }
 
 func expandSubscriptionFormat(d *schema.ResourceData) (platform.DeliveryFormat, error) {
-	input := d.Get("format").([]interface{})
+	input := d.Get("format").([]any)
 
 	if len(input) == 1 {
-		format := input[0].(map[string]interface{})
+		format := input[0].(map[string]any)
 
 		switch format["type"] {
 		case cloudEvents, cloudEventsAlias:
@@ -581,11 +581,11 @@ func expandSubscriptionFormat(d *schema.ResourceData) (platform.DeliveryFormat, 
 	return nil, nil
 }
 
-func flattenSubscriptionChanges(m []platform.ChangeSubscription) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, 1)
+func flattenSubscriptionChanges(m []platform.ChangeSubscription) []map[string]any {
+	result := make([]map[string]any, 0, 1)
 
 	for _, raw := range m {
-		result = append(result, map[string]interface{}{
+		result = append(result, map[string]any{
 			"resource_type_ids": raw.ResourceTypeId,
 		})
 	}
@@ -593,7 +593,7 @@ func flattenSubscriptionChanges(m []platform.ChangeSubscription) []map[string]in
 }
 
 func expandSubscriptionChanges(d *schema.ResourceData) []platform.ChangeSubscription {
-	input := d.Get("changes").([]interface{})
+	input := d.Get("changes").([]any)
 	if len(input) != 1 {
 		return make([]platform.ChangeSubscription, 0)
 	}
@@ -634,13 +634,13 @@ func expandSubscriptionMessages(d *schema.ResourceData) []platform.MessageSubscr
 }
 
 func validateSubscriptionDestination(d *schema.ResourceData) error {
-	input := d.Get("destination").([]interface{})
+	input := d.Get("destination").([]any)
 
 	if len(input) != 1 {
 		return fmt.Errorf("destination is missing")
 	}
 
-	dst := input[0].(map[string]interface{})
+	dst := input[0].(map[string]any)
 
 	dstType := dst["type"].(string)
 
@@ -665,12 +665,12 @@ func validateSubscriptionDestination(d *schema.ResourceData) error {
 }
 
 func validateFormat(d *schema.ResourceData) error {
-	input := d.Get("format").([]interface{})
+	input := d.Get("format").([]any)
 	if len(input) < 1 {
 		return nil
 	}
 
-	format := input[0].(map[string]interface{})
+	format := input[0].(map[string]any)
 
 	formatType := format["type"].(string)
 
@@ -698,15 +698,15 @@ func validateFormat(d *schema.ResourceData) error {
 func suppressFuncForAttribute(attribute string, t ...string) schema.SchemaDiffSuppressFunc {
 	return func(k string, old string, new string, d *schema.ResourceData) bool {
 		switch input := d.Get(attribute).(type) {
-		case []interface{}:
+		case []any:
 			for _, dest := range input {
 				for _, val := range t {
-					if val == dest.(map[string]interface{})["type"] {
+					if val == dest.(map[string]any)["type"] {
 						return false
 					}
 				}
 			}
-		case map[string]interface{}:
+		case map[string]any:
 			for _, val := range t {
 				if val == input["type"] {
 					return false
@@ -797,7 +797,7 @@ func resourceSubscriptionResourceV0() *schema.Resource {
 	}
 }
 
-func migrateSubscriptionStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+func migrateSubscriptionStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
 	transformToList(rawState, "destination")
 	transformToList(rawState, "format")
 	return rawState, nil

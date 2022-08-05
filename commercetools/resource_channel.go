@@ -73,12 +73,12 @@ func resourceChannel() *schema.Resource {
 	}
 }
 
-func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	name := expandLocalizedString(d.Get("name"))
 	description := expandLocalizedString(d.Get("description"))
 
 	roles := []platform.ChannelRoleEnum{}
-	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
+	for _, value := range expandStringArray(d.Get("roles").([]any)) {
 		roles = append(roles, platform.ChannelRoleEnum(value))
 	}
 
@@ -110,7 +110,7 @@ func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interf
 	return resourceChannelRead(ctx, d, m)
 }
 
-func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	channel, err := client.Channels().WithId(d.Id()).Get().Execute(ctx)
 
@@ -137,7 +137,7 @@ func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interfac
 	return nil
 }
 
-func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ChannelUpdate{
@@ -168,7 +168,7 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 
 	if d.HasChange("roles") {
 		roles := []platform.ChannelRoleEnum{}
-		for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
+		for _, value := range expandStringArray(d.Get("roles").([]any)) {
 			roles = append(roles, platform.ChannelRoleEnum(value))
 		}
 		input.Actions = append(
@@ -214,7 +214,7 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	return resourceChannelRead(ctx, d, m)
 }
 
-func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {

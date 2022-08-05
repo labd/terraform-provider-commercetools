@@ -14,7 +14,7 @@ import (
 
 func TestValidateSubscriptionDestination(t *testing.T) {
 	resource := resourceSubscription()
-	validDestinations := []map[string]interface{}{
+	validDestinations := []map[string]any{
 		{
 			"type":          "SQS",
 			"queue_url":     "<queue_url>",
@@ -62,8 +62,8 @@ func TestValidateSubscriptionDestination(t *testing.T) {
 		},
 	}
 	for _, validDestination := range validDestinations {
-		rawData := map[string]interface{}{
-			"destination": []interface{}{validDestination},
+		rawData := map[string]any{
+			"destination": []any{validDestination},
 		}
 		data := schema.TestResourceDataRaw(t, resource.Schema, rawData)
 		err := validateSubscriptionDestination(data)
@@ -71,7 +71,7 @@ func TestValidateSubscriptionDestination(t *testing.T) {
 			t.Error("Expected no validation errors, but got ", err)
 		}
 	}
-	invalidDestinations := []map[string]interface{}{
+	invalidDestinations := []map[string]any{
 		{
 			"type": "SQS1",
 		},
@@ -94,8 +94,8 @@ func TestValidateSubscriptionDestination(t *testing.T) {
 		},
 	}
 	for _, validDestination := range invalidDestinations {
-		rawData := map[string]interface{}{
-			"destination": []interface{}{validDestination},
+		rawData := map[string]any{
+			"destination": []any{validDestination},
 		}
 		data := schema.TestResourceDataRaw(t, resource.Schema, rawData)
 		err := validateSubscriptionDestination(data)

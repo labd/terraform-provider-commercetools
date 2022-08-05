@@ -141,7 +141,7 @@ func resourceShippingZoneRate() *schema.Resource {
 	}
 }
 
-func resourceShippingZoneRateImportState(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceShippingZoneRateImportState(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	client := getClient(meta)
 	shippingMethodID, _, _ := getShippingIDs(d.Id())
 
@@ -162,7 +162,7 @@ func resourceShippingZoneRateImportState(ctx context.Context, d *schema.Resource
 	return results, nil
 }
 
-func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	shippingZoneID := d.Get("shipping_zone_id").(string)
 	shippingMethodID := d.Get("shipping_method_id").(string)
@@ -180,11 +180,11 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 		Version: shippingMethod.Version,
 		Actions: []platform.ShippingMethodUpdateAction{},
 	}
-	price := d.Get("price").([]interface{})[0].(map[string]interface{})
+	price := d.Get("price").([]any)[0].(map[string]any)
 
 	var freeAbove *platform.Money
 	if freeAboveState, ok := d.GetOk("free_above"); ok {
-		freeAboveMap := freeAboveState.([]interface{})[0].(map[string]interface{})
+		freeAboveMap := freeAboveState.([]any)[0].(map[string]any)
 		freeAbove = &platform.Money{
 			CurrencyCode: freeAboveMap["currency_code"].(string),
 			CentAmount:   freeAboveMap["cent_amount"].(int),
@@ -243,10 +243,10 @@ func expandShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRa
 	}
 
 	var tiers []platform.ShippingRatePriceTier
-	for _, priceTier := range values.([]interface{}) {
-		tierMap := priceTier.(map[string]interface{})
+	for _, priceTier := range values.([]any) {
+		tierMap := priceTier.(map[string]any)
 
-		priceMap := tierMap["price"].([]interface{})[0].(map[string]interface{})
+		priceMap := tierMap["price"].([]any)[0].(map[string]any)
 		price := platform.Money{
 			CurrencyCode: priceMap["currency_code"].(string),
 			CentAmount:   priceMap["cent_amount"].(int),
@@ -281,7 +281,7 @@ func buildShippingZoneRateID(shippingMethodID string, shippingZoneID string, cur
 	return shippingMethodID + "@" + shippingZoneID + "@" + currencyCode
 }
 
-func resourceShippingZoneRateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingZoneRateRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	shippingMethodID, _, _ := getShippingIDs(d.Id())
 
 	client := getClient(m)
@@ -302,7 +302,7 @@ func resourceShippingZoneRateRead(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-func resourceShippingZoneRateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingZoneRateUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	shippingMethodID, shippingZoneID, currencyCode := getShippingIDs(d.Id())
 	ctMutexKV.Lock(shippingMethodID)
 	defer ctMutexKV.Unlock(shippingMethodID)
@@ -351,10 +351,10 @@ func resourceShippingZoneRateUpdate(ctx context.Context, d *schema.ResourceData,
 			Tiers:     oldShippingRatePriceTiers,
 		}
 
-		price := d.Get("price").([]interface{})[0].(map[string]interface{})
+		price := d.Get("price").([]any)[0].(map[string]any)
 		var newFreeAboveMoney *platform.Money
 		if freeAbove, ok := d.GetOk("free_above"); ok {
-			freeAboveMap := freeAbove.([]interface{})[0].(map[string]interface{})
+			freeAboveMap := freeAbove.([]any)[0].(map[string]any)
 			newFreeAboveMoney = &platform.Money{
 				CurrencyCode: currencyCode,
 				CentAmount:   freeAboveMap["cent_amount"].(int),
@@ -405,7 +405,7 @@ func resourceShippingZoneRateUpdate(ctx context.Context, d *schema.ResourceData,
 	return resourceShippingZoneRateRead(ctx, d, m)
 }
 
-func resourceShippingZoneRateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingZoneRateDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	shippingMethodID := d.Get("shipping_method_id").(string)
 	ctMutexKV.Lock(shippingMethodID)
 	defer ctMutexKV.Unlock(shippingMethodID)
@@ -421,10 +421,10 @@ func resourceShippingZoneRateDelete(ctx context.Context, d *schema.ResourceData,
 		Actions: []platform.ShippingMethodUpdateAction{},
 	}
 
-	price := d.Get("price").([]interface{})[0].(map[string]interface{})
+	price := d.Get("price").([]any)[0].(map[string]any)
 	var newFreeAboveMoney *platform.Money
 	if freeAbove, ok := d.GetOk("free_above"); ok {
-		freeAboveMap := freeAbove.([]interface{})[0].(map[string]interface{})
+		freeAboveMap := freeAbove.([]any)[0].(map[string]any)
 		newFreeAboveMoney = &platform.Money{
 			CurrencyCode: freeAboveMap["currency_code"].(string),
 			CentAmount:   freeAboveMap["cent_amount"].(int),
@@ -504,22 +504,22 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 	}
 
 	if typedPrice, ok := shippingRate.Price.(platform.CentPrecisionMoney); ok {
-		price := map[string]interface{}{
+		price := map[string]any{
 			"currency_code": string(typedPrice.CurrencyCode),
 			"cent_amount":   typedPrice.CentAmount,
 		}
-		err = d.Set("price", []interface{}{price})
+		err = d.Set("price", []any{price})
 		if err != nil {
 			return err
 		}
 	}
 
 	if typedFreeAbove, ok := (shippingRate.FreeAbove).(platform.CentPrecisionMoney); ok {
-		freeAbove := map[string]interface{}{
+		freeAbove := map[string]any{
 			"currency_code": string(typedFreeAbove.CurrencyCode),
 			"cent_amount":   typedFreeAbove.CentAmount,
 		}
-		err = d.Set("free_above", []interface{}{freeAbove})
+		err = d.Set("free_above", []any{freeAbove})
 		if err != nil {
 			return err
 		}

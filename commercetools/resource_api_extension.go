@@ -123,7 +123,7 @@ func resourceAPIExtension() *schema.Resource {
 	}
 }
 
-func validateDestinationType(val interface{}, key string) (warns []string, errs []error) {
+func validateDestinationType(val any, key string) (warns []string, errs []error) {
 	var v = strings.ToLower(val.(string))
 
 	switch v {
@@ -148,7 +148,7 @@ func validateExtensionDestination(draft platform.ExtensionDraft) error {
 	return nil
 }
 
-func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	triggers := expandExtensionTriggers(d)
@@ -200,7 +200,7 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceAPIExtensionRead(ctx, d, m)
 }
 
-func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	extension, err := client.Extensions().WithId(d.Id()).Get().Execute(ctx)
@@ -220,7 +220,7 @@ func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m int
 	return nil
 }
 
-func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ExtensionUpdate{
@@ -277,7 +277,7 @@ func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceAPIExtensionRead(ctx, d, m)
 }
 
-func resourceAPIExtensionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIExtensionDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	_, err := client.Extensions().WithId(d.Id()).Delete().Version(version).Execute(ctx)
@@ -319,7 +319,7 @@ func expandExtensionDestination(d *schema.ResourceData) (platform.Destination, e
 	}
 }
 
-func expandExtensionDestinationAuthentication(destInput map[string]interface{}) (platform.HttpDestinationAuthentication, error) {
+func expandExtensionDestinationAuthentication(destInput map[string]any) (platform.HttpDestinationAuthentication, error) {
 	authKeys := [2]string{"authorization_header", "azure_authentication"}
 	count := 0
 	for _, key := range authKeys {
@@ -420,11 +420,11 @@ func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceDat
 	return []map[string]string{}
 }
 
-func flattenExtensionTriggers(triggers []platform.ExtensionTrigger) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(triggers))
+func flattenExtensionTriggers(triggers []platform.ExtensionTrigger) []map[string]any {
+	result := make([]map[string]any, 0, len(triggers))
 
 	for _, t := range triggers {
-		result = append(result, map[string]interface{}{
+		result = append(result, map[string]any{
 			"resource_type_id": t.ResourceTypeId,
 			"actions":          t.Actions,
 			"condition":        nilIfEmpty(t.Condition),
@@ -435,11 +435,11 @@ func flattenExtensionTriggers(triggers []platform.ExtensionTrigger) []map[string
 }
 
 func expandExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger {
-	input := d.Get("trigger").([]interface{})
+	input := d.Get("trigger").([]any)
 	var result []platform.ExtensionTrigger
 
 	for _, raw := range input {
-		i := raw.(map[string]interface{})
+		i := raw.(map[string]any)
 		var typeId platform.ExtensionResourceTypeId
 
 		switch i["resource_type_id"].(string) {
@@ -453,7 +453,7 @@ func expandExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger
 			typeId = platform.ExtensionResourceTypeIdCustomer
 		}
 
-		rawActions := i["actions"].([]interface{})
+		rawActions := i["actions"].([]any)
 		actions := make([]platform.ExtensionAction, 0, len(rawActions))
 		for _, item := range rawActions {
 			actions = append(actions, platform.ExtensionAction(item.(string)))
@@ -525,7 +525,7 @@ func resourceAPIExtensionResourceV0() *schema.Resource {
 	}
 }
 
-func migrateAPIExtensionStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+func migrateAPIExtensionStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
 	transformToList(rawState, "destination")
 	return rawState, nil
 }

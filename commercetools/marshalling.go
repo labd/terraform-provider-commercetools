@@ -17,20 +17,20 @@ func expandTime(input string) (time.Time, error) {
 	return time.Parse(time.RFC3339, input)
 }
 
-func flattenTypedMoney(val platform.TypedMoney) map[string]interface{} {
+func flattenTypedMoney(val platform.TypedMoney) map[string]any {
 	switch v := val.(type) {
 	case platform.HighPrecisionMoney:
-		return map[string]interface{}{
+		return map[string]any{
 			"currency_code": v.CurrencyCode,
 			"cent_amount":   v.CentAmount,
 		}
 	case platform.Money:
-		return map[string]interface{}{
+		return map[string]any{
 			"currency_code": v.CurrencyCode,
 			"cent_amount":   v.CentAmount,
 		}
 	case platform.CentPrecisionMoney:
-		return map[string]interface{}{
+		return map[string]any{
 			"currency_code":   v.CurrencyCode,
 			"cent_amount":     v.CentAmount,
 			"fraction_digits": v.FractionDigits,
@@ -39,12 +39,12 @@ func flattenTypedMoney(val platform.TypedMoney) map[string]interface{} {
 	panic("Unknown money type")
 }
 
-func expandTypedMoney(d map[string]interface{}) []platform.Money {
-	input := d["money"].([]interface{})
+func expandTypedMoney(d map[string]any) []platform.Money {
+	input := d["money"].([]any)
 	var result []platform.Money
 
 	for _, raw := range input {
-		i := raw.(map[string]interface{})
+		i := raw.(map[string]any)
 		priceCurrencyCode := i["currency_code"].(string)
 
 		result = append(result, platform.Money{
@@ -56,8 +56,8 @@ func expandTypedMoney(d map[string]interface{}) []platform.Money {
 	return result
 }
 
-func expandLocalizedString(val interface{}) platform.LocalizedString {
-	values, ok := val.(map[string]interface{})
+func expandLocalizedString(val any) platform.LocalizedString {
+	values, ok := val.(map[string]any)
 	if !ok {
 		return platform.LocalizedString{}
 	}
@@ -69,11 +69,11 @@ func expandLocalizedString(val interface{}) platform.LocalizedString {
 	return result
 }
 
-func expandCentPrecisionMoneyDraft(d map[string]interface{}) []platform.CentPrecisionMoneyDraft {
-	input := d["money"].([]interface{})
+func expandCentPrecisionMoneyDraft(d map[string]any) []platform.CentPrecisionMoneyDraft {
+	input := d["money"].([]any)
 	var result []platform.CentPrecisionMoneyDraft
 	for _, raw := range input {
-		data := raw.(map[string]interface{})
+		data := raw.(map[string]any)
 		item := platform.CentPrecisionMoneyDraft{}
 		if currencyCode, ok := data["currency_code"].(string); ok {
 			item.CurrencyCode = currencyCode

@@ -60,7 +60,7 @@ func resourceShippingZone() *schema.Resource {
 	}
 }
 
-func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	input := d.Get("location").(*schema.Set)
@@ -94,7 +94,7 @@ func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceShippingZoneRead(ctx, d, m)
 }
 
-func resourceShippingZoneRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingZoneRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	shippingZone, err := client.Zones().WithId(d.Id()).Get().Execute(ctx)
@@ -115,7 +115,7 @@ func resourceShippingZoneRead(ctx context.Context, d *schema.ResourceData, m int
 	return nil
 }
 
-func resourceShippingZoneUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingZoneUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	ctMutexKV.Lock(d.Id())
@@ -179,7 +179,7 @@ func resourceShippingZoneUpdate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceShippingZoneRead(ctx, d, m)
 }
 
-func resourceShippingZoneDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingZoneDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
@@ -199,7 +199,7 @@ func expandShippingZoneLocations(input *schema.Set) []platform.Location {
 	result := make([]platform.Location, len(inputSlice))
 
 	for i := range inputSlice {
-		raw := inputSlice[i].(map[string]interface{})
+		raw := inputSlice[i].(map[string]any)
 
 		country, ok := raw["country"].(string)
 		if !ok {
@@ -220,11 +220,11 @@ func expandShippingZoneLocations(input *schema.Set) []platform.Location {
 	return result
 }
 
-func flattenShippingZoneLocations(locations []platform.Location) []map[string]interface{} {
-	result := make([]map[string]interface{}, len(locations))
+func flattenShippingZoneLocations(locations []platform.Location) []map[string]any {
+	result := make([]map[string]any, len(locations))
 
 	for i := range locations {
-		result[i] = map[string]interface{}{
+		result[i] = map[string]any{
 			"country": locations[i].Country,
 			"state":   locations[i].State,
 		}

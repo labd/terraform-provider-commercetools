@@ -41,7 +41,7 @@ func testAccPreCheck(t *testing.T) {
 		}
 	}
 
-	cfg := map[string]interface{}{
+	cfg := map[string]any{
 		"client_id":     "dummy-client-id",
 		"client_secret": "dummy-client-secret",
 		"project_key":   "terraform-provider-commercetools",

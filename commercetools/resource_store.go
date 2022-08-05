@@ -64,7 +64,7 @@ func resourceStore() *schema.Resource {
 	}
 }
 
-func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	name := expandLocalizedString(d.Get("name"))
 	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
 	scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
@@ -72,7 +72,7 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m interfac
 	draft := platform.StoreDraft{
 		Key:                  d.Get("key").(string),
 		Name:                 &name,
-		Languages:            expandStringArray(d.Get("languages").([]interface{})),
+		Languages:            expandStringArray(d.Get("languages").([]any)),
 		DistributionChannels: dcIdentifiers,
 		SupplyChannels:       scIdentifiers,
 		Custom:               CreateCustomFieldDraft(d),
@@ -97,7 +97,7 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m interfac
 	return resourceStoreRead(ctx, d, m)
 }
 
-func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	store, err := client.Stores().
@@ -145,7 +145,7 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m interface{
 	return nil
 }
 
-func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.StoreUpdate{
@@ -161,7 +161,7 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	if d.HasChange("languages") {
-		languages := expandStringArray(d.Get("languages").([]interface{}))
+		languages := expandStringArray(d.Get("languages").([]any))
 
 		input.Actions = append(
 			input.Actions,
@@ -212,7 +212,7 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	return resourceStoreRead(ctx, d, m)
 }
 
-func resourceStoreDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStoreDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 
@@ -234,8 +234,8 @@ func convertChannelKeysToIdentifiers(channelKeys []string) []platform.ChannelRes
 	return identifiers
 }
 
-func expandStoreChannels(channelData interface{}) []platform.ChannelResourceIdentifier {
-	channelKeys := expandStringArray(channelData.([]interface{}))
+func expandStoreChannels(channelData any) []platform.ChannelResourceIdentifier {
+	channelKeys := expandStringArray(channelData.([]any))
 	return convertChannelKeysToIdentifiers(channelKeys)
 }
 

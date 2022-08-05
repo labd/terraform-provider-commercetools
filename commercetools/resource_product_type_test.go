@@ -111,7 +111,7 @@ func TestAttributeTypeElement(t *testing.T) {
 
 func TestExpandProductTypeAttributeType(t *testing.T) {
 	// Test Boolean
-	input := map[string]interface{}{
+	input := map[string]any{
 		"name": "boolean",
 	}
 	result, err := expandProductTypeAttributeType(input)
@@ -123,17 +123,17 @@ func TestExpandProductTypeAttributeType(t *testing.T) {
 	}
 
 	// Test Enum
-	input = map[string]interface{}{
+	input = map[string]any{
 		"name": "enum",
 	}
 	_, err = expandProductTypeAttributeType(input)
 	if err == nil {
 		t.Error("No error returned while enum requires values")
 	}
-	inputValue := make([]interface{}, 2)
-	inputValue[0] = map[string]interface{}{"key": "value1", "label": "Value 1"}
-	inputValue[1] = map[string]interface{}{"key": "value2", "label": "Value 2"}
-	input = map[string]interface{}{
+	inputValue := make([]any, 2)
+	inputValue[0] = map[string]any{"key": "value1", "label": "Value 1"}
+	inputValue[1] = map[string]any{"key": "value2", "label": "Value 2"}
+	input = map[string]any{
 		"name":  "enum",
 		"value": inputValue,
 	}
@@ -151,14 +151,14 @@ func TestExpandProductTypeAttributeType(t *testing.T) {
 	}
 
 	// Test Reference
-	input = map[string]interface{}{
+	input = map[string]any{
 		"name": "reference",
 	}
 	_, err = expandProductTypeAttributeType(input)
 	if err == nil {
 		t.Error("No error returned while Reference requires reference_type_id")
 	}
-	input = map[string]interface{}{
+	input = map[string]any{
 		"name":              "reference",
 		"reference_type_id": "product",
 	}
@@ -173,7 +173,7 @@ func TestExpandProductTypeAttributeType(t *testing.T) {
 	}
 
 	// Test Set
-	input = map[string]interface{}{
+	input = map[string]any{
 		"name": "set",
 	}
 	_, err = expandProductTypeAttributeType(input)

@@ -43,7 +43,7 @@ func resourceTaxCategory() *schema.Resource {
 	}
 }
 
-func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	emptyTaxRates := []platform.TaxRateDraft{}
 
@@ -75,7 +75,7 @@ func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceTaxCategoryRead(ctx, d, m)
 }
 
-func resourceTaxCategoryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -93,7 +93,7 @@ func resourceTaxCategoryRead(ctx context.Context, d *schema.ResourceData, m inte
 	return nil
 }
 
-func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	// Lock to prevent concurrent updates due to Version number conflicts
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
@@ -147,7 +147,7 @@ func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceTaxCategoryRead(ctx, d, m)
 }
 
-func resourceTaxCategoryDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	// Lock to prevent concurrent updates due to Version number conflicts

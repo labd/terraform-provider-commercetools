@@ -126,7 +126,7 @@ func resourceProductDiscount() *schema.Resource {
 	}
 }
 
-func resourceProductDiscountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductDiscountCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	name := expandLocalizedString(d.Get("name"))
@@ -179,7 +179,7 @@ func resourceProductDiscountCreate(ctx context.Context, d *schema.ResourceData, 
 	return resourceProductDiscountRead(ctx, d, m)
 }
 
-func resourceProductDiscountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductDiscountRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	productDiscount, err := client.ProductDiscounts().WithId(d.Id()).Get().Execute(ctx)
@@ -209,7 +209,7 @@ func resourceProductDiscountRead(ctx context.Context, d *schema.ResourceData, m 
 	return nil
 }
 
-func resourceProductDiscountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductDiscountUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	productDiscount, err := client.ProductDiscounts().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -320,7 +320,7 @@ func resourceProductDiscountUpdate(ctx context.Context, d *schema.ResourceData, 
 	return resourceProductDiscountRead(ctx, d, m)
 }
 
-func resourceProductDiscountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductDiscountDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 
@@ -335,7 +335,7 @@ func resourceProductDiscountDelete(ctx context.Context, d *schema.ResourceData, 
 }
 
 func expandProductDiscountValue(d *schema.ResourceData) (platform.ProductDiscountValueDraft, error) {
-	value := d.Get("value").([]interface{})[0].(map[string]interface{})
+	value := d.Get("value").([]any)[0].(map[string]any)
 	switch value["type"].(string) {
 	case "relative":
 		return platform.ProductDiscountValueRelativeDraft{
@@ -353,30 +353,30 @@ func expandProductDiscountValue(d *schema.ResourceData) (platform.ProductDiscoun
 	}
 }
 
-func flattenProductDiscountValue(val platform.ProductDiscountValue) []map[string]interface{} {
+func flattenProductDiscountValue(val platform.ProductDiscountValue) []map[string]any {
 	if val == nil {
-		return []map[string]interface{}{}
+		return []map[string]any{}
 	}
 
 	switch v := val.(type) {
 	case platform.ProductDiscountValueAbsolute:
-		manyMoney := make([]map[string]interface{}, len(v.Money))
+		manyMoney := make([]map[string]any, len(v.Money))
 		for i, money := range v.Money {
 			manyMoney[i] = flattenTypedMoney(money)
 		}
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":      "absolute",
 			"money":     manyMoney,
 			"permyriad": 0,
 		}}
 	case platform.ProductDiscountValueExternal:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":      "external",
 			"permyriad": 0,
 			"money":     []any{},
 		}}
 	case platform.ProductDiscountValueRelative:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":      "relative",
 			"permyriad": v.Permyriad,
 			"money":     []any{},

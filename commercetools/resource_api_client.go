@@ -47,7 +47,7 @@ func resourceAPIClient() *schema.Resource {
 	}
 }
 
-func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	name := d.Get("name").(string)
 	scopes := d.Get("scope").(*schema.Set).List()
 
@@ -81,7 +81,7 @@ func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m inte
 	return resourceAPIClientRead(ctx, d, m)
 }
 
-func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	apiClient, err := client.ApiClients().WithId(d.Id()).Get().Execute(ctx)
 
@@ -101,7 +101,7 @@ func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m interf
 	return nil
 }
 
-func resourceAPIClientDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIClientDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {

@@ -93,8 +93,8 @@ func New(version string) func() *schema.Provider {
 	}
 }
 
-func providerConfigure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+func providerConfigure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
+	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		clientID := d.Get("client_id").(string)
 		clientSecret := d.Get("client_secret").(string)
 		projectKey := d.Get("project_key").(string)

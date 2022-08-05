@@ -14,12 +14,12 @@ import (
 
 func TestExpandShippingZoneLocations(t *testing.T) {
 	resource := resourceShippingZone().Schema["location"].Elem.(*schema.Resource)
-	input := schema.NewSet(schema.HashResource(resource), []interface{}{
-		map[string]interface{}{
+	input := schema.NewSet(schema.HashResource(resource), []any{
+		map[string]any{
 			"country": "DE",
 			"state":   "",
 		},
-		map[string]interface{}{
+		map[string]any{
 			"country": "US",
 			"state":   "Nevada",
 		},

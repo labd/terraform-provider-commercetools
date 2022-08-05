@@ -95,7 +95,7 @@ func resourceDiscountCode() *schema.Resource {
 	}
 }
 
-func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	name := expandLocalizedString(d.Get("name"))
@@ -146,7 +146,7 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceDiscountCodeRead(ctx, d, m)
 }
 
-func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -173,7 +173,7 @@ func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m int
 	return nil
 }
 
-func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -303,7 +303,7 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceDiscountCodeRead(ctx, d, m)
 }
 
-func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 
@@ -315,11 +315,11 @@ func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func expandDiscountCodeGroups(d *schema.ResourceData) []string {
-	return expandStringArray(d.Get("groups").([]interface{}))
+	return expandStringArray(d.Get("groups").([]any))
 }
 
 func expandDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.CartDiscountResourceIdentifier {
-	discounts := d.Get("cart_discounts").([]interface{})
+	discounts := d.Get("cart_discounts").([]any)
 
 	cartDiscounts := make([]platform.CartDiscountResourceIdentifier, len(discounts))
 	for i := range discounts {

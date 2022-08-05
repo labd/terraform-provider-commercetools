@@ -167,7 +167,7 @@ func resourceCategory() *schema.Resource {
 	}
 }
 
-func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	name := expandLocalizedString(d.Get("name"))
@@ -211,7 +211,7 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 		draft.Parent = &parent
 	}
 
-	if len(d.Get("assets").([]interface{})) != 0 {
+	if len(d.Get("assets").([]any)) != 0 {
 		assets := expandCategoryAssetDrafts(d)
 		draft.Assets = assets
 	}
@@ -237,7 +237,7 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m inter
 	return resourceCategoryRead(ctx, d, m)
 }
 
-func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -277,7 +277,7 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interfa
 	return nil
 }
 
-func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -412,7 +412,7 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	return resourceCategoryRead(ctx, d, m)
 }
 
-func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	version := d.Get("version").(int)
@@ -427,13 +427,13 @@ func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m inter
 	return nil
 }
 
-func flattenCategoryAssets(assets []platform.Asset) []map[string]interface{} {
-	result := make([]map[string]interface{}, len(assets))
+func flattenCategoryAssets(assets []platform.Asset) []map[string]any {
+	result := make([]map[string]any, len(assets))
 
 	for i := range assets {
 		asset := assets[i]
 
-		result[i] = make(map[string]interface{})
+		result[i] = make(map[string]any)
 		if asset.ID != "" {
 			result[i]["id"] = asset.ID
 		}
@@ -452,12 +452,12 @@ func flattenCategoryAssets(assets []platform.Asset) []map[string]interface{} {
 	return result
 }
 
-func expandCategoryAssetDraft(u interface{}) *platform.AssetDraft {
-	i := u.(map[string]interface{})
+func expandCategoryAssetDraft(u any) *platform.AssetDraft {
+	i := u.(map[string]any)
 	name := expandLocalizedString(i["name"])
 	description := expandLocalizedString(i["description"])
 	sources := expandCategoryAssetSources(i)
-	tags := expandStringArray(i["tags"].([]interface{}))
+	tags := expandStringArray(i["tags"].([]any))
 	key := i["key"].(string)
 	return &platform.AssetDraft{
 		Key:         &key,
@@ -469,7 +469,7 @@ func expandCategoryAssetDraft(u interface{}) *platform.AssetDraft {
 }
 
 func expandCategoryAssetDrafts(d *schema.ResourceData) []platform.AssetDraft {
-	input := d.Get("assets").([]interface{})
+	input := d.Get("assets").([]any)
 	var result []platform.AssetDraft
 	for _, raw := range input {
 		result = append(result, *expandCategoryAssetDraft(raw))
@@ -478,11 +478,11 @@ func expandCategoryAssetDrafts(d *schema.ResourceData) []platform.AssetDraft {
 }
 
 func expandCategoryAssets(d *schema.ResourceData) []platform.Asset {
-	input := d.Get("assets").([]interface{})
+	input := d.Get("assets").([]any)
 	var result []platform.Asset
 	for _, raw := range input {
 		draft := expandCategoryAssetDraft(raw)
-		i := raw.(map[string]interface{})
+		i := raw.(map[string]any)
 		id := i["id"].(string)
 		asset := platform.Asset{
 			ID:          id,
@@ -497,19 +497,19 @@ func expandCategoryAssets(d *schema.ResourceData) []platform.Asset {
 	return result
 }
 
-func flattenCategoryAssetSources(sources []platform.AssetSource) []map[string]interface{} {
-	result := make([]map[string]interface{}, len(sources))
+func flattenCategoryAssetSources(sources []platform.AssetSource) []map[string]any {
+	result := make([]map[string]any, len(sources))
 
 	for i := range sources {
 		source := sources[i]
 
-		result[i] = make(map[string]interface{})
+		result[i] = make(map[string]any)
 		result[i]["key"] = source.Key
 		result[i]["uri"] = source.Uri
 		result[i]["content_type"] = source.ContentType
 
 		if source.Dimensions != nil {
-			result[i]["dimensions"] = []map[string]interface{}{
+			result[i]["dimensions"] = []map[string]any{
 				{
 					"h": source.Dimensions.H,
 					"w": source.Dimensions.W,
@@ -520,10 +520,10 @@ func flattenCategoryAssetSources(sources []platform.AssetSource) []map[string]in
 	return result
 }
 
-func expandCategoryAssetSources(i map[string]interface{}) []platform.AssetSource {
+func expandCategoryAssetSources(i map[string]any) []platform.AssetSource {
 	var sources []platform.AssetSource
-	for _, item := range i["sources"].([]interface{}) {
-		s := item.(map[string]interface{})
+	for _, item := range i["sources"].([]any) {
+		s := item.(map[string]any)
 		key := s["key"].(string)
 		contentType := s["content_type"].(string)
 
@@ -542,7 +542,7 @@ func expandCategoryAssetSources(i map[string]interface{}) []platform.AssetSource
 	return sources
 }
 
-func expandCategoryAssetSourceDimensions(s map[string]interface{}) *platform.AssetDimensions {
+func expandCategoryAssetSourceDimensions(s map[string]any) *platform.AssetDimensions {
 	data, err := elementFromSlice(s, "dimensions")
 	if err != nil {
 		return nil
@@ -681,11 +681,11 @@ func resourceCategoryResourceV0() *schema.Resource {
 	}
 }
 
-func migrateCategoryStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
-	for _, asset := range rawState["assets"].([]interface{}) {
-		sources := asset.(map[string]interface{})["sources"]
-		for _, source := range sources.([]interface{}) {
-			transformToList(source.(map[string]interface{}), "dimensions")
+func migrateCategoryStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+	for _, asset := range rawState["assets"].([]any) {
+		sources := asset.(map[string]any)["sources"]
+		for _, source := range sources.([]any) {
+			transformToList(source.(map[string]any), "dimensions")
 		}
 	}
 	return rawState, nil

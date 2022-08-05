@@ -62,7 +62,7 @@ func TestExpandTypeFieldDefinitionItem(t *testing.T) {
 
 func TestExpandTypeFieldType(t *testing.T) {
 	// Test Boolean
-	input := map[string]interface{}{
+	input := map[string]any{
 		"name": "Boolean",
 	}
 	result, err := expandTypeFieldType(input)
@@ -74,17 +74,17 @@ func TestExpandTypeFieldType(t *testing.T) {
 	}
 
 	// Test Enum
-	input = map[string]interface{}{
+	input = map[string]any{
 		"name": "Enum",
 	}
 	_, err = expandTypeFieldType(input)
 	if err == nil {
 		t.Error("No error returned while Enum requires values")
 	}
-	inputValue := make([]interface{}, 2)
-	inputValue[0] = map[string]interface{}{"key": "value1", "label": "Value 1"}
-	inputValue[1] = map[string]interface{}{"key": "value2", "label": "Value 2"}
-	input = map[string]interface{}{
+	inputValue := make([]any, 2)
+	inputValue[0] = map[string]any{"key": "value1", "label": "Value 1"}
+	inputValue[1] = map[string]any{"key": "value2", "label": "Value 2"}
+	input = map[string]any{
 		"name":  "Enum",
 		"value": inputValue,
 	}
@@ -102,14 +102,14 @@ func TestExpandTypeFieldType(t *testing.T) {
 	}
 
 	// Test Reference
-	input = map[string]interface{}{
+	input = map[string]any{
 		"name": "Reference",
 	}
 	_, err = expandTypeFieldType(input)
 	if err == nil {
 		t.Error("No error returned while Reference requires reference_type_id")
 	}
-	input = map[string]interface{}{
+	input = map[string]any{
 		"name":              "Reference",
 		"reference_type_id": "product",
 	}
@@ -124,7 +124,7 @@ func TestExpandTypeFieldType(t *testing.T) {
 	}
 
 	// Test Set
-	input = map[string]interface{}{
+	input = map[string]any{
 		"name": "Set",
 	}
 	_, err = expandTypeFieldType(input)
@@ -554,7 +554,7 @@ resource "commercetools_type" "{{ .identifier }}" {
 		}
 	}
 
-}`, map[string]interface{}{
+}`, map[string]any{
 		"identifier": identifier,
 		"key":        key,
 	})
@@ -586,7 +586,7 @@ func testAccTypeUpdateWithID(identifier, key string) string {
 					}
 				}
 			`,
-				map[string]interface{}{
+				map[string]any{
 					"name":     newType,
 					"label":    newType,
 					"typeName": newType,

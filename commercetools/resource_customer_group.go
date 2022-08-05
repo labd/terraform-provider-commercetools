@@ -42,7 +42,7 @@ func resourceCustomerGroup() *schema.Resource {
 	}
 }
 
-func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	draft := platform.CustomerGroupDraft{
@@ -76,7 +76,7 @@ func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	return resourceCustomerGroupRead(ctx, d, m)
 }
 
-func resourceCustomerGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomerGroupRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	customerGroup, err := client.CustomerGroups().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -99,7 +99,7 @@ func resourceCustomerGroupRead(ctx context.Context, d *schema.ResourceData, m in
 	return nil
 }
 
-func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	customerGroup, err := client.CustomerGroups().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
@@ -149,7 +149,7 @@ func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 	return resourceCustomerGroupRead(ctx, d, m)
 }
 
-func resourceCustomerGroupDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomerGroupDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
