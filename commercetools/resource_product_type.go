@@ -1155,64 +1155,87 @@ func resourceProductTypeResourceV0() *schema.Resource {
 	}
 }
 
-func migrateProductTypeStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
-	if attr, ok := rawState["attribute"].([]any); ok {
-		// iterate over all attributes
-		for _, item := range attr {
-			if m, ok := item.(map[string]interface{}); ok {
-				// check attribute.type
-				if itemTypes, ok := m["type"].([]any); ok {
-					// it should only contain 1 element, which is an array
-					if len(itemTypes) == 1 {
-						if itemType, ok := itemTypes[0].(map[string]any); ok {
-							if itemTypeName, ok := itemType["name"].(string); ok {
-								if itemTypeName == "set" {
-									if itemTypeElementType, ok := itemType["element_type"].([]any); ok {
-										if len(itemTypeElementType) == 1 {
-											if itemTypeElementTypeValues, ok := itemTypeElementType[0].(map[string]any)["values"]; ok {
-												if itemTypeElementTypeValues, ok := itemTypeElementTypeValues.(map[string]any); ok {
-													// "values" and "value" cannot co exist, so this needs an upgrade
-													value := make([]map[string]string, len(itemTypeElementTypeValues))
-													i := 0
-													for k, v := range itemTypeElementTypeValues {
-														value[i] = map[string]string{
-															"key":   k,
-															"label": v.(string),
-														}
-														i++
-													}
-													// add "value"
-													itemTypeElementType[0].(map[string]any)["value"] = value
-													// remove "values"
-													delete(itemTypeElementType[0].(map[string]any), "values")
-												}
-											}
-										}
-									}
-								} else if itemTypeName == "enum" {
-									if itemTypeValues, ok := itemType["values"].(map[string]any); ok {
-										// "values" and "value" cannot co exist, so this needs an upgrade
-										value := make([]map[string]string, len(itemTypeValues))
-										i := 0
-										for k, v := range itemTypeValues {
-											value[i] = map[string]string{
-												"key":   k,
-												"label": v.(string),
-											}
-											i++
-										}
-										// add "value"
-										itemType["value"] = value
-										// remove "values"
-										delete(itemType, "values")
-									}
-								}
-							}
-						}
-					}
-				}
-			}
+func migrateProductTypeStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+	attr, ok := rawState["attribute"].([]any)
+	if !ok {
+		return rawState, nil
+	}
+
+	// iterate over all attributes
+	for _, item := range attr {
+		if m, ok := item.(map[string]any); ok {
+			migrateProductTypeAttributeV0toV1(m)
 		}
 	}
 	return rawState, nil
+}
+
+func migrateProductTypeAttributeV0toV1(attr map[string]any) {
+	// check attribute.type
+	itemTypes, ok := attr["type"].([]any)
+	if !ok || len(itemTypes) != 1 {
+		return
+	}
+
+	itemType, ok := itemTypes[0].(map[string]any)
+	if !ok {
+		return
+	}
+
+	itemTypeName, ok := itemType["name"].(string)
+	if !ok {
+		return
+	}
+
+	if itemTypeName == "set" {
+		itemTypeElementType, ok := itemType["element_type"].([]any)
+		if !ok || len(itemTypeElementType) != 1 {
+			return
+		}
+
+		itemTypeElementTypeValues, ok := itemTypeElementType[0].(map[string]any)["values"]
+		if !ok {
+			return
+		}
+
+		elementTypeValues, ok := itemTypeElementTypeValues.(map[string]any)
+		if !ok {
+			return
+		}
+		// "values" and "value" cannot co exist, so this needs an upgrade
+		value := make([]map[string]string, len(elementTypeValues))
+		i := 0
+		for k, v := range elementTypeValues {
+			value[i] = map[string]string{
+				"key":   k,
+				"label": v.(string),
+			}
+			i++
+		}
+		// add "value"
+		itemTypeElementType[0].(map[string]any)["value"] = value
+		// remove "values"
+		delete(itemTypeElementType[0].(map[string]any), "values")
+
+	} else if itemTypeName == "enum" {
+		itemTypeValues, ok := itemType["values"].(map[string]any)
+		if !ok {
+			return
+		}
+
+		// "values" and "value" cannot co exist, so this needs an upgrade
+		value := make([]map[string]string, len(itemTypeValues))
+		i := 0
+		for k, v := range itemTypeValues {
+			value[i] = map[string]string{
+				"key":   k,
+				"label": v.(string),
+			}
+			i++
+		}
+		// add "value"
+		itemType["value"] = value
+		// remove "values"
+		delete(itemType, "values")
+	}
 }
