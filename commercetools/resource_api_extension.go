@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -202,7 +201,6 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Print("[DEBUG] Reading extensions from commercetools")
 	client := getClient(m)
 
 	extension, err := client.Extensions().WithId(d.Id()).Get().Execute(ctx)
@@ -215,12 +213,8 @@ func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if extension == nil {
-		log.Print("[DEBUG] No extensions found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following extensions:")
-		log.Print(stringFormatObject(extension))
-
 		d.Set("version", extension.Version)
 		d.Set("key", extension.Key)
 		d.Set("destination", flattenExtensionDestination(extension.Destination, d))

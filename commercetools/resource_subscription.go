@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -354,7 +353,6 @@ func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Print("[DEBUG] Reading subscriptions from commercetools")
 	client := getClient(m)
 
 	subscription, err := client.Subscriptions().WithId(d.Id()).Get().Execute(ctx)
@@ -367,12 +365,8 @@ func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if subscription == nil {
-		log.Print("[DEBUG] No subscriptions found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following subscriptions:")
-		log.Print(stringFormatObject(subscription))
-
 		d.Set("version", subscription.Version)
 		d.Set("key", subscription.Key)
 		d.Set("destination", flattenSubscriptionDestination(subscription.Destination, d))

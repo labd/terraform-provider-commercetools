@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -89,11 +88,8 @@ func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if customObject == nil {
-		log.Print("[DEBUG] No custom object found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following custom object:")
-		log.Print(stringFormatObject(customObject))
 		d.Set("container", customObject.Container)
 		d.Set("key", customObject.Key)
 		d.Set("value", flattenCustomObjectValue(customObject))

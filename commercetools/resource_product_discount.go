@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -305,10 +304,6 @@ func resourceProductDiscountUpdate(ctx context.Context, d *schema.ResourceData, 
 				&platform.ProductDiscountSetValidUntilAction{})
 		}
 	}
-
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
 
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.ProductDiscounts().WithId(d.Id()).Post(input).Execute(ctx)

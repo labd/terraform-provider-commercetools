@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -308,12 +307,8 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if cartDiscount == nil {
-		log.Print("[DEBUG] No cart discount found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following cart discount:")
-		log.Print(stringFormatObject(cartDiscount))
-
 		d.Set("version", cartDiscount.Version)
 		d.Set("key", cartDiscount.Key)
 		d.Set("name", cartDiscount.Name)
@@ -459,10 +454,6 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 			input.Actions,
 			&platform.CartDiscountChangeStackingModeAction{StackingMode: newStackingMode})
 	}
-
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
 
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.CartDiscounts().WithId(d.Id()).Post(input).Execute(ctx)

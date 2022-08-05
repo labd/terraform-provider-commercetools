@@ -2,7 +2,6 @@ package commercetools
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -159,12 +158,8 @@ func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if discountCode == nil {
-		log.Print("[DEBUG] No discount code found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following discount code:")
-		log.Print(stringFormatObject(discountCode))
-
 		d.Set("version", discountCode.Version)
 		d.Set("code", discountCode.Code)
 		d.Set("name", discountCode.Name)

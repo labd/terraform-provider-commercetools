@@ -2,7 +2,6 @@ package commercetools
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -250,12 +249,8 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	if category == nil {
-		log.Print("[DEBUG] No category found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following category:")
-		log.Print(stringFormatObject(category))
-
 		d.Set("version", category.Version)
 		d.Set("key", category.Key)
 		d.Set("name", category.Name)
@@ -406,10 +401,6 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m inter
 			input.Actions = append(input.Actions, actions[i].(platform.CategoryUpdateAction))
 		}
 	}
-
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
 
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.Categories().WithId(d.Id()).Post(input).Execute(ctx)

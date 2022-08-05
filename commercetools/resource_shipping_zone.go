@@ -2,7 +2,6 @@ package commercetools
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -62,7 +61,6 @@ func resourceShippingZone() *schema.Resource {
 }
 
 func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Print("[DEBUG] Creating shippingzones in commercetools")
 	client := getClient(m)
 
 	input := d.Get("location").(*schema.Set)
@@ -97,7 +95,6 @@ func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m i
 }
 
 func resourceShippingZoneRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Print("[DEBUG] Reading shippingzones from commercetools")
 	client := getClient(m)
 
 	shippingZone, err := client.Zones().WithId(d.Id()).Get().Execute(ctx)
@@ -111,12 +108,8 @@ func resourceShippingZoneRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if shippingZone == nil {
-		log.Print("[DEBUG] No shippingzones found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following shippingzones:")
-		log.Print(stringFormatObject(shippingZone))
-
 		d.Set("version", shippingZone.Version)
 		d.Set("key", shippingZone.Key)
 		d.Set("name", shippingZone.Name)

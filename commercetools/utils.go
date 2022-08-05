@@ -1,7 +1,6 @@
 package commercetools
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -46,26 +45,6 @@ func expandStringArray(input []interface{}) []string {
 		s[i] = input[i].(string)
 	}
 	return s
-}
-
-func stringFormatObject(object interface{}) string {
-	data, err := json.MarshalIndent(object, "", "    ")
-
-	if err != nil {
-		return fmt.Sprintf("%+v", object)
-	}
-	return string(append(data, '\n'))
-}
-
-func stringFormatActions(actions ...interface{}) string {
-	lines := []string{}
-	for i, action := range actions {
-		lines = append(
-			lines,
-			fmt.Sprintf("%d: %s", i, stringFormatObject(action)))
-
-	}
-	return strings.Join(lines, "\n")
 }
 
 func createLookup(objects []interface{}, key string) map[string]interface{} {

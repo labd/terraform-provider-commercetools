@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -236,10 +235,6 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 		})
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
-
 	client := getClient(m)
 	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
 		_, err := client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
@@ -345,15 +340,10 @@ func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m in
 		return nil, nil, err
 	}
 
-	log.Print("[DEBUG] Found following tax category:")
-	log.Print(stringFormatObject(taxCategory))
 	taxRate := getTaxRateWithID(taxCategory, taxRateID)
 	if taxRate == nil {
 		return nil, nil, fmt.Errorf("could not find tax rate %s in tax category %s", taxRateID, taxCategory.ID)
 	}
-	log.Print("[DEBUG] Found following tax rate:")
-	log.Print(stringFormatObject(taxRate))
-
 	return taxCategory, taxRate, nil
 }
 

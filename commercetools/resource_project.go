@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -214,7 +213,6 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m interf
 }
 
 func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Print("[DEBUG] Reading projects from commercetools")
 	client := getClient(m)
 
 	project, err := client.Get().Execute(ctx)
@@ -225,9 +223,6 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 		}
 		return diag.FromErr(err)
 	}
-
-	log.Print("[DEBUG] Found the following project:")
-	log.Print(stringFormatObject(project))
 
 	d.SetId(project.Key)
 	d.Set("key", project.Key)

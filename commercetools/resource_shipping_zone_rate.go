@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -296,12 +295,8 @@ func resourceShippingZoneRateRead(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	if shippingMethod == nil {
-		log.Print("[DEBUG] No shipping method found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following shipping method:")
-		log.Print(stringFormatObject(shippingMethod))
-
 		err = setShippingZoneRateState(d, shippingMethod)
 		if err != nil {
 			return diag.FromErr(err)
@@ -399,10 +394,6 @@ func resourceShippingZoneRateUpdate(ctx context.Context, d *schema.ResourceData,
 				ShippingRate: newShippingRateDraft,
 			})
 	}
-
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
 
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.ShippingMethods().WithId(shippingMethodID).Post(input).Execute(ctx)
