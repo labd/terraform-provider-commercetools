@@ -157,24 +157,19 @@ func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	if discountCode == nil {
-		d.SetId("")
-	} else {
-		d.Set("version", discountCode.Version)
-		d.Set("code", discountCode.Code)
-		d.Set("name", discountCode.Name)
-		d.Set("description", discountCode.Description)
-		d.Set("predicate", discountCode.CartPredicate)
-		d.Set("cart_discounts", flattenDiscountCodeCartDiscounts(discountCode.CartDiscounts))
-		d.Set("groups", discountCode.Groups)
-		d.Set("is_active", discountCode.IsActive)
-		d.Set("valid_from", flattenTime(discountCode.ValidFrom))
-		d.Set("valid_until", flattenTime(discountCode.ValidUntil))
-		d.Set("max_applications_per_customer", discountCode.MaxApplicationsPerCustomer)
-		d.Set("max_applications", discountCode.MaxApplications)
-		d.Set("custom", flattenCustomFields(discountCode.Custom))
-	}
-
+	d.Set("version", discountCode.Version)
+	d.Set("code", discountCode.Code)
+	d.Set("name", discountCode.Name)
+	d.Set("description", discountCode.Description)
+	d.Set("predicate", discountCode.CartPredicate)
+	d.Set("cart_discounts", flattenDiscountCodeCartDiscounts(discountCode.CartDiscounts))
+	d.Set("groups", discountCode.Groups)
+	d.Set("is_active", discountCode.IsActive)
+	d.Set("valid_from", flattenTime(discountCode.ValidFrom))
+	d.Set("valid_until", flattenTime(discountCode.ValidUntil))
+	d.Set("max_applications_per_customer", discountCode.MaxApplicationsPerCustomer)
+	d.Set("max_applications", discountCode.MaxApplications)
+	d.Set("custom", flattenCustomFields(discountCode.Custom))
 	return nil
 }
 

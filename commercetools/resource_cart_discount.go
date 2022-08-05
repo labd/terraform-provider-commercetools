@@ -306,24 +306,19 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	if cartDiscount == nil {
-		d.SetId("")
-	} else {
-		d.Set("version", cartDiscount.Version)
-		d.Set("key", cartDiscount.Key)
-		d.Set("name", cartDiscount.Name)
-		d.Set("description", cartDiscount.Description)
-		d.Set("value", flattenCartDiscountValue(cartDiscount.Value))
-		d.Set("predicate", cartDiscount.CartPredicate)
-		d.Set("target", flattenCartDiscountTarget(cartDiscount.Target))
-		d.Set("sort_order", cartDiscount.SortOrder)
-		d.Set("is_active", cartDiscount.IsActive)
-		d.Set("valid_from", flattenTime(cartDiscount.ValidFrom))
-		d.Set("valid_until", flattenTime(cartDiscount.ValidUntil))
-		d.Set("requires_discount_code", cartDiscount.RequiresDiscountCode)
-		d.Set("stacking_mode", cartDiscount.StackingMode)
-	}
-
+	d.Set("version", cartDiscount.Version)
+	d.Set("key", cartDiscount.Key)
+	d.Set("name", cartDiscount.Name)
+	d.Set("description", cartDiscount.Description)
+	d.Set("value", flattenCartDiscountValue(cartDiscount.Value))
+	d.Set("predicate", cartDiscount.CartPredicate)
+	d.Set("target", flattenCartDiscountTarget(cartDiscount.Target))
+	d.Set("sort_order", cartDiscount.SortOrder)
+	d.Set("is_active", cartDiscount.IsActive)
+	d.Set("valid_from", flattenTime(cartDiscount.ValidFrom))
+	d.Set("valid_until", flattenTime(cartDiscount.ValidUntil))
+	d.Set("requires_discount_code", cartDiscount.RequiresDiscountCode)
+	d.Set("stacking_mode", cartDiscount.StackingMode)
 	return nil
 }
 

@@ -294,13 +294,9 @@ func resourceShippingZoneRateRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	if shippingMethod == nil {
-		d.SetId("")
-	} else {
-		err = setShippingZoneRateState(d, shippingMethod)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+	err = setShippingZoneRateState(d, shippingMethod)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil

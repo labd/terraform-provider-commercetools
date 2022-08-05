@@ -87,14 +87,10 @@ func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	if customObject == nil {
-		d.SetId("")
-	} else {
-		d.Set("container", customObject.Container)
-		d.Set("key", customObject.Key)
-		d.Set("value", flattenCustomObjectValue(customObject))
-		d.Set("version", customObject.Version)
-	}
+	d.Set("container", customObject.Container)
+	d.Set("key", customObject.Key)
+	d.Set("value", flattenCustomObjectValue(customObject))
+	d.Set("version", customObject.Version)
 	return nil
 }
 

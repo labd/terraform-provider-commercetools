@@ -212,15 +212,11 @@ func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	if extension == nil {
-		d.SetId("")
-	} else {
-		d.Set("version", extension.Version)
-		d.Set("key", extension.Key)
-		d.Set("destination", flattenExtensionDestination(extension.Destination, d))
-		d.Set("trigger", flattenExtensionTriggers(extension.Triggers))
-		d.Set("timeout_in_ms", extension.TimeoutInMs)
-	}
+	d.Set("version", extension.Version)
+	d.Set("key", extension.Key)
+	d.Set("destination", flattenExtensionDestination(extension.Destination, d))
+	d.Set("trigger", flattenExtensionTriggers(extension.Triggers))
+	d.Set("timeout_in_ms", extension.TimeoutInMs)
 	return nil
 }
 

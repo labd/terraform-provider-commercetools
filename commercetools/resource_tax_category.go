@@ -86,14 +86,10 @@ func resourceTaxCategoryRead(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	if taxCategory == nil {
-		d.SetId("")
-	} else {
-		d.Set("version", taxCategory.Version)
-		d.Set("key", taxCategory.Key)
-		d.Set("name", taxCategory.Name)
-		d.Set("description", taxCategory.Description)
-	}
+	d.Set("version", taxCategory.Version)
+	d.Set("key", taxCategory.Key)
+	d.Set("name", taxCategory.Name)
+	d.Set("description", taxCategory.Description)
 	return nil
 }
 

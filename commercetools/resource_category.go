@@ -248,36 +248,32 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	if category == nil {
-		d.SetId("")
+	d.Set("version", category.Version)
+	d.Set("key", category.Key)
+	d.Set("name", category.Name)
+	if category.Parent != nil {
+		d.Set("parent", category.Parent.ID)
 	} else {
-		d.Set("version", category.Version)
-		d.Set("key", category.Key)
-		d.Set("name", category.Name)
-		if category.Parent != nil {
-			d.Set("parent", category.Parent.ID)
-		} else {
-			d.Set("parent", "")
-		}
-		d.Set("order_hint", category.OrderHint)
-		d.Set("external_id", category.ExternalId)
-		if category.Description != nil {
-			d.Set("description", *category.Description)
-		}
-		if category.MetaTitle != nil {
-			d.Set("meta_title", *category.MetaTitle)
-		}
-		if category.MetaDescription != nil {
-			d.Set("meta_description", *category.MetaDescription)
-		}
-		if category.MetaKeywords != nil {
-			d.Set("meta_keywords", *category.MetaKeywords)
-		}
-		if category.Assets != nil {
-			d.Set("assets", flattenCategoryAssets(category.Assets))
-		}
-		d.Set("custom", flattenCustomFields(category.Custom))
+		d.Set("parent", "")
 	}
+	d.Set("order_hint", category.OrderHint)
+	d.Set("external_id", category.ExternalId)
+	if category.Description != nil {
+		d.Set("description", *category.Description)
+	}
+	if category.MetaTitle != nil {
+		d.Set("meta_title", *category.MetaTitle)
+	}
+	if category.MetaDescription != nil {
+		d.Set("meta_description", *category.MetaDescription)
+	}
+	if category.MetaKeywords != nil {
+		d.Set("meta_keywords", *category.MetaKeywords)
+	}
+	if category.Assets != nil {
+		d.Set("assets", flattenCategoryAssets(category.Assets))
+	}
+	d.Set("custom", flattenCustomFields(category.Custom))
 	return nil
 }
 

@@ -107,15 +107,11 @@ func resourceShippingZoneRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	if shippingZone == nil {
-		d.SetId("")
-	} else {
-		d.Set("version", shippingZone.Version)
-		d.Set("key", shippingZone.Key)
-		d.Set("name", shippingZone.Name)
-		d.Set("description", shippingZone.Description)
-		d.Set("location", flattenShippingZoneLocations(shippingZone.Locations))
-	}
+	d.Set("version", shippingZone.Version)
+	d.Set("key", shippingZone.Key)
+	d.Set("name", shippingZone.Name)
+	d.Set("description", shippingZone.Description)
+	d.Set("location", flattenShippingZoneLocations(shippingZone.Locations))
 	return nil
 }
 

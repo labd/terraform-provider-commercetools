@@ -364,16 +364,12 @@ func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.FromErr(err)
 	}
 
-	if subscription == nil {
-		d.SetId("")
-	} else {
-		d.Set("version", subscription.Version)
-		d.Set("key", subscription.Key)
-		d.Set("destination", flattenSubscriptionDestination(subscription.Destination, d))
-		d.Set("format", flattenSubscriptionFormat(subscription.Format))
-		d.Set("message", flattenSubscriptionMessages(subscription.Messages))
-		d.Set("changes", flattenSubscriptionChanges(subscription.Changes))
-	}
+	d.Set("version", subscription.Version)
+	d.Set("key", subscription.Key)
+	d.Set("destination", flattenSubscriptionDestination(subscription.Destination, d))
+	d.Set("format", flattenSubscriptionFormat(subscription.Format))
+	d.Set("message", flattenSubscriptionMessages(subscription.Messages))
+	d.Set("changes", flattenSubscriptionChanges(subscription.Changes))
 	return nil
 }
 
