@@ -1174,10 +1174,10 @@ func migrateProductTypeStateV0toV1(ctx context.Context, rawState map[string]inte
 													// "values" and "value" cannot co exist, so this needs an upgrade
 													value := make([]map[string]string, len(itemTypeElementTypeValues))
 													i := 0
-													for _, itemTypeElementTypeValue := range itemTypeElementTypeValues {
+													for k, v := range itemTypeElementTypeValues {
 														value[i] = map[string]string{
-															"key":   itemTypeElementTypeValue.(string),
-															"label": itemTypeElementTypeValue.(string),
+															"key":   k,
+															"label": v.(string),
 														}
 														i++
 													}
@@ -1194,10 +1194,10 @@ func migrateProductTypeStateV0toV1(ctx context.Context, rawState map[string]inte
 										// "values" and "value" cannot co exist, so this needs an upgrade
 										value := make([]map[string]string, len(itemTypeValues))
 										i := 0
-										for _, itemTypeValue := range itemTypeValues {
+										for k, v := range itemTypeValues {
 											value[i] = map[string]string{
-												"key":   itemTypeValue.(string),
-												"label": itemTypeValue.(string),
+												"key":   k,
+												"label": v.(string),
 											}
 											i++
 										}
