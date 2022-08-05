@@ -601,43 +601,41 @@ func flattenSubscriptionChanges(m []platform.ChangeSubscription) []map[string]in
 }
 
 func expandSubscriptionChanges(d *schema.ResourceData) []platform.ChangeSubscription {
-	var result []platform.ChangeSubscription
 	input := d.Get("changes").([]interface{})
-	if len(input) > 0 {
-		for _, raw := range input {
-			i := raw.(map[string]interface{})
-			rawTypeIds := expandStringArray(i["resource_type_ids"].([]interface{}))
+	if len(input) != 1 {
+		return make([]platform.ChangeSubscription, 0)
+	}
 
-			for _, item := range rawTypeIds {
-				result = append(result, platform.ChangeSubscription{
-					ResourceTypeId: item,
-				})
-			}
+	result := make([]platform.ChangeSubscription, len(input))
+	item := input[0].(map[string]any)
+
+	rawTypeIds := expandStringArray(item["resource_type_ids"].([]any))
+	for i, item := range rawTypeIds {
+		result[i] = platform.ChangeSubscription{ResourceTypeId: item}
+	}
+	return result
+}
+
+func flattenSubscriptionMessages(m []platform.MessageSubscription) []map[string]any {
+	result := make([]map[string]any, len(m))
+	for i, raw := range m {
+		result[i] = map[string]any{
+			"resource_type_id": raw.ResourceTypeId,
+			"types":            raw.Types,
 		}
 	}
 	return result
 }
 
-func flattenSubscriptionMessages(m []platform.MessageSubscription) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(m))
-	for _, raw := range m {
-		result = append(result, map[string]interface{}{
-			"resource_type_id": raw.ResourceTypeId,
-			"types":            raw.Types,
-		})
-	}
-	return result
-}
-
 func expandSubscriptionMessages(d *schema.ResourceData) []platform.MessageSubscription {
-	input := d.Get("message").([]interface{})
-	var messageObjects []platform.MessageSubscription
-	for _, raw := range input {
-		i := raw.(map[string]interface{})
-		messageObjects = append(messageObjects, platform.MessageSubscription{
-			ResourceTypeId: i["resource_type_id"].(string),
-			Types:          expandStringArray(i["types"].([]interface{})),
-		})
+	input := d.Get("message").([]any)
+	messageObjects := make([]platform.MessageSubscription, len(input))
+	for i, raw := range input {
+		msg := raw.(map[string]any)
+		messageObjects[i] = platform.MessageSubscription{
+			ResourceTypeId: msg["resource_type_id"].(string),
+			Types:          expandStringArray(msg["types"].([]any)),
+		}
 	}
 
 	return messageObjects

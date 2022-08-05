@@ -1,3 +1,8 @@
+v1.3.1 (unreleased)
+===================
+ - `resource_subscription`: Fix a bug where remove the `changes` or `messages`
+ from the resource was resulting in an invalid request. (#138)
+
 v1.3.0 (2022-08-03)
 ===================
   - **Backwards incompatible** Use a list type for enum values instead of a map
