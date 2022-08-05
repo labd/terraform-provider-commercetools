@@ -315,50 +315,51 @@ func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any)
 }
 
 func flattenProductTypeAttributeType(attrType platform.AttributeType, setsAllowed bool) ([]any, error) {
-	typeData := make(map[string]any)
+	result := make(map[string]any)
 
-	if _, ok := attrType.(platform.AttributeBooleanType); ok {
-		typeData["name"] = "boolean"
-	} else if _, ok := attrType.(platform.AttributeTextType); ok {
-		typeData["name"] = "text"
-	} else if _, ok := attrType.(platform.AttributeLocalizableTextType); ok {
-		typeData["name"] = "ltext"
-	} else if f, ok := attrType.(platform.AttributeEnumType); ok {
-		typeData["name"] = "enum"
-		typeData["value"] = flattenProductTypePlainEnum(f.Values)
-	} else if f, ok := attrType.(platform.AttributeLocalizedEnumType); ok {
-		typeData["name"] = "lenum"
-		typeData["localized_value"] = flattenProductTypeLocalizedEnum(f.Values)
-	} else if _, ok := attrType.(platform.AttributeNumberType); ok {
-		typeData["name"] = "number"
-	} else if _, ok := attrType.(platform.AttributeMoneyType); ok {
-		typeData["name"] = "money"
-	} else if _, ok := attrType.(platform.AttributeDateType); ok {
-		typeData["name"] = "date"
-	} else if _, ok := attrType.(platform.AttributeTimeType); ok {
-		typeData["name"] = "time"
-	} else if _, ok := attrType.(platform.AttributeDateTimeType); ok {
-		typeData["name"] = "datetime"
-	} else if f, ok := attrType.(platform.AttributeReferenceType); ok {
-		typeData["name"] = "reference"
-		typeData["reference_type_id"] = f.ReferenceTypeId
-	} else if f, ok := attrType.(platform.AttributeNestedType); ok {
-		typeData["name"] = "nested"
-		typeData["type_reference"] = f.TypeReference.ID
-	} else if f, ok := attrType.(platform.AttributeSetType); ok {
-		typeData["name"] = "set"
+	switch v := attrType.(type) {
+	case platform.AttributeBooleanType:
+		result["name"] = "boolean"
+	case platform.AttributeTextType:
+		result["name"] = "text"
+	case platform.AttributeLocalizableTextType:
+		result["name"] = "ltext"
+	case platform.AttributeEnumType:
+		result["name"] = "enum"
+		result["value"] = flattenProductTypePlainEnum(v.Values)
+	case platform.AttributeLocalizedEnumType:
+		result["name"] = "lenum"
+		result["localized_value"] = flattenProductTypeLocalizedEnum(v.Values)
+	case platform.AttributeNumberType:
+		result["name"] = "number"
+	case platform.AttributeMoneyType:
+		result["name"] = "money"
+	case platform.AttributeDateType:
+		result["name"] = "date"
+	case platform.AttributeTimeType:
+		result["name"] = "time"
+	case platform.AttributeDateTimeType:
+		result["name"] = "datetime"
+	case platform.AttributeReferenceType:
+		result["name"] = "reference"
+		result["reference_type_id"] = v.ReferenceTypeId
+	case platform.AttributeNestedType:
+		result["name"] = "nested"
+		result["type_reference"] = v.TypeReference.ID
+	case platform.AttributeSetType:
+		result["name"] = "set"
 		if setsAllowed {
-			elemType, err := flattenProductTypeAttributeType(f.ElementType, false)
+			elemType, err := flattenProductTypeAttributeType(v.ElementType, false)
 			if err != nil {
 				return nil, err
 			}
-			typeData["element_type"] = elemType
+			result["element_type"] = elemType
 		}
-	} else {
+	default:
 		return nil, fmt.Errorf("unknown resource Type %T", attrType)
 	}
 
-	return []any{typeData}, nil
+	return []any{result}, nil
 }
 
 func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
