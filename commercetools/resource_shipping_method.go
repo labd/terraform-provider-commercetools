@@ -140,6 +140,9 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
+
+	// Fetch the latest version. The version can be changed outside this resource
+	// when a shipping methode rate is added.
 	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
 		return diag.FromErr(err)

@@ -99,6 +99,9 @@ func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m an
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
+
+	// Fetch the latest version. The version can be changed outside this resource
+	// when a tax category rate is added.
 	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
 		// Workaround invalid state to be written, see

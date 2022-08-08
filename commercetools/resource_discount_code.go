@@ -175,13 +175,9 @@ func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m any
 
 func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	input := platform.DiscountCodeUpdate{
-		Version: discountCode.Version,
+		Version: d.Get("version").(int),
 		Actions: []platform.DiscountCodeUpdateAction{},
 	}
 
@@ -289,8 +285,8 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m a
 		}
 	}
 
-	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
-		_, err := client.DiscountCodes().WithId(discountCode.ID).Post(input).Execute(ctx)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.DiscountCodes().WithId(d.Id()).Post(input).Execute(ctx)
 		return processRemoteError(err)
 	})
 	if err != nil {

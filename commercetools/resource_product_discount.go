@@ -211,13 +211,9 @@ func resourceProductDiscountRead(ctx context.Context, d *schema.ResourceData, m 
 
 func resourceProductDiscountUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	productDiscount, err := client.ProductDiscounts().WithId(d.Id()).Get().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	input := platform.ProductDiscountUpdate{
-		Version: productDiscount.Version,
+		Version: d.Get("version").(int),
 		Actions: []platform.ProductDiscountUpdateAction{},
 	}
 
@@ -305,7 +301,7 @@ func resourceProductDiscountUpdate(ctx context.Context, d *schema.ResourceData, 
 		}
 	}
 
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.ProductDiscounts().WithId(d.Id()).Post(input).Execute(ctx)
 		return processRemoteError(err)
 	})
