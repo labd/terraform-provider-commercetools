@@ -324,13 +324,9 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m any
 
 func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	input := platform.CartDiscountUpdate{
-		Version: cartDiscount.Version,
+		Version: d.Get("version").(int),
 		Actions: []platform.CartDiscountUpdateAction{},
 	}
 
@@ -450,7 +446,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m a
 			&platform.CartDiscountChangeStackingModeAction{StackingMode: newStackingMode})
 	}
 
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.CartDiscounts().WithId(d.Id()).Post(input).Execute(ctx)
 		return processRemoteError(err)
 	})

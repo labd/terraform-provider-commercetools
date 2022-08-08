@@ -279,13 +279,9 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m any) di
 
 func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	category, err := client.Categories().WithId(d.Id()).Get().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	input := platform.CategoryUpdate{
-		Version: category.Version,
+		Version: d.Get("version").(int),
 		Actions: []platform.CategoryUpdateAction{},
 	}
 
@@ -398,7 +394,7 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m any) 
 		}
 	}
 
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.Categories().WithId(d.Id()).Post(input).Execute(ctx)
 		return processRemoteError(err)
 	})

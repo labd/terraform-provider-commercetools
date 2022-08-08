@@ -101,13 +101,9 @@ func resourceCustomerGroupRead(ctx context.Context, d *schema.ResourceData, m an
 
 func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	customerGroup, err := client.CustomerGroups().WithId(d.Id()).Get().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	input := platform.CustomerGroupUpdate{
-		Version: customerGroup.Version,
+		Version: d.Get("version").(int),
 		Actions: []platform.CustomerGroupUpdateAction{},
 	}
 
@@ -135,7 +131,7 @@ func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 		}
 	}
 
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.CustomerGroups().WithId(d.Id()).Post(input).Execute(ctx)
 		return processRemoteError(err)
 	})
