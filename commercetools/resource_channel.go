@@ -82,19 +82,28 @@ func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m any) d
 		roles = append(roles, platform.ChannelRoleEnum(value))
 	}
 
+	client := getClient(m)
+
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
+
 	draft := platform.ChannelDraft{
 		Key:         d.Get("key").(string),
 		Roles:       roles,
 		Name:        &name,
 		Description: &description,
 		Address:     CreateAddressFieldDraft(d),
-		Custom:      CreateCustomFieldDraft(d),
+		Custom:      custom,
 		GeoLocation: expandGeoLocation(d),
 	}
 
-	client := getClient(m)
 	var channel *platform.Channel
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
 		channel, err = client.Channels().Post(draft).Execute(ctx)
@@ -191,7 +200,7 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m any) d
 	}
 
 	if d.HasChange("custom") {
-		actions, err := CustomFieldUpdateActions[platform.ChannelSetCustomTypeAction, platform.ChannelSetCustomFieldAction](d)
+		actions, err := CustomFieldUpdateActions[platform.ChannelSetCustomTypeAction, platform.ChannelSetCustomFieldAction](ctx, client, d)
 		if err != nil {
 			return diag.FromErr(err)
 		}

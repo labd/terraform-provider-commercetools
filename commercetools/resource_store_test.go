@@ -183,14 +183,14 @@ func TestAccStore_CustomField(t *testing.T) {
 
 func testAccStoreConfig(id, name, key string) string {
 	return hclTemplate(`
-		resource "commercetools_store" "{{ .id }}" {
-			key = "{{ .key }}"
-			name = {
-				en = "{{ .name }}"
-				nl = "{{ .name }}"
-			}
-		}
-	`,
+        resource "commercetools_store" "{{ .id }}" {
+            key = "{{ .key }}"
+            name = {
+                en = "{{ .name }}"
+                nl = "{{ .name }}"
+            }
+        }
+    `,
 		map[string]any{
 			"id":   id,
 			"name": name,
@@ -200,15 +200,15 @@ func testAccStoreConfig(id, name, key string) string {
 
 func testAccStoreConfigWithLanguages(id, name, key string, languages []string) string {
 	return hclTemplate(`
-		resource "commercetools_store" "{{ .id }}" {
-			key = "{{ .key }}"
-			name = {
-				en = "{{ .name }}"
-				nl = "{{ .name }}"
-			}
-			languages = {{ .languages | printf "%q" }}
-		}
-	`, map[string]any{
+        resource "commercetools_store" "{{ .id }}" {
+            key = "{{ .key }}"
+            name = {
+                en = "{{ .name }}"
+                nl = "{{ .name }}"
+            }
+            languages = {{ .languages | printf "%q" }}
+        }
+    `, map[string]any{
 		"id":        id,
 		"name":      name,
 		"key":       key,
@@ -218,21 +218,21 @@ func testAccStoreConfigWithLanguages(id, name, key string, languages []string) s
 
 func testAccStoreConfigWithChannels(id, name, key string, languages []string) string {
 	return hclTemplate(`
-		resource "commercetools_channel" "{{ .id }}_channel" {
-			key = "TEST"
-			roles = ["ProductDistribution"]
-		}
+        resource "commercetools_channel" "{{ .id }}_channel" {
+            key = "TEST"
+            roles = ["ProductDistribution"]
+        }
 
-		resource "commercetools_store" "{{ .id }}" {
-			key = "{{ .key }}"
-			name = {
-				en = "{{ .name }}"
-				nl = "{{ .name }}"
-			}
-			languages = {{ .languages | printf "%q" }}
-			distribution_channels = [commercetools_channel.{{ .id }}_channel.key]
-		}
-	`, map[string]any{
+        resource "commercetools_store" "{{ .id }}" {
+            key = "{{ .key }}"
+            name = {
+                en = "{{ .name }}"
+                nl = "{{ .name }}"
+            }
+            languages = {{ .languages | printf "%q" }}
+            distribution_channels = [commercetools_channel.{{ .id }}_channel.key]
+        }
+    `, map[string]any{
 		"id":        id,
 		"name":      name,
 		"key":       key,
@@ -242,15 +242,15 @@ func testAccStoreConfigWithChannels(id, name, key string, languages []string) st
 
 func testAccStoreConfigWithoutChannels(id, name, key string, languages []string) string {
 	return hclTemplate(`
-		resource "commercetools_store" "{{ .id }}" {
-			name = {
-				en = "{{ .name }}"
-				nl = "{{ .name }}"
-			}
-			key = "{{ .key }}"
-			languages = {{ .languages | printf "%q" }}
-		}
-	`, map[string]any{
+        resource "commercetools_store" "{{ .id }}" {
+            name = {
+                en = "{{ .name }}"
+                nl = "{{ .name }}"
+            }
+            key = "{{ .key }}"
+            languages = {{ .languages | printf "%q" }}
+        }
+    `, map[string]any{
 		"id":        id,
 		"key":       key,
 		"name":      name,
@@ -259,49 +259,83 @@ func testAccStoreConfigWithoutChannels(id, name, key string, languages []string)
 
 func testAccStoreConfigWithCustomField(id, name, key string, languages []string) string {
 	return hclTemplate(`
-		resource "commercetools_type" "{{ .id }}_type" {
-			key = "test-for-store"
-			name = {
-				en = "for Store"
-			}
-			description = {
-				en = "Custom Field for store resource"
-			}
+        resource "commercetools_type" "{{ .id }}_type" {
+            key = "test-for-store"
+            name = {
+                en = "for Store"
+            }
+            description = {
+                en = "Custom Field for store resource"
+            }
 
-			resource_type_ids = ["store"]
+            resource_type_ids = ["store"]
 
-			field {
-				name = "my-field"
-				label = {
-					en = "My Custom field"
-				}
-				type {
-					name = "String"
-				}
-			}
-		}
+            field {
+                name = "my-field"
+                label = {
+                    en = "My Custom field"
+                }
+                type {
+                    name = "String"
+                }
+            }
 
-		resource "commercetools_channel" "{{ .id }}_channel" {
-			key = "TEST"
-			roles = ["ProductDistribution"]
-		}
+            field {
+                name = "localized_string"
+                label = {
+                    en = "localized string value"
+                }
+                type {
+                    name = "LocalizedString"
+                }
+            }
+            field {
+                name = "boolean"
+                label = {
+                    en = "boolean value"
+                }
+                type {
+                    name = "Boolean"
+                }
+            }
 
-		resource "commercetools_store" "{{ .id }}" {
-			key = "{{ .key }}"
-			name = {
-				en = "{{ .name }}"
-				nl = "{{ .name }}"
-			}
-			languages = {{ .languages | printf "%q" }}
-			distribution_channels = [commercetools_channel.{{ .id }}_channel.key]
-			custom {
-				type_id = commercetools_type.{{ .id }}_type.id
-				fields = {
-					"my-field" = "foobar"
-				}
-			}
-		}
-	`, map[string]any{
+            field {
+                name = "number"
+                label = {
+                    en = "number value"
+                }
+                type {
+                    name = "Number"
+                }
+            }
+        }
+
+        resource "commercetools_channel" "{{ .id }}_channel" {
+            key = "TEST"
+            roles = ["ProductDistribution"]
+        }
+
+        resource "commercetools_store" "{{ .id }}" {
+            key = "{{ .key }}"
+            name = {
+                en = "{{ .name }}"
+                nl = "{{ .name }}"
+            }
+            languages = {{ .languages | printf "%q" }}
+            distribution_channels = [commercetools_channel.{{ .id }}_channel.key]
+            custom {
+                type_id = commercetools_type.{{ .id }}_type.id
+                fields = {
+                    "my-field" = "foobar"
+                    boolean = false
+                    number  = 10
+                    localized_string = jsonencode({
+                        "en-US" : "boo!"
+                    })
+                }
+            }
+        }
+    `, map[string]any{
 		"id":        id,
 		"key":       key,
 		"name":      name,

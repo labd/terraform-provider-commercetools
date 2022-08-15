@@ -174,11 +174,19 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m any) 
 	slug := expandLocalizedString(d.Get("slug"))
 	key := stringRef(d.Get("key"))
 
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
+
 	draft := platform.CategoryDraft{
 		Name:      name,
 		Slug:      slug,
 		OrderHint: stringRef(d.Get("order_hint")),
-		Custom:    CreateCustomFieldDraft(d),
+		Custom:    custom,
 	}
 
 	if *key != "" {
@@ -221,7 +229,7 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m any) 
 	}
 
 	var category *platform.Category
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 		category, err = client.Categories().Post(draft).Execute(ctx)
 		return processRemoteError(err)
@@ -385,7 +393,7 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m any) 
 	}
 
 	if d.HasChange("custom") {
-		actions, err := CustomFieldUpdateActions[platform.CategorySetCustomTypeAction, platform.CategorySetCustomFieldAction](d)
+		actions, err := CustomFieldUpdateActions[platform.CategorySetCustomTypeAction, platform.CategorySetCustomFieldAction](ctx, client, d)
 		if err != nil {
 			return diag.FromErr(err)
 		}

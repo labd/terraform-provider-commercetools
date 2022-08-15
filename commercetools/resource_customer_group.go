@@ -45,9 +45,17 @@ func resourceCustomerGroup() *schema.Resource {
 func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
+
 	draft := platform.CustomerGroupDraft{
 		GroupName: d.Get("name").(string),
-		Custom:    CreateCustomFieldDraft(d),
+		Custom:    custom,
 	}
 
 	key := stringRef(d.Get("key"))
@@ -56,7 +64,7 @@ func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	var customerGroup *platform.CustomerGroup
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 		customerGroup, err = client.CustomerGroups().Post(draft).Execute(ctx)
 		return processRemoteError(err)
@@ -122,7 +130,7 @@ func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	if d.HasChange("custom") {
-		actions, err := CustomFieldUpdateActions[platform.CustomerGroupSetCustomTypeAction, platform.CustomerGroupSetCustomFieldAction](d)
+		actions, err := CustomFieldUpdateActions[platform.CustomerGroupSetCustomTypeAction, platform.CustomerGroupSetCustomFieldAction](ctx, client, d)
 		if err != nil {
 			return diag.FromErr(err)
 		}

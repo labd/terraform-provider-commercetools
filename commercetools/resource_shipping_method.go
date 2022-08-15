@@ -75,6 +75,14 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 
 	localizedDescription := expandLocalizedString(d.Get("localized_description"))
 
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
+
 	draft := platform.ShippingMethodDraft{
 		Name:                 d.Get("name").(string),
 		Description:          stringRef(d.Get("description")),
@@ -82,7 +90,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		IsDefault:            d.Get("is_default").(bool),
 		TaxCategory:          taxCategory,
 		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
-		Custom:               CreateCustomFieldDraft(d),
+		Custom:               custom,
 	}
 
 	key := stringRef(d.Get("key"))
@@ -91,7 +99,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	var shippingMethod *platform.ShippingMethod
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 		shippingMethod, err = client.ShippingMethods().Post(draft).Execute(ctx)
 		return processRemoteError(err)
@@ -203,7 +211,7 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	if d.HasChange("custom") {
-		actions, err := CustomFieldUpdateActions[platform.ShippingMethodSetCustomTypeAction, platform.ShippingMethodSetCustomFieldAction](d)
+		actions, err := CustomFieldUpdateActions[platform.ShippingMethodSetCustomTypeAction, platform.ShippingMethodSetCustomFieldAction](ctx, client, d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
