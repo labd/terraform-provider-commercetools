@@ -65,9 +65,19 @@ func resourceStore() *schema.Resource {
 }
 
 func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	client := getClient(m)
+
 	name := expandLocalizedString(d.Get("name"))
 	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
 	scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
+
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
 
 	draft := platform.StoreDraft{
 		Key:                  d.Get("key").(string),
@@ -75,14 +85,11 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 		Languages:            expandStringArray(d.Get("languages").([]any)),
 		DistributionChannels: dcIdentifiers,
 		SupplyChannels:       scIdentifiers,
-		Custom:               CreateCustomFieldDraft(d),
+		Custom:               custom,
 	}
 
-	client := getClient(m)
-
 	var store *platform.Store
-
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 		store, err = client.Stores().Post(draft).Execute(ctx)
 		return processRemoteError(err)
@@ -192,7 +199,8 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 	}
 
 	if d.HasChange("custom") {
-		actions, err := CustomFieldUpdateActions[platform.StoreSetCustomTypeAction, platform.StoreSetCustomFieldAction](d)
+
+		actions, err := CustomFieldUpdateActions[platform.StoreSetCustomTypeAction, platform.StoreSetCustomFieldAction](ctx, client, d)
 		if err != nil {
 			// Workaround invalid state to be written, see
 			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476

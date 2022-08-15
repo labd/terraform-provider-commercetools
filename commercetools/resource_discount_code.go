@@ -101,6 +101,14 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m a
 	name := expandLocalizedString(d.Get("name"))
 	description := expandLocalizedString(d.Get("description"))
 
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
+
 	draft := platform.DiscountCodeDraft{
 		Name:                       &name,
 		Description:                &description,
@@ -111,7 +119,7 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m a
 		MaxApplications:            intRef(d.Get("max_applications")),
 		Groups:                     expandDiscountCodeGroups(d),
 		CartDiscounts:              expandDiscountCodeCartDiscounts(d),
-		Custom:                     CreateCustomFieldDraft(d),
+		Custom:                     custom,
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
@@ -130,7 +138,7 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	var discountCode *platform.DiscountCode
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 		discountCode, err = client.DiscountCodes().Post(draft).Execute(ctx)
 		return processRemoteError(err)
@@ -276,7 +284,7 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	if d.HasChange("custom") {
-		actions, err := CustomFieldUpdateActions[platform.DiscountCodeSetCustomTypeAction, platform.DiscountCodeSetCustomFieldAction](d)
+		actions, err := CustomFieldUpdateActions[platform.DiscountCodeSetCustomTypeAction, platform.DiscountCodeSetCustomFieldAction](ctx, client, d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
