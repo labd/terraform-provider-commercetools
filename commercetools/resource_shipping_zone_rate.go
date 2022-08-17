@@ -503,6 +503,50 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 		return err
 	}
 
+	if len(shippingRate.Tiers) != 0 {
+		tiers := []any{}
+
+		for _, v := range shippingRate.Tiers {
+			switch shippingRateTier := v.(type) {
+			case platform.CartClassificationTier:
+				tiers = append(tiers, map[string]any{
+					"type":  string(platform.ShippingRateTierTypeCartClassification),
+					"value": shippingRateTier.Value,
+					"price": []any{
+						map[string]any{
+							"currency_code": shippingRateTier.Price.CurrencyCode,
+							"cent_amount":   shippingRateTier.Price.CentAmount,
+						},
+					},
+				})
+			case platform.CartScoreTier:
+				tiers = append(tiers, map[string]any{
+					"type":  string(platform.ShippingRateTierTypeCartScore),
+					"score": shippingRateTier.Score,
+					"price": []any{
+						map[string]any{
+							"currency_code": shippingRateTier.Price.CurrencyCode,
+							"cent_amount":   shippingRateTier.Price.CentAmount,
+						},
+					},
+				})
+			case platform.CartValueTier:
+				tiers = append(tiers, map[string]any{
+					"type":                string(platform.ShippingRateTierTypeCartValue),
+					"minimum_cent_amount": shippingRateTier.MinimumCentAmount,
+					"price": []any{
+						map[string]any{
+							"currency_code": shippingRateTier.Price.CurrencyCode,
+							"cent_amount":   shippingRateTier.Price.CentAmount,
+						},
+					},
+				})
+			}
+		}
+
+		d.Set("shipping_rate_price_tier", tiers)
+	}
+
 	if typedPrice, ok := shippingRate.Price.(platform.CentPrecisionMoney); ok {
 		price := map[string]any{
 			"currency_code": string(typedPrice.CurrencyCode),
