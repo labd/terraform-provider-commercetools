@@ -1,7 +1,16 @@
-v1.3.1 (unreleased)
+v1.4.0 (2022-08-18)
 ===================
+ - `resource_product_discount` new resource to manage product discounts (#266)
  - `resource_subscription`: Fix a bug where remove the `changes` or `messages`
- from the resource was resulting in an invalid request. (#138)
+   from the resource was resulting in an invalid request. (#138)
+ - `resource_shipping_zone_rate` Fix persisting the shipping rate tiers in the
+   terraform state (#184)
+ - `resource_api_extension` Fix handling of retrieving secrets from
+   commercetools (#284)
+ - `resource_subscription` Fix handling changes in both `changes` and `messages`
+   attributes (#138)
+ - Fix setting custom fields on the various resources when the type is not a
+   string (#289)
 
 v1.3.0 (2022-08-03)
 ===================
