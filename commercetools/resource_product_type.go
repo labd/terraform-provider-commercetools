@@ -305,11 +305,12 @@ func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any)
 		d.Set("name", ctType.Name)
 		d.Set("description", ctType.Description)
 
-		if attrs, err := flattenProductTypeAttributes(ctType); err != nil {
-			d.Set("attribute", attrs)
-		} else {
+		attrs, err := flattenProductTypeAttributes(ctType)
+		if err != nil {
 			return diag.FromErr(err)
 		}
+
+		d.Set("attribute", attrs)
 	}
 	return nil
 }
