@@ -16,8 +16,6 @@ func TestAccState_createAndUpdateWithID(t *testing.T) {
 
 	newName := "new test state name"
 
-	transition := "state-b"
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -35,30 +33,6 @@ func TestAccState_createAndUpdateWithID(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name.en", newName),
 					resource.TestCheckResourceAttr(resourceName, "key", key),
-				),
-			},
-			{
-				Config: testAccTransitionConfig(t, transition),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_state.acctest-t1", "transitions.#", "1",
-					),
-				),
-			},
-			{
-				Config: testAccTransitionsConfig(t, "null"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckNoResourceAttr(
-						"commercetools_state.acctest-transitions", "transitions",
-					),
-				),
-			},
-			{
-				Config: testAccTransitionsConfig(t, "[]"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_state.acctest-transitions", "transitions.#", "0",
-					),
 				),
 			},
 		},
@@ -84,46 +58,6 @@ func testAccStateConfig(t *testing.T, name string, key string, addRole bool) str
 			"key":     key,
 			"name":    name,
 			"addRole": addRole,
-		})
-}
-
-func testAccTransitionConfig(t *testing.T, transitionKey string) string {
-	return hclTemplate(`
-		resource "commercetools_state" "acctest-t1" {
-			depends_on = [commercetools_state.acctest_t2]
-			key = "state-a"
-			type = "ReviewState"
-			name = {
-				en = "State #1"
-			}
-			transitions = [commercetools_state.acctest_t2.id]
-		}
-
-		resource "commercetools_state" "acctest_t2" {
-			key = "{{ .transitionKey }}"
-			type = "ReviewState"
-			name = {
-				en = "State #2"
-			}
-			transitions = []
-		}
-	`, map[string]any{
-		"transitionKey": transitionKey,
-	})
-}
-
-func testAccTransitionsConfig(t *testing.T, transitions string) string {
-	return hclTemplate(`
-		resource "commercetools_state" "acctest-transitions" {
-			key = "state-c"
-			type = "ReviewState"
-			name = {
-				en = "State C"
-			}
-			transitions = {{ .transitions }}
-		}`,
-		map[string]any{
-			"transitions": transitions,
 		})
 }
 
