@@ -76,19 +76,6 @@ func resourceState() *schema.Resource {
 					}, false),
 				},
 			},
-			"transitions": {
-				Description: "Transitions are a way to describe possible transformations of the current state to other " +
-					"states of the same type (for example: Initial -> Shipped). When performing a transitionState update " +
-					"action and transitions is set, the currently referenced state must have a transition to the new state.\n" +
-					"If transitions is an empty list, it means the current state is a final state and no further " +
-					"transitions are allowed.\nIf transitions is not set, the validation is turned off. When " +
-					"performing a transitionState update action, any other state of the same type can be transitioned to",
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
 		},
 	}
 }
@@ -102,20 +89,12 @@ func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 		roles = append(roles, platform.StateRoleEnum(value))
 	}
 
-	var transitions []platform.StateResourceIdentifier
-	for _, value := range d.Get("transitions").(*schema.Set).List() {
-		transitions = append(transitions, platform.StateResourceIdentifier{
-			ID: stringRef(value),
-		})
-	}
-
 	draft := platform.StateDraft{
 		Key:         d.Get("key").(string),
 		Type:        platform.StateTypeEnum(d.Get("type").(string)),
 		Name:        &name,
 		Description: &description,
 		Roles:       roles,
-		Transitions: transitions,
 	}
 
 	// Note the use of GetOk since it's an optional bool type
@@ -165,9 +144,6 @@ func resourceStateRead(ctx context.Context, d *schema.ResourceData, m any) diag.
 	d.Set("initial", state.Initial)
 	if state.Roles != nil {
 		d.Set("roles", state.Roles)
-	}
-	if state.Transitions != nil {
-		d.Set("transitions", flattenStateTransitions(state.Transitions))
 	}
 	return nil
 }
@@ -225,20 +201,6 @@ func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 			&platform.StateSetRolesAction{Roles: roles})
 	}
 
-	if d.HasChange("transitions") {
-		var transitions []platform.StateResourceIdentifier
-		for _, value := range d.Get("transitions").(*schema.Set).List() {
-			transitions = append(transitions, platform.StateResourceIdentifier{
-				ID: stringRef(value),
-			})
-		}
-		input.Actions = append(
-			input.Actions,
-			&platform.StateSetTransitionsAction{
-				Transitions: transitions,
-			})
-	}
-
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.States().WithId(d.Id()).Post(input).Execute(ctx)
 		return processRemoteError(err)
@@ -261,12 +223,4 @@ func resourceStateDelete(ctx context.Context, d *schema.ResourceData, m any) dia
 		return processRemoteError(err)
 	})
 	return diag.FromErr(err)
-}
-
-func flattenStateTransitions(values []platform.StateReference) []string {
-	result := make([]string, len(values))
-	for i := range values {
-		result[i] = values[i].ID
-	}
-	return result
 }

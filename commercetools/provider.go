@@ -79,6 +79,7 @@ func New(version string) func() *schema.Provider {
 				"commercetools_shipping_zone_rate": resourceShippingZoneRate(),
 				"commercetools_shipping_zone":      resourceShippingZone(),
 				"commercetools_state":              resourceState(),
+				"commercetools_state_transitions":  resourceStateTransitions(),
 				"commercetools_store":              resourceStore(),
 				"commercetools_subscription":       resourceSubscription(),
 				"commercetools_tax_category_rate":  resourceTaxCategoryRate(),

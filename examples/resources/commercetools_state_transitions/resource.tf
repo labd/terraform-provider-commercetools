@@ -1,15 +1,3 @@
-resource "commercetools_state" "review_unreviewed" {
-  key  = "review-unreviewed"
-  type = "ReviewState"
-  name = {
-    en = "Unreviewed"
-  }
-  description = {
-    en = "Not reviewed yet"
-  }
-  initial = true
-  roles   = ["ReviewIncludedInStatistics"]
-}
 
 resource "commercetools_state" "product_for_sale" {
   key  = "product-for-sale"
@@ -32,4 +20,19 @@ resource "commercetools_state" "product_clearance" {
   description = {
     en = "The product line will not be ordered again."
   }
+}
+
+
+// Only allow transition from sale to clearance
+resource "commercetools_state_transitions" "transition_1" {
+  from = commercetools_state.product_for_sale.id
+  to = [
+    commercetools_state.product_clearance.id,
+  ]
+}
+
+// Disable transitions from product clearance to other
+resource "commercetools_state_transitions" "transition_2" {
+  from = commercetools_state.product_clearance.id
+  to   = []
 }
