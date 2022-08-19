@@ -1,3 +1,7 @@
+v1.4.1 (2022-08-19)
+===================
+ - `resource_product_type` fix parsing the enums from the state file (#294)
+
 v1.4.0 (2022-08-18)
 ===================
  - `resource_product_discount` new resource to manage product discounts (#266)
