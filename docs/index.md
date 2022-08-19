@@ -3,7 +3,7 @@ page_title: "commercetools provider"
 subcategory: ""
 description: |-
   The commercetools provider provides resources to interact with the commercetools API
-  
+
 ---
 
 # commercetools provider
@@ -14,8 +14,9 @@ able to offer support. Please contact us at
 [opensource@labdigital.nl](opensource@labdigital.nl)!
 
 ## Installation
-Terraform 0.13 added support for automatically downloading providers from
-the terraform registry. Add the following to your terraform project
+Terraform automatically downloads providers from the terraform registry. Add the
+following to your terraform project
+
 
 ```hcl
 terraform {
@@ -78,8 +79,9 @@ docker build . -t terraform-with-provider-commercetools:latest
 ```
 Then you can run a terraform command on files in the current directory with:
 ```sh
-docker run -v${pwd}:/config terraform-with-provider-commercetools:latest <CMD>
+docker run -v "${pwd}:/config" terraform-with-provider-commercetools:latest <CMD>
 ```
+
 ## Authors
 This project is developed by [Lab Digital](https://www.labdigital.nl). We
 welcome additional contributors. Please see our

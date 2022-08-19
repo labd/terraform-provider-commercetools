@@ -123,7 +123,7 @@ resource "commercetools_product_type" "my-product-type" {
     type {
       name = "set"
       element_type {
-        type = "lenum"
+        name = "lenum"
         localized_value {
           key = "NL"
           label = {
