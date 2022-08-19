@@ -2,6 +2,7 @@ module github.com/labd/terraform-provider-commercetools
 
 require (
 	github.com/elliotchance/orderedmap/v2 v2.0.1
+	github.com/elliotchance/pie/v2 v2.0.1
 	github.com/hashicorp/terraform-plugin-docs v0.10.1
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.16.0
 	github.com/labd/commercetools-go-sdk v1.1.0
@@ -19,7 +20,6 @@ require (
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/elliotchance/pie/v2 v2.0.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
