@@ -1,6 +1,6 @@
 resource "commercetools_subscription" "my-sqs-subscription" {
   key = "my-sqs-subscription-key"
-  destination = {
+  destination {
     type          = "SQS"
     queue_url     = aws_sqs_queue.your-queue.id
     access_key    = aws_iam_access_key.ct.id
