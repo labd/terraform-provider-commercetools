@@ -20,16 +20,16 @@ able to offer support. Please contact us at opensource@labdigital.nl
 and check out the [examples](https://registry.terraform.io/providers/labd/commercetools/latest/docs/guides/examples).
 
 
-## Terraform registry
+## Usage
 
-Terraform 0.13 added support for automatically downloading providers from
-the terraform registry. Add the following to your terraform project
+The provider is distributed via the Terraform registry. To use it you need to configure the [`required_provider`](https://www.terraform.io/language/providers/requirements#requiring-providers) block. For example:
 
 ```hcl
 terraform {
   required_providers {
     commercetools = {
       source = "labd/commercetools"
+      version = "~> 1.0.0"
     }
   }
 }
