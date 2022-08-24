@@ -1,3 +1,8 @@
+v1.4.2 (2022-08-24)
+===================
+ - Fix setting custom field values on supported resources when the fiedl type
+   is a set (#299)
+
 v1.4.1 (2022-08-19)
 ===================
  - `resource_product_type` fix parsing the enums from the state file (#294)
