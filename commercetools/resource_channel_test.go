@@ -138,6 +138,7 @@ func TestAccChannel_CustomField(t *testing.T) {
 						assert.NotNil(t, result.Custom)
 						assert.NotNil(t, result.Custom.Fields)
 						assert.EqualValues(t, result.Custom.Fields["my-field"], "foobar")
+						assert.EqualValues(t, result.Custom.Fields["my-enum-set"], []any{"ENUM-1", "ENUM-3"})
 						return nil
 					},
 				),
@@ -220,6 +221,32 @@ func testAccNewChannelConfigWithCustomField() string {
 					name = "String"
 				}
 			}
+
+			field {
+				name = "my-enum-set"
+				label = {
+					en = "My Set of enums"
+
+				}
+				type {
+					name = "Set"
+					element_type {
+						name = "Enum"
+						value {
+							key   = "ENUM-1"
+							label = "ENUM 1"
+						}
+						value {
+							key   = "ENUM-2"
+							label = "ENUM 2"
+						}
+						value {
+							key   = "ENUM_3"
+							label = "ENUM 3"
+						}
+					}
+				}
+			}
 		}
 
 		resource "commercetools_channel" "test" {
@@ -229,6 +256,7 @@ func testAccNewChannelConfigWithCustomField() string {
 				type_id = commercetools_type.test.id
 				fields = {
 					"my-field" = "foobar"
+					"my-enum-set" = jsonencode(["ENUM-1", "ENUM-3"])
 				}
 			}
 		}

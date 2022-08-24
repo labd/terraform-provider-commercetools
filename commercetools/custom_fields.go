@@ -72,7 +72,7 @@ func CustomFieldCreateFieldContainer(data map[string]any) *platform.FieldContain
 	return nil
 }
 
-func customFieldEncodeValue(t *platform.Type, name string, value any) (any, error) {
+func customFieldEncodeType(t *platform.Type, name string, value any) (any, error) {
 	// Sub-optimal to do this everytime, however performance is not that
 	// important here and impact is neglible
 	fieldTypes := map[string]platform.FieldType{}
@@ -84,14 +84,18 @@ func customFieldEncodeValue(t *platform.Type, name string, value any) (any, erro
 	if !ok {
 		return nil, fmt.Errorf("no field '%s' defined in type %s (%s)", name, t.Key, t.ID)
 	}
+	return customFieldEncodeValue(fieldType, name, value)
+}
 
-	switch fieldType.(type) {
+func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, error) {
+	switch v := t.(type) {
 	case platform.CustomFieldLocalizedStringType:
 		result := platform.LocalizedString{}
 		if err := json.Unmarshal([]byte(value.(string)), &result); err != nil {
 			return nil, fmt.Errorf("value for field '%s' is not a valid LocalizedString value: '%v'", name, value)
 		}
 		return result, nil
+
 	case platform.CustomFieldBooleanType:
 		if value == "true" {
 			return true, nil
@@ -100,12 +104,30 @@ func customFieldEncodeValue(t *platform.Type, name string, value any) (any, erro
 			return false, nil
 		}
 		return nil, fmt.Errorf("unrecognized boolean value")
+
 	case platform.CustomFieldNumberType:
 		result, err := strconv.ParseInt(value.(string), 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("value for field '%s' is not a valid Number value: '%v'", name, value)
 		}
 		return result, nil
+
+	case platform.CustomFieldSetType:
+		var values []any
+		if err := json.Unmarshal([]byte(value.(string)), &values); err != nil {
+			return nil, fmt.Errorf("value for field '%s' needs to be an array: '%v'", name, value)
+		}
+
+		result := make([]any, len(values))
+		for i := range values {
+			itemValue, err := customFieldEncodeValue(v.ElementType, name, values[i])
+			if err != nil {
+				return nil, err
+			}
+			result[i] = itemValue
+		}
+		return result, nil
+
 	default:
 		return value, nil
 	}
@@ -129,7 +151,7 @@ func CreateCustomFieldDraftRaw(data map[string]any, t *platform.Type) (*platform
 	if raw, ok := data["fields"].(map[string]any); ok {
 		container := platform.FieldContainer{}
 		for key, value := range raw {
-			enc, err := customFieldEncodeValue(t, key, value)
+			enc, err := customFieldEncodeType(t, key, value)
 			if err != nil {
 				return nil, err
 			}
@@ -231,7 +253,7 @@ func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](ctx
 
 	result := []any{}
 	for key := range changes {
-		val, err := customFieldEncodeValue(t, key, changes[key])
+		val, err := customFieldEncodeType(t, key, changes[key])
 		if err != nil {
 			return nil, err
 		}
