@@ -29,7 +29,9 @@ terraform {
   required_providers {
     commercetools = {
       source = "labd/commercetools"
-      version = "~> 1.0.0"
+      
+      # It's recommended to pin the version, e.g.:
+      # version = "~> 1.4.0"
     }
   }
 }
