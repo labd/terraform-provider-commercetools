@@ -33,7 +33,7 @@ jobs:
         install-go: false
         cache-key: ${{ matrix.go-version }}
     - name: Run tests
-      run: go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./commercetools -v ./commercetools
+      run: go test -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./commercetools -v ./commercetools
       env:
         TF_ACC: 1
         CTP_CLIENT_ID: unittest
