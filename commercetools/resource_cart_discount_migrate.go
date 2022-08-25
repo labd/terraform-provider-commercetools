@@ -38,7 +38,7 @@ func resourceCartDiscountResourceV0() *schema.Resource {
 							Description:  "Currently supports absolute/relative/giftLineItem",
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateValueType,
+							ValidateFunc: validateCartDiscountValueType,
 						},
 						"permyriad": {
 							Description: "Relative discount specific fields",
