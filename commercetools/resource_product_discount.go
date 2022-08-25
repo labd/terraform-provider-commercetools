@@ -54,7 +54,7 @@ func resourceProductDiscount() *schema.Resource {
 							Description:  "Currently supports absolute/relative/external",
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateValueType,
+							ValidateFunc: validateProductDiscountValueType,
 						},
 						"permyriad": {
 							Description: "Relative discount specific fields",
@@ -379,4 +379,17 @@ func flattenProductDiscountValue(val platform.ProductDiscountValue) []map[string
 		}}
 	}
 	panic("Unable to flatten product discount value")
+}
+
+func validateProductDiscountValueType(val any, key string) (warns []string, errs []error) {
+	switch val {
+	case
+		"relative",
+		"absolute",
+		"external":
+		return
+	default:
+		errs = append(errs, fmt.Errorf("%q not a valid value for %q", val, key))
+	}
+	return
 }
