@@ -53,7 +53,7 @@ func TestAccShippingZoneRate_createAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.1.price.0.cent_amount", "2000"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.2.type", "CartScore"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.2.score", "30"),
-					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.2.price_function.0.function", "x + 1"),
+					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.2.price.0.function", "x + 1"),
 				),
 			},
 		},
@@ -186,7 +186,7 @@ func testAccShippingZoneRateUpdate(taxCategoryName string, shippingMethodName st
 				type  = "CartScore"
 				score = 30
 
-				price_function {
+				price {
 					function      = "x + 1"
 					currency_code = "{{ .currencyCode }}"
 				}

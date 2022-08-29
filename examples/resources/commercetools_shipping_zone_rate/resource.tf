@@ -60,7 +60,7 @@ resource "commercetools_shipping_zone_rate" "my-shipping-zone-rate" {
     type  = "CartScore"
     score = 30
 
-    price_function {
+    price {
       function      = "x + 1"
       currency_code = "EUR"
     }
