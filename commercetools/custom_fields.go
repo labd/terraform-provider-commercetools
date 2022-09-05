@@ -128,6 +128,13 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 		}
 		return result, nil
 
+	case platform.CustomFieldReferenceType:
+		var result any
+		if err := json.Unmarshal([]byte(value.(string)), &result); err != nil {
+			return nil, fmt.Errorf("value for field '%s' needs to be an object: '%v'", name, value)
+		}
+		return result, nil
+
 	default:
 		return value, nil
 	}
