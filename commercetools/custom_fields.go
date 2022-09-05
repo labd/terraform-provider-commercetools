@@ -93,7 +93,7 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 	case platform.CustomFieldLocalizedStringType:
 		result := platform.LocalizedString{}
 		if err := json.Unmarshal([]byte(value.(string)), &result); err != nil {
-			return nil, fmt.Errorf("value for field '%s' is not a valid LocalizedString value: '%v'", name, value)
+			return nil, fmt.Errorf("value for field '%s' needs to be a LocalizedString: '%v'", name, value)
 		}
 		return result, nil
 
@@ -104,12 +104,12 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 		if value == "false" {
 			return false, nil
 		}
-		return nil, fmt.Errorf("unrecognized boolean value")
+		return nil, fmt.Errorf("value for field '%s' needs to be 'true' or 'false': '%v'", name, value)
 
 	case platform.CustomFieldNumberType:
 		result, err := strconv.ParseInt(value.(string), 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("value for field '%s' is not a valid Number value: '%v'", name, value)
+			return nil, fmt.Errorf("value for field '%s' needs to be a number: '%v'", name, value)
 		}
 		return result, nil
 
