@@ -153,6 +153,13 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 		}
 		return result.Format("2006-01-02T15:04:05.000Z"), nil
 
+	case platform.CustomFieldTimeType:
+		result, err := time.Parse(time.RFC3339Nano, strings.Join([]string{"0001-01-01T", value.(string), "Z"}, ""))
+		if err != nil {
+			return nil, fmt.Errorf("value for field '%s' needs to be a valid ISO-8601 time (hh:mm:ss.sss): '%v'", name, value)
+		}
+		return result.Format("15:04:05.000"), nil
+
 	default:
 		return value, nil
 	}
