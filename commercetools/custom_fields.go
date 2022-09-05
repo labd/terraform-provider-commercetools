@@ -142,9 +142,16 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 	case platform.CustomFieldDateType:
 		result, err := time.Parse("2006-01-02", value.(string))
 		if err != nil {
-			return nil, fmt.Errorf("value for field '%s' needs to be a valid ISO-8601 date: '%v'", name, value)
+			return nil, fmt.Errorf("value for field '%s' needs to be a valid ISO-8601 date (YYYY-MM-DD): '%v'", name, value)
 		}
 		return result.Format("2006-01-02"), nil
+
+	case platform.CustomFieldDateTimeType:
+		result, err := time.Parse(time.RFC3339Nano, value.(string))
+		if err != nil {
+			return nil, fmt.Errorf("value for field '%s' needs to be a valid ISO-8601 datetime (YYYY-MM-DDThh:mm:ss.sssZ): '%v'", name, value)
+		}
+		return result.Format("2006-01-02T15:04:05.000Z"), nil
 
 	default:
 		return value, nil
