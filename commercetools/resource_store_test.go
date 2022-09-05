@@ -308,6 +308,99 @@ func testAccStoreConfigWithCustomField(id, name, key string, languages []string)
                     name = "Number"
                 }
             }
+
+            field {
+                name = "money"
+                label = {
+                    en = "money value"
+                }
+                type {
+                    name = "Money"
+                }
+            }
+
+            field {
+                name = "date"
+                label = {
+                    en = "date value"
+                }
+                type {
+                    name = "Date"
+                }
+            }
+
+            field {
+                name = "time"
+                label = {
+                    en = "time value"
+                }
+                type {
+                    name = "Time"
+                }
+            }
+
+            field {
+                name = "datetime"
+                label = {
+                    en = "datetime value"
+                }
+                type {
+                    name = "DateTime"
+                }
+            }
+
+            field {
+                name = "enum"
+                label = {
+                    en = "enum value"
+                }
+                type {
+                  name = "Enum"
+                  value {
+                    key = "day"
+                    label = "Daytime"
+                  }
+                  value {
+                    key = "night"
+                    label = "Nighttime"
+                  }
+                }
+            }
+
+            field {
+                name = "localized_enum"
+                label = {
+                    en = "localized_enum value"
+                }
+                type {
+                  name = "LocalizedEnum"
+                  localized_value {
+                    key = "day"
+                    label = {
+                      en = "Daytime"
+                      nl = "Dagtijd"
+                    }
+                  }
+                  localized_value {
+                    key = "night"
+                    label = {
+                      en = "Nighttime"
+                      nl = "Nachttijd"
+                    }
+                  }
+                }
+            }
+
+            field {
+                name = "reference"
+                label = {
+                    en = "reference value"
+                }
+                type {
+                  name = "Reference"
+                  reference_type_id = "store"
+                }
+            }
         }
 
         resource "commercetools_channel" "{{ .id }}_channel" {
@@ -331,6 +424,21 @@ func testAccStoreConfigWithCustomField(id, name, key string, languages []string)
                     number  = 10
                     localized_string = jsonencode({
                         "en-US" : "boo!"
+                    })
+                    money = jsonencode({
+                      "type" : "centPrecision",
+                      "currencyCode" : "EUR",
+                      "centAmount" : 420,
+                      "fractionDigits" : 2
+                    })
+                    date = "1983-08-23"
+                    time = "14:23:32.000"
+                    datetime = "2018-10-12T14:00:00.000Z"
+                    enum = "day"
+                    localized_enum = "night"
+                    reference = jsonencode({
+                      typeId: "store",
+                      id: "doesntexist"
                     })
                 }
             }
