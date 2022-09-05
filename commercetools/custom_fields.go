@@ -137,11 +137,12 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 		}
 		return result, nil
 
-	case platform.CustomFieldStringType:
-		return value, nil
-
-	case platform.CustomFieldEnumType:
-		return value, nil
+	case platform.CustomFieldMoneyType:
+		var result *platform.CentPrecisionMoney
+		if err := json.Unmarshal([]byte(value.(string)), &result); err != nil {
+			return nil, fmt.Errorf("value for field '%s' needs to be a CentPrecisionMoney: '%v'", name, value)
+		}
+		return result, nil
 
 	case platform.CustomFieldDateType:
 		result, err := time.Parse("2006-01-02", value.(string))
@@ -163,6 +164,9 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 			return nil, fmt.Errorf("value for field '%s' needs to be a valid ISO-8601 time (hh:mm:ss.sss): '%v'", name, value)
 		}
 		return result.Format("15:04:05.000"), nil
+
+	case platform.CustomFieldEnumType, platform.CustomFieldLocalizedEnumType, platform.CustomFieldStringType:
+		return value, nil
 
 	default:
 		return value, nil
