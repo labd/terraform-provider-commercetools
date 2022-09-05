@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -134,6 +135,13 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 			return nil, fmt.Errorf("value for field '%s' needs to be an object: '%v'", name, value)
 		}
 		return result, nil
+
+	case platform.CustomFieldDateType:
+		result, err := time.Parse("2006-01-02", value.(string))
+		if err != nil {
+			return nil, fmt.Errorf("value for field '%s' needs to be a valid ISO-8601 date: '%v'", name, value)
+		}
+		return result.Format("2006-01-02"), nil
 
 	default:
 		return value, nil
