@@ -136,6 +136,9 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 		}
 		return result, nil
 
+	case platform.CustomFieldStringType:
+		return value, nil
+
 	case platform.CustomFieldDateType:
 		result, err := time.Parse("2006-01-02", value.(string))
 		if err != nil {
