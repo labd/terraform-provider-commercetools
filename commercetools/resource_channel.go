@@ -139,6 +139,7 @@ func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m any) dia
 	if channel.Description != nil {
 		d.Set("description", *channel.Description)
 	}
+	d.Set("key", channel.Key)
 	d.Set("roles", channel.Roles)
 	d.Set("address", flattenAddress(channel.Address))
 	d.Set("geolocation", flattenGeoLocation(channel.GeoLocation))
