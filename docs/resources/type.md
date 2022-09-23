@@ -51,9 +51,13 @@ resource "commercetools_type" "my-custom-type" {
     }
     type {
       name = "Enum"
-      values = {
-        day     = "Daytime"
-        evening = "Evening"
+      value {
+        key   = "day"
+        value = "Daytime"
+      }
+      value {
+        key   = "evening"
+        value = "Evening"
       }
     }
   }

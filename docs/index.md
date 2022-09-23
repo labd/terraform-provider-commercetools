@@ -13,20 +13,24 @@ Need support implementing this terraform module in your organization? We are
 able to offer support. Please contact us at
 [opensource@labdigital.nl](opensource@labdigital.nl)!
 
+## Installation
+Terraform automatically downloads providers from the terraform registry. Add the
+following to your terraform project
 
-## Usage
-The provider is distributed via the Terraform registry. To use it you need to configure the [`required_provider`](https://www.terraform.io/language/providers/requirements#requiring-providers) block. For example:
 
 ```hcl
 terraform {
   required_providers {
     commercetools = {
       source = "labd/commercetools"
-      version = "~> 1.0.0"
     }
   }
 }
 ```
+
+Packages of the releases are available at [the GitHub Repo](https://github.com/labd/terraform-provider-commercetools/releases).
+See the [terraform documentation](https://www.terraform.io/docs/configuration/providers.html#third-party-plugins)
+for more information about installing third-party providers.
 
 
 ## Using the provider

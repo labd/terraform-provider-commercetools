@@ -35,7 +35,7 @@ resource "commercetools_type" "my-custom-type" {
         value = "Daytime"
       }
       value {
-        key = "evening"
+        key   = "evening"
         value = "Evening"
       }
     }
