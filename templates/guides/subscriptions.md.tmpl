@@ -1,13 +1,9 @@
 ---
 subcategory: ""
-page_title: "Examples"
+page_title: "Subscriptions"
 description: |-
-    Example usage
+    Creating subscriptions in the various cloud providers
 ---
-
-# Examples
-
-A few examples for different cloud providers.
 
 ## AWS Subscription Example
 
@@ -37,12 +33,12 @@ resource "aws_iam_user" "ct" {
 }
 
 resource "aws_iam_access_key" "ct" {
-  user = "${aws_iam_user.ct.name}"
+  user = aws_iam_user.ct.name
 }
 
 resource "aws_iam_user_policy" "policy" {
   name = "commercetools-access"
-  user = "${aws_iam_user.ct.name}"
+  user = aws_iam_user.ct.name
 
   policy = <<EOF
 {
@@ -65,9 +61,9 @@ resource "commercetools_subscription" "subscribe" {
 
   destination {
     type          = "SQS"
-    queue_url     = "${aws_sqs_queue.ct_queue.id}"
-    access_key    = "${aws_iam_access_key.ct.id}"
-    access_secret = "${aws_iam_access_key.ct.secret}"
+    queue_url     = aws_sqs_queue.ct_queue.id
+    access_key    = aws_iam_access_key.ct.id
+    access_secret = aws_iam_access_key.ct.secret
     region        = "eu-west-1"
   }
 
@@ -85,10 +81,23 @@ resource "commercetools_subscription" "subscribe" {
 ## Google Pubsub Example
 
 ```hcl
+locals {
+  project = "<your project id>"
+  region  = "europe-west1"
+}
+
+provider "commercetools" {
+  client_id     = "foo"
+  client_secret = "bar"
+  project_key   = "some-project"
+  scopes        = "manage_project:some-project"
+  token_url     = "https://auth.sphere.io"
+  api_url       = "https://api.sphere.io"
+}
 
 provider "google" {
-  project = "${var.project}"
-  credentials = "${file("${var.credentials_file_path}")}"
+  project = local.project
+  region  = local.region
 }
 
 resource "google_pubsub_topic" "resource-updates" {
@@ -97,21 +106,18 @@ resource "google_pubsub_topic" "resource-updates" {
 
 # add ctp subscription service account
 resource "google_pubsub_topic_iam_member" "ctp-subscription-publisher" {
-  topic = "${google_pubsub_topic.resource-updates.name}"
-  role = "roles/pubsub.publisher"
+  topic  = google_pubsub_topic.resource-updates.name
+  role   = "roles/pubsub.publisher"
   member = "serviceAccount:subscriptions@commercetools-platform.iam.gserviceaccount.com"
-}
-
-provider "commercetools" {
 }
 
 resource "commercetools_subscription" "subscribe" {
   key = "my-subscription"
 
   destination {
-    type = "google_pubsub"
-    project_id = "${var.project}"
-    topic = "${google_pubsub_topic.resource-updates.name}"
+    type        = "google_pubsub"
+    project_id  = var.project
+    topic       = google_pubsub_topic.resource-updates.name
   }
 
   changes {
@@ -122,76 +128,9 @@ resource "commercetools_subscription" "subscribe" {
       "customer-group"
     ]
   }
-  depends_on = [ "google_pubsub_topic_iam_member.ctp-subscription-publisher" ]
-}
-```
 
-
-## Types example
-
-```hcl
-resource "commercetools_type" "ctype1" {
-  key = "contact_info"
-  name = {
-    en = "Contact info"
-    nl = "Contact informatie"
-  }
-  description = {
-    en = "All things related communication"
-    nl = "Alle communicatie-gerelateerde zaken"
-  }
-
-  resource_type_ids = ["customer"]
-  
-  field {
-    name = "skype_name"
-    label = {
-      en = "Skype name"
-      nl = "Skype naam"
-    }
-    type {
-      name = "String"
-    }
-  }
-
-  field {
-    name = "contact_time"
-    label = {
-      en = "Contact time"
-      nl = "Contact tijd"
-    }
-    type {
-      name = "Enum"
-      values {
-        day = "Daytime"
-        evening = "Evening"
-      }
-    }
-  }
-
-  field {
-    name = "contact_preference"
-    label = {
-      en = "Contact preference"
-      nl = "Contact voorkeur"
-    }
-    type {
-      name = "LocalizedEnum"
-      localized_value {
-        key = "phone"
-        label {
-          en = "Phone"
-          nl = "Telefoon"
-        }
-      }
-      localized_value {
-        key = "skype"
-        label {
-          en = "Skype"
-          nl = "Skype"
-        }
-      }
-    }
-  }
+  depends_on = [
+    "google_pubsub_topic_iam_member.ctp-subscription-publisher"
+  ]
 }
 ```
