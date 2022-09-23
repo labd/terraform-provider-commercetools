@@ -1,3 +1,9 @@
+v1.4.4 (2022-09-23)
+===================
+ - Additional fixes to setting custom field values on supported resources. (#303)
+ - `resource_api_extension` Fix handling masked values for `azure_authentication` (#306)
+ - `resource_subscription` Fix handling masked values for `event_grid` (#306)
+
 v1.4.2 (2022-08-24)
 ===================
  - Fix setting custom field values on supported resources when the fiedl type
