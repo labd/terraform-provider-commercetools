@@ -3,6 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -348,76 +349,96 @@ func expandExtensionDestinationAuthentication(destInput map[string]any) (platfor
 	return nil, nil
 }
 
+// flattenExtensionDestination flattens the destination returned by
+// commercetools to write it in the state file.
 func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
-
-	// Check the raw state to see if the version is nil or not. If nil then
-	// we are importing. We need to know if this is an existing resource for
-	// looking up the secret
+	// Special handling is required here since the destination contains a secret
+	// value which is returned as a masked value by the commercetools API.  This
+	// means we need to extract the value from the current raw state file.
+	// However when importing a resource we don't have the value so we need to
+	// handle that scenario as well.
 	isExisting := true
 	rawState := d.GetRawState()
 	if !rawState.IsNull() {
 		isExisting = !rawState.AsValueMap()["version"].IsNull()
 	}
 
-	switch v := dst.(type) {
+	var current platform.Destination
+	if isExisting {
+		current, _ = expandExtensionDestination(d)
+	}
+
+	// A destination is either HTTP or AWSLambda
+	switch d := dst.(type) {
+
+	// For the HTTP Destination there are two specific authentication types:
+	// AuthorizationHeader and AzureFunctions.
 	case platform.HttpDestination:
-		switch a := v.Authentication.(type) {
+		switch d.Authentication.(type) {
 
 		case platform.AuthorizationHeaderAuthentication:
 
 			// The headerValue value is masked when retrieved from commercetools,
 			// so use the value from the state file instead (if it exists)
-			headerValue := ""
-			if isExisting {
-				c, _ := expandExtensionDestination(d)
-				if current, ok := c.(platform.HttpDestination); ok {
-					if auth, ok := current.Authentication.(platform.AuthorizationHeaderAuthentication); ok {
-						headerValue = auth.HeaderValue
+			secretValue := ""
+			if current != nil {
+				if c, ok := current.(platform.HttpDestination); ok {
+					if auth, ok := c.Authentication.(platform.AuthorizationHeaderAuthentication); ok {
+						secretValue = auth.HeaderValue
 					}
 				}
 			}
 
 			return []map[string]string{{
 				"type":                 "HTTP",
-				"url":                  v.Url,
-				"authorization_header": headerValue,
+				"url":                  d.Url,
+				"authorization_header": secretValue,
 			}}
 
 		case platform.AzureFunctionsAuthentication:
+			// The headerValue value is masked when retrieved from commercetools,
+			// so use the value from the state file instead (if it exists)
+			secretValue := ""
+			if current != nil {
+				if c, ok := current.(platform.AzureFunctionsAuthentication); ok {
+					secretValue = c.Key
+				}
+			}
 			return []map[string]string{{
 				"type":                 "HTTP",
-				"url":                  v.Url,
-				"azure_authentication": a.Key,
+				"url":                  d.Url,
+				"azure_authentication": secretValue,
+			}}
+
+		default:
+			log.Println("Unexpected authentication type")
+			return []map[string]string{{
+				"type": "HTTP",
+				"url":  d.Url,
 			}}
 		}
 
-		return []map[string]string{{
-			"type": "HTTP",
-			"url":  v.Url,
-		}}
-
 	case platform.AWSLambdaDestination:
-		accessSecret := ""
 
 		// The accessSecret value is masked when retrieved from commercetools,
 		// so use the value from the state file instead (if it exists)
-		if isExisting {
-			c, _ := expandExtensionDestination(d)
-			switch current := c.(type) {
-			case platform.AWSLambdaDestination:
-				accessSecret = current.AccessSecret
+		secretValue := ""
+		if current != nil {
+			if c, ok := current.(platform.AWSLambdaDestination); ok {
+				secretValue = c.AccessSecret
 			}
 		}
 
 		return []map[string]string{{
 			"type":          "awslambda",
-			"access_key":    v.AccessKey,
-			"access_secret": accessSecret,
-			"arn":           v.Arn,
+			"access_key":    d.AccessKey,
+			"access_secret": secretValue,
+			"arn":           d.Arn,
 		}}
 
+	default:
+		return []map[string]string{}
 	}
-	return []map[string]string{}
 }
 
 func flattenExtensionTriggers(triggers []platform.ExtensionTrigger) []map[string]any {
