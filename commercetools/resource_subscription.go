@@ -309,7 +309,7 @@ func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m a
 	if err := validateSubscriptionDestination(d); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := validateFormat(d); err != nil {
+	if err := validateSubscriptionFormat(d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -379,7 +379,7 @@ func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m a
 	if err := validateSubscriptionDestination(d); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := validateFormat(d); err != nil {
+	if err := validateSubscriptionFormat(d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -495,47 +495,27 @@ func flattenSubscriptionDestination(dst platform.Destination, d *schema.Resource
 
 	// Read the access secret from the current resource data
 	c, _ := expandSubscriptionDestination(d)
-	accessSecret := ""
+	secretValue := ""
 	switch current := c.(type) {
+	case platform.AzureEventGridDestination:
+		secretValue = current.AccessKey
 	case platform.SnsDestination:
-		accessSecret = current.AccessSecret
+		secretValue = current.AccessSecret
 	case platform.SqsDestination:
-		accessSecret = current.AccessSecret
+		secretValue = current.AccessSecret
 	}
 
 	switch v := dst.(type) {
-	case platform.SnsDestination:
-		d.Get("destination")
-		return []map[string]string{{
-			"type":          subSNS,
-			"topic_arn":     v.TopicArn,
-			"access_key":    v.AccessKey,
-			"access_secret": accessSecret,
-		}}
-	case platform.SqsDestination:
-		return []map[string]string{{
-			"type":          subSQS,
-			"queue_url":     v.QueueUrl,
-			"access_key":    v.AccessKey,
-			"access_secret": accessSecret,
-			"region":        v.Region,
-		}}
 	case platform.AzureEventGridDestination:
 		return []map[string]string{{
 			"type":       subAzureEventGrid,
 			"uri":        v.Uri,
-			"access_key": v.AccessKey,
+			"access_key": secretValue,
 		}}
 	case platform.AzureServiceBusDestination:
 		return []map[string]string{{
 			"type":              subAzureServiceBus,
 			"connection_string": v.ConnectionString,
-		}}
-	case platform.GoogleCloudPubSubDestination:
-		return []map[string]string{{
-			"type":       subGooglePubSub,
-			"project_id": v.ProjectId,
-			"topic":      v.Topic,
 		}}
 	case platform.EventBridgeDestination:
 		return []map[string]string{{
@@ -543,8 +523,31 @@ func flattenSubscriptionDestination(dst platform.Destination, d *schema.Resource
 			"region":     v.Region,
 			"account_id": v.AccountId,
 		}}
+	case platform.GoogleCloudPubSubDestination:
+		return []map[string]string{{
+			"type":       subGooglePubSub,
+			"project_id": v.ProjectId,
+			"topic":      v.Topic,
+		}}
+	case platform.SnsDestination:
+		d.Get("destination")
+		return []map[string]string{{
+			"type":          subSNS,
+			"topic_arn":     v.TopicArn,
+			"access_key":    v.AccessKey,
+			"access_secret": secretValue,
+		}}
+	case platform.SqsDestination:
+		return []map[string]string{{
+			"type":          subSQS,
+			"queue_url":     v.QueueUrl,
+			"access_key":    v.AccessKey,
+			"access_secret": secretValue,
+			"region":        v.Region,
+		}}
+	default:
+		return []map[string]string{}
 	}
-	return []map[string]string{}
 }
 
 func flattenSubscriptionFormat(f platform.DeliveryFormat) []map[string]string {
@@ -664,7 +667,7 @@ func validateSubscriptionDestination(d *schema.ResourceData) error {
 	return nil
 }
 
-func validateFormat(d *schema.ResourceData) error {
+func validateSubscriptionFormat(d *schema.ResourceData) error {
 	input := d.Get("format").([]any)
 	if len(input) < 1 {
 		return nil
