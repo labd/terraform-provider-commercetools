@@ -37,6 +37,9 @@ func resourceStateTransitions() *schema.Resource {
 				ValidateFunc: func(val any, key string) ([]string, []error) {
 					ID := val.(string)
 
+					ctMutexKV.Lock("stateTransitionsIds")
+					defer ctMutexKV.Unlock("stateTransitionsIds")
+
 					if stateTransitionIds == nil {
 						stateTransitionIds = make(map[string]bool)
 					}
