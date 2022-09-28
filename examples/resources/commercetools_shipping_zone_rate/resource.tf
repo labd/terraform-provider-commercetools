@@ -55,14 +55,4 @@ resource "commercetools_shipping_zone_rate" "my-shipping-zone-rate" {
       currency_code = "EUR"
     }
   }
-
-  shipping_rate_price_tier {
-    type  = "CartScore"
-    score = 30
-
-    price_function {
-      function      = "x + 1"
-      currency_code = "EUR"
-    }
-  }
 }
