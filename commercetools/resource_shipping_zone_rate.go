@@ -116,8 +116,8 @@ func resourceShippingZoneRate() *schema.Resource {
 						"price": {
 							Description: "The price of the score, value or minimum_cent_amount tier",
 							Type:        schema.TypeList,
-							Required:    true,
-							MinItems:    1,
+							Optional:    true,
+							MaxItems:    1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"currency_code": {
@@ -128,11 +128,27 @@ func resourceShippingZoneRate() *schema.Resource {
 									},
 									"cent_amount": {
 										Type:     schema.TypeInt,
-										Optional: true,
+										Required: true,
+									},
+								},
+							},
+						},
+						"price_function": {
+							Description: "If type is CartScore. Allows to calculate a price dynamically for the score.",
+							Type:        schema.TypeList,
+							Optional:    true,
+							MaxItems:    1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"currency_code": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ForceNew:     true,
+										ValidateFunc: ValidateCurrencyCode,
 									},
 									"function": {
 										Type:     schema.TypeString,
-										Optional: true,
+										Required: true,
 									},
 								},
 							},
@@ -250,23 +266,12 @@ func expandShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRa
 		tierMap := priceTier.(map[string]any)
 
 		var price *platform.Money
-		var function *platform.PriceFunction
-		priceMap, _ := elementFromSlice(tierMap, "price")
-		if priceMap != nil {
-			cent, ok := priceMap["cent_amount"]
-			if ok {
-				price = &platform.Money{
-					CurrencyCode: priceMap["currency_code"].(string),
-					CentAmount:   cent.(int),
-				}
-			}
-
-			fn, ok := priceMap["function"]
-			if ok {
-				function = &platform.PriceFunction{
-					CurrencyCode: priceMap["currency_code"].(string),
-					Function:	  fn.(string),
-				}
+		priceList := tierMap["price"].([]any)
+		if len(priceList) > 0 {
+			priceMap := priceList[0].(map[string]interface{})
+			price = &platform.Money{
+				CurrencyCode: priceMap["currency_code"].(string),
+				CentAmount:   priceMap["cent_amount"].(int),
 			}
 		}
 
@@ -283,6 +288,16 @@ func expandShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRa
 				Price: *price,
 			})
 		case string(platform.ShippingRateTierTypeCartScore):
+			var function *platform.PriceFunction
+			functionList := tierMap["price_function"].([]interface{})
+			if len(functionList) > 0 {
+				functionMap := functionList[0].(map[string]interface{})
+				function = &platform.PriceFunction{
+					CurrencyCode: functionMap["currency_code"].(string),
+					Function:     functionMap["function"].(string),
+				}
+			}
+
 			tiers = append(tiers, platform.CartScoreTier{
 				Score:         tierMap["score"].(float64),
 				Price:         price,
