@@ -1,3 +1,25 @@
+v1.5.0 (unreleased)
+===================
+ - `resource_state_transitions` New resource to manage transitions between states.
+   This was previously part of the `resource_state` but that made it imposible
+   to have recursive transitions. This means that `transitions` attribute is now
+   removed from the `resource_state` resource.
+
+   example:
+  ```hcl
+    // Only allow transition from sale to clearance
+    resource "commercetools_state_transitions" "transition-1" {
+      from = commercetools_state.product_for_sale.id
+      to = [
+        commercetools_state.product_clearance.id,
+      ]
+    }
+  ```
+  See #86 for more information
+ - `resource_shipping_zone_rate` Add support for `price_function` when the type
+   is `CartScore` (#202)
+
+
 v1.4.4 (2022-09-23)
 ===================
  - Additional fixes to setting custom field values on supported resources. (#303)
