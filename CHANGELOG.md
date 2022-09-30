@@ -1,4 +1,4 @@
-v1.5.0 (unreleased)
+v1.5.0 (2022-09-30)
 ===================
  - `resource_state_transitions` New resource to manage transitions between states.
    This was previously part of the `resource_state` but that made it imposible
