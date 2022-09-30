@@ -280,18 +280,18 @@ func firstElementFromSlice(d []any) map[string]any {
 	return nil
 }
 
-func elementFromSlice(d map[string]any, key string) (map[string]any, error) {
+func elementFromSlice(d map[string]any, key string) map[string]any {
 	data, ok := d[key]
 	if !ok {
-		return nil, nil
+		return nil
 	}
 
 	items := data.([]any)
 	if len(items) > 0 {
 		result := items[0].(map[string]any)
-		return result, nil
+		return result
 	}
-	return nil, nil
+	return nil
 }
 
 func isNotEmpty(d map[string]any, key string) (any, bool) {
@@ -412,4 +412,21 @@ func diffSlices(old, new map[string]any) map[string]any {
 	}
 
 	return result
+}
+
+func coerceTypedMoney(val platform.TypedMoney) platform.Money {
+	switch p := val.(type) {
+	case platform.CentPrecisionMoney:
+		return platform.Money{
+			CentAmount:   p.CentAmount,
+			CurrencyCode: p.CurrencyCode,
+		}
+	case platform.HighPrecisionMoney:
+		return platform.Money{
+			CentAmount:   p.CentAmount,
+			CurrencyCode: p.CurrencyCode,
+		}
+	}
+
+	return platform.Money{}
 }
