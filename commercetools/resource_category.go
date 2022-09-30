@@ -547,8 +547,8 @@ func expandCategoryAssetSources(i map[string]any) []platform.AssetSource {
 }
 
 func expandCategoryAssetSourceDimensions(s map[string]any) *platform.AssetDimensions {
-	data, err := elementFromSlice(s, "dimensions")
-	if err != nil {
+	data := elementFromSlice(s, "dimensions")
+	if data == nil {
 		return nil
 	}
 

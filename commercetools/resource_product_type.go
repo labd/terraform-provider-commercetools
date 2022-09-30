@@ -456,8 +456,8 @@ func resourceProductTypeValidateAttribute(old, new []any) error {
 		}
 
 		if strings.EqualFold(newTypeName, "Set") {
-			oldElement, _ := elementFromSlice(oldType, "element_type")
-			newElement, _ := elementFromSlice(newType, "element_type")
+			oldElement := elementFromSlice(oldType, "element_type")
+			newElement := elementFromSlice(newType, "element_type")
 			oldElementName := oldElement["name"].(string)
 			newElementName := newElement["name"].(string)
 
@@ -854,9 +854,9 @@ func expandProductTypeAttributeDefinition(d *schema.ResourceData) ([]platform.At
 }
 
 func expandProductTypeAttributeDefinitionItem(input map[string]any, draft bool) (any, error) {
-	attrData, err := elementFromSlice(input, "type")
-	if err != nil {
-		return nil, err
+	attrData := elementFromSlice(input, "type")
+	if attrData == nil {
+		return nil, fmt.Errorf("missing type")
 	}
 
 	attrType, err := expandProductTypeAttributeType(attrData)
@@ -973,8 +973,8 @@ func expandProductTypeAttributeType(input any) (platform.AttributeType, error) {
 			TypeReference: platform.ProductTypeReference{ID: typeReference},
 		}, nil
 	case "set":
-		data, err := elementFromSlice(config, "element_type")
-		if err != nil {
+		data := elementFromSlice(config, "element_type")
+		if data == nil {
 			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 
