@@ -297,8 +297,8 @@ func resourceTypeValidateField(old, new []any) error {
 		}
 
 		if strings.EqualFold(newTypeName, "Set") {
-			oldElement, _ := elementFromSlice(oldType, "element_type")
-			newElement, _ := elementFromSlice(newType, "element_type")
+			oldElement := elementFromSlice(oldType, "element_type")
+			newElement := elementFromSlice(newType, "element_type")
 			oldElementName := oldElement["name"].(string)
 			newElementName := newElement["name"].(string)
 
@@ -439,9 +439,9 @@ func expandTypeFieldDefinition(d *schema.ResourceData) ([]platform.FieldDefiniti
 }
 
 func expandTypeFieldDefinitionItem(input map[string]any) (*platform.FieldDefinition, error) {
-	fieldData, err := elementFromSlice(input, "type")
-	if err != nil {
-		return nil, err
+	fieldData := elementFromSlice(input, "type")
+	if fieldData == nil {
+		return nil, fmt.Errorf("missing type")
 	}
 
 	fieldType, err := expandTypeFieldType(fieldData)
@@ -524,8 +524,8 @@ func expandTypeFieldType(input any) (platform.FieldType, error) {
 		}
 		return nil, fmt.Errorf("no reference_type_id specified for Reference type")
 	case "Set":
-		data, err := elementFromSlice(config, "element_type")
-		if err != nil {
+		data := elementFromSlice(config, "element_type")
+		if data == nil {
 			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 
