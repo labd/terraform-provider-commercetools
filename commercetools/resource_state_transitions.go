@@ -29,7 +29,7 @@ func resourceStateTransitions() *schema.Resource {
 		UpdateContext: resourceStateTransitionsUpdate,
 		DeleteContext: resourceStateTransitionsDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: resourceStateTransitionsImportState,
 		},
 		Schema: map[string]*schema.Schema{
 			"from": {
@@ -140,6 +140,22 @@ func resourceStateTransitionsDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 	return nil
+}
+
+func resourceStateTransitionsImportState(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
+	client := getClient(meta)
+	state, err := client.States().WithId(d.Id()).Get().Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	data := resourceStateTransitions().Data(nil)
+	data.SetId(state.ID)
+	data.Set("from", state.ID)
+	data.Set("to", flattenStateTransitions(state.Transitions))
+
+	result := []*schema.ResourceData{data}
+	return result, nil
 }
 
 func resourceStateSetTransitions(ctx context.Context, client *platform.ByProjectKeyRequestBuilder, stateId string, transitions []platform.StateResourceIdentifier) (*platform.State, error) {
