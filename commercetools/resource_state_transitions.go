@@ -3,6 +3,8 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"log"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -150,6 +152,29 @@ func resourceStateSetTransitions(ctx context.Context, client *platform.ByProject
 		Version: state.Version,
 		Actions: []platform.StateUpdateAction{},
 	}
+
+	// Validate that the transitions are modified before trying to update them.
+	// If we try to set the transitions to a value already set then commercetools
+	// returns an InvalidOperation with `'transitions' has no changes.`
+	// Normally this should never happen, but since we moved to a separate
+	// resource in 1.5.0 this does occur because we create a new resource to
+	// set the value set before on the state resource.
+	// See issue #312
+	newTransitionIds := make([]string, len(transitions))
+	for i, t := range transitions {
+		newTransitionIds[i] = *t.ID
+	}
+
+	curTransitionIds := make([]string, len(state.Transitions))
+	for i, t := range state.Transitions {
+		curTransitionIds[i] = t.ID
+	}
+
+	if reflect.DeepEqual(newTransitionIds, curTransitionIds) {
+		log.Println("Transitions not modified, ignoring updating")
+		return state, nil
+	}
+
 	input.Actions = append(
 		input.Actions,
 		&platform.StateSetTransitionsAction{
