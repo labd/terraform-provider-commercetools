@@ -1,7 +1,9 @@
 v1.5.1 (2022-10-04)
 ===================
  - `resource_state_transitions` fix error when we tried to set the transitions
-    value to a value already set in commercetools, causing an error. See #312
+   value to a value already set in commercetools, causing an error. See #312
+ - `resource_state_transitions` add support for importing existing state 
+   transitions
 
 v1.5.0 (2022-09-30)
 ===================
