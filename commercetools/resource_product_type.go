@@ -644,16 +644,16 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 	}
 
 	if !reflect.DeepEqual(attrOrder, newAttrs.Keys()) {
-		attrs := make([]platform.AttributeDefinition, newAttrs.Len())
+		attrs := make([]string, newAttrs.Len())
 		for i, key := range newAttrs.Keys() {
 			if el, ok := newAttrs.Get(key); ok {
-				attrs[i] = el
+				attrs[i] = el.Name
 			}
 		}
 		actions = append(
 			actions,
-			platform.ProductTypeChangeAttributeOrderAction{
-				Attributes: attrs,
+			platform.ProductTypeChangeAttributeOrderByNameAction{
+				AttributeNames: attrs,
 			})
 	}
 
