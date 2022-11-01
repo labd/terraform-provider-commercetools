@@ -108,7 +108,7 @@ func resourceShippingZoneRate() *schema.Resource {
 						},
 						"score": {
 							Description: "If type is CartScore. Sets a fixed price for this score value",
-							Type:        schema.TypeFloat,
+							Type:        schema.TypeInt,
 							Optional:    true,
 						},
 						"price": {
