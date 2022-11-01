@@ -457,14 +457,14 @@ func expandSubscriptionDestination(d *schema.ResourceData) (platform.Destination
 	case subSNS:
 		return platform.SnsDestination{
 			TopicArn:     dst["topic_arn"].(string),
-			AccessKey:    dst["access_key"].(string),
-			AccessSecret: dst["access_secret"].(string),
+			AccessKey:    stringRef(dst["access_key"].(string)),
+			AccessSecret: stringRef(dst["access_secret"].(string)),
 		}, nil
 	case subSQS:
 		return platform.SqsDestination{
 			QueueUrl:     dst["queue_url"].(string),
-			AccessKey:    dst["access_key"].(string),
-			AccessSecret: dst["access_secret"].(string),
+			AccessKey:    stringRef(dst["access_key"].(string)),
+			AccessSecret: stringRef(dst["access_secret"].(string)),
 			Region:       dst["region"].(string),
 		}, nil
 	case subAzureEventGrid, subAzureEventGridAlias:
@@ -500,9 +500,9 @@ func flattenSubscriptionDestination(dst platform.Destination, d *schema.Resource
 	case platform.AzureEventGridDestination:
 		secretValue = current.AccessKey
 	case platform.SnsDestination:
-		secretValue = current.AccessSecret
+		secretValue = *current.AccessSecret
 	case platform.SqsDestination:
-		secretValue = current.AccessSecret
+		secretValue = *current.AccessSecret
 	}
 
 	switch v := dst.(type) {
@@ -534,14 +534,14 @@ func flattenSubscriptionDestination(dst platform.Destination, d *schema.Resource
 		return []map[string]string{{
 			"type":          subSNS,
 			"topic_arn":     v.TopicArn,
-			"access_key":    v.AccessKey,
+			"access_key":    *v.AccessKey,
 			"access_secret": secretValue,
 		}}
 	case platform.SqsDestination:
 		return []map[string]string{{
 			"type":          subSQS,
 			"queue_url":     v.QueueUrl,
-			"access_key":    v.AccessKey,
+			"access_key":    *v.AccessKey,
 			"access_secret": secretValue,
 			"region":        v.Region,
 		}}
@@ -606,7 +606,7 @@ func expandSubscriptionChanges(d *schema.ResourceData) []platform.ChangeSubscrip
 
 	rawTypeIds := expandStringArray(item["resource_type_ids"].([]any))
 	for i, item := range rawTypeIds {
-		result[i] = platform.ChangeSubscription{ResourceTypeId: item}
+		result[i] = platform.ChangeSubscription{ResourceTypeId: platform.ChangeSubscriptionResourceTypeId(item)}
 	}
 	return result
 }
@@ -628,7 +628,7 @@ func expandSubscriptionMessages(d *schema.ResourceData) []platform.MessageSubscr
 	for i, raw := range input {
 		msg := raw.(map[string]any)
 		messageObjects[i] = platform.MessageSubscription{
-			ResourceTypeId: msg["resource_type_id"].(string),
+			ResourceTypeId: msg["resource_type_id"].(platform.MessageSubscriptionResourceTypeId),
 			Types:          expandStringArray(msg["types"].([]any)),
 		}
 	}

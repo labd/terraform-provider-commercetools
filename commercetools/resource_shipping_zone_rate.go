@@ -595,7 +595,7 @@ func expandShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRa
 			}
 
 			tiers = append(tiers, platform.CartScoreTier{
-				Score:         tierMap["score"].(float64),
+				Score:         tierMap["score"].(int),
 				Price:         price,
 				PriceFunction: function,
 			})
