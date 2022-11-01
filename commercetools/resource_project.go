@@ -294,12 +294,20 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 		if messages["enabled"] != nil {
 			input.Actions = append(
 				input.Actions,
-				&platform.ProjectChangeMessagesEnabledAction{MessagesEnabled: messages["enabled"].(bool)})
+				&platform.ProjectChangeMessagesConfigurationAction{
+					MessagesConfiguration: platform.MessagesConfigurationDraft{
+						Enabled: messages["enabled"].(bool),
+					},
+				})
 		} else {
 			// To commercetools this field is not optional, so when deleting we revert to the default: false:
 			input.Actions = append(
 				input.Actions,
-				&platform.ProjectChangeMessagesEnabledAction{MessagesEnabled: false})
+				&platform.ProjectChangeMessagesConfigurationAction{
+					MessagesConfiguration: platform.MessagesConfigurationDraft{
+						Enabled: false,
+					},
+				})
 		}
 
 	}
