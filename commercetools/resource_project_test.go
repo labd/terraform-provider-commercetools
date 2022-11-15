@@ -58,6 +58,7 @@ func TestAccProjectCreate_basic(t *testing.T) {
 
 						assert.True(t, *result.Carts.CountryTaxRateFallbackEnabled)
 						assert.EqualValues(t, result.Messages.Enabled, true)
+						assert.EqualValues(t, result.Messages.DeleteDaysAfterCreation, 90)
 						assert.EqualValues(t, result.ExternalOAuth.Url, "https://example.com/oauth/token")
 						assert.EqualValues(t, result.ExternalOAuth.AuthorizationHeader, "****")
 						assert.EqualValues(t, result.Countries, []string{"NL", "DE", "US"})
@@ -77,6 +78,7 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "currencies.#", "3"),
 					resource.TestCheckResourceAttr(resourceName, "languages.#", "5"),
 					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "false"),
+					resource.TestCheckResourceAttr(resourceName, "messages.0.deleteDaysAfterCreation", "15"),
 					resource.TestCheckResourceAttr(
 						resourceName, "external_oauth.0.url", "https://new-example.com/oauth/token"),
 					resource.TestCheckResourceAttr(
@@ -173,6 +175,7 @@ func testAccProjectConfig(identifier string) string {
 
 			messages {
 				enabled = true
+				deleteDaysAfterCreation = 90
 			}
 
 			carts {
@@ -199,6 +202,7 @@ func testAccProjectConfigUpdate(identifier string) string {
 			}
 			messages {
 				enabled = false
+				deleteDaysAfterCreation = 15
 			}
 
 			carts {
