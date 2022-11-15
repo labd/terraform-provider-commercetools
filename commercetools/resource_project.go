@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
 
@@ -88,6 +89,12 @@ func resourceProjectSettings() *schema.Resource {
 							Description: "When true the creation of messages on the Messages Query HTTP API is enabled",
 							Type:        schema.TypeBool,
 							Required:    true,
+						},
+						"delete_days_after_creation": {
+							Description:      "Specifies the number of days each Message should be available via the Messages Query API",
+							Type:             schema.TypeInt,
+							ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(1, 90)),
+							Optional:         true,
 						},
 					},
 				},
@@ -310,6 +317,16 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 				})
 		}
 
+		if messages["delete_days_after_creation"] != nil {
+			input.Actions = append(
+				input.Actions,
+				&platform.ProjectChangeMessagesConfigurationAction{
+					MessagesConfiguration: platform.MessagesConfigurationDraft{
+						DeleteDaysAfterCreation: messages["delete_days_after_creation"].(int),
+					},
+				})
+			
+		}
 	}
 
 	if d.HasChange("shipping_rate_input_type") || d.HasChange("shipping_rate_cart_classification_value") {
@@ -526,6 +543,7 @@ func flattenProjectMessages(val platform.MessagesConfiguration, d *schema.Resour
 	return []map[string]any{
 		{
 			"enabled": val.Enabled,
+			"deleteDaysAfterCreation": val.DeleteDaysAfterCreation,
 		},
 	}
 }
