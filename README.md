@@ -68,15 +68,6 @@ To then locally test:
 $ cp terraform-provider-commercetools_${LOCAL_TEST_VERSION} ~/.terraform.d/plugins/local/labd/commercetools/${LOCAL_TEST_VERSION}/${OS_ARCH}/terraform-provider-commercetools_${LOCAL_TEST_VERSION}
 ```
 
-### Update commercetools-go-sdk
-
-The commercetools-go-sdk always uses the latest (master) version. To update to
-the latest version:
-
-```sh
-make update-sdk
-```
-
 ## Debugging / Troubleshooting
 
 There are two environment settings for troubleshooting:
