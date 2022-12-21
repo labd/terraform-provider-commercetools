@@ -29,6 +29,13 @@ func stringRef(value any) *string {
 	return &result
 }
 
+func stringUnref(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
 func intRef(value any) *int {
 	result := value.(int)
 	return &result

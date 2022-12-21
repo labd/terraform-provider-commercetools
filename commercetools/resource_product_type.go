@@ -959,7 +959,7 @@ func expandProductTypeAttributeType(input any) (platform.AttributeType, error) {
 	case "reference":
 		if ref, ok := config["reference_type_id"].(string); ok {
 			result := platform.AttributeReferenceType{
-				ReferenceTypeId: platform.ReferenceTypeId(ref),
+				ReferenceTypeId: platform.AttributeReferenceTypeId(ref),
 			}
 			return result, nil
 		}

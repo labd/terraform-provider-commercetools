@@ -5,7 +5,6 @@ require (
 	github.com/elliotchance/pie/v2 v2.0.1
 	github.com/hashicorp/terraform-plugin-docs v0.10.1
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.16.0
-	github.com/labd/commercetools-go-sdk v1.1.0
 	github.com/stretchr/testify v1.7.1
 	golang.org/x/oauth2 v0.0.0-20220524215830-622c5d57e401
 )
@@ -45,6 +44,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
+	github.com/labd/commercetools-go-sdk v1.2.1-0.20221221073956-e7af4c1414e8 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mitchellh/cli v1.1.4 // indirect

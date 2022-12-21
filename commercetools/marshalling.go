@@ -88,3 +88,20 @@ func expandCentPrecisionMoneyDraft(d map[string]any) []platform.CentPrecisionMon
 	}
 	return result
 }
+
+func expandMoneyDraft(d map[string]any) []platform.Money {
+	input := d["money"].([]any)
+	var result []platform.Money
+	for _, raw := range input {
+		data := raw.(map[string]any)
+		item := platform.Money{}
+		if currencyCode, ok := data["currency_code"].(string); ok {
+			item.CurrencyCode = currencyCode
+		}
+		if centAmount, ok := data["cent_amount"].(int); ok {
+			item.CentAmount = centAmount
+		}
+		result = append(result, item)
+	}
+	return result
+}

@@ -108,7 +108,7 @@ func resourceShippingZoneRate() *schema.Resource {
 						},
 						"score": {
 							Description: "If type is CartScore. Sets a fixed price for this score value",
-							Type:        schema.TypeFloat,
+							Type:        schema.TypeInt,
 							Optional:    true,
 						},
 						"price": {
@@ -595,7 +595,7 @@ func expandShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRa
 			}
 
 			tiers = append(tiers, platform.CartScoreTier{
-				Score:         tierMap["score"].(float64),
+				Score:         tierMap["score"].(int),
 				Price:         price,
 				PriceFunction: function,
 			})
