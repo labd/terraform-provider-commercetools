@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 func resourceType() *schema.Resource {
@@ -154,7 +155,7 @@ func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag
 		var err error
 
 		ctType, err = client.Types().Post(draft).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -176,7 +177,7 @@ func resourceTypeRead(ctx context.Context, d *schema.ResourceData, m any) diag.D
 	ctType, err := client.Types().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -245,7 +246,7 @@ func resourceTypeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag
 
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.Types().WithId(d.Id()).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -262,7 +263,7 @@ func resourceTypeDelete(ctx context.Context, d *schema.ResourceData, m any) diag
 	version := d.Get("version").(int)
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.Types().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	return diag.FromErr(err)
 }

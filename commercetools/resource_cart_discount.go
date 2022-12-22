@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/ctutils"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 func resourceCartDiscount() *schema.Resource {
@@ -278,7 +279,7 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m a
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 		cartDiscount, err = client.CartDiscounts().Post(draft).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -299,7 +300,7 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m any
 	client := getClient(m)
 	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -448,7 +449,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m a
 
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.CartDiscounts().WithId(d.Id()).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -467,7 +468,7 @@ func resourceCartDiscountDelete(ctx context.Context, d *schema.ResourceData, m a
 
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.CartDiscounts().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	if err != nil {
 		return diag.FromErr(err)

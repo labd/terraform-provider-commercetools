@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 func resourceState() *schema.Resource {
@@ -108,7 +109,7 @@ func resourceStateCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 		state, err = client.States().Post(draft).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -124,7 +125,7 @@ func resourceStateRead(ctx context.Context, d *schema.ResourceData, m any) diag.
 	client := getClient(m)
 	state, err := client.States().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -203,7 +204,7 @@ func resourceStateUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.States().WithId(d.Id()).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	if err != nil {
 		// Workaround invalid state to be written, see
@@ -220,7 +221,7 @@ func resourceStateDelete(ctx context.Context, d *schema.ResourceData, m any) dia
 	version := d.Get("version").(int)
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.States().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	return diag.FromErr(err)
 }

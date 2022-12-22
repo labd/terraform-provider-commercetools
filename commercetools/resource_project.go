@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 // TODO: A lot of fields are optional in this schema that are not optional in platform. When not set via terraform
@@ -193,7 +194,7 @@ func resourceProjectExists(d *schema.ResourceData, m any) (bool, error) {
 
 	_, err := client.Get().Execute(context.Background())
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			return false, nil
 		}
 		return false, err
@@ -206,7 +207,7 @@ func resourceProjectCreate(ctx context.Context, d *schema.ResourceData, m any) d
 	project, err := client.Get().Execute(ctx)
 
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			return nil
 		}
 		return diag.FromErr(err)
@@ -225,7 +226,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m any) dia
 	project, err := client.Get().Execute(ctx)
 
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			return nil
 		}
 		return diag.FromErr(err)
@@ -410,7 +411,7 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -433,7 +434,12 @@ func getStringSlice(d *schema.ResourceData, field string) []string {
 }
 
 func getShippingRateInputType(d *schema.ResourceData) (platform.ShippingRateInputType, error) {
-	switch d.Get("shipping_rate_input_type").(string) {
+	value, ok := d.GetOk("shipping_rate_input_type")
+	if !ok {
+		return nil, nil
+	}
+
+	switch value.(string) {
 	case "CartValue":
 		return platform.CartValueType{}, nil
 	case "CartScore":

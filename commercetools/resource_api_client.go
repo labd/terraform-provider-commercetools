@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 func resourceAPIClient() *schema.Resource {
@@ -68,7 +70,7 @@ func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m any)
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 		apiClient, err = client.ApiClients().Post(draft).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -86,7 +88,7 @@ func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m any) d
 	apiClient, err := client.ApiClients().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -106,7 +108,7 @@ func resourceAPIClientDelete(ctx context.Context, d *schema.ResourceData, m any)
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.ApiClients().WithId(d.Id()).Delete().Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	return diag.FromErr(err)
