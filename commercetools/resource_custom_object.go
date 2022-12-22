@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 func resourceCustomObject() *schema.Resource {
@@ -62,7 +63,7 @@ func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m a
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 		customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -80,7 +81,7 @@ func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m any
 	client := getClient(m)
 	customObject, err := client.CustomObjects().WithContainerAndKey(container, key).Get().Execute(ctx)
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -114,7 +115,7 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m a
 		err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 			var err error
 			customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
-			return processRemoteError(err)
+			return utils.ProcessRemoteError(err)
 		})
 		if err != nil {
 			// Workaround invalid state to be written, see
@@ -133,7 +134,7 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m a
 				Version(originalVersion.(int)).
 				DataErasure(true).
 				Execute(ctx)
-			return processRemoteError(err)
+			return utils.ProcessRemoteError(err)
 		})
 		if err != nil {
 			// Workaround invalid state to be written, see
@@ -155,7 +156,7 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m a
 		err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 			var err error
 			customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
-			return processRemoteError(err)
+			return utils.ProcessRemoteError(err)
 		})
 		if err != nil {
 			// Workaround invalid state to be written, see
@@ -201,7 +202,7 @@ func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m a
 			Version(customObject.Version).
 			DataErasure(false).
 			Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	if err != nil {
 		var diags diag.Diagnostics

@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 var constraintMap = map[string]platform.AttributeConstraintEnum{
@@ -249,7 +250,7 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m an
 		var err error
 
 		ctType, err = client.ProductTypes().Post(draft).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -290,7 +291,7 @@ func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any)
 
 	ctType, err := client.ProductTypes().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -404,7 +405,7 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m an
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	if err != nil {
 		// Workaround invalid state to be written, see
@@ -421,7 +422,7 @@ func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m an
 	version := d.Get("version").(int)
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.ProductTypes().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	return diag.FromErr(err)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 func resourceTaxCategoryRate() *schema.Resource {
@@ -147,7 +148,7 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 
 	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
 		taxCategory, err = client.TaxCategories().WithId(taxCategoryID).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -238,7 +239,7 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 	client := getClient(m)
 	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
 		_, err := client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	if err != nil {
 		// Workaround invalid state to be written, see
@@ -324,7 +325,7 @@ func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, 
 	client := getClient(m)
 	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
 		_, err := client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	return diag.FromErr(err)
 }

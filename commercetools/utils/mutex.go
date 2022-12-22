@@ -1,4 +1,4 @@
-package commercetools
+package utils
 
 import (
 	"log"

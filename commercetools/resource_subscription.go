@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 const (
@@ -339,7 +340,7 @@ func resourceSubscriptionCreate(ctx context.Context, d *schema.ResourceData, m a
 	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 		subscription, err = client.Subscriptions().Post(draft).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -357,7 +358,7 @@ func resourceSubscriptionRead(ctx context.Context, d *schema.ResourceData, m any
 
 	subscription, err := client.Subscriptions().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -422,7 +423,7 @@ func resourceSubscriptionUpdate(ctx context.Context, d *schema.ResourceData, m a
 
 	err := resource.RetryContext(ctx, 5*time.Second, func() *resource.RetryError {
 		_, err := client.Subscriptions().WithId(d.Id()).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	if err != nil {
 		// Workaround invalid state to be written, see
@@ -439,7 +440,7 @@ func resourceSubscriptionDelete(ctx context.Context, d *schema.ResourceData, m a
 	version := d.Get("version").(int)
 	err := resource.RetryContext(ctx, 5*time.Second, func() *resource.RetryError {
 		_, err := client.Subscriptions().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	return diag.FromErr(err)
 }
@@ -455,18 +456,30 @@ func expandSubscriptionDestination(d *schema.ResourceData) (platform.Destination
 
 	switch dst["type"] {
 	case subSNS:
-		return platform.SnsDestination{
+		result := platform.SnsDestination{
 			TopicArn:     dst["topic_arn"].(string),
 			AccessKey:    stringRef(dst["access_key"]),
 			AccessSecret: stringRef(dst["access_secret"]),
-		}, nil
+		}
+		if dst["access_key"] == "" && dst["access_secret"] == "" {
+			authMode := platform.AwsAuthenticationModeIAM
+			result.AuthenticationMode = &authMode
+
+		}
+		return result, nil
 	case subSQS:
-		return platform.SqsDestination{
+		result := platform.SqsDestination{
 			QueueUrl:     dst["queue_url"].(string),
 			AccessKey:    stringRef(dst["access_key"]),
 			AccessSecret: stringRef(dst["access_secret"]),
 			Region:       dst["region"].(string),
-		}, nil
+		}
+		if dst["access_key"] == "" && dst["access_secret"] == "" {
+			authMode := platform.AwsAuthenticationModeIAM
+			result.AuthenticationMode = &authMode
+
+		}
+		return result, nil
 	case subAzureEventGrid, subAzureEventGridAlias:
 		return platform.AzureEventGridDestination{
 			Uri:       dst["uri"].(string),

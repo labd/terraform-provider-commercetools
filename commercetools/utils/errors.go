@@ -1,4 +1,4 @@
-package commercetools
+package utils
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"github.com/labd/commercetools-go-sdk/platform"
 )
 
-func processRemoteError(err error) *resource.RetryError {
+func ProcessRemoteError(err error) *resource.RetryError {
 	if err == nil {
 		return nil
 	}
@@ -87,7 +87,7 @@ func extractRawDetailedError(content []byte) error {
 	return nil
 }
 
-// IsResourceNotFoundError returns true if commercetools returned a 404 error
+// utils.IsResourceNotFoundError returns true if commercetools returned a 404 error
 func IsResourceNotFoundError(err error) bool {
 	switch e := err.(type) {
 	case platform.ResourceNotFoundError:

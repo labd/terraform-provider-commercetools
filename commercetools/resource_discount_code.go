@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 func resourceDiscountCode() *schema.Resource {
@@ -141,7 +142,7 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m a
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 		discountCode, err = client.DiscountCodes().Post(draft).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -158,7 +159,7 @@ func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m any
 	client := getClient(m)
 	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -295,7 +296,7 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m a
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.DiscountCodes().WithId(d.Id()).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	if err != nil {
 		// Workaround invalid state to be written, see
@@ -313,7 +314,7 @@ func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m a
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.DiscountCodes().WithId(d.Id()).Delete().Version(version).DataErasure(true).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	return diag.FromErr(err)
 }

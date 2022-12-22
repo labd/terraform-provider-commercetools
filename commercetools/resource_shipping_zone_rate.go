@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 func resourceShippingZoneRate() *schema.Resource {
@@ -223,7 +224,7 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
 		shippingMethod, err = client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -240,7 +241,7 @@ func resourceShippingZoneRateRead(ctx context.Context, d *schema.ResourceData, m
 	client := getClient(m)
 	shippingMethod, err := client.ShippingMethods().WithId(shippingMethodID).Get().Execute(ctx)
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -306,7 +307,7 @@ func resourceShippingZoneRateUpdate(ctx context.Context, d *schema.ResourceData,
 
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err := client.ShippingMethods().WithId(shippingMethodID).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 	if err != nil {
 		// Workaround invalid state to be written, see
@@ -366,7 +367,7 @@ func resourceShippingZoneRateDelete(ctx context.Context, d *schema.ResourceData,
 
 	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		_, err = client.ShippingMethods().WithId(shippingMethodID).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {

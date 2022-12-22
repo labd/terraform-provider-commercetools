@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
 )
 
 var stateTransitionIds map[string]bool
@@ -96,7 +97,7 @@ func resourceStateTransitionsRead(ctx context.Context, d *schema.ResourceData, m
 
 	state, err := client.States().WithId(ID).Get().Execute(ctx)
 	if err != nil {
-		if IsResourceNotFoundError(err) {
+		if utils.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -199,7 +200,7 @@ func resourceStateSetTransitions(ctx context.Context, client *platform.ByProject
 
 	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		_, err := client.States().WithId(stateId).Post(input).Execute(ctx)
-		return processRemoteError(err)
+		return utils.ProcessRemoteError(err)
 	})
 
 	return state, err
