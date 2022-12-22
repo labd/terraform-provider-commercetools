@@ -20,3 +20,11 @@ func FromOptionalString(value *string) basetypes.StringValue {
 	}
 	return types.StringValue(*value)
 }
+
+func StringRef(value any) *string {
+	if value == nil {
+		return nil
+	}
+	result := value.(string)
+	return &result
+}

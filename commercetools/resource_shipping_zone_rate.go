@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
-	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceShippingZoneRate() *schema.Resource {
