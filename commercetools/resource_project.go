@@ -300,35 +300,25 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		if messages["enabled"] != nil {
-			input.Actions = append(
-				input.Actions,
-				&platform.ProjectChangeMessagesConfigurationAction{
-					MessagesConfiguration: platform.MessagesConfigurationDraft{
-						Enabled: messages["enabled"].(bool),
-					},
-				})
-		} else {
-			// To commercetools this field is not optional, so when deleting we revert to the default: false:
-			input.Actions = append(
-				input.Actions,
-				&platform.ProjectChangeMessagesConfigurationAction{
-					MessagesConfiguration: platform.MessagesConfigurationDraft{
-						Enabled: false,
-					},
-				})
+
+		draft := platform.MessagesConfigurationDraft{
+			Enabled:                 false,
+			DeleteDaysAfterCreation: 15,
 		}
 
 		if messages["delete_days_after_creation"] != nil {
-			input.Actions = append(
-				input.Actions,
-				&platform.ProjectChangeMessagesConfigurationAction{
-					MessagesConfiguration: platform.MessagesConfigurationDraft{
-						DeleteDaysAfterCreation: messages["delete_days_after_creation"].(int),
-					},
-				})
-
+			draft.DeleteDaysAfterCreation = messages["delete_days_after_creation"].(int)
 		}
+		if messages["enabled"] != nil {
+			draft.Enabled = messages["enabled"].(bool)
+		}
+
+		// To commercetools this field is not optional, so when deleting we revert to the default: false:
+		input.Actions = append(
+			input.Actions,
+			&platform.ProjectChangeMessagesConfigurationAction{
+				MessagesConfiguration: draft,
+			})
 	}
 
 	if d.HasChange("shipping_rate_input_type") || d.HasChange("shipping_rate_cart_classification_value") {
