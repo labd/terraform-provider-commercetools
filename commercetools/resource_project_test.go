@@ -175,7 +175,7 @@ func testAccProjectConfig(identifier string) string {
 
 			messages {
 				enabled = true
-				deleteDaysAfterCreation = 90
+				delete_days_after_creation = 90
 			}
 
 			carts {
@@ -202,7 +202,7 @@ func testAccProjectConfigUpdate(identifier string) string {
 			}
 			messages {
 				enabled = false
-				deleteDaysAfterCreation = 15
+				delete_days_after_creation = 15
 			}
 
 			carts {

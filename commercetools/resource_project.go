@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
+
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
@@ -326,7 +327,7 @@ func projectUpdate(ctx context.Context, d *schema.ResourceData, client *platform
 						DeleteDaysAfterCreation: messages["delete_days_after_creation"].(int),
 					},
 				})
-			
+
 		}
 	}
 
@@ -548,8 +549,8 @@ func flattenProjectMessages(val platform.MessagesConfiguration, d *schema.Resour
 	}
 	return []map[string]any{
 		{
-			"enabled": val.Enabled,
-			"deleteDaysAfterCreation": val.DeleteDaysAfterCreation,
+			"enabled":                    val.Enabled,
+			"delete_days_after_creation": val.DeleteDaysAfterCreation,
 		},
 	}
 }
