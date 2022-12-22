@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
-	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceTaxCategoryRate() *schema.Resource {

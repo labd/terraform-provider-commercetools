@@ -12,6 +12,7 @@ build-local:
 	go build -o terraform-provider-commercetools_${LOCAL_TEST_VERSION}
 	mkdir -p ~/.terraform.d/plugins/registry.terraform.io/labd/commercetools/${LOCAL_TEST_VERSION}/${OS_ARCH}
 	cp terraform-provider-commercetools_${LOCAL_TEST_VERSION} ~/.terraform.d/plugins/registry.terraform.io/labd/commercetools/${LOCAL_TEST_VERSION}/${OS_ARCH}/terraform-provider-commercetools_v${LOCAL_TEST_VERSION}
+	codesign --deep --force -s - ~/.terraform.d/plugins/registry.terraform.io/labd/commercetools/${LOCAL_TEST_VERSION}/${OS_ARCH}/terraform-provider-commercetools_v${LOCAL_TEST_VERSION}
 
 format:
 	go fmt ./...

@@ -1,12 +1,18 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tf5server"
+	"github.com/hashicorp/terraform-plugin-mux/tf5muxserver"
 
 	"github.com/labd/terraform-provider-commercetools/commercetools"
+	"github.com/labd/terraform-provider-commercetools/internal/provider"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website
@@ -27,15 +33,35 @@ var (
 )
 
 func main() {
-	var debugMode bool
-
-	flag.BoolVar(&debugMode, "debuggable", false, "set to true to run the provider with support for debuggers like delve")
+	debugFlag := flag.Bool("debug", false, "Start provider in debug mode.")
 	flag.Parse()
 
 	fullVersion := fmt.Sprintf("%s (%s)", version, commit)
 
-	plugin.Serve(&plugin.ServeOpts{
-		ProviderFunc: commercetools.New(fullVersion),
-		Debug:        debugMode,
-	})
+	sdkProvider := commercetools.New(fullVersion)
+
+	ctx := context.Background()
+	providers := []func() tfprotov5.ProviderServer{
+		providerserver.NewProtocol5(provider.New(fullVersion)),
+		sdkProvider().GRPCProvider,
+	}
+
+	muxServer, err := tf5muxserver.NewMuxServer(ctx, providers...)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var serveOpts []tf5server.ServeOpt
+	if *debugFlag {
+		serveOpts = append(serveOpts, tf5server.WithManagedDebug())
+	}
+
+	err = tf5server.Serve(
+		"registry.terraform.io/labd/commercetools",
+		muxServer.ProviderServer,
+		serveOpts...,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

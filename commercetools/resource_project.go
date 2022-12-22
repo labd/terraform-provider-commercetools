@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
-	"github.com/labd/terraform-provider-commercetools/commercetools/utils"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 // TODO: A lot of fields are optional in this schema that are not optional in platform. When not set via terraform

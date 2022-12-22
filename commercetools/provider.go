@@ -12,6 +12,8 @@ import (
 	"github.com/labd/commercetools-go-sdk/ctutils"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"golang.org/x/oauth2/clientcredentials"
+
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func init() {
@@ -81,12 +83,14 @@ func New(version string) func() *schema.Provider {
 				"commercetools_state":              resourceState(),
 				"commercetools_state_transitions":  resourceStateTransitions(),
 				"commercetools_store":              resourceStore(),
-				"commercetools_subscription":       resourceSubscription(),
 				"commercetools_tax_category_rate":  resourceTaxCategoryRate(),
 				"commercetools_tax_category":       resourceTaxCategory(),
 				"commercetools_category":           resourceCategory(),
 				"commercetools_type":               resourceType(),
 				"commercetools_product_discount":   resourceProductDiscount(),
+
+				// Following items are moved to new terraform-plugin-framework
+				// "commercetools_subscription":       resourceSubscription(),
 			},
 		}
 		p.ConfigureContextFunc = providerConfigure(version, p)
@@ -135,4 +139,4 @@ func providerConfigure(version string, p *schema.Provider) func(context.Context,
 }
 
 // This is a global MutexKV for use within this plugin.
-var ctMutexKV = NewMutexKV()
+var ctMutexKV = utils.NewMutexKV()
