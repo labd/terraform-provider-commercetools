@@ -532,7 +532,7 @@ func flattenProjectShippingRateInputType(val platform.ShippingRateInputType) str
 
 func flattenProjectMessages(val platform.MessagesConfiguration, d *schema.ResourceData) []map[string]any {
 	if current, ok := d.Get("messages").([]any); ok {
-		if len(current) == 0 && !val.Enabled {
+		if len(current) == 0 && !val.Enabled && val.DeleteDaysAfterCreation == nil {
 			return nil
 		}
 
