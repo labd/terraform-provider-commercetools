@@ -16,7 +16,7 @@ resource "commercetools_project_settings" "my-project" {
   }
   shipping_rate_input_type = "CartClassification"
 
-  shipping_rate_cart_classification_values {
+  shipping_rate_cart_classification_value {
     key = "Small"
     label = {
       "en" = "Small"

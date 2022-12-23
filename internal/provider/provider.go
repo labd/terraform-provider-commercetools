@@ -16,6 +16,7 @@ import (
 	"github.com/labd/commercetools-go-sdk/platform"
 	"golang.org/x/oauth2/clientcredentials"
 
+	"github.com/labd/terraform-provider-commercetools/internal/resources/project"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/subscription"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
@@ -181,6 +182,6 @@ func (p *ctProvider) DataSources(_ context.Context) []func() datasource.DataSour
 func (p *ctProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		subscription.NewSubscriptionResource,
+		project.NewResource,
 	}
-
 }
