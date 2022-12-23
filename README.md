@@ -68,6 +68,14 @@ To then locally test:
 $ cp terraform-provider-commercetools_${LOCAL_TEST_VERSION} ~/.terraform.d/plugins/local/labd/commercetools/${LOCAL_TEST_VERSION}/${OS_ARCH}/terraform-provider-commercetools_${LOCAL_TEST_VERSION}
 ```
 
+## Adding new resources
+When commercetools releases new features which include new resources these need to be implemented
+in terraform as new resources too. This provider is currently undergoing a migration path to
+move from [terraform-plugin-sdk](https://github.com/hashicorp/terraform-plugin-sdk/) to the new
+[terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework/). All new
+resources therefore need to be written using the terraform-plugin-framework module. See the
+`subscription` component as example.
+
 ## Debugging / Troubleshooting
 
 There are two environment settings for troubleshooting:
