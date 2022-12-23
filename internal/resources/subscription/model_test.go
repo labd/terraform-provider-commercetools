@@ -165,3 +165,68 @@ func TestImport(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateActions(t *testing.T) {
+	testCases := []struct {
+		name     string
+		state    Subscription
+		plan     Subscription
+		expected platform.SubscriptionUpdate
+	}{
+		{
+			name: "test",
+			state: Subscription{
+				Version: types.Int64Value(10),
+				Key:     types.StringValue("foo"),
+			},
+			plan: Subscription{
+				Key: types.StringValue("foobar"),
+			},
+			expected: platform.SubscriptionUpdate{
+				Version: 10,
+				Actions: []platform.SubscriptionUpdateAction{
+					platform.SubscriptionSetKeyAction{
+						Key: utils.StringRef("foobar"),
+					},
+				},
+			},
+		},
+		{
+			name: "test",
+			state: Subscription{
+				Version: types.Int64Value(10),
+				Key:     types.StringValue("foo"),
+			},
+			plan: Subscription{
+				Key: types.StringNull(),
+				Messages: []Message{
+					{
+						ResourceTypeID: types.StringValue("product"),
+					},
+				},
+			},
+			expected: platform.SubscriptionUpdate{
+				Version: 10,
+				Actions: []platform.SubscriptionUpdateAction{
+					platform.SubscriptionSetKeyAction{
+						Key: nil,
+					},
+					platform.SubscriptionSetMessagesAction{
+						Messages: []platform.MessageSubscription{
+							{
+								ResourceTypeId: "product",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.state.UpdateActions(tc.plan)
+			assert.EqualValues(t, tc.expected, result)
+		})
+	}
+}

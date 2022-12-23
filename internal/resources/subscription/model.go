@@ -253,10 +253,20 @@ func (s Subscription) UpdateActions(n Subscription) platform.SubscriptionUpdate 
 		Actions: []platform.SubscriptionUpdateAction{},
 	}
 
+	if s.Key != n.Key {
+		var value *string
+		if !n.Key.IsNull() && !n.Key.IsUnknown() {
+			value = utils.StringRef(n.Key.ValueString())
+		}
+		result.Actions = append(
+			result.Actions,
+			platform.SubscriptionSetKeyAction{Key: value})
+	}
+
 	if !reflect.DeepEqual(s.Destination, n.Destination) {
 		result.Actions = append(
 			result.Actions,
-			&platform.SubscriptionChangeDestinationAction{Destination: n.Destination.ToNative()})
+			platform.SubscriptionChangeDestinationAction{Destination: n.Destination.ToNative()})
 	}
 
 	if !reflect.DeepEqual(s.Messages, n.Messages) {
@@ -265,7 +275,7 @@ func (s Subscription) UpdateActions(n Subscription) platform.SubscriptionUpdate 
 		})
 		result.Actions = append(
 			result.Actions,
-			&platform.SubscriptionSetMessagesAction{Messages: messages})
+			platform.SubscriptionSetMessagesAction{Messages: messages})
 	}
 
 	return result

@@ -16,7 +16,7 @@ func OptionalString(value types.String) *string {
 
 func FromOptionalString(value *string) basetypes.StringValue {
 	if value == nil {
-		return types.StringUnknown()
+		return types.StringNull()
 	}
 	return types.StringValue(*value)
 }
