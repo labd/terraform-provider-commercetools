@@ -32,7 +32,7 @@ func resourceAPIExtensionResourceV0() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"resource_type_id": {
-							Description: "Currently, cart, order, payment, and customer are supported",
+							Description: "Currently, cart, order, payment, customer, quote-request, staged-quote, quote and business-unit are supported",
 							Type:        schema.TypeString,
 							Required:    true,
 						},
