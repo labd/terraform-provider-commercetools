@@ -2,10 +2,8 @@ package project
 
 import (
 	"context"
-	"log"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -55,7 +53,7 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"the project. Updating the settings is eventually consistent, it may take up to a minute before " +
 			"a change becomes fully active.\n\n" +
 			"See also the [Project Settings API Documentation](https://docs.commercetools.com/api/projects/project)",
-		Version: 2,
+		Version: 1,
 		Attributes: map[string]schema.Attribute{
 			// The ID is only here to make testing framework happy.
 			"id": schema.StringAttribute{
@@ -151,71 +149,81 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"messages": schema.SingleNestedBlock{
-				Description: "The change notifications subscribed to",
-				Attributes: map[string]schema.Attribute{
-					"enabled": schema.BoolAttribute{
-						Description: "When true the creation of messages on the Messages Query HTTP API is enabled",
-						Optional:    true,
-						Computed:    true,
-						PlanModifiers: []planmodifier.Bool{
-							boolplanmodifier.UseStateForUnknown(),
-						},
-					},
-					"delete_days_after_creation": schema.Int64Attribute{
-						Description: "Specifies the number of days each Message should be available via the Messages Query API",
-						Optional:    true,
-						Computed:    true,
-						PlanModifiers: []planmodifier.Int64{
-							int64planmodifier.UseStateForUnknown(),
-						},
-					},
-				},
-			},
-			"external_oauth": schema.SingleNestedBlock{
-				MarkdownDescription: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
-				Attributes: map[string]schema.Attribute{
-					"url": schema.StringAttribute{
-						Optional:  true,
-						Sensitive: true,
-						Validators: []validator.String{
-							stringvalidator.AlsoRequires(
-								path.MatchRelative().AtParent().AtName("authorization_header"),
-							),
-						},
-					},
-					"authorization_header": schema.StringAttribute{
-						Description: "Partially hidden on retrieval",
-						Optional:    true,
-						Validators: []validator.String{
-							stringvalidator.AlsoRequires(
-								path.MatchRelative().AtParent().AtName("url"),
-							),
-						},
-					},
-				},
-				/* PlanModifiers: []planmodifier.Object{ */
-				/* 	custommodifier.RemoveBlockModifier(), */
-				/* }, */
-			},
-			"carts": schema.SingleNestedBlock{
+			"carts": schema.ListNestedBlock{
 				MarkdownDescription: "[Carts Configuration](https://docs.commercetools.com/api/projects/project#carts-configuration)",
-				Attributes: map[string]schema.Attribute{
-					"country_tax_rate_fallback_enabled": schema.BoolAttribute{
-						Description: "Indicates if country - no state tax rate fallback should be used when a " +
-							"shipping address state is not explicitly covered in the rates lists of all tax " +
-							"categories of a cart line items",
-						Optional: true,
-						/* PlanModifiers: []planmodifier.Bool{ */
-						/* 	custommodifier.BoolDefault(false), */
-						/* }, */
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"country_tax_rate_fallback_enabled": schema.BoolAttribute{
+							Description: "Indicates if country - no state tax rate fallback should be used when a " +
+								"shipping address state is not explicitly covered in the rates lists of all tax " +
+								"categories of a cart line items",
+							Optional:      true,
+							PlanModifiers: []planmodifier.Bool{
+								// custommodifier.BoolDefault(false),
+							},
+						},
+						"delete_days_after_last_modification": schema.Int64Attribute{
+							Description: "Number - Optional The default value for the " +
+								"deleteDaysAfterLastModification parameter of the CartDraft. Initially set to 90 for " +
+								"projects created after December 2019.",
+							Optional: true,
+						},
 					},
-					"delete_days_after_last_modification": schema.Int64Attribute{
-						Description: "Number - Optional The default value for the " +
-							"deleteDaysAfterLastModification parameter of the CartDraft. Initially set to 90 for " +
-							"projects created after December 2019.",
-						Optional: true,
+				},
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
+			},
+			"messages": schema.ListNestedBlock{
+				Description: "The change notifications subscribed to",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"enabled": schema.BoolAttribute{
+							Description: "When true the creation of messages on the Messages Query HTTP API is enabled",
+							Optional:    true,
+							PlanModifiers: []planmodifier.Bool{
+								boolplanmodifier.UseStateForUnknown(),
+							},
+						},
+						"delete_days_after_creation": schema.Int64Attribute{
+							Description: "Specifies the number of days each Message should be available via the Messages Query API",
+							Optional:    true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
+						},
 					},
+				},
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
+			},
+			"external_oauth": schema.ListNestedBlock{
+				MarkdownDescription: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"url": schema.StringAttribute{
+							Optional:  true,
+							Sensitive: true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(
+									path.MatchRelative().AtParent().AtName("authorization_header"),
+								),
+							},
+						},
+						"authorization_header": schema.StringAttribute{
+							Description: "Partially hidden on retrieval",
+							Optional:    true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(
+									path.MatchRelative().AtParent().AtName("url"),
+								),
+							},
+						},
+					},
+				},
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
 				},
 			},
 			"shipping_rate_cart_classification_value": schema.ListNestedBlock{
@@ -254,20 +262,8 @@ func (r *ProjectResource) Configure(_ context.Context, req resource.ConfigureReq
 	r.client = data.Client
 }
 
-/* func (p *ProjectResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader { */
-/* 	return map[int64]resource.StateUpgrader{ */
-/* 		0: { */
-/* 			StateUpgrader: upgradeStateV0, */
-/* 		}, */
-/* 		1: { */
-/* 			StateUpgrader: upgradeStateV1, */
-/* 		}, */
-/* 	} */
-/* } */
-
 // Create creates the resource and sets the initial Terraform state.
 func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	log.Println("ACTION => CREATE")
 	// Retrieve values from plan
 	var plan Project
 	diags := req.Plan.Get(ctx, &plan)
@@ -300,8 +296,6 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 
 	result := NewProjectFromNative(res)
 	result.SetStateData(plan)
-	log.Println(spew.Sdump(result.Version))
-	log.Println(spew.Sdump(plan.Version))
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, result)
@@ -313,7 +307,6 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 
 // Read refreshes the Terraform state with the latest data.
 func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	log.Println("ACTION => READ")
 	// Get current state
 	var state Project
 	diags := req.State.Get(ctx, &state)
@@ -322,22 +315,19 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	/* res, err := r.client.Get().Execute(ctx) */
-	/* if err != nil { */
-	/* 	resp.Diagnostics.AddError( */
-	/* 		"Error reading project", */
-	/* 		"Could not retrieve project, unexpected error: "+err.Error(), */
-	/* 	) */
-	/* 	return */
-	/* } */
-	/* current := NewProjectFromNative(res) */
-	/* current.SetStateData(state) */
-
-	/* log.Println(spew.Sdump(state)) */
-	/* log.Println(spew.Sdump(current)) */
+	res, err := r.client.Get().Execute(ctx)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading project",
+			"Could not retrieve project, unexpected error: "+err.Error(),
+		)
+		return
+	}
+	current := NewProjectFromNative(res)
+	current.SetStateData(state)
 
 	// Set refreshed state
-	diags = resp.State.Set(ctx, state)
+	diags = resp.State.Set(ctx, current)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -346,7 +336,6 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	log.Println("ACTION => UPDATE")
 	// Retrieve values from plan
 	var plan Project
 	diags := req.Plan.Get(ctx, &plan)
@@ -377,10 +366,6 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 	result := NewProjectFromNative(res)
 	plan.SetNewData(result)
-
-	log.Println(spew.Sdump(state))
-	log.Println(spew.Sdump(plan))
-	log.Println(spew.Sdump(result))
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)

@@ -37,6 +37,13 @@ func FromOptionalInt(value *int) basetypes.Int64Value {
 	return types.Int64Value(int64(*value))
 }
 
+func FromOptionalBool(value *bool) basetypes.BoolValue {
+	if value == nil {
+		return types.BoolNull()
+	}
+	return types.BoolValue(*value)
+}
+
 func StringRef(value any) *string {
 	if value == nil {
 		return nil

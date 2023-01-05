@@ -24,9 +24,12 @@ type Project struct {
 	EnableSearchIndexProducts types.Bool `tfsdk:"enable_search_index_products"`
 	EnableSearchIndexOrders   types.Bool `tfsdk:"enable_search_index_orders"`
 
-	Carts         *Carts         `tfsdk:"carts"`
-	Messages      *Messages      `tfsdk:"messages"`
-	ExternalOAuth *ExternalOAuth `tfsdk:"external_oauth"`
+	// These items all have maximal one item. We don't use SingleNestedBlock
+	// here since it isn't quite robust currently.
+	// See https://github.com/hashicorp/terraform-plugin-framework/issues/603
+	Carts         []Carts         `tfsdk:"carts"`
+	Messages      []Messages      `tfsdk:"messages"`
+	ExternalOAuth []ExternalOAuth `tfsdk:"external_oauth"`
 
 	ShippingRateInputType               types.String                           `tfsdk:"shipping_rate_input_type"`
 	ShippingRateCartClassificationValue []models.CustomFieldLocalizedEnumValue `tfsdk:"shipping_rate_cart_classification_value"`
@@ -46,15 +49,19 @@ func NewProjectFromNative(n *platform.Project) Project {
 		EnableSearchIndexProducts: types.BoolValue(false),
 		EnableSearchIndexOrders:   types.BoolValue(false),
 
-		/* Carts: &Carts{ */
-		/* 	DeleteDaysAfterLastModification: utils.FromOptionalInt(n.Carts.DeleteDaysAfterLastModification), */
-		/* 	CountryTaxRateFallbackEnabled:   types.BoolValue(*n.Carts.CountryTaxRateFallbackEnabled), */
-		/* }, */
-		/* Messages: &Messages{ */
-		/* 	DeleteDaysAfterCreation: utils.FromOptionalInt(n.Messages.DeleteDaysAfterCreation), */
-		/* 	Enabled:                 types.BoolValue(n.Messages.Enabled), */
-		/* }, */
-		/* ExternalOAuth: nil, */
+		Carts: []Carts{
+			{
+				DeleteDaysAfterLastModification: utils.FromOptionalInt(n.Carts.DeleteDaysAfterLastModification),
+				CountryTaxRateFallbackEnabled:   utils.FromOptionalBool(n.Carts.CountryTaxRateFallbackEnabled),
+			},
+		},
+		Messages: []Messages{
+			{
+				DeleteDaysAfterCreation: utils.FromOptionalInt(n.Messages.DeleteDaysAfterCreation),
+				Enabled:                 types.BoolValue(n.Messages.Enabled),
+			},
+		},
+		ExternalOAuth: []ExternalOAuth{},
 	}
 
 	switch s := n.ShippingRateInputType.(type) {
@@ -85,12 +92,14 @@ func NewProjectFromNative(n *platform.Project) Project {
 		res.EnableSearchIndexOrders = types.BoolValue(enabled)
 	}
 
-	/* if n.ExternalOAuth != nil { */
-	/* 	res.ExternalOAuth = &ExternalOAuth{ */
-	/* 		URL:                 types.StringValue(n.ExternalOAuth.Url), */
-	/* 		AuthorizationHeader: types.StringUnknown(), */
-	/* 	} */
-	/* } */
+	if n.ExternalOAuth != nil {
+		res.ExternalOAuth = []ExternalOAuth{
+			{
+				URL:                 types.StringValue(n.ExternalOAuth.Url),
+				AuthorizationHeader: types.StringUnknown(),
+			},
+		}
+	}
 
 	return res
 }
@@ -105,80 +114,78 @@ func (p *Project) SetNewData(o Project) {
 }
 
 func (p *Project) SetStateData(o Project) {
-	/*
-		if p.ExternalOAuth != nil {
-			p.ExternalOAuth.AuthorizationHeader = o.ExternalOAuth.AuthorizationHeader
-		}
+	if len(p.ExternalOAuth) > 0 {
+		p.ExternalOAuth[0].AuthorizationHeader = o.ExternalOAuth[0].AuthorizationHeader
+	}
 
-		// If the state has no data for carts (nil) and the configuration is the
-		// default we match the state
-		if o.Carts == nil &&
-			!p.Carts.CountryTaxRateFallbackEnabled.ValueBool() &&
-			p.Carts.DeleteDaysAfterLastModification.IsNull() {
-			p.Carts = nil
-		}
-		if o.Carts != nil && o.Carts.CountryTaxRateFallbackEnabled.IsNull() &&
-			p.Carts != nil && !p.Carts.CountryTaxRateFallbackEnabled.ValueBool() {
-			p.Carts.CountryTaxRateFallbackEnabled = types.BoolNull()
-		}
-	*/
+	// If the state has no data for carts (0 items) and the configuration is the
+	// default we match the state
+	if p.Carts[0].isDefault() && (len(o.Carts) == 0 || o.Carts[0].isDefault()) {
+		p.Carts = o.Carts
+	}
+
+	// If the state has no data for carts (0 items) and the configuration is the
+	// default we match the state
+	if p.Messages[0].isDefault() && (len(o.Messages) == 0 || o.Messages[0].isDefault()) {
+		p.Messages = o.Messages
+	}
 }
 
-func (p Project) UpdateActions(n Project) platform.ProjectUpdate {
+func (p Project) UpdateActions(plan Project) platform.ProjectUpdate {
 	result := platform.ProjectUpdate{
 		Version: int(p.Version.ValueInt64()),
 		Actions: []platform.ProjectUpdateAction{},
 	}
 
-	if !p.Name.Equal(n.Name) {
+	if !p.Name.Equal(plan.Name) {
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeNameAction{
-				Name: n.Name.ValueString(),
+				Name: plan.Name.ValueString(),
 			},
 		)
 	}
 
-	if !reflect.DeepEqual(p.Countries, n.Countries) {
+	if !reflect.DeepEqual(p.Countries, plan.Countries) {
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeCountriesAction{
-				Countries: pie.Map(n.Countries, func(val types.String) string {
+				Countries: pie.Map(plan.Countries, func(val types.String) string {
 					return val.ValueString()
 				}),
 			},
 		)
 	}
 
-	if !reflect.DeepEqual(p.Currencies, n.Currencies) {
+	if !reflect.DeepEqual(p.Currencies, plan.Currencies) {
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeCurrenciesAction{
-				Currencies: pie.Map(n.Currencies, func(val types.String) string {
+				Currencies: pie.Map(plan.Currencies, func(val types.String) string {
 					return val.ValueString()
 				}),
 			},
 		)
 	}
 
-	if !reflect.DeepEqual(p.Languages, n.Languages) {
+	if !reflect.DeepEqual(p.Languages, plan.Languages) {
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeLanguagesAction{
-				Languages: pie.Map(n.Languages, func(val types.String) string {
+				Languages: pie.Map(plan.Languages, func(val types.String) string {
 					return val.ValueString()
 				}),
 			},
 		)
 	}
 
-	if !p.EnableSearchIndexProducts.Equal(n.EnableSearchIndexProducts) {
+	if !p.EnableSearchIndexProducts.Equal(plan.EnableSearchIndexProducts) {
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeProductSearchIndexingEnabledAction{
-				Enabled: n.EnableSearchIndexProducts.ValueBool(),
+				Enabled: plan.EnableSearchIndexProducts.ValueBool(),
 			},
 		)
 	}
 
-	if !p.EnableSearchIndexOrders.Equal(n.EnableSearchIndexOrders) {
+	if !p.EnableSearchIndexOrders.Equal(plan.EnableSearchIndexOrders) {
 		status := platform.OrderSearchStatusDeactivated
-		if n.EnableSearchIndexOrders.ValueBool() {
+		if plan.EnableSearchIndexOrders.ValueBool() {
 			status = platform.OrderSearchStatusActivated
 		}
 		result.Actions = append(result.Actions,
@@ -188,13 +195,14 @@ func (p Project) UpdateActions(n Project) platform.ProjectUpdate {
 		)
 	}
 
-	if !p.ShippingRateInputType.Equal(n.ShippingRateInputType) {
+	if !p.ShippingRateInputType.Equal(plan.ShippingRateInputType) ||
+		!reflect.DeepEqual(p.ShippingRateCartClassificationValue, plan.ShippingRateCartClassificationValue) {
 		var value platform.ShippingRateInputType
-		switch n.ShippingRateInputType.ValueString() {
+		switch plan.ShippingRateInputType.ValueString() {
 		case "CartClassification":
 			value = platform.CartClassificationType{
 				Values: pie.Map(
-					n.ShippingRateCartClassificationValue,
+					plan.ShippingRateCartClassificationValue,
 					func(v models.CustomFieldLocalizedEnumValue) platform.CustomFieldLocalizedEnumValue {
 						return v.ToNative()
 					}),
@@ -212,45 +220,55 @@ func (p Project) UpdateActions(n Project) platform.ProjectUpdate {
 		)
 	}
 
-	if !reflect.DeepEqual(p.Messages, n.Messages) {
+	if !reflect.DeepEqual(p.Messages, plan.Messages) {
+		if len(plan.Messages) > 0 {
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeMessagesConfigurationAction{
+					MessagesConfiguration: plan.Messages[0].toNative(),
+				},
+			)
+		} else {
+			// Set message configuration to the default values
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeMessagesConfigurationAction{
+					MessagesConfiguration: platform.MessagesConfigurationDraft{
+						Enabled:                 false,
+						DeleteDaysAfterCreation: 15,
+					},
+				},
+			)
+
+		}
+	}
+
+	if !reflect.DeepEqual(p.Carts, plan.Carts) {
+		if len(plan.Carts) == 0 {
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeCartsConfigurationAction{
+					CartsConfiguration: platform.CartsConfiguration{},
+				},
+			)
+		} else {
+			val := plan.Carts[0].toNative()
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeCartsConfigurationAction{
+					CartsConfiguration: val,
+				},
+			)
+		}
+	}
+
+	if !reflect.DeepEqual(p.ExternalOAuth, plan.ExternalOAuth) {
+		var value *platform.ExternalOAuth
+		if len(plan.ExternalOAuth) > 0 {
+			value = plan.ExternalOAuth[0].toNative()
+		}
 		result.Actions = append(result.Actions,
-			platform.ProjectChangeMessagesConfigurationAction{
-				MessagesConfiguration: n.Messages.toNative(),
+			platform.ProjectSetExternalOAuthAction{
+				ExternalOAuth: value,
 			},
 		)
 	}
-
-	/* if !reflect.DeepEqual(p.Carts, n.Carts) { */
-	/* 	log.Println(spew.Sdump(p.Carts)) */
-	/* 	log.Println(spew.Sdump(n.Carts)) */
-
-	/* 	if (p.Carts != nil && !p.Carts.isDefault()) || */
-	/* 		(n.Carts != nil && !n.Carts.isDefault()) { */
-
-	/* 		var val platform.CartsConfiguration */
-	/* 		if n.Carts != nil { */
-	/* 			val = n.Carts.toNative() */
-	/* 		} */
-	/* 		result.Actions = append(result.Actions, */
-	/* 			platform.ProjectChangeCartsConfigurationAction{ */
-	/* 				CartsConfiguration: val, */
-	/* 			}, */
-	/* 		) */
-	/* 	} */
-	/* } */
-
-	/* if !reflect.DeepEqual(p.ExternalOAuth, n.ExternalOAuth) { */
-	/* 	var value *platform.ExternalOAuth */
-	/* 	if n.ExternalOAuth != nil { */
-	/* 		value = n.ExternalOAuth.toNative() */
-
-	/* 	} */
-	/* 	result.Actions = append(result.Actions, */
-	/* 		platform.ProjectSetExternalOAuthAction{ */
-	/* 			ExternalOAuth: value, */
-	/* 		}, */
-	/* 	) */
-	/* } */
 
 	return result
 }
@@ -265,6 +283,9 @@ func (m Messages) toNative() platform.MessagesConfigurationDraft {
 		Enabled:                 m.Enabled.ValueBool(),
 		DeleteDaysAfterCreation: int(m.DeleteDaysAfterCreation.ValueInt64()),
 	}
+}
+func (m Messages) isDefault() bool {
+	return !m.toNative().Enabled && m.DeleteDaysAfterCreation.ValueInt64() == 15
 }
 
 type ExternalOAuth struct {

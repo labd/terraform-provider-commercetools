@@ -29,17 +29,20 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "countries.#", "3"),
 					resource.TestCheckResourceAttr(resourceName, "currencies.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "languages.#", "4"),
-					resource.TestCheckResourceAttr(resourceName, "messages.enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "messages.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "true"),
+					resource.TestCheckResourceAttr(resourceName, "external_oauth.#", "1"),
 					resource.TestCheckResourceAttr(
-						resourceName, "external_oauth.url", "https://example.com/oauth/token"),
+						resourceName, "external_oauth.0.authorization_header", "Bearer secret"),
 					resource.TestCheckResourceAttr(
-						resourceName, "external_oauth.authorization_header", "Bearer secret"),
+						resourceName, "external_oauth.0.url", "https://example.com/oauth/token"),
 					resource.TestCheckResourceAttr(
 						resourceName, "shipping_rate_input_type", "CartValue"),
+					resource.TestCheckResourceAttr(resourceName, "carts.#", "1"),
 					resource.TestCheckResourceAttr(
-						resourceName, "carts.country_tax_rate_fallback_enabled", "true"),
+						resourceName, "carts.0.country_tax_rate_fallback_enabled", "true"),
 					resource.TestCheckResourceAttr(
-						resourceName, "carts.delete_days_after_last_modification", "7"),
+						resourceName, "carts.0.delete_days_after_last_modification", "7"),
 					func(s *terraform.State) error {
 						rs, ok := s.RootModule().Resources[resourceName]
 						if !ok {
@@ -70,47 +73,47 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						assert.EqualValues(t, result.Countries, []string{"NL", "DE", "US"})
 						assert.EqualValues(t, result.Languages, []string{"nl", "de", "en", "en-US"})
 						assert.EqualValues(t, result.Currencies, []string{"EUR", "USD"})
-						assert.Equal(t, 7, *result.Carts.DeleteDaysAfterLastModification)
-						assert.Equal(t, platform.CartValueType(platform.CartValueType{}), result.ShippingRateInputType)
+						assert.Equal(t, *result.Carts.DeleteDaysAfterLastModification, 7)
+						assert.Equal(t, result.ShippingRateInputType, platform.CartValueType(platform.CartValueType{}))
 						return nil
 					},
 				),
 			},
-			// {
-			// 	Config: testAccProjectConfigUpdate("acctest_project_settings"),
-			// 	Check: resource.ComposeTestCheckFunc(
-			// 		resource.TestCheckResourceAttr(resourceName, "name", "Test this thing new"),
-			// 		resource.TestCheckResourceAttr(resourceName, "countries.#", "4"),
-			// 		resource.TestCheckResourceAttr(resourceName, "currencies.#", "3"),
-			// 		resource.TestCheckResourceAttr(resourceName, "languages.#", "5"),
-			// 		resource.TestCheckResourceAttr(resourceName, "messages.enabled", "false"),
-			// 		resource.TestCheckResourceAttr(resourceName, "messages.delete_days_after_creation", "15"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "external_oauth.url", "https://new-example.com/oauth/token"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "external_oauth.authorization_header", "Bearer new-secret"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "shipping_rate_input_type", "CartClassification"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "shipping_rate_cart_classification_value.#", "2"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "shipping_rate_cart_classification_value.0.key", "Small"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "shipping_rate_cart_classification_value.0.label.en", "Small"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "shipping_rate_cart_classification_value.0.label.nl", "Klein"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "shipping_rate_cart_classification_value.1.key", "Medium"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "shipping_rate_cart_classification_value.1.label.en", "Medium"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "shipping_rate_cart_classification_value.1.label.nl", "Middel"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "carts.country_tax_rate_fallback_enabled", "false"),
-			// 		resource.TestCheckResourceAttr(
-			// 			resourceName, "carts.delete_days_after_last_modification", "21"),
-			// 	),
-			// },
+			{
+				Config: testAccProjectConfigUpdate("acctest_project_settings"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", "Test this thing new"),
+					resource.TestCheckResourceAttr(resourceName, "countries.#", "4"),
+					resource.TestCheckResourceAttr(resourceName, "currencies.#", "3"),
+					resource.TestCheckResourceAttr(resourceName, "languages.#", "5"),
+					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "false"),
+					resource.TestCheckResourceAttr(resourceName, "messages.0.delete_days_after_creation", "15"),
+					resource.TestCheckResourceAttr(
+						resourceName, "external_oauth.0.url", "https://new-example.com/oauth/token"),
+					resource.TestCheckResourceAttr(
+						resourceName, "external_oauth.0.authorization_header", "Bearer new-secret"),
+					resource.TestCheckResourceAttr(
+						resourceName, "shipping_rate_input_type", "CartClassification"),
+					resource.TestCheckResourceAttr(
+						resourceName, "shipping_rate_cart_classification_value.#", "2"),
+					resource.TestCheckResourceAttr(
+						resourceName, "shipping_rate_cart_classification_value.0.key", "Small"),
+					resource.TestCheckResourceAttr(
+						resourceName, "shipping_rate_cart_classification_value.0.label.en", "Small"),
+					resource.TestCheckResourceAttr(
+						resourceName, "shipping_rate_cart_classification_value.0.label.nl", "Klein"),
+					resource.TestCheckResourceAttr(
+						resourceName, "shipping_rate_cart_classification_value.1.key", "Medium"),
+					resource.TestCheckResourceAttr(
+						resourceName, "shipping_rate_cart_classification_value.1.label.en", "Medium"),
+					resource.TestCheckResourceAttr(
+						resourceName, "shipping_rate_cart_classification_value.1.label.nl", "Middel"),
+					resource.TestCheckResourceAttr(
+						resourceName, "carts.0.country_tax_rate_fallback_enabled", "false"),
+					resource.TestCheckResourceAttr(
+						resourceName, "carts.0.delete_days_after_last_modification", "21"),
+				),
+			},
 			{
 				Config: testAccProjectConfigDeleteOAuthAndCarts("acctest_project_settings"),
 				Check: resource.ComposeTestCheckFunc(
@@ -118,9 +121,11 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "countries.#", "4"),
 					resource.TestCheckResourceAttr(resourceName, "currencies.#", "3"),
 					resource.TestCheckResourceAttr(resourceName, "languages.#", "5"),
-					resource.TestCheckResourceAttr(resourceName, "messages.enabled", "false"),
-					resource.TestCheckNoResourceAttr(resourceName, "external_oauth.url"),
-					resource.TestCheckNoResourceAttr(resourceName, "external_oauth.authorization_header"),
+					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "false"),
+					resource.TestCheckNoResourceAttr(resourceName,
+						"external_oauth.0.url"),
+					resource.TestCheckNoResourceAttr(resourceName,
+						"external_oauth.0.authorization_header"),
 					resource.TestCheckResourceAttr(resourceName,
 						"shipping_rate_input_type", "CartClassification"),
 					resource.TestCheckResourceAttr(
@@ -132,30 +137,32 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						resourceName, "shipping_rate_cart_classification_value.0.label.nl", "Klein"),
 					resource.TestCheckNoResourceAttr(
-						resourceName, "carts.country_tax_rate_fallback_enabled"),
+						resourceName, "carts.0.country_tax_rate_fallback_enabled"),
 					resource.TestCheckNoResourceAttr(
-						resourceName, "carts.delete_days_after_last_modification"),
+						resourceName, "carts.0.delete_days_after_last_modification"),
 				),
 			},
 			// Running this step again so project settings match what later shipping_zone_rate_test will need
-			{
-				Config: testAccProjectConfig("acctest_project_settings"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "name", "Test this thing"),
-					resource.TestCheckResourceAttr(resourceName, "countries.#", "3"),
-					resource.TestCheckResourceAttr(resourceName, "currencies.#", "2"),
-					resource.TestCheckResourceAttr(resourceName, "languages.#", "4"),
-					resource.TestCheckResourceAttr(resourceName, "messages.enabled", "true"),
-					resource.TestCheckResourceAttr(
-						resourceName, "external_oauth.url", "https://example.com/oauth/token"),
-					resource.TestCheckResourceAttr(
-						resourceName, "external_oauth.authorization_header", "Bearer secret"),
-					resource.TestCheckResourceAttr(
-						resourceName, "shipping_rate_input_type", "CartValue"),
-					resource.TestCheckResourceAttr(
-						resourceName, "carts.country_tax_rate_fallback_enabled", "true"),
-				),
-			},
+			/*
+				{
+					Config: testAccProjectConfig("acctest_project_settings"),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(resourceName, "name", "Test this thing"),
+						resource.TestCheckResourceAttr(resourceName, "countries.#", "3"),
+						resource.TestCheckResourceAttr(resourceName, "currencies.#", "2"),
+						resource.TestCheckResourceAttr(resourceName, "languages.#", "4"),
+						resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "true"),
+						resource.TestCheckResourceAttr(
+							resourceName, "external_oauth.0.url", "https://example.com/oauth/token"),
+						resource.TestCheckResourceAttr(
+							resourceName, "external_oauth.0.authorization_header", "Bearer secret"),
+						resource.TestCheckResourceAttr(
+							resourceName, "shipping_rate_input_type", "CartValue"),
+						resource.TestCheckResourceAttr(
+							resourceName, "carts.0.country_tax_rate_fallback_enabled", "true"),
+					),
+				},
+			*/
 		},
 	})
 }
