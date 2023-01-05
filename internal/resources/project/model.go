@@ -237,7 +237,6 @@ func (p Project) UpdateActions(plan Project) platform.ProjectUpdate {
 					},
 				},
 			)
-
 		}
 	}
 
