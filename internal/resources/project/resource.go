@@ -262,6 +262,14 @@ func (r *ProjectResource) Configure(_ context.Context, req resource.ConfigureReq
 	r.client = data.Client
 }
 
+func (p *ProjectResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			StateUpgrader: upgradeStateV0,
+		},
+	}
+}
+
 // Create creates the resource and sets the initial Terraform state.
 func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
