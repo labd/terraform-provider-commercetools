@@ -11,18 +11,17 @@ import (
 )
 
 func TestDestination(t *testing.T) {
-	dest := Destination{}
 	native := platform.SqsDestination{
 		QueueUrl: "https://sqs.eu-central-1.amazonaws.com/123456789012/terraform-test",
 		Region:   "eu-central-1",
 	}
-	dest.Import(native, nil)
+	dest := NewDestinationFromNative(native)
 	assert.Equal(t, dest, Destination{
 		Type:         types.StringValue("SQS"),
 		QueueURL:     types.StringValue("https://sqs.eu-central-1.amazonaws.com/123456789012/terraform-test"),
 		Region:       types.StringValue("eu-central-1"),
-		AccessKey:    types.StringUnknown(),
-		AccessSecret: types.StringUnknown(),
+		AccessKey:    types.StringNull(),
+		AccessSecret: types.StringNull(),
 	})
 
 }
@@ -71,6 +70,20 @@ func TestImport(t *testing.T) {
 			},
 		},
 		{
+			name: "AzureServiceBusDestination (state)",
+			n: platform.AzureServiceBusDestination{
+				ConnectionString: "Endpoint=sb://michael-temp.servicebus.windows.net/;SharedAccessKeyName=test;SharedAccessKey=****1Fw=;EntityPath=my-test-queue",
+			},
+			state: &Destination{
+				Type:             types.StringValue("AzureServiceBus"),
+				ConnectionString: types.StringValue("Endpoint=sb://michael-temp.servicebus.windows.net/;SharedAccessKeyName=test;SharedAccessKey=17108y4812311Fw=;EntityPath=my-test-queue"),
+			},
+			wantDest: Destination{
+				Type:             types.StringValue("AzureServiceBus"),
+				ConnectionString: types.StringValue("Endpoint=sb://michael-temp.servicebus.windows.net/;SharedAccessKeyName=test;SharedAccessKey=17108y4812311Fw=;EntityPath=my-test-queue"),
+			},
+		},
+		{
 			name: "EventBridgeDestination",
 			n: platform.EventBridgeDestination{
 				AccountId: "test-account-id",
@@ -103,8 +116,8 @@ func TestImport(t *testing.T) {
 			wantDest: Destination{
 				Type:         types.StringValue("SNS"),
 				TopicARN:     types.StringValue("test-topic-arn"),
-				AccessKey:    types.StringUnknown(),
-				AccessSecret: types.StringUnknown(),
+				AccessKey:    types.StringNull(),
+				AccessSecret: types.StringNull(),
 			},
 		},
 		{
@@ -134,8 +147,8 @@ func TestImport(t *testing.T) {
 				Type:         types.StringValue("SQS"),
 				Region:       types.StringValue("test-region"),
 				QueueURL:     types.StringValue("test-queue-url"),
-				AccessKey:    types.StringUnknown(),
-				AccessSecret: types.StringUnknown(),
+				AccessKey:    types.StringNull(),
+				AccessSecret: types.StringNull(),
 			},
 		},
 		{
@@ -159,8 +172,8 @@ func TestImport(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			d := &Destination{}
-			d.Import(tc.n, tc.state)
+			d := NewDestinationFromNative(tc.n)
+			d.SetStateData(tc.state)
 			assert.EqualValues(t, tc.wantDest, *d)
 		})
 	}

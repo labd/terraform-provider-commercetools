@@ -2,12 +2,22 @@ package subscription
 
 import (
 	"reflect"
+	"regexp"
 
 	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"
 
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
+)
+
+const (
+	AzureServiceBus   = "AzureServiceBus"
+	EventBridge       = "EventBridge"
+	EventGrid         = "EventGrid"
+	GoogleCloudPubSub = "GoogleCloudPubSub"
+	SNS               = "SNS"
+	SQS               = "SQS"
 )
 
 // Subscription is the main resource schema data
@@ -21,19 +31,106 @@ type Subscription struct {
 	Changes     []Changes    `tfsdk:"changes"`
 }
 
-type Changes struct {
-	ResourceTypeIds []types.String `tfsdk:"resource_type_ids"`
-}
+func NewSubscriptionFromNative(n *platform.Subscription) Subscription {
+	res := Subscription{
+		ID:          types.StringValue(n.ID),
+		Version:     types.Int64Value(int64(n.Version)),
+		Key:         utils.FromOptionalString(n.Key),
+		Format:      NewFormatFromNative(n.Format),
+		Destination: NewDestinationFromNative(n.Destination),
+		Messages:    make([]Message, len(n.Messages)),
+		Changes:     []Changes{},
+	}
 
-func (c Changes) ToNative() []platform.ChangeSubscription {
-	result := make([]platform.ChangeSubscription, len(c.ResourceTypeIds))
+	if len(n.Changes) > 0 {
+		item := Changes{
+			ResourceTypeIds: pie.Map(n.Changes, func(c platform.ChangeSubscription) types.String {
+				return types.StringValue(string(c.ResourceTypeId))
+			}),
+		}
+		res.Changes = append(res.Changes, item)
+	}
 
-	for i := range c.ResourceTypeIds {
-		val := c.ResourceTypeIds[i].ValueString()
-		result[i] = platform.ChangeSubscription{
-			ResourceTypeId: platform.ChangeSubscriptionResourceTypeId(val),
+	for i, message := range n.Messages {
+		res.Messages[i] = Message{
+			ResourceTypeID: types.StringValue(string(message.ResourceTypeId)),
+			Types:          pie.Map(message.Types, types.StringValue),
 		}
 	}
+
+	return res
+}
+
+func (p *Subscription) SetStateData(state Subscription) {
+	p.Destination.SetStateData(state.Destination)
+}
+
+func (s Subscription) Draft() platform.SubscriptionDraft {
+	changes := []platform.ChangeSubscription{}
+	for _, c := range s.Changes {
+		changes = append(changes, c.ToNative()...)
+	}
+
+	draft := platform.SubscriptionDraft{
+		Key:         utils.OptionalString(s.Key),
+		Destination: s.Destination.ToNative(),
+		Messages: pie.Map(s.Messages, func(m Message) platform.MessageSubscription {
+			return m.ToNative()
+		}),
+		Changes: changes,
+	}
+
+	if s.Format != nil {
+		draft.Format = s.Format.ToNative()
+	}
+
+	return draft
+}
+
+func (s Subscription) UpdateActions(plan Subscription) platform.SubscriptionUpdate {
+	result := platform.SubscriptionUpdate{
+		Version: int(s.Version.ValueInt64()),
+		Actions: []platform.SubscriptionUpdateAction{},
+	}
+
+	if s.Key != plan.Key {
+		var value *string
+		if !plan.Key.IsNull() && !plan.Key.IsUnknown() {
+			value = utils.StringRef(plan.Key.ValueString())
+		}
+		result.Actions = append(
+			result.Actions,
+			platform.SubscriptionSetKeyAction{Key: value})
+	}
+
+	if !reflect.DeepEqual(s.Destination, plan.Destination) {
+		result.Actions = append(
+			result.Actions,
+			platform.SubscriptionChangeDestinationAction{Destination: plan.Destination.ToNative()})
+	}
+
+	if !reflect.DeepEqual(s.Changes, plan.Changes) {
+		changes := []platform.ChangeSubscription{}
+		for _, c := range plan.Changes {
+			changes = append(changes, c.ToNative()...)
+		}
+
+		result.Actions = append(
+			result.Actions,
+			platform.SubscriptionSetChangesAction{
+				Changes: changes,
+			})
+	}
+
+	if !reflect.DeepEqual(s.Messages, plan.Messages) {
+		messages := pie.Map(plan.Messages, func(m Message) platform.MessageSubscription {
+			return m.ToNative()
+		})
+		result.Actions = append(
+			result.Actions,
+			platform.SubscriptionSetMessagesAction{Messages: messages})
+	}
+
 	return result
 }
 
@@ -66,57 +163,89 @@ type Destination struct {
 	Topic     types.String `tfsdk:"topic"`
 }
 
-func (d *Destination) Import(n platform.Destination, state *Destination) {
+func (d *Destination) SetStateData(state *Destination) {
+	if state == nil {
+		return
+	}
+
+	switch d.Type.ValueString() {
+	case AzureServiceBus:
+		// Quick hack. Filter out the shared access key since that value is
+		// masked by commercetools. If the strings are equal then copy the val
+		// from the state. Otherwise we use the value from the plan
+		re := regexp.MustCompile(`;?SharedAccessKey=[^;]+`)
+		planVal := re.ReplaceAllString(d.ConnectionString.ValueString(), "")
+		stateVal := re.ReplaceAllString(state.ConnectionString.ValueString(), "")
+		if planVal == stateVal {
+			d.ConnectionString = state.ConnectionString
+		}
+	case EventGrid:
+		if d.AccessKey.IsUnknown() {
+			d.AccessKey = state.AccessKey
+		}
+	case SNS, SQS:
+		if d.AccessSecret.IsNull() {
+			d.AccessSecret = state.AccessSecret
+		}
+	}
+}
+
+func NewDestinationFromNative(n platform.Destination) *Destination {
+	d := &Destination{}
 	switch v := n.(type) {
 	case platform.AzureEventGridDestination:
-		d.Type = types.StringValue("EventGrid")
+		d.Type = types.StringValue(EventGrid)
 		d.URI = types.StringValue(v.Uri)
-
-		if state != nil {
-			d.AccessKey = state.AccessKey
-		} else {
-			d.AccessKey = types.StringUnknown()
-		}
+		d.AccessKey = types.StringUnknown()
 	case platform.AzureServiceBusDestination:
-		d.Type = types.StringValue("AzureServiceBus")
+		d.Type = types.StringValue(AzureServiceBus)
 		d.ConnectionString = types.StringValue(v.ConnectionString)
 	case platform.EventBridgeDestination:
-		d.Type = types.StringValue("EventBridge")
+		d.Type = types.StringValue(EventBridge)
 		d.AccountID = types.StringValue(v.AccountId)
 		d.Region = types.StringValue(v.Region)
 	case platform.GoogleCloudPubSubDestination:
-		d.Type = types.StringValue("GoogleCloudPubSub")
+		d.Type = types.StringValue(GoogleCloudPubSub)
 		d.ProjectID = types.StringValue(v.ProjectId)
 		d.Topic = types.StringValue(v.Topic)
 	case platform.SnsDestination:
-		d.Type = types.StringValue("SNS")
+		d.Type = types.StringValue(SNS)
 		d.TopicARN = types.StringValue(v.TopicArn)
 		d.AccessKey = utils.FromOptionalString(v.AccessKey)
-
-		if state != nil {
-			d.AccessSecret = state.AccessSecret
-		} else {
-			d.AccessSecret = types.StringUnknown()
-		}
+		d.AccessSecret = types.StringNull()
 	case platform.SqsDestination:
-		d.Type = types.StringValue("SQS")
+		d.Type = types.StringValue(SQS)
 		d.QueueURL = types.StringValue(v.QueueUrl)
-		d.AccessKey = utils.FromOptionalString(v.AccessKey)
 		d.Region = types.StringValue(v.Region)
-
-		if state != nil {
-			d.AccessSecret = state.AccessSecret
-		} else {
-			d.AccessSecret = types.StringUnknown()
-		}
+		d.AccessKey = utils.FromOptionalString(v.AccessKey)
+		d.AccessSecret = types.StringNull()
 	}
+	return d
 }
 
 func (d Destination) ToNative() platform.Destination {
 	val := d.Type.ValueString()
 
 	switch val {
-	case "SQS":
+	case AzureServiceBus:
+		return platform.AzureServiceBusDestination{
+			ConnectionString: d.ConnectionString.ValueString(),
+		}
+	case EventBridge:
+		return platform.EventBridgeDestination{
+			Region:    d.Region.ValueString(),
+			AccountId: d.AccountID.ValueString(),
+		}
+	case EventGrid:
+		return platform.AzureEventGridDestination{
+			AccessKey: d.AccessKey.ValueString(),
+		}
+	case GoogleCloudPubSub:
+		return platform.GoogleCloudPubSubDestination{
+			ProjectId: d.ProjectID.ValueString(),
+			Topic:     d.TopicARN.ValueString(),
+		}
+	case SQS:
 		result := platform.SqsDestination{
 			AccessKey:    utils.OptionalString(d.AccessKey),
 			AccessSecret: utils.OptionalString(d.AccessSecret),
@@ -128,7 +257,7 @@ func (d Destination) ToNative() platform.Destination {
 			result.AuthenticationMode = &authMode
 		}
 		return result
-	case "SNS":
+	case SNS:
 		result := platform.SnsDestination{
 			AccessKey:    utils.OptionalString(d.AccessKey),
 			AccessSecret: utils.OptionalString(d.AccessSecret),
@@ -141,6 +270,22 @@ func (d Destination) ToNative() platform.Destination {
 		return result
 	}
 	return nil
+}
+
+type Changes struct {
+	ResourceTypeIds []types.String `tfsdk:"resource_type_ids"`
+}
+
+func (c Changes) ToNative() []platform.ChangeSubscription {
+	result := make([]platform.ChangeSubscription, len(c.ResourceTypeIds))
+
+	for i := range c.ResourceTypeIds {
+		val := c.ResourceTypeIds[i].ValueString()
+		result[i] = platform.ChangeSubscription{
+			ResourceTypeId: platform.ChangeSubscriptionResourceTypeId(val),
+		}
+	}
+	return result
 }
 
 type Format struct {
@@ -169,13 +314,18 @@ func (f Format) ToNative() platform.DeliveryFormat {
 	return nil
 }
 
-func (f *Format) Import(n platform.DeliveryFormat) {
+func NewFormatFromNative(n platform.DeliveryFormat) *Format {
 	switch v := n.(type) {
-	case platform.PlatformFormat:
-		f.Type = types.StringValue("Platform")
 	case platform.CloudEventsFormat:
-		f.Type = types.StringValue("CloudEvents")
-		f.CloudEventVersion = types.StringValue(v.CloudEventsVersion)
+		return &Format{
+			Type:              types.StringValue("CloudEvents"),
+			CloudEventVersion: types.StringValue(v.CloudEventsVersion),
+		}
+	default:
+		return &Format{
+			Type:              types.StringValue("Platform"),
+			CloudEventVersion: types.StringNull(),
+		}
 	}
 }
 
@@ -191,92 +341,4 @@ func (m Message) ToNative() platform.MessageSubscription {
 			return v.ValueString()
 		}),
 	}
-}
-
-func (s Subscription) Draft() platform.SubscriptionDraft {
-	changes := []platform.ChangeSubscription{}
-	for _, c := range s.Changes {
-		changes = append(changes, c.ToNative()...)
-	}
-
-	draft := platform.SubscriptionDraft{
-		Key:         utils.OptionalString(s.Key),
-		Destination: s.Destination.ToNative(),
-		Messages: pie.Map(s.Messages, func(m Message) platform.MessageSubscription {
-			return m.ToNative()
-		}),
-		Changes: changes,
-	}
-
-	if s.Format != nil {
-		draft.Format = s.Format.ToNative()
-	}
-
-	return draft
-}
-
-func (s *Subscription) Import(n *platform.Subscription, state Subscription) {
-	s.ID = types.StringValue(n.ID)
-	s.Version = types.Int64Value(int64(n.Version))
-	s.Key = utils.FromOptionalString(n.Key)
-
-	if s.Format == nil {
-		s.Format = &Format{}
-	}
-	s.Format.Import(n.Format)
-
-	if s.Destination == nil {
-		s.Destination = &Destination{}
-	}
-	s.Destination.Import(n.Destination, state.Destination)
-
-	s.Changes = []Changes{
-		{
-			ResourceTypeIds: pie.Map(n.Changes, func(c platform.ChangeSubscription) types.String {
-				return types.StringValue(string(c.ResourceTypeId))
-			}),
-		},
-	}
-
-	s.Messages = make([]Message, len(n.Messages))
-	for i, message := range n.Messages {
-		s.Messages[i] = Message{
-			ResourceTypeID: types.StringValue(string(message.ResourceTypeId)),
-			Types:          pie.Map(message.Types, types.StringValue),
-		}
-	}
-}
-
-func (s Subscription) UpdateActions(n Subscription) platform.SubscriptionUpdate {
-	result := platform.SubscriptionUpdate{
-		Version: int(s.Version.ValueInt64()),
-		Actions: []platform.SubscriptionUpdateAction{},
-	}
-
-	if s.Key != n.Key {
-		var value *string
-		if !n.Key.IsNull() && !n.Key.IsUnknown() {
-			value = utils.StringRef(n.Key.ValueString())
-		}
-		result.Actions = append(
-			result.Actions,
-			platform.SubscriptionSetKeyAction{Key: value})
-	}
-
-	if !reflect.DeepEqual(s.Destination, n.Destination) {
-		result.Actions = append(
-			result.Actions,
-			platform.SubscriptionChangeDestinationAction{Destination: n.Destination.ToNative()})
-	}
-
-	if !reflect.DeepEqual(s.Messages, n.Messages) {
-		messages := pie.Map(n.Messages, func(m Message) platform.MessageSubscription {
-			return m.ToNative()
-		})
-		result.Actions = append(
-			result.Actions,
-			platform.SubscriptionSetMessagesAction{Messages: messages})
-	}
-
-	return result
 }

@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -15,7 +16,6 @@ import (
 	sdk_resource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/labd/commercetools-go-sdk/platform"
 
-	"github.com/labd/terraform-provider-commercetools/internal/custommodifier"
 	"github.com/labd/terraform-provider-commercetools/internal/customvalidator"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
@@ -85,38 +85,38 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 						Required: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf(
-								"SQS",
-								"SNS",
-								"EventBridge",
-								"EventGrid",
-								"AzureServiceBus",
-								"GoogleCloudPubSub",
+								SQS,
+								SNS,
+								EventBridge,
+								EventGrid,
+								AzureServiceBus,
+								GoogleCloudPubSub,
 							),
 							customvalidator.DependencyValidator(
-								"SQS",
+								SQS,
 								path.MatchRelative().AtParent().AtName("queue_url"),
 								path.MatchRelative().AtParent().AtName("region"),
 							),
 							customvalidator.DependencyValidator(
-								"SNS",
+								SNS,
 								path.MatchRelative().AtParent().AtName("topic_arn"),
 							),
 							customvalidator.DependencyValidator(
-								"EventBridge",
+								EventBridge,
 								path.MatchRelative().AtParent().AtName("account_id"),
 								path.MatchRelative().AtParent().AtName("region"),
 							),
 							customvalidator.DependencyValidator(
-								"EventGrid",
+								EventGrid,
 								path.MatchRelative().AtParent().AtName("access_key"),
 								path.MatchRelative().AtParent().AtName("uri"),
 							),
 							customvalidator.DependencyValidator(
-								"AzureServiceBus",
+								AzureServiceBus,
 								path.MatchRelative().AtParent().AtName("connection_string"),
 							),
 							customvalidator.DependencyValidator(
-								"GoogleCloudPubSub",
+								GoogleCloudPubSub,
 								path.MatchRelative().AtParent().AtName("project_id"),
 								path.MatchRelative().AtParent().AtName("topic"),
 							),
@@ -158,6 +158,12 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 					},
 					"connection_string": schema.StringAttribute{
 						Optional: true,
+						Validators: []validator.String{
+							stringvalidator.RegexMatches(
+								regexp.MustCompilePOSIX("^Endpoint=sb://"),
+								"Connection String should start with Endpoint=sb://",
+							),
+						},
 					},
 					"project_id": schema.StringAttribute{
 						Optional: true,
@@ -185,14 +191,12 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 					"cloud_events_version": schema.StringAttribute{
 						Description: "For CloudEvents",
 						Optional:    true,
-						Computed:    true,
 						Validators: []validator.String{
 							stringvalidator.AlsoRequires(
 								path.MatchRelative().AtParent().AtName("type"),
 							),
 						},
 						PlanModifiers: []planmodifier.String{
-							custommodifier.StringDefault("1.0"),
 							stringplanmodifier.RequiresReplace(),
 						},
 					},
@@ -284,10 +288,11 @@ func (r *subscriptionResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	state.Import(subscription, state)
+	current := NewSubscriptionFromNative(subscription)
+	current.SetStateData(state)
 
 	// Set refreshed state
-	diags = resp.State.Set(ctx, &state)
+	diags = resp.State.Set(ctx, &current)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -327,10 +332,13 @@ func (r *subscriptionResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	plan.ID = types.StringValue(subscription.ID)
-	plan.Version = types.Int64Value(int64(subscription.Version))
+	// Transform response to terraform value and call `SetStateData` with the
+	// plan to copy the secrets from the plan since those are returned by
+	// commercetools as masked values.
+	current := NewSubscriptionFromNative(subscription)
+	current.SetStateData(plan)
 
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, current)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
