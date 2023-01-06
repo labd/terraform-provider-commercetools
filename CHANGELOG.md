@@ -1,8 +1,21 @@
+v1.6.0 (2023-01-06)
+===================
+ - `resource_project_settings` migrate the resource to the new
+   terraform-plugin-framework.
+ - `resource_project_settings` add property `delete_days_after_creation` to
+   the `messages` block (#322)
+ - `resource_subscription` migrate the resource to the new
+   terraform-plugin-framework.
+ - `resource_subscription` fix handling of changes in the `connection_string`
+   value when the `AzureServiceBus` is used (#320)
+ - `resource_api_extension` add support for triggers on `business-unit`,
+   `quote-request`, `quote`, `staged-quote` (#326)
+
 v1.5.1 (2022-10-04)
 ===================
  - `resource_state_transitions` fix error when we tried to set the transitions
    value to a value already set in commercetools, causing an error. See #312
- - `resource_state_transitions` add support for importing existing state 
+ - `resource_state_transitions` add support for importing existing state
    transitions
 
 v1.5.0 (2022-09-30)
