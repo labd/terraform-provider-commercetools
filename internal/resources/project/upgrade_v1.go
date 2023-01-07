@@ -130,15 +130,13 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 	dynamicValue, err := tfprotov6.NewDynamicValue(
 		ProjectResourceDataV1,
 		tftypes.NewValue(ProjectResourceDataV1, map[string]tftypes.Value{
-			"id":                           rawState["id"],
-			"key":                          rawState["key"],
-			"version":                      rawState["version"],
-			"name":                         rawState["name"],
-			"currencies":                   rawState["currencies"],
-			"countries":                    rawState["countries"],
-			"languages":                    rawState["languages"],
-			"enable_search_index_products": rawState["enable_search_index_products"],
-			"enable_search_index_orders":   rawState["enable_search_index_orders"],
+			"id":         rawState["id"],
+			"key":        rawState["key"],
+			"version":    rawState["version"],
+			"name":       rawState["name"],
+			"currencies": rawState["currencies"],
+			"countries":  rawState["countries"],
+			"languages":  rawState["languages"],
 
 			"carts":          valueToList(rawState, "carts"),
 			"messages":       valueToList(rawState, "messages"),
@@ -146,6 +144,10 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 
 			"shipping_rate_input_type":                rawState["shipping_rate_input_type"],
 			"shipping_rate_cart_classification_value": rawState["shipping_rate_cart_classification_value"],
+
+			// Values that didn't exist yet
+			"enable_search_index_products": tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
+			"enable_search_index_orders":   tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
 		}),
 	)
 	if err != nil {
