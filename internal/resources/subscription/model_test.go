@@ -16,7 +16,7 @@ func TestDestination(t *testing.T) {
 		Region:   "eu-central-1",
 	}
 	dest := NewDestinationFromNative(native)
-	assert.Equal(t, dest, Destination{
+	assert.Equal(t, dest, &Destination{
 		Type:         types.StringValue("SQS"),
 		QueueURL:     types.StringValue("https://sqs.eu-central-1.amazonaws.com/123456789012/terraform-test"),
 		Region:       types.StringValue("eu-central-1"),
