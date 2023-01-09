@@ -104,15 +104,6 @@ func NewProjectFromNative(n *platform.Project) Project {
 	return res
 }
 
-func (p *Project) SetNewData(o Project) {
-	p.Version = o.Version
-
-	/* if p.Carts != nil && o.Carts != nil { */
-	/* 	p.Carts.DeleteDaysAfterLastModification = o.Carts.DeleteDaysAfterLastModification */
-	/* } */
-
-}
-
 func (p *Project) setStateData(o Project) {
 	if len(p.ExternalOAuth) > 0 {
 		p.ExternalOAuth[0].AuthorizationHeader = o.ExternalOAuth[0].AuthorizationHeader
