@@ -78,8 +78,6 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 				},
 			},
 			"destination": schema.SingleNestedBlock{
-				Validators: []validator.Object{},
-
 				Attributes: map[string]schema.Attribute{
 					"type": schema.StringAttribute{
 						Required: true,

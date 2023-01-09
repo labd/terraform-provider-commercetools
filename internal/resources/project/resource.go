@@ -157,10 +157,7 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							Description: "Indicates if country - no state tax rate fallback should be used when a " +
 								"shipping address state is not explicitly covered in the rates lists of all tax " +
 								"categories of a cart line items",
-							Optional:      true,
-							PlanModifiers: []planmodifier.Bool{
-								// custommodifier.BoolDefault(false),
-							},
+							Optional: true,
 						},
 						"delete_days_after_last_modification": schema.Int64Attribute{
 							Description: "Number - Optional The default value for the " +
