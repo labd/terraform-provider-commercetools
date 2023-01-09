@@ -73,6 +73,16 @@ resource "commercetools_shipping_zone_rate" "my-shipping-zone-rate" {
       currency_code = "EUR"
     }
   }
+
+  shipping_rate_price_tier {
+    type  = "CartScore"
+    score = 30
+
+    price_function {
+      function      = "x + 1"
+      currency_code = "EUR"
+    }
+  }
 }
 ```
 
@@ -118,12 +128,13 @@ Required:
 
 Required:
 
-- `price` (Block List, Min: 1, Max: 1) The price of the score, value or minimum_cent_amount tier (see [below for nested schema](#nestedblock--shipping_rate_price_tier--price))
 - `type` (String) CartValue, CartScore or CartClassification
 
 Optional:
 
 - `minimum_cent_amount` (Number) If type is CartValue this represents the cent amount of the tier
+- `price` (Block List, Max: 1) The price of the score, value or minimum_cent_amount tier (see [below for nested schema](#nestedblock--shipping_rate_price_tier--price))
+- `price_function` (Block List, Max: 1) If type is CartScore. Allows to calculate a price dynamically for the score. (see [below for nested schema](#nestedblock--shipping_rate_price_tier--price_function))
 - `score` (Number) If type is CartScore. Sets a fixed price for this score value
 - `value` (String) If type is CartClassification, must be a valid key of the CartClassification
 
@@ -134,5 +145,14 @@ Required:
 
 - `cent_amount` (Number)
 - `currency_code` (String)
+
+
+<a id="nestedblock--shipping_rate_price_tier--price_function"></a>
+### Nested Schema for `shipping_rate_price_tier.price_function`
+
+Required:
+
+- `currency_code` (String)
+- `function` (String)
 
 
