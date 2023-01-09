@@ -51,7 +51,7 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 			"Credit Card after the delivery has been made, or synchronizing customer accounts to a Customer " +
 			"Relationship Management (CRM) system.\n\n" +
 			"See also the [Subscriptions API Documentation](https://docs.commercetools.com/api/projects/subscriptions)",
-		Version: 1,
+		Version: 2,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -231,6 +231,17 @@ func (r *subscriptionResource) Configure(_ context.Context, req resource.Configu
 	}
 	data := req.ProviderData.(utils.ProviderData)
 	r.client = data.Client
+}
+
+func (p *subscriptionResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			StateUpgrader: upgradeStateV0,
+		},
+		1: {
+			StateUpgrader: upgradeStateV1,
+		},
+	}
 }
 
 // Create creates the resource and sets the initial Terraform state.
