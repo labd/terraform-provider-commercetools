@@ -267,11 +267,11 @@ func (r *subscriptionResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	plan.ID = types.StringValue(subscription.ID)
-	plan.Version = types.Int64Value(int64(subscription.Version))
+	current := NewSubscriptionFromNative(subscription)
+	current.SetStateData(plan)
 
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, current)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

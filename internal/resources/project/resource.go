@@ -372,7 +372,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	result := NewProjectFromNative(res)
 	result.setStateData(plan)
 
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, result)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
