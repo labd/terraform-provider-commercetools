@@ -238,7 +238,7 @@ func TestUpdateActions(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.state.UpdateActions(tc.plan)
+			result := tc.state.updateActions(tc.plan)
 			assert.EqualValues(t, tc.expected, result)
 		})
 	}

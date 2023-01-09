@@ -65,34 +65,35 @@ func (p *Subscription) SetStateData(state Subscription) {
 	p.Destination.SetStateData(state.Destination)
 }
 
-func (s Subscription) Draft() platform.SubscriptionDraft {
+func (s Subscription) draft() platform.SubscriptionDraft {
 	changes := []platform.ChangeSubscription{}
 	for _, c := range s.Changes {
-		changes = append(changes, c.ToNative()...)
+		changes = append(changes, c.toNative()...)
 	}
 
 	draft := platform.SubscriptionDraft{
 		Key:         utils.OptionalString(s.Key),
 		Destination: s.Destination.ToNative(),
 		Messages: pie.Map(s.Messages, func(m Message) platform.MessageSubscription {
-			return m.ToNative()
+			return m.toNative()
 		}),
 		Changes: changes,
 	}
 
 	if s.Format != nil {
-		draft.Format = s.Format.ToNative()
+		draft.Format = s.Format.toNative()
 	}
 
 	return draft
 }
 
-func (s Subscription) UpdateActions(plan Subscription) platform.SubscriptionUpdate {
+func (s Subscription) updateActions(plan Subscription) platform.SubscriptionUpdate {
 	result := platform.SubscriptionUpdate{
 		Version: int(s.Version.ValueInt64()),
 		Actions: []platform.SubscriptionUpdateAction{},
 	}
 
+	// setKey
 	if s.Key != plan.Key {
 		var value *string
 		if !plan.Key.IsNull() && !plan.Key.IsUnknown() {
@@ -103,16 +104,18 @@ func (s Subscription) UpdateActions(plan Subscription) platform.SubscriptionUpda
 			platform.SubscriptionSetKeyAction{Key: value})
 	}
 
+	// changeDestination
 	if !reflect.DeepEqual(s.Destination, plan.Destination) {
 		result.Actions = append(
 			result.Actions,
 			platform.SubscriptionChangeDestinationAction{Destination: plan.Destination.ToNative()})
 	}
 
+	// setChanges
 	if !reflect.DeepEqual(s.Changes, plan.Changes) {
 		changes := []platform.ChangeSubscription{}
 		for _, c := range plan.Changes {
-			changes = append(changes, c.ToNative()...)
+			changes = append(changes, c.toNative()...)
 		}
 
 		result.Actions = append(
@@ -122,9 +125,10 @@ func (s Subscription) UpdateActions(plan Subscription) platform.SubscriptionUpda
 			})
 	}
 
+	// setMessages
 	if !reflect.DeepEqual(s.Messages, plan.Messages) {
 		messages := pie.Map(plan.Messages, func(m Message) platform.MessageSubscription {
-			return m.ToNative()
+			return m.toNative()
 		})
 		result.Actions = append(
 			result.Actions,
@@ -276,7 +280,7 @@ type Changes struct {
 	ResourceTypeIds []types.String `tfsdk:"resource_type_ids"`
 }
 
-func (c Changes) ToNative() []platform.ChangeSubscription {
+func (c Changes) toNative() []platform.ChangeSubscription {
 	result := make([]platform.ChangeSubscription, len(c.ResourceTypeIds))
 
 	for i := range c.ResourceTypeIds {
@@ -293,7 +297,7 @@ type Format struct {
 	CloudEventVersion types.String `tfsdk:"cloud_events_version"`
 }
 
-func (f Format) ToNative() platform.DeliveryFormat {
+func (f Format) toNative() platform.DeliveryFormat {
 	if f.Type.IsUnknown() || f.Type.IsNull() {
 		return nil
 	}
@@ -334,7 +338,7 @@ type Message struct {
 	Types          []types.String `tfsdk:"types"`
 }
 
-func (m Message) ToNative() platform.MessageSubscription {
+func (m Message) toNative() platform.MessageSubscription {
 	return platform.MessageSubscription{
 		ResourceTypeId: platform.MessageSubscriptionResourceTypeId(m.ResourceTypeID.ValueString()),
 		Types: pie.Map(m.Types, func(v types.String) string {

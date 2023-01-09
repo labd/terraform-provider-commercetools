@@ -120,7 +120,7 @@ func TestUpdateActions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.state.UpdateActions(tt.plan)
+			result := tt.state.updateActions(tt.plan)
 			assert.Equal(t, tt.action, result)
 		})
 	}

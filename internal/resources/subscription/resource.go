@@ -243,7 +243,7 @@ func (r *subscriptionResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	draft := plan.Draft()
+	draft := plan.draft()
 	var subscription *platform.Subscription
 	err := sdk_resource.RetryContext(ctx, 20*time.Second, func() *sdk_resource.RetryError {
 		var err error
@@ -317,7 +317,7 @@ func (r *subscriptionResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	input := state.UpdateActions(plan)
+	input := state.updateActions(plan)
 	var subscription *platform.Subscription
 	err := sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
 		var err error

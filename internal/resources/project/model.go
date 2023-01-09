@@ -113,7 +113,7 @@ func (p *Project) SetNewData(o Project) {
 
 }
 
-func (p *Project) SetStateData(o Project) {
+func (p *Project) setStateData(o Project) {
 	if len(p.ExternalOAuth) > 0 {
 		p.ExternalOAuth[0].AuthorizationHeader = o.ExternalOAuth[0].AuthorizationHeader
 	}
@@ -131,20 +131,34 @@ func (p *Project) SetStateData(o Project) {
 	}
 }
 
-func (p Project) UpdateActions(plan Project) platform.ProjectUpdate {
+func (p Project) updateActions(plan Project) platform.ProjectUpdate {
 	result := platform.ProjectUpdate{
 		Version: int(p.Version.ValueInt64()),
 		Actions: []platform.ProjectUpdateAction{},
 	}
 
-	if !p.Name.Equal(plan.Name) {
-		result.Actions = append(result.Actions,
-			platform.ProjectChangeNameAction{
-				Name: plan.Name.ValueString(),
-			},
-		)
+	// changeMyBusinessUnitStatusOnCreation
+	// TODO
+
+	// changeCartsConfiguration
+	if !reflect.DeepEqual(p.Carts, plan.Carts) {
+		if len(plan.Carts) == 0 {
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeCartsConfigurationAction{
+					CartsConfiguration: platform.CartsConfiguration{},
+				},
+			)
+		} else {
+			val := plan.Carts[0].toNative()
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeCartsConfigurationAction{
+					CartsConfiguration: val,
+				},
+			)
+		}
 	}
 
+	// changeCountries
 	if !reflect.DeepEqual(p.Countries, plan.Countries) {
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeCountriesAction{
@@ -155,6 +169,7 @@ func (p Project) UpdateActions(plan Project) platform.ProjectUpdate {
 		)
 	}
 
+	// changeCurrencies
 	if !reflect.DeepEqual(p.Currencies, plan.Currencies) {
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeCurrenciesAction{
@@ -165,6 +180,7 @@ func (p Project) UpdateActions(plan Project) platform.ProjectUpdate {
 		)
 	}
 
+	// changeLanguages
 	if !reflect.DeepEqual(p.Languages, plan.Languages) {
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeLanguagesAction{
@@ -175,14 +191,37 @@ func (p Project) UpdateActions(plan Project) platform.ProjectUpdate {
 		)
 	}
 
-	if !p.EnableSearchIndexProducts.Equal(plan.EnableSearchIndexProducts) {
+	// changeMessagesConfiguration
+	if !reflect.DeepEqual(p.Messages, plan.Messages) {
+		if len(plan.Messages) > 0 {
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeMessagesConfigurationAction{
+					MessagesConfiguration: plan.Messages[0].toNative(),
+				},
+			)
+		} else {
+			// Set message configuration to the default values
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeMessagesConfigurationAction{
+					MessagesConfiguration: platform.MessagesConfigurationDraft{
+						Enabled:                 false,
+						DeleteDaysAfterCreation: 15,
+					},
+				},
+			)
+		}
+	}
+
+	// changeName
+	if !p.Name.Equal(plan.Name) {
 		result.Actions = append(result.Actions,
-			platform.ProjectChangeProductSearchIndexingEnabledAction{
-				Enabled: plan.EnableSearchIndexProducts.ValueBool(),
+			platform.ProjectChangeNameAction{
+				Name: plan.Name.ValueString(),
 			},
 		)
 	}
 
+	// changeOrderSearchStatus
 	if !p.EnableSearchIndexOrders.Equal(plan.EnableSearchIndexOrders) {
 		status := platform.OrderSearchStatusDeactivated
 		if plan.EnableSearchIndexOrders.ValueBool() {
@@ -195,6 +234,32 @@ func (p Project) UpdateActions(plan Project) platform.ProjectUpdate {
 		)
 	}
 
+	// changeProductSearchIndexingEnabled
+	if !p.EnableSearchIndexProducts.Equal(plan.EnableSearchIndexProducts) {
+		result.Actions = append(result.Actions,
+			platform.ProjectChangeProductSearchIndexingEnabledAction{
+				Enabled: plan.EnableSearchIndexProducts.ValueBool(),
+			},
+		)
+	}
+
+	// changeShoppingListsConfiguration
+	// TODO
+
+	// setExternalOAuth
+	if !reflect.DeepEqual(p.ExternalOAuth, plan.ExternalOAuth) {
+		var value *platform.ExternalOAuth
+		if len(plan.ExternalOAuth) > 0 {
+			value = plan.ExternalOAuth[0].toNative()
+		}
+		result.Actions = append(result.Actions,
+			platform.ProjectSetExternalOAuthAction{
+				ExternalOAuth: value,
+			},
+		)
+	}
+
+	// setShippingRateInputType
 	if !p.ShippingRateInputType.Equal(plan.ShippingRateInputType) ||
 		!reflect.DeepEqual(p.ShippingRateCartClassificationValue, plan.ShippingRateCartClassificationValue) {
 		var value platform.ShippingRateInputType
@@ -216,55 +281,6 @@ func (p Project) UpdateActions(plan Project) platform.ProjectUpdate {
 		result.Actions = append(result.Actions,
 			platform.ProjectSetShippingRateInputTypeAction{
 				ShippingRateInputType: value,
-			},
-		)
-	}
-
-	if !reflect.DeepEqual(p.Messages, plan.Messages) {
-		if len(plan.Messages) > 0 {
-			result.Actions = append(result.Actions,
-				platform.ProjectChangeMessagesConfigurationAction{
-					MessagesConfiguration: plan.Messages[0].toNative(),
-				},
-			)
-		} else {
-			// Set message configuration to the default values
-			result.Actions = append(result.Actions,
-				platform.ProjectChangeMessagesConfigurationAction{
-					MessagesConfiguration: platform.MessagesConfigurationDraft{
-						Enabled:                 false,
-						DeleteDaysAfterCreation: 15,
-					},
-				},
-			)
-		}
-	}
-
-	if !reflect.DeepEqual(p.Carts, plan.Carts) {
-		if len(plan.Carts) == 0 {
-			result.Actions = append(result.Actions,
-				platform.ProjectChangeCartsConfigurationAction{
-					CartsConfiguration: platform.CartsConfiguration{},
-				},
-			)
-		} else {
-			val := plan.Carts[0].toNative()
-			result.Actions = append(result.Actions,
-				platform.ProjectChangeCartsConfigurationAction{
-					CartsConfiguration: val,
-				},
-			)
-		}
-	}
-
-	if !reflect.DeepEqual(p.ExternalOAuth, plan.ExternalOAuth) {
-		var value *platform.ExternalOAuth
-		if len(plan.ExternalOAuth) > 0 {
-			value = plan.ExternalOAuth[0].toNative()
-		}
-		result.Actions = append(result.Actions,
-			platform.ProjectSetExternalOAuthAction{
-				ExternalOAuth: value,
 			},
 		)
 	}

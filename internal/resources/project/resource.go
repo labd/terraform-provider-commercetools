@@ -290,7 +290,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	current := NewProjectFromNative(project)
 
-	input := current.UpdateActions(plan)
+	input := current.updateActions(plan)
 	var res *platform.Project
 	err = sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
 		var err error
@@ -303,7 +303,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	result := NewProjectFromNative(res)
-	result.SetStateData(plan)
+	result.setStateData(plan)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, result)
@@ -332,7 +332,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 	current := NewProjectFromNative(res)
-	current.SetStateData(state)
+	current.setStateData(state)
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, current)
@@ -360,7 +360,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	input := state.UpdateActions(plan)
+	input := state.updateActions(plan)
 
 	var res *platform.Project
 	err := sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
@@ -373,7 +373,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 	result := NewProjectFromNative(res)
-	plan.SetNewData(result)
+	result.setStateData(plan)
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
