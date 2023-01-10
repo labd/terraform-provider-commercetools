@@ -27,7 +27,7 @@ type dependencyValidator struct {
 
 // Description describes the validation in plain text formatting.
 func (v dependencyValidator) Description(ctx context.Context) string {
-	return "Validate the existens of specific attributes when the attribute has the given value"
+	return "Validate the existence of specific attributes when the attribute has the given value"
 }
 
 // MarkdownDescription describes the validation in Markdown formatting.

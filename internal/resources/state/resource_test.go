@@ -1,4 +1,4 @@
-package commercetools
+package state_test
 
 import (
 	"context"
@@ -7,6 +7,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/labd/terraform-provider-commercetools/internal/acctest"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func TestAccState_createAndUpdateWithID(t *testing.T) {
@@ -17,9 +20,9 @@ func TestAccState_createAndUpdateWithID(t *testing.T) {
 	newName := "new test state name"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckStateDestroy,
+		PreCheck:                 func() { acctest.TestAccPreCheck(t) },
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckStateDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccStateConfig(t, name, key, false),
@@ -40,7 +43,7 @@ func TestAccState_createAndUpdateWithID(t *testing.T) {
 }
 
 func testAccStateConfig(t *testing.T, name string, key string, addRole bool) string {
-	return hclTemplate(`
+	return utils.HCLTemplate(`
 		resource "commercetools_state" "acctest-state" {
 			key = "{{ .key }}"
 			type = "ReviewState"
@@ -62,7 +65,10 @@ func testAccStateConfig(t *testing.T, name string, key string, addRole bool) str
 }
 
 func testAccCheckStateDestroy(s *terraform.State) error {
-	client := getClient(testAccProvider.Meta())
+	client, err := acctest.GetClient()
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_state" {
@@ -75,7 +81,7 @@ func testAccCheckStateDestroy(s *terraform.State) error {
 			}
 			return nil
 		}
-		if newErr := checkApiResult(err); newErr != nil {
+		if newErr := acctest.CheckApiResult(err); newErr != nil {
 			return newErr
 		}
 	}

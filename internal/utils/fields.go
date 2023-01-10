@@ -3,6 +3,9 @@ package utils
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/labd/commercetools-go-sdk/platform"
+
+	"github.com/labd/terraform-provider-commercetools/internal/customtypes"
 )
 
 func OptionalString(value types.String) *string {
@@ -28,6 +31,18 @@ func FromOptionalString(value *string) basetypes.StringValue {
 		return types.StringNull()
 	}
 	return types.StringValue(*value)
+
+}
+func FromOptionalLocalizedString(value *platform.LocalizedString) customtypes.LocalizedStringValue {
+	if value == nil {
+		return nil
+	}
+
+	result := make(customtypes.LocalizedStringValue, len(*value))
+	for k, v := range *value {
+		result[k] = types.StringValue(v)
+	}
+	return result
 }
 
 func FromOptionalInt(value *int) basetypes.Int64Value {

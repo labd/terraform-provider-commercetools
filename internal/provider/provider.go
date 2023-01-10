@@ -17,6 +17,8 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 
 	"github.com/labd/terraform-provider-commercetools/internal/resources/project"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/state"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/state_transition"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/subscription"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
@@ -164,7 +166,7 @@ func (p *ctProvider) Configure(ctx context.Context, req provider.ConfigureReques
 		return
 	}
 
-	data := utils.ProviderData{
+	data := &utils.ProviderData{
 		Client: client.WithProjectKey(projectKey),
 		Mutex:  utils.NewMutexKV(),
 	}
@@ -183,5 +185,7 @@ func (p *ctProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		subscription.NewSubscriptionResource,
 		project.NewResource,
+		state.NewResource,
+		state_transition.NewResource,
 	}
 }
