@@ -1,4 +1,4 @@
-package commercetools
+package state_transition_test
 
 import (
 	"context"
@@ -8,14 +8,16 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/labd/terraform-provider-commercetools/internal/acctest"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func TestAccStateTransitions_createAndUpdateWithID(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckStateTransitionsDestroy,
+		PreCheck:                 func() { acctest.TestAccPreCheck(t) },
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckStateTransitionsDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: strings.Join(
@@ -66,7 +68,7 @@ func TestAccStateTransitions_createAndUpdateWithID(t *testing.T) {
 }
 
 func testAccStateTransitionsNone(identifier string, key string) string {
-	return hclTemplate(`
+	return utils.HCLTemplate(`
 		resource "commercetools_state" "{{ .identifier }}" {
 			key = "{{ .key }}"
 			type = "ReviewState"
@@ -81,7 +83,7 @@ func testAccStateTransitionsNone(identifier string, key string) string {
 }
 
 func testAccStateTransitionsConfig(identifier string, from string, to []string) string {
-	return hclTemplate(`
+	return utils.HCLTemplate(`
 		resource "commercetools_state_transitions" "{{ .identifier }}" {
 			from = {{ .from }}
 			to = {{ .to | printf "%s" }}
@@ -94,7 +96,10 @@ func testAccStateTransitionsConfig(identifier string, from string, to []string) 
 }
 
 func testAccCheckStateTransitionsDestroy(s *terraform.State) error {
-	client := getClient(testAccProvider.Meta())
+	client, err := acctest.GetClient()
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "commercetools_state" {
@@ -107,7 +112,7 @@ func testAccCheckStateTransitionsDestroy(s *terraform.State) error {
 			}
 			return nil
 		}
-		if newErr := checkApiResult(err); newErr != nil {
+		if newErr := acctest.CheckApiResult(err); newErr != nil {
 			return newErr
 		}
 	}

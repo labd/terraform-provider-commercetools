@@ -259,7 +259,7 @@ func (r *ProjectResource) Configure(_ context.Context, req resource.ConfigureReq
 	if req.ProviderData == nil {
 		return
 	}
-	data := req.ProviderData.(utils.ProviderData)
+	data := req.ProviderData.(*utils.ProviderData)
 	r.client = data.Client
 }
 
