@@ -11,6 +11,10 @@ import (
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
+const (
+	DefaultDeleteDaysAfterCreation = 15
+)
+
 type Project struct {
 	ID      types.String `tfsdk:"id"`
 	Key     types.String `tfsdk:"key"`
@@ -80,6 +84,12 @@ func NewProjectFromNative(n *platform.Project) Project {
 		res.ShippingRateCartClassificationValue = values
 	}
 
+	// If delete_days_after_creation is nil (before version 1.6) then we set it
+	// to the commercetools default of 15
+	if res.Messages[0].DeleteDaysAfterCreation.IsNull() {
+		res.Messages[0].DeleteDaysAfterCreation = types.Int64Value(DefaultDeleteDaysAfterCreation)
+	}
+
 	if n.SearchIndexing != nil && n.SearchIndexing.Products != nil && n.SearchIndexing.Products.Status != nil {
 		status := *n.SearchIndexing.Products.Status
 		enabled := status != platform.SearchIndexingConfigurationStatusDeactivated
@@ -115,8 +125,14 @@ func (p *Project) setStateData(o Project) {
 		p.Carts = o.Carts
 	}
 
-	// If the state has no data for carts (0 items) and the configuration is the
-	// default we match the state
+	// The commercetools default for delete_days_after_creation is 15, so if the
+	//
+	if p.Messages[0].DeleteDaysAfterCreation.ValueInt64() == DefaultDeleteDaysAfterCreation && o.Messages[0].DeleteDaysAfterCreation.IsNull() {
+		p.Messages[0].DeleteDaysAfterCreation = o.Messages[0].DeleteDaysAfterCreation
+	}
+
+	// If the state has no data for messages (0 items) and the configuration is
+	// the default we match the state
 	if p.Messages[0].isDefault() && (len(o.Messages) == 0 || o.Messages[0].isDefault()) {
 		p.Messages = o.Messages
 	}
@@ -196,7 +212,7 @@ func (p Project) updateActions(plan Project) platform.ProjectUpdate {
 				platform.ProjectChangeMessagesConfigurationAction{
 					MessagesConfiguration: platform.MessagesConfigurationDraft{
 						Enabled:                 false,
-						DeleteDaysAfterCreation: 15,
+						DeleteDaysAfterCreation: DefaultDeleteDaysAfterCreation,
 					},
 				},
 			)
@@ -285,13 +301,19 @@ type Messages struct {
 }
 
 func (m Messages) toNative() platform.MessagesConfigurationDraft {
+	days := DefaultDeleteDaysAfterCreation // Commercetools default
+
+	if !m.DeleteDaysAfterCreation.IsNull() {
+		days = int(m.DeleteDaysAfterCreation.ValueInt64())
+	}
+
 	return platform.MessagesConfigurationDraft{
 		Enabled:                 m.Enabled.ValueBool(),
-		DeleteDaysAfterCreation: int(m.DeleteDaysAfterCreation.ValueInt64()),
+		DeleteDaysAfterCreation: days,
 	}
 }
 func (m Messages) isDefault() bool {
-	return !m.toNative().Enabled && m.DeleteDaysAfterCreation.ValueInt64() == 15
+	return !m.toNative().Enabled && m.DeleteDaysAfterCreation.ValueInt64() == DefaultDeleteDaysAfterCreation
 }
 
 type ExternalOAuth struct {
