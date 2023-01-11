@@ -2,10 +2,7 @@ package subscription
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -115,8 +112,11 @@ var SubscriptionResourceV2 = tftypes.Object{
 
 // Schema version 1 used a list for destination and format since
 // that single nested blocks were not supported in sdk v2 (it was in sdk v1)
-func upgradeStateV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-	rawStateValue, err := req.RawState.Unmarshal(SubscriptionResourceV1)
+// Schema version 2 moves us to Single nested blocks, but it turned out to be
+// not working correctly in terraform for now. So we moved back to the v1
+// approach
+func upgradeStateV2(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	rawStateValue, err := req.RawState.Unmarshal(SubscriptionResourceV2)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Unmarshal Prior State",
@@ -134,27 +134,15 @@ func upgradeStateV1(ctx context.Context, req resource.UpgradeStateRequest, resp 
 		return
 	}
 
-	destination, diags := ItemFromList(rawState, "destination")
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
-	format, diags := ItemFromList(rawState, "format")
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-
 	dynamicValue, err := tfprotov6.NewDynamicValue(
-		SubscriptionResourceV2,
-		tftypes.NewValue(SubscriptionResourceV2, map[string]tftypes.Value{
+		SubscriptionResourceV1,
+		tftypes.NewValue(SubscriptionResourceV1, map[string]tftypes.Value{
 			"id":          rawState["id"],
 			"key":         rawState["key"],
 			"version":     rawState["version"],
 			"changes":     rawState["changes"],
-			"destination": destination,
-			"format":      format,
+			"destination": valueToList(rawState, "destination"),
+			"format":      valueToList(rawState, "format"),
 			"message":     rawState["message"],
 		}),
 	)
@@ -169,33 +157,19 @@ func upgradeStateV1(ctx context.Context, req resource.UpgradeStateRequest, resp 
 	resp.DynamicValue = &dynamicValue
 }
 
-func ItemFromList(rawState map[string]tftypes.Value, key string) (tftypes.Value, diag.Diagnostics) {
-	diags := diag.Diagnostics{}
-	if !rawState[key].IsNull() {
-		val := []tftypes.Value{}
-		if err := rawState[key].As(&val); err != nil {
-			diags.AddAttributeError(
-				path.Root(key),
-				fmt.Sprintf("Unable to Convert Prior State (%s)", key),
-				err.Error(),
-			)
-			return tftypes.Value{}, diags
-		}
-		if len(val) > 0 {
-			result := map[string]tftypes.Value{}
-			if err := val[0].As(&result); err != nil {
-				diags.AddAttributeError(
-					path.Root(key),
-					fmt.Sprintf("Unable to Convert Prior State (%s)", key),
-					err.Error(),
-				)
-				return tftypes.Value{}, diags
-			}
-			value := tftypes.NewValue(SubscriptionResourceV2.AttributeTypes[key], result)
-			return value, diags
-		}
-		value := tftypes.NewValue(SubscriptionResourceV2.AttributeTypes[key], nil)
-		return value, diags
+func valueToList(state map[string]tftypes.Value, key string) tftypes.Value {
+	if state[key].IsNull() {
+		return tftypes.NewValue(
+			SubscriptionResourceV1.AttributeTypes[key],
+			[]tftypes.Value{},
+		)
 	}
-	return tftypes.Value{}, diags
+
+	if state[key].IsKnown() {
+		return tftypes.NewValue(
+			SubscriptionResourceV1.AttributeTypes[key],
+			[]tftypes.Value{state[key]},
+		)
+	}
+	return state[key]
 }

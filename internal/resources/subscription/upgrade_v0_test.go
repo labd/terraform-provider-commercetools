@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -64,22 +65,26 @@ func Test_upgradeStateV0(t *testing.T) {
 				},
 			},
 		},
-		Destination: &Destination{
-			Type:             types.StringValue("AzureServiceBus"),
-			TopicARN:         types.StringValue(""),
-			AccessKey:        types.StringValue(""),
-			AccessSecret:     types.StringValue(""),
-			QueueURL:         types.StringValue(""),
-			AccountID:        types.StringValue(""),
-			Region:           types.StringValue(""),
-			URI:              types.StringValue(""),
-			ConnectionString: types.StringValue("Endpoint=sb://some-bus.servicebus.windows.net/;SharedAccessKeyName=test;SharedAccessKey=****1Fw=;EntityPath=my-test-queue"),
-			ProjectID:        types.StringValue(""),
-			Topic:            types.StringValue(""),
+		Destination: []Destination{
+			{
+				Type:             types.StringValue("AzureServiceBus"),
+				TopicARN:         types.StringValue(""),
+				AccessKey:        types.StringValue(""),
+				AccessSecret:     types.StringValue(""),
+				QueueURL:         types.StringValue(""),
+				AccountID:        types.StringValue(""),
+				Region:           types.StringValue(""),
+				URI:              types.StringValue(""),
+				ConnectionString: types.StringValue("Endpoint=sb://some-bus.servicebus.windows.net/;SharedAccessKeyName=test;SharedAccessKey=****1Fw=;EntityPath=my-test-queue"),
+				ProjectID:        types.StringValue(""),
+				Topic:            types.StringValue(""),
+			},
 		},
-		Format: &Format{
-			Type:              types.StringValue("Platform"),
-			CloudEventVersion: types.StringValue(""),
+		Format: []Format{
+			{
+				Type:              types.StringValue("Platform"),
+				CloudEventVersion: types.StringValue(""),
+			},
 		},
 		Messages: []Message{
 			{
@@ -115,4 +120,14 @@ func Test_upgradeStateV0(t *testing.T) {
 	diags := state.Get(ctx, &res)
 	require.False(t, diags.HasError(), diags.Errors())
 	assert.Equal(t, expected, res)
+}
+
+func getCurrentSchema() schema.Schema {
+	ctx := context.Background()
+	res := NewSubscriptionResource()
+
+	req := resource.SchemaRequest{}
+	resp := resource.SchemaResponse{}
+	res.Schema(ctx, req, &resp)
+	return resp.Schema
 }
