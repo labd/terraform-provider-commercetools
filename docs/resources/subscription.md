@@ -43,8 +43,8 @@ resource "commercetools_subscription" "my-sqs-subscription" {
 ### Optional
 
 - `changes` (Block Set) The change notifications subscribed to (see [below for nested schema](#nestedblock--changes))
-- `destination` (Block, Optional) (see [below for nested schema](#nestedblock--destination))
-- `format` (Block, Optional) The [format](https://docs.commercetools.com/api/projects/subscriptions#format) in which the payload is delivered (see [below for nested schema](#nestedblock--format))
+- `destination` (Block List) (see [below for nested schema](#nestedblock--destination))
+- `format` (Block List) The [format](https://docs.commercetools.com/api/projects/subscriptions#format) in which the payload is delivered (see [below for nested schema](#nestedblock--format))
 - `key` (String) Timestamp of the last Terraform update of the order.
 - `message` (Block Set) The messages subscribed to (see [below for nested schema](#nestedblock--message))
 

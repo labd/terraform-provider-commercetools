@@ -56,9 +56,16 @@ func (r *stateTransitionResource) Schema(_ context.Context, _ resource.SchemaReq
 			"Note: Only one resource can be created for each state",
 		Attributes: map[string]schema.Attribute{
 			"from": schema.StringAttribute{
-				Required: true,
+				Description: "ID of the state to transition from",
+				Required:    true,
 			},
 			"to": schema.SetAttribute{
+				Description: "Transitions are a way to describe possible transformations of the current state to other " +
+					"states of the same type (for example: Initial -> Shipped). When performing a transitionState update " +
+					"action and transitions is set, the currently referenced state must have a transition to the new state.\n" +
+					"If transitions is an empty list, it means the current state is a final state and no further " +
+					"transitions are allowed.\nIf transitions is not set, the validation is turned off. When " +
+					"performing a transitionState update action, any other state of the same type can be transitioned to",
 				Required:    true,
 				ElementType: types.StringType,
 			},

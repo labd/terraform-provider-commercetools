@@ -58,15 +58,15 @@ resource "commercetools_state" "product_clearance" {
 
 ### Required
 
-- `key` (String) A unique identifier for the state
 - `type` (String) [StateType](https://docs.commercetools.com/api/projects/states#statetype)
 
 ### Optional
 
-- `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `description` (Map of String) Description of the State as localized string.
 - `initial` (Boolean) A state can be declared as an initial state for any state machine. When a workflow starts, this first state must be an initial state
-- `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- `roles` (List of String) Array of [State Role](https://docs.commercetools.com/api/projects/states#staterole)
+- `key` (String) Timestamp of the last Terraform update of the order.
+- `name` (Map of String) Name of the State as localized string.
+- `roles` (List of String) [State Role](https://docs.commercetools.com/api/projects/states#staterole)
 
 ### Read-Only
 

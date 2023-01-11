@@ -89,8 +89,9 @@ func (r *stateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Optional: true,
 			},
 			"roles": schema.ListAttribute{
-				Optional:    true,
-				ElementType: types.StringType,
+				MarkdownDescription: `[State Role](https://docs.commercetools.com/api/projects/states#staterole)`,
+				Optional:            true,
+				ElementType:         types.StringType,
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 					listvalidator.ValueStringsAre(
