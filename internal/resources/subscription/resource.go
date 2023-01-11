@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -51,7 +52,7 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 			"Credit Card after the delivery has been made, or synchronizing customer accounts to a Customer " +
 			"Relationship Management (CRM) system.\n\n" +
 			"See also the [Subscriptions API Documentation](https://docs.commercetools.com/api/projects/subscriptions)",
-		Version: 2,
+		Version: 1,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -77,127 +78,138 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 					},
 				},
 			},
-			"destination": schema.SingleNestedBlock{
-				Attributes: map[string]schema.Attribute{
-					"type": schema.StringAttribute{
-						Required: true,
-						Validators: []validator.String{
-							stringvalidator.OneOf(
-								SQS,
-								SNS,
-								EventBridge,
-								EventGrid,
-								AzureServiceBus,
-								GoogleCloudPubSub,
-							),
-							customvalidator.DependencyValidator(
-								SQS,
-								path.MatchRelative().AtParent().AtName("queue_url"),
-								path.MatchRelative().AtParent().AtName("region"),
-							),
-							customvalidator.DependencyValidator(
-								SNS,
-								path.MatchRelative().AtParent().AtName("topic_arn"),
-							),
-							customvalidator.DependencyValidator(
-								EventBridge,
-								path.MatchRelative().AtParent().AtName("account_id"),
-								path.MatchRelative().AtParent().AtName("region"),
-							),
-							customvalidator.DependencyValidator(
-								EventGrid,
-								path.MatchRelative().AtParent().AtName("access_key"),
-								path.MatchRelative().AtParent().AtName("uri"),
-							),
-							customvalidator.DependencyValidator(
-								AzureServiceBus,
-								path.MatchRelative().AtParent().AtName("connection_string"),
-							),
-							customvalidator.DependencyValidator(
-								GoogleCloudPubSub,
-								path.MatchRelative().AtParent().AtName("project_id"),
-								path.MatchRelative().AtParent().AtName("topic"),
-							),
+			"destination": schema.ListNestedBlock{
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"type": schema.StringAttribute{
+							Required: true,
+							Validators: []validator.String{
+								stringvalidator.OneOf(
+									SQS,
+									SNS,
+									EventBridge,
+									EventGrid,
+									AzureServiceBus,
+									GoogleCloudPubSub,
+								),
+								customvalidator.DependencyValidator(
+									SQS,
+									path.MatchRelative().AtParent().AtName("queue_url"),
+									path.MatchRelative().AtParent().AtName("region"),
+								),
+								customvalidator.DependencyValidator(
+									SNS,
+									path.MatchRelative().AtParent().AtName("topic_arn"),
+								),
+								customvalidator.DependencyValidator(
+									EventBridge,
+									path.MatchRelative().AtParent().AtName("account_id"),
+									path.MatchRelative().AtParent().AtName("region"),
+								),
+								customvalidator.DependencyValidator(
+									EventGrid,
+									path.MatchRelative().AtParent().AtName("access_key"),
+									path.MatchRelative().AtParent().AtName("uri"),
+								),
+								customvalidator.DependencyValidator(
+									AzureServiceBus,
+									path.MatchRelative().AtParent().AtName("connection_string"),
+								),
+								customvalidator.DependencyValidator(
+									GoogleCloudPubSub,
+									path.MatchRelative().AtParent().AtName("project_id"),
+									path.MatchRelative().AtParent().AtName("topic"),
+								),
+							},
 						},
-					},
-					"topic_arn": schema.StringAttribute{
-						Optional: true,
-					},
-					"queue_url": schema.StringAttribute{
-						Optional:   true,
-						Validators: []validator.String{},
-					},
-					"region": schema.StringAttribute{
-						Optional: true,
-					},
-					"account_id": schema.StringAttribute{
-						Optional: true,
-					},
-					"access_key": schema.StringAttribute{
-						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.AlsoRequires(
-								path.MatchRelative().AtParent().AtName("access_secret"),
-							),
+						"topic_arn": schema.StringAttribute{
+							Optional: true,
 						},
-						Sensitive: true,
-					},
-					"access_secret": schema.StringAttribute{
-						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.AlsoRequires(
-								path.MatchRelative().AtParent().AtName("access_key"),
-							),
+						"queue_url": schema.StringAttribute{
+							Optional:   true,
+							Validators: []validator.String{},
 						},
-						Sensitive: true,
-					},
-					"uri": schema.StringAttribute{
-						Optional: true,
-					},
-					"connection_string": schema.StringAttribute{
-						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.RegexMatches(
-								regexp.MustCompilePOSIX("^Endpoint=sb://"),
-								"Connection String should start with Endpoint=sb://",
-							),
+						"region": schema.StringAttribute{
+							Optional: true,
 						},
-					},
-					"project_id": schema.StringAttribute{
-						Optional: true,
-					},
-					"topic": schema.StringAttribute{
-						Optional: true,
+						"account_id": schema.StringAttribute{
+							Optional: true,
+						},
+						"access_key": schema.StringAttribute{
+							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(
+									path.MatchRelative().AtParent().AtName("access_secret"),
+								),
+							},
+							Sensitive: true,
+						},
+						"access_secret": schema.StringAttribute{
+							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(
+									path.MatchRelative().AtParent().AtName("access_key"),
+								),
+							},
+							Sensitive: true,
+						},
+						"uri": schema.StringAttribute{
+							Optional: true,
+						},
+						"connection_string": schema.StringAttribute{
+							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.RegexMatches(
+									regexp.MustCompilePOSIX("^Endpoint=sb://"),
+									"Connection String should start with Endpoint=sb://",
+								),
+							},
+						},
+						"project_id": schema.StringAttribute{
+							Optional: true,
+						},
+						"topic": schema.StringAttribute{
+							Optional: true,
+						},
 					},
 				},
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+					listvalidator.SizeAtMost(1),
+				},
 			},
-			"format": schema.SingleNestedBlock{
+			"format": schema.ListNestedBlock{
 				MarkdownDescription: "The [format](https://docs.commercetools.com/api/projects/subscriptions#format) " +
 					"in which the payload is delivered",
-				Attributes: map[string]schema.Attribute{
-					"type": schema.StringAttribute{
-						Optional: true,
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"type": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Validators: []validator.String{
+								stringvalidator.OneOf(
+									"Platform", "CloudEvents",
+								),
+							},
 						},
-						Validators: []validator.String{
-							stringvalidator.OneOf(
-								"Platform", "CloudEvents",
-							),
+						"cloud_events_version": schema.StringAttribute{
+							Description: "For CloudEvents",
+							Optional:    true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(
+									path.MatchRelative().AtParent().AtName("type"),
+								),
+							},
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
 						},
 					},
-					"cloud_events_version": schema.StringAttribute{
-						Description: "For CloudEvents",
-						Optional:    true,
-						Validators: []validator.String{
-							stringvalidator.AlsoRequires(
-								path.MatchRelative().AtParent().AtName("type"),
-							),
-						},
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
-						},
-					},
+				},
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
 				},
 			},
 			"message": schema.SetNestedBlock{
@@ -237,7 +249,7 @@ func (p *subscriptionResource) UpgradeState(ctx context.Context) map[int64]resou
 			StateUpgrader: upgradeStateV0,
 		},
 		1: {
-			StateUpgrader: upgradeStateV1,
+			StateUpgrader: upgradeStateV2,
 		},
 	}
 }

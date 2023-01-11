@@ -22,13 +22,13 @@ const (
 
 // Subscription is the main resource schema data
 type Subscription struct {
-	ID          types.String `tfsdk:"id"`
-	Key         types.String `tfsdk:"key"`
-	Version     types.Int64  `tfsdk:"version"`
-	Destination *Destination `tfsdk:"destination"`
-	Format      *Format      `tfsdk:"format"`
-	Messages    []Message    `tfsdk:"message"`
-	Changes     []Changes    `tfsdk:"changes"`
+	ID          types.String  `tfsdk:"id"`
+	Key         types.String  `tfsdk:"key"`
+	Version     types.Int64   `tfsdk:"version"`
+	Destination []Destination `tfsdk:"destination"`
+	Format      []Format      `tfsdk:"format"`
+	Messages    []Message     `tfsdk:"message"`
+	Changes     []Changes     `tfsdk:"changes"`
 }
 
 func NewSubscriptionFromNative(n *platform.Subscription) Subscription {
@@ -36,11 +36,17 @@ func NewSubscriptionFromNative(n *platform.Subscription) Subscription {
 		ID:          types.StringValue(n.ID),
 		Version:     types.Int64Value(int64(n.Version)),
 		Key:         utils.FromOptionalString(n.Key),
-		Format:      NewFormatFromNative(n.Format),
-		Destination: NewDestinationFromNative(n.Destination),
+		Format:      []Format{},
+		Destination: []Destination{},
 		Messages:    make([]Message, len(n.Messages)),
 		Changes:     []Changes{},
 	}
+
+	format := NewFormatFromNative(n.Format)
+	res.Format = append(res.Format, *format)
+
+	dst := NewDestinationFromNative(n.Destination)
+	res.Destination = append(res.Destination, *dst)
 
 	if len(n.Changes) > 0 {
 		item := Changes{
@@ -62,7 +68,7 @@ func NewSubscriptionFromNative(n *platform.Subscription) Subscription {
 }
 
 func (p *Subscription) SetStateData(state Subscription) {
-	p.Destination.SetStateData(state.Destination)
+	p.Destination[0].SetStateData(&state.Destination[0])
 }
 
 func (s Subscription) draft() platform.SubscriptionDraft {
@@ -73,15 +79,15 @@ func (s Subscription) draft() platform.SubscriptionDraft {
 
 	draft := platform.SubscriptionDraft{
 		Key:         utils.OptionalString(s.Key),
-		Destination: s.Destination.ToNative(),
+		Destination: s.Destination[0].ToNative(),
 		Messages: pie.Map(s.Messages, func(m Message) platform.MessageSubscription {
 			return m.toNative()
 		}),
 		Changes: changes,
 	}
 
-	if s.Format != nil {
-		draft.Format = s.Format.toNative()
+	if len(s.Format) > 0 {
+		draft.Format = s.Format[0].toNative()
 	}
 
 	return draft
@@ -108,7 +114,9 @@ func (s Subscription) updateActions(plan Subscription) platform.SubscriptionUpda
 	if !reflect.DeepEqual(s.Destination, plan.Destination) {
 		result.Actions = append(
 			result.Actions,
-			platform.SubscriptionChangeDestinationAction{Destination: plan.Destination.ToNative()})
+			platform.SubscriptionChangeDestinationAction{
+				Destination: plan.Destination[0].ToNative(),
+			})
 	}
 
 	// setChanges
