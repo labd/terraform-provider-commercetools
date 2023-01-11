@@ -67,8 +67,19 @@ func NewSubscriptionFromNative(n *platform.Subscription) Subscription {
 	return res
 }
 
-func (p *Subscription) SetStateData(state Subscription) {
-	p.Destination[0].SetStateData(&state.Destination[0])
+func (s *Subscription) matchDefaults(state Subscription) {
+	if len(state.Format) == 0 {
+		if len(s.Format) == 1 && s.Format[0].Type.ValueString() == "Platform" {
+			s.Format = []Format{}
+		}
+	}
+}
+
+func (s *Subscription) setDefaults() {
+}
+
+func (p *Subscription) setSecretValues(state Subscription) {
+	p.Destination[0].setSecretValues(&state.Destination[0])
 }
 
 func (s Subscription) draft() platform.SubscriptionDraft {
@@ -175,7 +186,7 @@ type Destination struct {
 	Topic     types.String `tfsdk:"topic"`
 }
 
-func (d *Destination) SetStateData(state *Destination) {
+func (d *Destination) setSecretValues(state *Destination) {
 	if state == nil {
 		return
 	}

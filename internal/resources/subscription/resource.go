@@ -280,7 +280,8 @@ func (r *subscriptionResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	current := NewSubscriptionFromNative(subscription)
-	current.SetStateData(plan)
+	current.matchDefaults(plan)
+	current.setSecretValues(plan)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, current)
@@ -310,7 +311,8 @@ func (r *subscriptionResource) Read(ctx context.Context, req resource.ReadReques
 	}
 
 	current := NewSubscriptionFromNative(subscription)
-	current.SetStateData(state)
+	current.matchDefaults(state)
+	current.setSecretValues(state)
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &current)
@@ -353,11 +355,12 @@ func (r *subscriptionResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	// Transform response to terraform value and call `SetStateData` with the
+	// Transform response to terraform value and call `setPlanData` with the
 	// plan to copy the secrets from the plan since those are returned by
 	// commercetools as masked values.
 	current := NewSubscriptionFromNative(subscription)
-	current.SetStateData(plan)
+	current.matchDefaults(plan)
+	current.setSecretValues(plan)
 
 	diags = resp.State.Set(ctx, current)
 	resp.Diagnostics.Append(diags...)
