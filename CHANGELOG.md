@@ -1,3 +1,9 @@
+v1.6.2 (2023-01-11)
+===================
+ - `resource_state` rewrite both the `state` and `state_transitions` resource
+   and move the code to the new plugin-framework. This should fix some related
+   to mismatching version values by always refreshing these. (#333)
+
 v1.6.1 (2023-01-11)
 ===================
  - `resource_project_settings` fix validation of values for the
