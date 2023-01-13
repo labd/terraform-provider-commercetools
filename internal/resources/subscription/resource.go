@@ -124,16 +124,27 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 						},
 						"topic_arn": schema.StringAttribute{
 							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 						},
 						"queue_url": schema.StringAttribute{
-							Optional:   true,
-							Validators: []validator.String{},
+							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 						},
 						"region": schema.StringAttribute{
 							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 						},
 						"account_id": schema.StringAttribute{
 							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 						},
 						"access_key": schema.StringAttribute{
 							Optional: true,
@@ -155,6 +166,9 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 						},
 						"uri": schema.StringAttribute{
 							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 						},
 						"connection_string": schema.StringAttribute{
 							Optional: true,
@@ -167,9 +181,15 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 						},
 						"project_id": schema.StringAttribute{
 							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 						},
 						"topic": schema.StringAttribute{
 							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
 						},
 					},
 				},
