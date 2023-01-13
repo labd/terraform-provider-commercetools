@@ -48,8 +48,8 @@ func (v dependencyValidator) ValidateString(ctx context.Context, req validator.S
 		matchedPaths, diags := req.Config.PathMatches(ctx, expression)
 
 		if diags.HasError() {
-			lastStep, steps := expression.Steps().LastStep()
-			if lastStep.Equal(path.ExpressionStepElementKeyValueAny{}) {
+			if diags.Errors()[0].Summary() == "Invalid Path Expression for Schema Data" {
+				_, steps := expression.Steps().LastStep()
 				resp.Diagnostics.Append(validatordiag.InvalidAttributeCombinationDiagnostic(
 					req.Path.ParentPath(),
 					fmt.Sprintf("Block %q must be specified when %q is %q", steps, req.Path, sourceVal),
