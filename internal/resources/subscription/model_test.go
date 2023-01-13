@@ -173,7 +173,7 @@ func TestImport(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			d := NewDestinationFromNative(tc.n)
-			d.SetStateData(tc.state)
+			d.setSecretValues(tc.state)
 			assert.EqualValues(t, tc.wantDest, *d)
 		})
 	}
