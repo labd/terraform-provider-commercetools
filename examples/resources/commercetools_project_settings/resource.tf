@@ -1,21 +1,22 @@
-resource "commercetools_project_settings" "project" {
-  name = "My project"
-  countries = ["NL", "DE", "US", "CA"]
+resource "commercetools_project_settings" "my-project" {
+  key        = "my-project-key"
+  name       = "My project"
+  countries  = ["NL", "DE", "US", "CA"]
   currencies = ["EUR", "USD", "CAD"]
-  languages = ["nl", "de", "en", "fr-CA"]
-  external_oauth = {
-    url = "https://example.com/oauth/introspection"
+  languages  = ["nl", "de", "en", "fr-CA"]
+  external_oauth {
+    url                  = "https://example.com/oauth/introspection"
     authorization_header = "Bearer secret"
   }
-  messages = {
+  messages {
     enabled = true
   }
-  carts = {
+  carts {
     country_tax_rate_fallback_enabled = true
   }
   shipping_rate_input_type = "CartClassification"
 
-  shipping_rate_cart_classification_values {
+  shipping_rate_cart_classification_value {
     key = "Small"
     label = {
       "en" = "Small"

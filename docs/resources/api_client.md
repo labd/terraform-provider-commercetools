@@ -17,7 +17,7 @@ Also see the [API client HTTP API documentation](https://docs.commercetools.com/
 
 ```terraform
 resource "commercetools_api_client" "my-api-client" {
-  name = "My API Client"
+  name  = "My API Client"
   scope = ["manage_orders:my-ct-project-key", "manage_payments:my-ct-project-key"]
 }
 ```
@@ -27,15 +27,12 @@ resource "commercetools_api_client" "my-api-client" {
 
 ### Required
 
-- **name** (String) Name of the API client
-- **scope** (Set of String) A list of the [OAuth scopes](https://docs.commercetools.com/http-api-authorization.html#scopes)
-
-### Optional
-
-- **id** (String) The ID of this resource.
+- `name` (String) Name of the API client
+- `scope` (Set of String) A list of the [OAuth scopes](https://docs.commercetools.com/http-api-authorization.html#scopes)
 
 ### Read-Only
 
-- **secret** (String)
+- `id` (String) The ID of this resource.
+- `secret` (String, Sensitive)
 
 

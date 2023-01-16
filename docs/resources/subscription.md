@@ -17,13 +17,12 @@ See also the [Subscriptions API Documentation](https://docs.commercetools.com/ap
 
 ```terraform
 resource "commercetools_subscription" "my-sqs-subscription" {
-  key = "my-subscription"
-
-  destination = {
+  key = "my-sqs-subscription-key"
+  destination {
     type          = "SQS"
-    queue_url     = "${aws_sqs_queue.your-queue.id}"
-    access_key    = "${aws_iam_access_key.ct.id}"
-    access_secret = "${aws_iam_access_key.ct.secret}"
+    queue_url     = aws_sqs_queue.your-queue.id
+    access_key    = aws_iam_access_key.ct.id
+    access_secret = aws_iam_access_key.ct.secret
     region        = "eu-west-1"
   }
 
@@ -43,31 +42,61 @@ resource "commercetools_subscription" "my-sqs-subscription" {
 
 ### Optional
 
-- **changes** (Block List) The change notifications subscribed to (see [below for nested schema](#nestedblock--changes))
-- **destination** (Map of String) The Message Queue into which the notifications are to be sentSee also the [Destination API Docs](https://docs.commercetools.com/api/projects/subscriptions#destination)
-- **format** (Map of String) The [format](https://docs.commercetools.com/api/projects/subscriptions#format) in which the payload is delivered
-- **id** (String) The ID of this resource.
-- **key** (String) User-specific unique identifier for the subscription
-- **message** (Block List) The messages subscribed to (see [below for nested schema](#nestedblock--message))
+- `changes` (Block Set) The change notifications subscribed to (see [below for nested schema](#nestedblock--changes))
+- `destination` (Block List) (see [below for nested schema](#nestedblock--destination))
+- `format` (Block List) The [format](https://docs.commercetools.com/api/projects/subscriptions#format) in which the payload is delivered (see [below for nested schema](#nestedblock--format))
+- `key` (String) Timestamp of the last Terraform update of the order.
+- `message` (Block Set) The messages subscribed to (see [below for nested schema](#nestedblock--message))
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 <a id="nestedblock--changes"></a>
 ### Nested Schema for `changes`
 
+Required:
+
+- `resource_type_ids` (List of String) [Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)
+
+
+<a id="nestedblock--destination"></a>
+### Nested Schema for `destination`
+
+Required:
+
+- `type` (String)
+
 Optional:
 
-- **resource_type_ids** (List of String) [Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)
+- `access_key` (String, Sensitive)
+- `access_secret` (String, Sensitive)
+- `account_id` (String)
+- `connection_string` (String)
+- `project_id` (String)
+- `queue_url` (String)
+- `region` (String)
+- `topic` (String)
+- `topic_arn` (String)
+- `uri` (String)
+
+
+<a id="nestedblock--format"></a>
+### Nested Schema for `format`
+
+Optional:
+
+- `cloud_events_version` (String) For CloudEvents
+- `type` (String)
 
 
 <a id="nestedblock--message"></a>
 ### Nested Schema for `message`
 
-Optional:
+Required:
 
-- **resource_type_id** (String) [Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)
-- **types** (List of String) types must contain valid message types for this resource, for example for resource type product the message type ProductPublished is valid. If no types of messages are given, the subscription is valid for all messages of this resource
+- `resource_type_id` (String) [Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)
+- `types` (List of String) types must contain valid message types for this resource, for example for resource type product the message type ProductPublished is valid. If no types of messages are given, the subscription is valid for all messages of this resource
 
 

@@ -20,7 +20,7 @@ See also the [Types Api Documentation](https://docs.commercetools.com/api/projec
 
 ```terraform
 resource "commercetools_type" "my-custom-type" {
-  key = "contact_info"
+  key = "my-custom-type"
   name = {
     en = "Contact info"
     nl = "Contact informatie"
@@ -41,6 +41,7 @@ resource "commercetools_type" "my-custom-type" {
     type {
       name = "String"
     }
+  }
 
   field {
     name = "contact_time"
@@ -50,9 +51,13 @@ resource "commercetools_type" "my-custom-type" {
     }
     type {
       name = "Enum"
-      values = {
-        day = "Daytime"
-        evening = "Evening"
+      value {
+        key   = "day"
+        value = "Daytime"
+      }
+      value {
+        key   = "evening"
+        value = "Evening"
       }
     }
   }
@@ -105,70 +110,79 @@ resource "commercetools_type" "my-custom-type" {
 
 ### Required
 
-- **key** (String) Identifier for the type (max. 256 characters)
-- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **resource_type_ids** (List of String) Defines for which [resources](https://docs.commercetools.com/api/projects/custom-fields#customizable-resources) the type is valid
+- `key` (String) Identifier for the type (max. 256 characters)
+- `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `resource_type_ids` (List of String) Defines for which [resources](https://docs.commercetools.com/api/projects/custom-fields#customizable-resources) the type is valid
 
 ### Optional
 
-- **description** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **field** (Block List) [Field definition](https://docs.commercetools.com/api/projects/types#fielddefinition) (see [below for nested schema](#nestedblock--field))
-- **id** (String) The ID of this resource.
+- `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `field` (Block List) [Field definition](https://docs.commercetools.com/api/projects/types#fielddefinition) (see [below for nested schema](#nestedblock--field))
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 <a id="nestedblock--field"></a>
 ### Nested Schema for `field`
 
 Required:
 
-- **label** (Map of String) A human-readable label for the field
-- **name** (String) The name of the field.
+- `label` (Map of String) A human-readable label for the field
+- `name` (String) The name of the field.
 The name must be between two and 36 characters long and can contain the ASCII letters A to Z in lowercase or uppercase, digits, underscores (_) and the hyphen-minus (-).
 The name must be unique for a given resource type ID. In case there is a field with the same name in another type it has to have the same FieldType also
-- **type** (Block List, Min: 1, Max: 1) Describes the [type](https://docs.commercetools.com/api/projects/types#fieldtype) of the field (see [below for nested schema](#nestedblock--field--type))
+- `type` (Block List, Min: 1, Max: 1) Describes the [type](https://docs.commercetools.com/api/projects/types#fieldtype) of the field (see [below for nested schema](#nestedblock--field--type))
 
 Optional:
 
-- **input_hint** (String) [TextInputHint](https://docs.commercetools.com/api/projects/types#textinputhint) Provides a visual representation type for this field. It is only relevant for string-based field types like StringType and LocalizedStringType
-- **required** (Boolean) Whether the field is required to have a value
+- `input_hint` (String) [TextInputHint](https://docs.commercetools.com/api/projects/types#textinputhint) Provides a visual representation type for this field. It is only relevant for string-based field types like StringType and LocalizedStringType
+- `required` (Boolean) Whether the field is required to have a value
 
 <a id="nestedblock--field--type"></a>
 ### Nested Schema for `field.type`
 
 Required:
 
-- **name** (String)
+- `name` (String) Name of the field type. Some types require extra fields to be set. Note that changing the type after creating is not supported. You need to delete the attribute and re-add it.
 
 Optional:
 
-- **element_type** (Block List, Max: 1) (see [below for nested schema](#nestedblock--field--type--element_type))
-- **localized_value** (Block List) (see [below for nested schema](#nestedblock--field--type--localized_value))
-- **reference_type_id** (String)
-- **values** (Map of String)
+- `element_type` (Block List, Max: 1) (see [below for nested schema](#nestedblock--field--type--element_type))
+- `localized_value` (Block List) Localized values for the `lenum` type. (see [below for nested schema](#nestedblock--field--type--localized_value))
+- `reference_type_id` (String) Resource type the Custom Field can reference. Required when type is `reference`
+- `value` (Block List) Values for the `enum` type. (see [below for nested schema](#nestedblock--field--type--value))
 
 <a id="nestedblock--field--type--element_type"></a>
 ### Nested Schema for `field.type.element_type`
 
 Required:
 
-- **name** (String)
+- `name` (String) Name of the field type. Some types require extra fields to be set. Note that changing the type after creating is not supported. You need to delete the attribute and re-add it.
 
 Optional:
 
-- **localized_value** (Block List) (see [below for nested schema](#nestedblock--field--type--element_type--localized_value))
-- **reference_type_id** (String)
-- **values** (Map of String)
+- `localized_value` (Block List) Localized values for the `lenum` type. (see [below for nested schema](#nestedblock--field--type--element_type--localized_value))
+- `reference_type_id` (String) Resource type the Custom Field can reference. Required when type is `reference`
+- `value` (Block List) Values for the `enum` type. (see [below for nested schema](#nestedblock--field--type--element_type--value))
 
 <a id="nestedblock--field--type--element_type--localized_value"></a>
-### Nested Schema for `field.type.element_type.values`
+### Nested Schema for `field.type.element_type.value`
 
 Required:
 
-- **key** (String)
-- **label** (Map of String)
+- `key` (String)
+- `label` (Map of String)
+
+
+<a id="nestedblock--field--type--element_type--value"></a>
+### Nested Schema for `field.type.element_type.value`
+
+Required:
+
+- `key` (String)
+- `label` (String)
 
 
 
@@ -177,7 +191,16 @@ Required:
 
 Required:
 
-- **key** (String)
-- **label** (Map of String)
+- `key` (String)
+- `label` (Map of String)
+
+
+<a id="nestedblock--field--type--value"></a>
+### Nested Schema for `field.type.value`
+
+Required:
+
+- `key` (String)
+- `label` (String)
 
 

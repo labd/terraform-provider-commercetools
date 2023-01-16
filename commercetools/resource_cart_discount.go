@@ -3,7 +3,6 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -11,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/ctutils"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceCartDiscount() *schema.Resource {
@@ -39,14 +39,16 @@ func resourceCartDiscount() *schema.Resource {
 				Optional:    true,
 			},
 			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Required:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Required:         true,
 			},
 			"description": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"value": {
 				Description: "Defines the effect the discount will have. " +
@@ -60,7 +62,7 @@ func resourceCartDiscount() *schema.Resource {
 							Description:  "Currently supports absolute/relative/giftLineItem",
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateValueType,
+							ValidateFunc: validateCartDiscountValueType,
 						},
 						"permyriad": {
 							Description: "Relative discount specific fields",
@@ -151,12 +153,14 @@ func resourceCartDiscount() *schema.Resource {
 				Default:     true,
 			},
 			"valid_from": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressDateString,
 			},
 			"valid_until": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressDateString,
 			},
 			"requires_discount_code": {
 				Description: "States whether the discount can only be used in a connection with a " +
@@ -180,7 +184,7 @@ func resourceCartDiscount() *schema.Resource {
 	}
 }
 
-func validateValueType(val interface{}, key string) (warns []string, errs []error) {
+func validateCartDiscountValueType(val any, key string) (warns []string, errs []error) {
 	switch val {
 	case
 		"relative",
@@ -193,7 +197,7 @@ func validateValueType(val interface{}, key string) (warns []string, errs []erro
 	return
 }
 
-func validateTargetType(val interface{}, key string) (warns []string, errs []error) {
+func validateTargetType(val any, key string) (warns []string, errs []error) {
 	switch val {
 	case
 		"lineItems",
@@ -206,7 +210,7 @@ func validateTargetType(val interface{}, key string) (warns []string, errs []err
 	return
 }
 
-func validateStackingMode(val interface{}, key string) (warns []string, errs []error) {
+func validateStackingMode(val any, key string) (warns []string, errs []error) {
 	switch val {
 	case
 		"Stacking",
@@ -218,25 +222,23 @@ func validateStackingMode(val interface{}, key string) (warns []string, errs []e
 	return
 }
 
-func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	var cartDiscount *platform.CartDiscount
 
-	name := unmarshallLocalizedString(d.Get("name"))
-	description := unmarshallLocalizedString(d.Get("description"))
+	name := expandLocalizedString(d.Get("name"))
+	description := expandLocalizedString(d.Get("description"))
 
-	value, err := unmarshallCartDiscountValue(d)
+	value, err := expandCartDiscountValue(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	stackingMode, err := unmarshallCartDiscountStackingMode(d)
+	stackingMode, err := expandCartDiscountStackingMode(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	draft := platform.CartDiscountDraft{
-		Key:                  stringRef(d.Get("key")),
 		Name:                 name,
 		Description:          &description,
 		Value:                &value,
@@ -247,40 +249,41 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m i
 		StackingMode:         &stackingMode,
 	}
 
-	if val, err := unmarshallCartDiscountTarget(d); err == nil {
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
+	}
+
+	if val, err := expandCartDiscountTarget(d); err == nil {
 		draft.Target = val
 	} else {
 		return diag.FromErr(err)
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
-		validFrom, err := unmarshallTime(val)
+		validFrom, err := expandTime(val)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		draft.ValidFrom = &validFrom
 	}
 	if val := d.Get("valid_until").(string); len(val) > 0 {
-		validUntil, err := unmarshallTime(val)
+		validUntil, err := expandTime(val)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		draft.ValidUntil = &validUntil
 	}
 
-	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	var cartDiscount *platform.CartDiscount
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
 		cartDiscount, err = client.CartDiscounts().Post(draft).Execute(ctx)
-
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return utils.ProcessRemoteError(err)
 	})
 
-	if errorResponse != nil {
-		return diag.FromErr(errorResponse)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	if cartDiscount == nil {
@@ -293,57 +296,38 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceCartDiscountRead(ctx, d, m)
 }
 
-func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading cart discount from commercetools, with cartDiscount id: %s", d.Id())
-
+func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-
 	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if utils.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
 
-	if cartDiscount == nil {
-		log.Print("[DEBUG] No cart discount found")
-		d.SetId("")
-	} else {
-		log.Print("[DEBUG] Found following cart discount:")
-		log.Print(stringFormatObject(cartDiscount))
-
-		d.Set("version", cartDiscount.Version)
-		d.Set("key", cartDiscount.Key)
-		d.Set("name", cartDiscount.Name)
-		d.Set("description", cartDiscount.Description)
-		d.Set("value", marshallCartDiscountValue(cartDiscount.Value))
-		d.Set("predicate", cartDiscount.CartPredicate)
-		d.Set("target", marshallCartDiscountTarget(cartDiscount.Target))
-		d.Set("sort_order", cartDiscount.SortOrder)
-		d.Set("is_active", cartDiscount.IsActive)
-		d.Set("valid_from", marshallTime(cartDiscount.ValidFrom))
-		d.Set("valid_until", marshallTime(cartDiscount.ValidUntil))
-		d.Set("requires_discount_code", cartDiscount.RequiresDiscountCode)
-		d.Set("stacking_mode", cartDiscount.StackingMode)
-	}
-
+	d.Set("version", cartDiscount.Version)
+	d.Set("key", cartDiscount.Key)
+	d.Set("name", cartDiscount.Name)
+	d.Set("description", cartDiscount.Description)
+	d.Set("value", flattenCartDiscountValue(cartDiscount.Value))
+	d.Set("predicate", cartDiscount.CartPredicate)
+	d.Set("target", flattenCartDiscountTarget(cartDiscount.Target))
+	d.Set("sort_order", cartDiscount.SortOrder)
+	d.Set("is_active", cartDiscount.IsActive)
+	d.Set("valid_from", flattenTime(cartDiscount.ValidFrom))
+	d.Set("valid_until", flattenTime(cartDiscount.ValidUntil))
+	d.Set("requires_discount_code", cartDiscount.RequiresDiscountCode)
+	d.Set("stacking_mode", cartDiscount.StackingMode)
 	return nil
 }
 
-func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	cartDiscount, err := client.CartDiscounts().WithId(d.Id()).Get().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	input := platform.CartDiscountUpdate{
-		Version: cartDiscount.Version,
+		Version: d.Get("version").(int),
 		Actions: []platform.CartDiscountUpdateAction{},
 	}
 
@@ -355,21 +339,21 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CartDiscountChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := unmarshallLocalizedString(d.Get("description"))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.CartDiscountSetDescriptionAction{Description: &newDescription})
 	}
 
 	if d.HasChange("value") {
-		value, err := unmarshallCartDiscountValue(d)
+		value, err := expandCartDiscountValue(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -386,7 +370,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("target") {
-		if val, err := unmarshallCartDiscountTarget(d); err == nil {
+		if val, err := expandCartDiscountTarget(d); err == nil {
 			if val != nil {
 				input.Actions = append(
 					input.Actions,
@@ -416,7 +400,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	if d.HasChange("valid_from") {
 		if val := d.Get("valid_from").(string); len(val) > 0 {
-			newValidFrom, err := unmarshallTime(d.Get("valid_from").(string))
+			newValidFrom, err := expandTime(d.Get("valid_from").(string))
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -432,7 +416,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	if d.HasChange("valid_until") {
 		if val := d.Get("valid_until").(string); len(val) > 0 {
-			newValidUntil, err := unmarshallTime(d.Get("valid_until").(string))
+			newValidUntil, err := expandTime(d.Get("valid_until").(string))
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -454,7 +438,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("stacking_mode") {
-		newStackingMode, err := unmarshallCartDiscountStackingMode(d)
+		newStackingMode, err := expandCartDiscountStackingMode(d)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -463,72 +447,76 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m i
 			&platform.CartDiscountChangeStackingModeAction{StackingMode: newStackingMode})
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.CartDiscounts().WithId(d.Id()).Post(input).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 
-	_, err = client.CartDiscounts().WithId(d.Id()).Post(input).Execute(ctx)
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	return resourceCartDiscountRead(ctx, d, m)
 }
 
-func resourceCartDiscountDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCartDiscountDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.CartDiscounts().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+
+	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.CartDiscounts().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	return nil
 }
 
-func marshallCartDiscountValue(val platform.CartDiscountValue) []map[string]interface{} {
+func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]any {
 	if val == nil {
-		return []map[string]interface{}{}
+		return []map[string]any{}
 	}
 
 	switch v := val.(type) {
 	case platform.CartDiscountValueAbsolute:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":  "absolute",
-			"money": marshallTypedMoney(v.Money),
+			"money": flattenTypedMoney(v.Money),
 		}}
 	case platform.CartDiscountValueFixed:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":  "fixed",
-			"money": marshallTypedMoney(v.Money),
+			"money": flattenTypedMoney(v.Money),
 		}}
 	case platform.CartDiscountValueGiftLineItem:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":                    "giftLineItem",
 			"supply_channel_id":       v.SupplyChannel.ID,
 			"distribution_channel_id": v.DistributionChannel.ID,
 			"product_id":              v.Product.ID,
 		}}
 	case platform.CartDiscountValueRelative:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":      "relative",
 			"permyriad": v.Permyriad,
 		}}
 	}
-	panic("Unable to marshall cart discount value")
+	panic("Unable to flatten cart discount value")
 }
 
-func unmarshallCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValueDraft, error) {
-	value := d.Get("value").([]interface{})[0].(map[string]interface{})
+func expandCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValueDraft, error) {
+	value := d.Get("value").([]any)[0].(map[string]any)
 	switch value["type"].(string) {
 	case "relative":
 		return platform.CartDiscountValueRelativeDraft{
 			Permyriad: value["permyriad"].(int),
 		}, nil
 	case "absolute":
-		money := unmarshallTypedMoney(value)
+		money := expandTypedMoney(value)
 		return platform.CartDiscountValueAbsoluteDraft{
 			Money: money,
 		}, nil
@@ -554,28 +542,28 @@ func unmarshallCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountV
 	}
 }
 
-func marshallCartDiscountTarget(val platform.CartDiscountTarget) []map[string]interface{} {
+func flattenCartDiscountTarget(val platform.CartDiscountTarget) []map[string]any {
 	switch v := val.(type) {
 	case platform.CartDiscountLineItemsTarget:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":      "lineItems",
 			"predicate": v.Predicate,
 		}}
 	case platform.CartDiscountCustomLineItemsTarget:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type":      "customLineItems",
 			"predicate": v.Predicate,
 		}}
 	case platform.CartDiscountShippingCostTarget:
-		return []map[string]interface{}{{
+		return []map[string]any{{
 			"type": "shipping",
 		}}
 	}
 
-	panic("Unable to marshall cart discount target")
+	panic("Unable to flatten cart discount target")
 }
 
-func unmarshallCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscountTarget, error) {
+func expandCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscountTarget, error) {
 	input, err := elementFromList(d, "target")
 	if err != nil {
 		return nil, err
@@ -602,7 +590,7 @@ func unmarshallCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscount
 
 }
 
-func unmarshallCartDiscountStackingMode(d *schema.ResourceData) (platform.StackingMode, error) {
+func expandCartDiscountStackingMode(d *schema.ResourceData) (platform.StackingMode, error) {
 	switch d.Get("stacking_mode").(string) {
 	case "Stacking":
 		return platform.StackingModeStacking, nil
@@ -611,146 +599,4 @@ func unmarshallCartDiscountStackingMode(d *schema.ResourceData) (platform.Stacki
 	default:
 		return "", fmt.Errorf("stacking mode %s not implemented", d.Get("stacking_mode").(string))
 	}
-}
-
-func resourceCartDiscountResourceV0() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"key": {
-				Description: "User-specific unique identifier for a cart discount. Must be unique across a project",
-				Type:        schema.TypeString,
-				Optional:    true,
-			},
-			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Required:    true,
-			},
-			"description": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
-			},
-			"value": {
-				Description: "Defines the effect the discount will have. " +
-					"[CartDiscountValue](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscountvalue)",
-				Type:     schema.TypeList,
-				MaxItems: 1,
-				Required: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"type": {
-							Description:  "Currently supports absolute/relative/giftLineItem",
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateValueType,
-						},
-						"permyriad": {
-							Description: "Relative discount specific fields",
-							Type:        schema.TypeInt,
-							Optional:    true,
-						},
-						"money": {
-							Description: "Absolute discount specific fields",
-							Type:        schema.TypeList,
-							Optional:    true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"currency_code": {
-										Description:  "The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
-										Type:         schema.TypeString,
-										Required:     true,
-										ValidateFunc: ValidateCurrencyCode,
-									},
-									"cent_amount": {
-										Description: "The amount in cents (the smallest indivisible unit of the currency)",
-										Type:        schema.TypeInt,
-										Required:    true,
-									},
-								},
-							},
-						},
-						"product_id": {
-							Description: "Gift Line Item discount specific field",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"variant": {
-							Description: "Gift Line Item discount specific field",
-							Type:        schema.TypeInt,
-							Optional:    true,
-						},
-						"supply_channel_id": {
-							Description: "Gift Line Item discount specific field",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"distribution_channel_id": {
-							Description: "Gift Line Item discount specific field",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-					},
-				},
-			},
-			"predicate": {
-				Description: "A valid [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)",
-				Type:        schema.TypeString,
-				Required:    true,
-			},
-			"target": {
-				Description: "Empty when the value has type giftLineItem, otherwise a " +
-					"[CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget)",
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-			"sort_order": {
-				Description: "The string must contain a number between 0 and 1. All matching cart discounts are " +
-					"applied to a cart in the order defined by this field. A discount with greater sort order is " +
-					"prioritized higher than a discount with lower sort order. The sort order is unambiguous among all cart discounts",
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"is_active": {
-				Description: "Only active discount can be applied to the cart",
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-			},
-			"valid_from": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"valid_until": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"requires_discount_code": {
-				Description: "States whether the discount can only be used in a connection with a " +
-					"[DiscountCode](https://docs.commercetools.com/api/projects/discountCodes#discountcode)",
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-			"stacking_mode": {
-				Description:  "Specifies whether the application of this discount causes the following discounts to be ignored",
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateStackingMode,
-				Default:      "Stacking",
-			},
-			"version": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-		},
-	}
-}
-
-func migrateCartDiscountStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
-	transformToList(rawState, "target")
-	return rawState, nil
 }

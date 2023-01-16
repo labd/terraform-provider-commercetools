@@ -1,9 +1,9 @@
 resource "commercetools_customer_group" "standard" {
+  key  = "my-customer-group-key"
   name = "Standard Customer Group"
-  key  = "standard-customer-group"
 }
 
 resource "commercetools_customer_group" "golden" {
+  key  = "my-customer-group-key"
   name = "Golden Customer Group"
-  key  = "golden-customer-group"
 }

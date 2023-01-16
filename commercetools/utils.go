@@ -1,13 +1,13 @@
 package commercetools
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
+	"reflect"
+	"regexp"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
 
@@ -16,36 +16,37 @@ import (
 // it should be used to store a LocalizedString
 const TypeLocalizedString = schema.TypeMap
 
-func getClient(m interface{}) *platform.ByProjectKeyRequestBuilder {
+func getClient(m any) *platform.ByProjectKeyRequestBuilder {
 	client := m.(*platform.ByProjectKeyRequestBuilder)
 	return client
 }
 
-func stringRef(value interface{}) *string {
+func stringRef(value any) *string {
+	if value == nil {
+		return nil
+	}
 	result := value.(string)
 	return &result
 }
 
-func intRef(value interface{}) *int {
+func stringUnref(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+func intRef(value any) *int {
 	result := value.(int)
 	return &result
 }
 
-func boolRef(value interface{}) *bool {
+func boolRef(value any) *bool {
 	result := value.(bool)
 	return &result
 }
 
-func handleCommercetoolsError(err error) *resource.RetryError {
-	if ctErr, ok := err.(platform.ErrorResponse); ok {
-		return resource.NonRetryableError(ctErr)
-	}
-
-	log.Printf("[DEBUG] Received error: %s", err)
-	return resource.RetryableError(err)
-}
-
-func expandStringArray(input []interface{}) []string {
+func expandStringArray(input []any) []string {
 	s := make([]string, len(input))
 	for i := range input {
 		s[i] = input[i].(string)
@@ -53,57 +54,10 @@ func expandStringArray(input []interface{}) []string {
 	return s
 }
 
-func localizedStringCompare(a platform.LocalizedString, b map[string]interface{}) bool {
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func stringFormatObject(object interface{}) string {
-	data, err := json.MarshalIndent(object, "", "    ")
-
-	if err != nil {
-		return fmt.Sprintf("%+v", object)
-	}
-	return string(append(data, '\n'))
-}
-
-func stringFormatErrorExtras(err platform.ErrorResponse) string {
-	switch len(err.Errors) {
-	case 0:
-		return ""
-	case 1:
-		return "temp" // stringFormatObject(err.Errors[0].Error())
-	default:
-		{
-			messages := make([]string, len(err.Errors))
-			for i, item := range err.Errors {
-				messages[i] = fmt.Sprintf("%v", item)
-				//messages[i] = fmt.Sprintf(" %d. %s", i+1, stringFormatObject(item.Extra()))
-			}
-			return strings.Join(messages, "\n")
-		}
-	}
-}
-
-func stringFormatActions(actions ...interface{}) string {
-	lines := []string{}
-	for i, action := range actions {
-		lines = append(
-			lines,
-			fmt.Sprintf("%d: %s", i, stringFormatObject(action)))
-
-	}
-	return strings.Join(lines, "\n")
-}
-
-func createLookup(objects []interface{}, key string) map[string]interface{} {
-	lookup := make(map[string]interface{})
+func createLookup(objects []any, key string) map[string]any {
+	lookup := make(map[string]any)
 	for _, field := range objects {
-		f := field.(map[string]interface{})
+		f := field.(map[string]any)
 		lookup[f[key].(string)] = field
 	}
 	return lookup
@@ -299,7 +253,7 @@ var currencyCodes = map[string]bool{
 }
 
 // ValidateCurrencyCode checks if a currency string is valid according to https://en.wikipedia.org/wiki/ISO_4217
-func ValidateCurrencyCode(val interface{}, key string) (warns []string, errs []error) {
+func ValidateCurrencyCode(val any, key string) (warns []string, errs []error) {
 	currency := val.(string)
 	if _, exists := currencyCodes[currency]; !exists {
 		errs = append(errs, fmt.Errorf("%q unknown currency code, must be valid ISO 4217 code, got: %s", key, currency))
@@ -307,39 +261,47 @@ func ValidateCurrencyCode(val interface{}, key string) (warns []string, errs []e
 	return
 }
 
-func transformToList(data map[string]interface{}, key string) {
-	newDestination := make([]interface{}, 1)
+func transformToList(data map[string]any, key string) {
+	newDestination := make([]any, 1)
 	if data[key] != nil {
 		newDestination[0] = data[key]
 	}
 	data[key] = newDestination
 }
 
-func elementFromList(d *schema.ResourceData, key string) (map[string]interface{}, error) {
-	data := d.Get(key).([]interface{})
+func elementFromList(d *schema.ResourceData, key string) (map[string]any, error) {
+	data := d.Get(key).([]any)
 
 	if len(data) > 0 {
-		result := data[0].(map[string]interface{})
+		result := data[0].(map[string]any)
 		return result, nil
 	}
 	return nil, nil
 }
 
-func elementFromSlice(d map[string]interface{}, key string) (map[string]interface{}, error) {
+func firstElementFromSlice(d []any) map[string]any {
+	if len(d) > 0 {
+		result := d[0].(map[string]any)
+		return result
+	}
+	return nil
+}
+
+func elementFromSlice(d map[string]any, key string) map[string]any {
 	data, ok := d[key]
 	if !ok {
-		return nil, nil
+		return nil
 	}
 
-	items := data.([]interface{})
+	items := data.([]any)
 	if len(items) > 0 {
-		result := items[0].(map[string]interface{})
-		return result, nil
+		result := items[0].(map[string]any)
+		return result
 	}
-	return nil, nil
+	return nil
 }
 
-func isNotEmpty(d map[string]interface{}, key string) (interface{}, bool) {
+func isNotEmpty(d map[string]any, key string) (any, bool) {
 	val, ok := d[key]
 	if !ok {
 		return nil, false
@@ -349,4 +311,129 @@ func isNotEmpty(d map[string]interface{}, key string) (interface{}, bool) {
 		return val, true
 	}
 	return nil, false
+}
+
+// nilIfEmpty returns a nil value if the string is nil or empty ("") otherwise
+// it returns the value
+func nilIfEmpty(val *string) *string {
+	if val == nil {
+		return nil
+	}
+
+	if *val == "" {
+		return nil
+	}
+	return val
+}
+
+var validateLocalizedStringKey = validation.MapKeyMatch(
+	regexp.MustCompile("^[a-z]{2}(-[A-Z]{2})?$"),
+	"Locale keys must match pattern ^[a-z]{2}(-[A-Z]{2})?$",
+)
+
+func upperStringSlice(items []string) []string {
+	s := make([]string, len(items))
+	for i, v := range items {
+		s[i] = strings.ToUpper(v)
+	}
+	return s
+}
+
+// languageCode converts an IETF language tag with mixed casing into the case-sensitive format.
+// The original item is returned if the given input is not valid.
+func languageCode(s string) string {
+	if len(s) == 2 {
+		return strings.ToLower(s)
+	}
+	parts := strings.Split(s, "-")
+	if len(parts) == 2 {
+		return strings.Join([]string{strings.ToLower(parts[0]), strings.ToUpper(parts[1])}, "-")
+	}
+	// fallback to the original
+	return s
+}
+
+func languageCodeSlice(items []string) []string {
+	codes := make([]string, len(items))
+	for i, code := range items {
+		codes[i] = languageCode(code)
+	}
+	return codes
+}
+
+func compareDateString(a, b string) bool {
+	if a == b {
+		return true
+	}
+	da, err := expandTime(a)
+	if err != nil {
+		return false
+	}
+	db, err := expandTime(b)
+	if err != nil {
+		return false
+	}
+	return da.Unix() == db.Unix()
+}
+
+func diffSuppressDateString(k, old, new string, d *schema.ResourceData) bool {
+	return compareDateString(old, new)
+}
+
+func removeValueFromSlice(items []string, value string) []string {
+	for i, v := range items {
+		if v == value {
+			return append(items[:i], items[i+1:]...)
+		}
+	}
+	return items
+}
+
+// diffSlices does a diff on two slices and returns the changes. If a field is
+// no longer available then nil is returned.
+func diffSlices(old, new map[string]any) map[string]any {
+	result := map[string]any{}
+	seen := map[string]bool{}
+
+	// Find changes against current values. If value no longer
+	// exists we set it to nil
+	for key, value := range old {
+		seen[key] = true
+		newVal, exists := new[key]
+		if !exists {
+			result[key] = nil
+			continue
+		}
+
+		if !reflect.DeepEqual(value, newVal) {
+			result[key] = newVal
+			continue
+		}
+	}
+
+	// Copy new values
+	for key, value := range new {
+		if _, exists := seen[key]; !exists {
+			result[key] = value
+		}
+	}
+
+	return result
+}
+
+func coerceTypedMoney(val platform.TypedMoney) platform.Money {
+	switch p := val.(type) {
+	case platform.CentPrecisionMoney:
+		return platform.Money{
+			CentAmount:   p.CentAmount,
+			CurrencyCode: p.CurrencyCode,
+		}
+	case platform.HighPrecisionMoney:
+		return platform.Money{
+			CentAmount:   p.CentAmount,
+			CurrencyCode: p.CurrencyCode,
+		}
+	}
+
+	return platform.Money{}
 }

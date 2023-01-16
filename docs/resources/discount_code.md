@@ -23,19 +23,19 @@ resource "commercetools_discount_code" "my_discount_code" {
   description = {
     en = "My Discount code description"
   }
-  code = "2"
-  valid_from = "2020-01-02T15:04:05.000Z"
-  valid_until = "2021-01-02T15:04:05.000Z"
-  is_active = true
-  predicate = "1=1"
+  code                          = "2"
+  valid_from                    = "2020-01-02T15:04:05.000Z"
+  valid_until                   = "2021-01-02T15:04:05.000Z"
+  is_active                     = true
+  predicate                     = "1=1"
   max_applications_per_customer = 3
-  max_applications = 100
-  groups = ["0", "1"]
-  cart_discounts = ["cart-discount-id-1", "cart-discount-id-2"]
+  max_applications              = 100
+  groups                        = ["0", "1"]
+  cart_discounts                = ["cart-discount-id-1", "cart-discount-id-2"]
 }
 
 resource "commercetools_discount_code" "my_discount_code" {
-  code = "2"
+  code           = "2"
   cart_discounts = ["cart-discount-id-1"]
 }
 ```
@@ -45,24 +45,36 @@ resource "commercetools_discount_code" "my_discount_code" {
 
 ### Required
 
-- **cart_discounts** (List of String) The referenced matching cart discounts can be applied to the cart once the DiscountCode is added
-- **code** (String) Unique identifier of this discount code. This value is added to the cart to enable the related cart discounts in the cart
+- `cart_discounts` (List of String) The referenced matching cart discounts can be applied to the cart once the DiscountCode is added
+- `code` (String) Unique identifier of this discount code. This value is added to the cart to enable the related cart discounts in the cart
 
 ### Optional
 
-- **description** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **groups** (List of String) The groups to which this discount code belong
-- **id** (String) The ID of this resource.
-- **is_active** (Boolean)
-- **max_applications** (Number) The discount code can only be applied maxApplications times
-- **max_applications_per_customer** (Number) The discount code can only be applied maxApplicationsPerCustomer times per customer
-- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **predicate** (String) [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)
-- **valid_from** (String) The time from which the discount can be applied on a cart. Before that time the code is invalid
-- **valid_until** (String) The time until the discount can be applied on a cart. After that time the code is invalid
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
+- `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `groups` (List of String) The groups to which this discount code belong
+- `is_active` (Boolean)
+- `max_applications` (Number) The discount code can only be applied maxApplications times
+- `max_applications_per_customer` (Number) The discount code can only be applied maxApplicationsPerCustomer times per customer
+- `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `predicate` (String) [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)
+- `valid_from` (String) The time from which the discount can be applied on a cart. Before that time the code is invalid
+- `valid_until` (String) The time until the discount can be applied on a cart. After that time the code is invalid
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
 
 

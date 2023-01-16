@@ -17,7 +17,7 @@ See also the [Cart Discount API Documentation](https://docs.commercetools.com/ap
 
 ```terraform
 resource "commercetools_cart_discount" "my-cart-discount" {
-  key = "my_discount"
+  key = "my-cart-discount-key"
   name = {
     en = "My Discount name"
   }
@@ -25,24 +25,24 @@ resource "commercetools_cart_discount" "my-cart-discount" {
     en = "My Discount description"
   }
   value {
-    type = "relative"
+    type      = "relative"
     permyriad = 1000
   }
   predicate = "1=1"
   target = {
-    type = "lineItems"
+    type      = "lineItems"
     predicate = "1=1"
   }
-  sort_order = "0.9"
-  is_active = true
-  valid_from = "2020-01-02T15:04:05.000Z"
-  valid_until = "2021-01-02T15:04:05.000Z"
+  sort_order             = "0.9"
+  is_active              = true
+  valid_from             = "2020-01-02T15:04:05.000Z"
+  valid_until            = "2021-01-02T15:04:05.000Z"
   requires_discount_code = true
-  stacking_mode = "Stacking"
+  stacking_mode          = "Stacking"
 }
 
 resource "commercetools_cart_discount" "my-cart-discount" {
-  key = "my_discount"
+  key = "my-cart-discount-key"
   name = {
     en = "My Discount name"
   }
@@ -53,33 +53,34 @@ resource "commercetools_cart_discount" "my-cart-discount" {
     type = "absolute"
     money {
       currency_code = "USD"
-      cent_amount = "3000"
+      cent_amount   = "3000"
     }
     money {
-    currency_code = "EUR"
-    cent_amount = "4000"
+      currency_code = "EUR"
+      cent_amount   = "4000"
     }
   }
   predicate = "any-predicate"
   target = {
     type = "shipping"
   }
-  sort_order = "0.8"
-  is_active = false
+  sort_order             = "0.8"
+  is_active              = false
   requires_discount_code = false
-  stacking_mode = "StopAfterThisDiscount"
+  stacking_mode          = "StopAfterThisDiscount"
 }
 
 resource "commercetools_cart_discount" "my-cart-discount" {
+  key = "my-cart-discount-key"
   name = {
     en = "My Discount name"
   }
   value {
-    type = "giftLineItem"
-    product_id = "product-id"
-    variant = 1
-    supply_channel_id = "supply-channel-id"
-    distribution_channel_id	= "distribution-channel-id"
+    type                    = "giftLineItem"
+    product_id              = "product-id"
+    variant                 = 1
+    supply_channel_id       = "supply-channel-id"
+    distribution_channel_id = "distribution-channel-id"
   }
   predicate = "any-predicate"
   target = {
@@ -94,49 +95,62 @@ resource "commercetools_cart_discount" "my-cart-discount" {
 
 ### Required
 
-- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **predicate** (String) A valid [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)
-- **sort_order** (String) The string must contain a number between 0 and 1. All matching cart discounts are applied to a cart in the order defined by this field. A discount with greater sort order is prioritized higher than a discount with lower sort order. The sort order is unambiguous among all cart discounts
-- **value** (Block List, Min: 1, Max: 1) Defines the effect the discount will have. [CartDiscountValue](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscountvalue) (see [below for nested schema](#nestedblock--value))
+- `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `predicate` (String) A valid [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)
+- `sort_order` (String) The string must contain a number between 0 and 1. All matching cart discounts are applied to a cart in the order defined by this field. A discount with greater sort order is prioritized higher than a discount with lower sort order. The sort order is unambiguous among all cart discounts
+- `value` (Block List, Min: 1, Max: 1) Defines the effect the discount will have. [CartDiscountValue](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscountvalue) (see [below for nested schema](#nestedblock--value))
 
 ### Optional
 
-- **description** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **id** (String) The ID of this resource.
-- **is_active** (Boolean) Only active discount can be applied to the cart
-- **key** (String) User-specific unique identifier for a cart discount. Must be unique across a project
-- **requires_discount_code** (Boolean) States whether the discount can only be used in a connection with a [DiscountCode](https://docs.commercetools.com/api/projects/discountCodes#discountcode)
-- **stacking_mode** (String) Specifies whether the application of this discount causes the following discounts to be ignored
-- **target** (Map of String) Empty when the value has type giftLineItem, otherwise a [CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget)
-- **valid_from** (String)
-- **valid_until** (String)
+- `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `is_active` (Boolean) Only active discount can be applied to the cart
+- `key` (String) User-specific unique identifier for a cart discount. Must be unique across a project
+- `requires_discount_code` (Boolean) States whether the discount can only be used in a connection with a [DiscountCode](https://docs.commercetools.com/api/projects/discountCodes#discountcode)
+- `stacking_mode` (String) Specifies whether the application of this discount causes the following discounts to be ignored
+- `target` (Block List, Max: 1) Empty when the value has type giftLineItem, otherwise a [CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget) (see [below for nested schema](#nestedblock--target))
+- `valid_from` (String)
+- `valid_until` (String)
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 <a id="nestedblock--value"></a>
 ### Nested Schema for `value`
 
 Required:
 
-- **type** (String) Currently supports absolute/relative/giftLineItem
+- `type` (String) Currently supports absolute/relative/giftLineItem
 
 Optional:
 
-- **distribution_channel_id** (String) Gift Line Item discount specific field
-- **money** (Block List) Absolute discount specific fields (see [below for nested schema](#nestedblock--value--money))
-- **permyriad** (Number) Relative discount specific fields
-- **product_id** (String) Gift Line Item discount specific field
-- **supply_channel_id** (String) Gift Line Item discount specific field
-- **variant** (Number) Gift Line Item discount specific field
+- `distribution_channel_id` (String) Gift Line Item discount specific field
+- `money` (Block List) Absolute discount specific fields (see [below for nested schema](#nestedblock--value--money))
+- `permyriad` (Number) Relative discount specific fields
+- `product_id` (String) Gift Line Item discount specific field
+- `supply_channel_id` (String) Gift Line Item discount specific field
+- `variant` (Number) Gift Line Item discount specific field
 
 <a id="nestedblock--value--money"></a>
 ### Nested Schema for `value.money`
 
 Required:
 
-- **cent_amount** (Number) The amount in cents (the smallest indivisible unit of the currency)
-- **currency_code** (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
+- `cent_amount` (Number) The amount in cents (the smallest indivisible unit of the currency)
+- `currency_code` (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
+
+
+
+<a id="nestedblock--target"></a>
+### Nested Schema for `target`
+
+Required:
+
+- `type` (String) Supports lineItems/customLineItems/shipping
+
+Optional:
+
+- `predicate` (String) LineItems/CustomLineItems target specific fields
 
 

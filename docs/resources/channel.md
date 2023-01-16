@@ -16,14 +16,14 @@ See also the [Channels API Documentation](https://docs.commercetools.com/api/pro
 ## Example Usage
 
 ```terraform
-resource "commercetools_channel" "project" {
-  key = "My project"
+resource "commercetools_channel" "my-channel" {
+  key   = "my-channel-key"
   roles = ["ProductDistribution"]
   name = {
-      nl-NL = "Channel"
+    nl-NL = "Channel"
   }
   description = {
-      nl-NL = "Channel"
+    nl-NL = "Channel"
   }
 }
 ```
@@ -33,17 +33,77 @@ resource "commercetools_channel" "project" {
 
 ### Required
 
-- **key** (String) Any arbitrary string key that uniquely identifies this channel within the project
-- **roles** (List of String) The [roles](https://docs.commercetools.com/api/projects/channels#channelroleenum) of this channel. Each channel must have at least one role
+- `key` (String) Any arbitrary string key that uniquely identifies this channel within the project
+- `roles` (List of String) The [roles](https://docs.commercetools.com/api/projects/channels#channelroleenum) of this channel. Each channel must have at least one role
 
 ### Optional
 
-- **description** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **id** (String) The ID of this resource.
-- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `address` (Block List, Max: 1) (see [below for nested schema](#nestedblock--address))
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
+- `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `geolocation` (Block List, Max: 1) (see [below for nested schema](#nestedblock--geolocation))
+- `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
+
+<a id="nestedblock--address"></a>
+### Nested Schema for `address`
+
+Required:
+
+- `country` (String)
+
+Optional:
+
+- `additional_address_info` (String)
+- `additional_street_info` (String)
+- `apartment` (String)
+- `building` (String)
+- `city` (String)
+- `company` (String)
+- `department` (String)
+- `email` (String)
+- `external_id` (String)
+- `fax` (String)
+- `first_name` (String)
+- `key` (String)
+- `last_name` (String)
+- `mobile` (String)
+- `phone` (String)
+- `po_box` (String)
+- `postal_code` (String)
+- `region` (String)
+- `salutation` (String)
+- `state` (String)
+- `street_name` (String)
+- `street_number` (String)
+- `title` (String)
+
+Read-Only:
+
+- `id` (String) The ID of this resource.
+
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
+
+
+<a id="nestedblock--geolocation"></a>
+### Nested Schema for `geolocation`
+
+Required:
+
+- `coordinates` (List of Number)
 
 

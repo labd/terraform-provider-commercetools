@@ -2,13 +2,13 @@ package commercetools
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceDiscountCode() *schema.Resource {
@@ -26,14 +26,16 @@ func resourceDiscountCode() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"description": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"code": {
 				Description: "Unique identifier of this discount code. This value is added to the cart to enable " +
@@ -42,14 +44,16 @@ func resourceDiscountCode() *schema.Resource {
 				Required: true,
 			},
 			"valid_from": {
-				Description: "The time from which the discount can be applied on a cart. Before that time the code is invalid",
-				Type:        schema.TypeString,
-				Optional:    true,
+				Description:      "The time from which the discount can be applied on a cart. Before that time the code is invalid",
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressDateString,
 			},
 			"valid_until": {
-				Description: "The time until the discount can be applied on a cart. After that time the code is invalid",
-				Type:        schema.TypeString,
-				Optional:    true,
+				Description:      "The time until the discount can be applied on a cart. After that time the code is invalid",
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressDateString,
 			},
 			"is_active": {
 				Type:     schema.TypeBool,
@@ -87,16 +91,24 @@ func resourceDiscountCode() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"custom": CustomFieldSchema(),
 		},
 	}
 }
 
-func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	var discountCode *platform.DiscountCode
 
-	name := unmarshallLocalizedString(d.Get("name"))
-	description := unmarshallLocalizedString(d.Get("description"))
+	name := expandLocalizedString(d.Get("name"))
+	description := expandLocalizedString(d.Get("description"))
+
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
 
 	draft := platform.DiscountCodeDraft{
 		Name:                       &name,
@@ -106,42 +118,35 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m i
 		IsActive:                   boolRef(d.Get("is_active")),
 		MaxApplicationsPerCustomer: intRef(d.Get("max_applications_per_customer")),
 		MaxApplications:            intRef(d.Get("max_applications")),
-		Groups:                     unmarshallDiscountCodeGroups(d),
-		CartDiscounts:              unmarshallDiscountCodeCartDiscounts(d),
+		Groups:                     expandDiscountCodeGroups(d),
+		CartDiscounts:              expandDiscountCodeCartDiscounts(d),
+		Custom:                     custom,
 	}
 
 	if val := d.Get("valid_from").(string); len(val) > 0 {
-		validFrom, err := unmarshallTime(val)
+		validFrom, err := expandTime(val)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		draft.ValidFrom = &validFrom
 	}
 	if val := d.Get("valid_until").(string); len(val) > 0 {
-		validUntil, err := unmarshallTime(val)
+		validUntil, err := expandTime(val)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		draft.ValidUntil = &validUntil
 	}
 
-	errorResponse := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	var discountCode *platform.DiscountCode
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
 		discountCode, err = client.DiscountCodes().Post(draft).Execute(ctx)
-
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return utils.ProcessRemoteError(err)
 	})
 
-	if errorResponse != nil {
-		return diag.FromErr(errorResponse)
-	}
-
-	if discountCode == nil {
-		return diag.Errorf("No discount code created")
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	d.SetId(discountCode.ID)
@@ -150,68 +155,50 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceDiscountCodeRead(ctx, d, m)
 }
 
-func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading discount code from commercetools, with discount code id: %s", d.Id())
-
+func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-
 	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if utils.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
 
-	if discountCode == nil {
-		log.Print("[DEBUG] No discount code found")
-		d.SetId("")
-	} else {
-		log.Print("[DEBUG] Found following discount code:")
-		log.Print(stringFormatObject(discountCode))
-
-		d.Set("version", discountCode.Version)
-		d.Set("code", discountCode.Code)
-		d.Set("name", discountCode.Name)
-		d.Set("description", discountCode.Description)
-		d.Set("predicate", discountCode.CartPredicate)
-		d.Set("cart_discounts", marshallDiscountCodeCartDiscounts(discountCode.CartDiscounts))
-		d.Set("groups", discountCode.Groups)
-		d.Set("is_active", discountCode.IsActive)
-		d.Set("valid_from", marshallTime(discountCode.ValidFrom))
-		d.Set("valid_until", marshallTime(discountCode.ValidUntil))
-		d.Set("max_applications_per_customer", discountCode.MaxApplicationsPerCustomer)
-		d.Set("max_applications", discountCode.MaxApplications)
-	}
-
+	d.Set("version", discountCode.Version)
+	d.Set("code", discountCode.Code)
+	d.Set("name", discountCode.Name)
+	d.Set("description", discountCode.Description)
+	d.Set("predicate", discountCode.CartPredicate)
+	d.Set("cart_discounts", flattenDiscountCodeCartDiscounts(discountCode.CartDiscounts))
+	d.Set("groups", discountCode.Groups)
+	d.Set("is_active", discountCode.IsActive)
+	d.Set("valid_from", flattenTime(discountCode.ValidFrom))
+	d.Set("valid_until", flattenTime(discountCode.ValidUntil))
+	d.Set("max_applications_per_customer", discountCode.MaxApplicationsPerCustomer)
+	d.Set("max_applications", discountCode.MaxApplications)
+	d.Set("custom", flattenCustomFields(discountCode.Custom))
 	return nil
 }
 
-func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	discountCode, err := client.DiscountCodes().WithId(d.Id()).Get().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	input := platform.DiscountCodeUpdate{
-		Version: discountCode.Version,
+		Version: d.Get("version").(int),
 		Actions: []platform.DiscountCodeUpdateAction{},
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeSetNameAction{Name: &newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := unmarshallLocalizedString(d.Get("description"))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeSetDescriptionAction{Description: &newDescription})
@@ -239,14 +226,14 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("cart_discounts") {
-		newCartDiscounts := unmarshallDiscountCodeCartDiscounts(d)
+		newCartDiscounts := expandDiscountCodeCartDiscounts(d)
 		input.Actions = append(
 			input.Actions,
 			&platform.DiscountCodeChangeCartDiscountsAction{CartDiscounts: newCartDiscounts})
 	}
 
 	if d.HasChange("groups") {
-		newGroups := unmarshallDiscountCodeGroups(d)
+		newGroups := expandDiscountCodeGroups(d)
 		if len(newGroups) > 0 {
 			input.Actions = append(
 				input.Actions,
@@ -267,7 +254,7 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	if d.HasChange("valid_from") {
 		if val := d.Get("valid_from").(string); len(val) > 0 {
-			newValidFrom, err := unmarshallTime(d.Get("valid_from").(string))
+			newValidFrom, err := expandTime(d.Get("valid_from").(string))
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -283,7 +270,7 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 
 	if d.HasChange("valid_until") {
 		if val := d.Get("valid_until").(string); len(val) > 0 {
-			newValidUntil, err := unmarshallTime(d.Get("valid_until").(string))
+			newValidUntil, err := expandTime(d.Get("valid_until").(string))
 			if err != nil {
 				return diag.FromErr(err)
 			}
@@ -297,39 +284,47 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m i
 		}
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
-
-	_, err = client.DiscountCodes().WithId(discountCode.ID).Post(input).Execute(ctx)
-	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.DiscountCodeSetCustomTypeAction, platform.DiscountCodeSetCustomFieldAction](ctx, client, d)
+		if err != nil {
+			return diag.FromErr(err)
 		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.DiscountCodeUpdateAction))
+		}
+	}
+
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.DiscountCodes().WithId(d.Id()).Post(input).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	return resourceDiscountCodeRead(ctx, d, m)
 }
 
-func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.DiscountCodes().WithId(d.Id()).Delete().Version(version).DataErasure(true).Execute(ctx)
 
-	if err != nil {
-		log.Printf("[ERROR] Error during deleting discount code resource %s", err)
-		return nil
-	}
-	return nil
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.DiscountCodes().WithId(d.Id()).Delete().Version(version).DataErasure(true).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
-func unmarshallDiscountCodeGroups(d *schema.ResourceData) []string {
-	return expandStringArray(d.Get("groups").([]interface{}))
+func expandDiscountCodeGroups(d *schema.ResourceData) []string {
+	return expandStringArray(d.Get("groups").([]any))
 }
 
-func unmarshallDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.CartDiscountResourceIdentifier {
-	discounts := d.Get("cart_discounts").([]interface{})
+func expandDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.CartDiscountResourceIdentifier {
+	discounts := d.Get("cart_discounts").([]any)
 
 	cartDiscounts := make([]platform.CartDiscountResourceIdentifier, len(discounts))
 	for i := range discounts {
@@ -339,7 +334,7 @@ func unmarshallDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.Cart
 	return cartDiscounts
 }
 
-func marshallDiscountCodeCartDiscounts(values []platform.CartDiscountReference) []string {
+func flattenDiscountCodeCartDiscounts(values []platform.CartDiscountReference) []string {
 	result := make([]string, len(values))
 	for i := range values {
 		result[i] = string(values[i].ID)

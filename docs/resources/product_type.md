@@ -17,80 +17,130 @@ See also the [Product Type API Documentation](https://docs.commercetools.com/api
 
 ```terraform
 resource "commercetools_product_type" "some-generic-properties-product-type" {
-    name = "Some generic product properties"
-    description = "All the generic product properties"
-
-    attribute {
-        name = "perishable"
-        label = {
-            en = "Is perishable"
-            nl = "Is perishable"
-        }
-        required = true
-        type {
-            name = "boolean"
-        }
+  key         = "some-key"
+  name        = "Some generic product properties"
+  description = "All the generic product properties"
+  attribute {
+    name = "perishable"
+    label = {
+      en = "Is perishable"
+      nl = "Is perishable"
     }
+    required = true
+    type {
+      name = "boolean"
+    }
+  }
 }
 
 resource "commercetools_product_type" "my-product-type" {
-    name = "Lens specification"
-    description = "All the specific info concerning the lens"
+  key         = "my-product-type-key"
+  name        = "Lens specification"
+  description = "All the specific info concerning the lens"
 
-    attribute {
-        name = "autofocus"
-        label = {
-            en = "Has autofocus"
-            nl = "Heeft autofocus"
-        }
-        required = true
-        type {
-            name = "boolean"
-        }
+  attribute {
+    name = "autofocus"
+    label = {
+      en = "Has autofocus"
+      nl = "Heeft autofocus"
     }
+    required = true
+    type {
+      name = "boolean"
+    }
+  }
 
-    attribute {
-        name = "lens_product_no"
-        label = {
-            en = "Lens product number"
-            nl = "Objectief productnummer"
-        }
-        required = true
-        type {
-            name = "text"
-        }
-        constraint = "Unique"
-        input_tip = {
-            en = "Enter the product code"
-            nl = "Voer de product code in"
-        }
-        searchable = true
+  attribute {
+    name = "lens_product_no"
+    label = {
+      en = "Lens product number"
+      nl = "Objectief productnummer"
     }
+    required = true
+    type {
+      name = "text"
+    }
+    constraint = "Unique"
+    input_tip = {
+      en = "Enter the product code"
+      nl = "Voer de product code in"
+    }
+    searchable = true
+  }
 
-    attribute {
-        name = "previous_model"
-        label = {
-            en = "Previous model"
-            nl = "Vorig model"
-        }
-        type {
-            name = "reference"
-            reference_type_id = "product"
-        }
+  attribute {
+    name = "previous_model"
+    label = {
+      en = "Previous model"
+      nl = "Vorig model"
     }
+    type {
+      name              = "reference"
+      reference_type_id = "product"
+    }
+  }
 
-    attribute {
-        name = "product_properties"
-        label = {
-            en = "Product properties"
-            nl = "Product eigenschappen"
-        }
-        required = false
-        type {
-            name =  "nested"
-            type_reference = "${commercetools_product_type.some-generic-properties-product-type.id}"
-        }
+  attribute {
+    name = "product_properties"
+    label = {
+      en = "Product properties"
+      nl = "Product eigenschappen"
     }
+    required = false
+    type {
+      name           = "nested"
+      type_reference = commercetools_product_type.some-generic-properties-product-type.id
+    }
+  }
+
+  attribute {
+    name = "some-flag"
+    label = {
+      en = "Some flag"
+      nl = "Een vlag"
+    }
+    required = false
+    type {
+      name = "enum"
+      value {
+        key   = "FLAG-1"
+        label = "Flag 1"
+      }
+      value {
+        key   = "FLAG-2"
+        label = "FLAG-2"
+      }
+    }
+  }
+
+  attribute {
+    name = "origin"
+    label = {
+      en = "Origin country"
+      nl = "Land van herkomst"
+    }
+    required = false
+    type {
+      name = "set"
+      element_type {
+        name = "lenum"
+        localized_value {
+          key = "NL"
+          label = {
+            en = "Netherlands"
+            nl = "Nederland"
+          }
+        }
+        localized_value {
+          key = "DE"
+          label = {
+            en = "Germany"
+            nl = "Duitsland"
+          }
+        }
+      }
+    }
+  }
 }
 ```
 
@@ -99,73 +149,82 @@ resource "commercetools_product_type" "my-product-type" {
 
 ### Required
 
-- **name** (String)
+- `name` (String)
 
 ### Optional
 
-- **attribute** (Block List) [Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition) (see [below for nested schema](#nestedblock--attribute))
-- **description** (String)
-- **id** (String) The ID of this resource.
-- **key** (String) User-specific unique identifier for the product type (max. 256 characters)
+- `attribute` (Block List) [Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition) (see [below for nested schema](#nestedblock--attribute))
+- `description` (String)
+- `key` (String) User-specific unique identifier for the product type (max. 256 characters)
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 <a id="nestedblock--attribute"></a>
 ### Nested Schema for `attribute`
 
 Required:
 
-- **label** (Map of String) A human-readable label for the attribute
-- **name** (String) The unique name of the attribute used in the API. The name must be between two and 256 characters long and can contain the ASCII letters A to Z in lowercase or uppercase, digits, underscores (_) and the hyphen-minus (-).
+- `label` (Map of String) A human-readable label for the attribute
+- `name` (String) The unique name of the attribute used in the API. The name must be between two and 256 characters long and can contain the ASCII letters A to Z in lowercase or uppercase, digits, underscores (_) and the hyphen-minus (-).
 When using the same name for an attribute in two or more product types all fields of the AttributeDefinition of this attribute need to be the same across the product types, otherwise an AttributeDefinitionAlreadyExists error code will be returned. An exception to this are the values of an enum or lenum type and sets thereof
-- **type** (Block List, Min: 1, Max: 1) [AttributeType](https://docs.commercetools.com/api/projects/productTypes#attributetype) (see [below for nested schema](#nestedblock--attribute--type))
+- `type` (Block List, Min: 1, Max: 1) [AttributeType](https://docs.commercetools.com/api/projects/productTypes#attributetype) (see [below for nested schema](#nestedblock--attribute--type))
 
 Optional:
 
-- **constraint** (String) Describes how an attribute or a set of attributes should be validated across all variants of a product. See also [Attribute Constraint](https://docs.commercetools.com/api/projects/productTypes#attributeconstraint-enum)
-- **input_hint** (String) Provides a visual representation type for this attribute. only relevant for text-based attribute types like TextType and LocalizableTextType
-- **input_tip** (Map of String) Additional information about the attribute that aids content managers when setting product details
-- **required** (Boolean) Whether the attribute is required to have a value
-- **searchable** (Boolean) Whether the attribute's values should generally be activated in product search
+- `constraint` (String) Describes how an attribute or a set of attributes should be validated across all variants of a product. See also [Attribute Constraint](https://docs.commercetools.com/api/projects/productTypes#attributeconstraint-enum)
+- `input_hint` (String) Provides a visual representation type for this attribute. only relevant for text-based attribute types like TextType and LocalizableTextType
+- `input_tip` (Map of String) Additional information about the attribute that aids content managers when setting product details
+- `required` (Boolean) Whether the attribute is required to have a value
+- `searchable` (Boolean) Whether the attribute's values should generally be activated in product search
 
 <a id="nestedblock--attribute--type"></a>
 ### Nested Schema for `attribute.type`
 
 Required:
 
-- **name** (String)
+- `name` (String) Name of the field type. Some types require extra fields to be set. Note that changing the type after creating is not supported. You need to delete the attribute and re-add it
 
 Optional:
 
-- **element_type** (Block List, Max: 1) (see [below for nested schema](#nestedblock--attribute--type--element_type))
-- **localized_value** (Block List) (see [below for nested schema](#nestedblock--attribute--type--localized_value))
-- **reference_type_id** (String)
-- **type_reference** (String)
-- **values** (Map of String)
+- `element_type` (Block List, Max: 1) (see [below for nested schema](#nestedblock--attribute--type--element_type))
+- `localized_value` (Block List) Localized values for the `lenum` type. (see [below for nested schema](#nestedblock--attribute--type--localized_value))
+- `reference_type_id` (String) Resource type the Custom Field can reference. Required when type is `reference`
+- `type_reference` (String) Reference to another product type. Required when type is `nested`.
+- `value` (Block List) Values for the `enum` type. (see [below for nested schema](#nestedblock--attribute--type--value))
 
 <a id="nestedblock--attribute--type--element_type"></a>
 ### Nested Schema for `attribute.type.element_type`
 
 Required:
 
-- **name** (String)
+- `name` (String) Name of the field type. Some types require extra fields to be set. Note that changing the type after creating is not supported. You need to delete the attribute and re-add it
 
 Optional:
 
-- **localized_value** (Block List) (see [below for nested schema](#nestedblock--attribute--type--element_type--localized_value))
-- **reference_type_id** (String)
-- **type_reference** (String)
-- **values** (Map of String)
+- `localized_value` (Block List) Localized values for the `lenum` type. (see [below for nested schema](#nestedblock--attribute--type--element_type--localized_value))
+- `reference_type_id` (String) Resource type the Custom Field can reference. Required when type is `reference`
+- `type_reference` (String) Reference to another product type. Required when type is `nested`.
+- `value` (Block List) Values for the `enum` type. (see [below for nested schema](#nestedblock--attribute--type--element_type--value))
 
 <a id="nestedblock--attribute--type--element_type--localized_value"></a>
-### Nested Schema for `attribute.type.element_type.values`
+### Nested Schema for `attribute.type.element_type.value`
 
 Required:
 
-- **key** (String)
-- **label** (Map of String)
+- `key` (String)
+- `label` (Map of String)
+
+
+<a id="nestedblock--attribute--type--element_type--value"></a>
+### Nested Schema for `attribute.type.element_type.value`
+
+Required:
+
+- `key` (String)
+- `label` (String)
 
 
 
@@ -174,7 +233,16 @@ Required:
 
 Required:
 
-- **key** (String)
-- **label** (Map of String)
+- `key` (String)
+- `label` (Map of String)
+
+
+<a id="nestedblock--attribute--type--value"></a>
+### Nested Schema for `attribute.type.value`
+
+Required:
+
+- `key` (String)
+- `label` (String)
 
 

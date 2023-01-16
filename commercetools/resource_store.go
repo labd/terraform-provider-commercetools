@@ -3,13 +3,13 @@ package commercetools
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceStore() *schema.Resource {
@@ -33,9 +33,10 @@ func resourceStore() *schema.Resource {
 				ForceNew: true,
 			},
 			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"version": {
 				Type:     schema.TypeInt,
@@ -59,33 +60,40 @@ func resourceStore() *schema.Resource {
 				Optional:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			"custom": CustomFieldSchema(),
 		},
 	}
 }
 
-func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	name := unmarshallLocalizedString(d.Get("name"))
+func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	client := getClient(m)
+
+	name := expandLocalizedString(d.Get("name"))
 	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
+	scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
+
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
 
 	draft := platform.StoreDraft{
 		Key:                  d.Get("key").(string),
 		Name:                 &name,
-		Languages:            expandStringArray(d.Get("languages").([]interface{})),
+		Languages:            expandStringArray(d.Get("languages").([]any)),
 		DistributionChannels: dcIdentifiers,
+		SupplyChannels:       scIdentifiers,
+		Custom:               custom,
 	}
 
-	client := getClient(m)
-
 	var store *platform.Store
-
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 		store, err = client.Stores().Post(draft).Execute(ctx)
-
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -97,7 +105,7 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m interfac
 	return resourceStoreRead(ctx, d, m)
 }
 
-func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	store, err := client.Stores().
@@ -107,11 +115,9 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m interface{
 		Execute(ctx)
 
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if utils.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -128,29 +134,26 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m interface{
 		d.Set("languages", store.Languages)
 	}
 
-	log.Printf("[DEBUG] Store read, distributionChannels: %+v", store.DistributionChannels)
 	if store.DistributionChannels != nil {
 		channelKeys, err := flattenStoreChannels(store.DistributionChannels)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		log.Printf("[DEBUG] Setting channel keys to: %+v", channelKeys)
 		d.Set("distribution_channels", channelKeys)
 	}
-	log.Printf("[DEBUG] Store read, supplyChannels: %+v", store.SupplyChannels)
 
 	if store.SupplyChannels != nil {
 		channelKeys, err := flattenStoreChannels(store.SupplyChannels)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		log.Printf("[DEBUG] Setting channel keys to: %+v", channelKeys)
 		d.Set("supply_channels", channelKeys)
 	}
+	d.Set("custom", flattenCustomFields(store.Custom))
 	return nil
 }
 
-func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.StoreUpdate{
@@ -159,14 +162,14 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.StoreSetNameAction{Name: &newName})
 	}
 
 	if d.HasChange("languages") {
-		languages := expandStringArray(d.Get("languages").([]interface{}))
+		languages := expandStringArray(d.Get("languages").([]any))
 
 		input.Actions = append(
 			input.Actions,
@@ -175,8 +178,6 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	if d.HasChange("distribution_channels") {
 		dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
-
-		log.Printf("[DEBUG] distributionChannels change, new identifiers: %v", dcIdentifiers)
 
 		// set action replaces current values
 		input.Actions = append(
@@ -189,9 +190,6 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	if d.HasChange("supply_channels") {
 		scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
-
-		log.Printf("[DEBUG] supplyChannels change, new identifiers: %v", scIdentifiers)
-
 		// set action replaces current values
 		input.Actions = append(
 			input.Actions,
@@ -201,24 +199,43 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 		)
 	}
 
-	_, err := client.Stores().WithId(d.Id()).Post(input).Execute(ctx)
+	if d.HasChange("custom") {
+
+		actions, err := CustomFieldUpdateActions[platform.StoreSetCustomTypeAction, platform.StoreSetCustomFieldAction](ctx, client, d)
+		if err != nil {
+			// Workaround invalid state to be written, see
+			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+			d.Partial(true)
+			return diag.FromErr(err)
+		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.StoreUpdateAction))
+		}
+	}
+
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Stores().WithId(d.Id()).Post(input).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	return resourceStoreRead(ctx, d, m)
 }
 
-func resourceStoreDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStoreDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 
-	_, err := client.Stores().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Stores().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
 func convertChannelKeysToIdentifiers(channelKeys []string) []platform.ChannelResourceIdentifier {
@@ -229,30 +246,21 @@ func convertChannelKeysToIdentifiers(channelKeys []string) []platform.ChannelRes
 		}
 		identifiers = append(identifiers, channelIdentifier)
 	}
-
-	log.Printf("[DEBUG] Converted keys: %v", identifiers)
 	return identifiers
 }
 
-func expandStoreChannels(channelData interface{}) []platform.ChannelResourceIdentifier {
-	log.Printf("[DEBUG] Expanding store channels: %v", channelData)
-	channelKeys := expandStringArray(channelData.([]interface{}))
-	log.Printf("[DEBUG] Expanding store channels, got keys: %v", channelKeys)
+func expandStoreChannels(channelData any) []platform.ChannelResourceIdentifier {
+	channelKeys := expandStringArray(channelData.([]any))
 	return convertChannelKeysToIdentifiers(channelKeys)
 }
 
 func flattenStoreChannels(channels []platform.ChannelReference) ([]string, error) {
-	log.Printf("[DEBUG] flattening: %+v", channels)
 	channelKeys := make([]string, 0)
 	for i := 0; i < len(channels); i++ {
-
-		log.Printf("[DEBUG] flattening checking channel: %s", stringFormatObject(channels[i]))
-		log.Printf("[DEBUG] flattening checking channel obj: %s", stringFormatObject(channels[i].Obj))
 		if channels[i].Obj == nil {
 			return nil, errors.New("failed to expand channel objects")
 		}
 		channelKeys = append(channelKeys, channels[i].Obj.Key)
 	}
-	log.Printf("[DEBUG] flattening final keys: %v", channelKeys)
 	return channelKeys, nil
 }

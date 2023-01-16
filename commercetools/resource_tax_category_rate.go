@@ -3,13 +3,13 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceTaxCategoryRate() *schema.Resource {
@@ -77,7 +77,7 @@ func resourceTaxCategoryRate() *schema.Resource {
 	}
 }
 
-func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	client := getClient(meta)
 	taxRateID := d.Id()
 	// Arbitrary number, safe to assume there won't be more than 500 tax categories...
@@ -102,17 +102,14 @@ func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceD
 	setTaxRateState(taxRateState, taxRate)
 
 	results = append(results, taxRateState)
-
-	log.Printf("[DEBUG] Importing results: %#v", results)
-
 	return results, nil
 }
 
-func resourceTaxCategoryRateGetSubRates(input []interface{}) ([]platform.SubRate, error) {
+func resourceTaxCategoryRateGetSubRates(input []any) ([]platform.SubRate, error) {
 	result := []platform.SubRate{}
 
 	for _, raw := range input {
-		raw := raw.(map[string]interface{})
+		raw := raw.(map[string]any)
 		amount := raw["amount"].(float64)
 		result = append(result, platform.SubRate{
 			Name:   raw["name"].(string),
@@ -122,7 +119,7 @@ func resourceTaxCategoryRateGetSubRates(input []interface{}) ([]platform.SubRate
 	return result, nil
 }
 
-func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	taxCategoryID := d.Get("tax_category_id").(string)
 
@@ -131,7 +128,6 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 	defer ctMutexKV.Unlock(taxCategoryID)
 
 	taxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
-
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -152,10 +148,7 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 
 	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
 		taxCategory, err = client.TaxCategories().WithId(taxCategoryID).Post(input).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -177,8 +170,7 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 	return resourceTaxCategoryRateRead(ctx, d, m)
 }
 
-func resourceTaxCategoryRateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Current tax rate state: %s and m: %s", stringFormatObject(d), stringFormatObject(m))
+func resourceTaxCategoryRateRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	_, taxRate, err := readResourcesFromStateIDs(ctx, d, m)
 
 	if err != nil {
@@ -192,26 +184,23 @@ func resourceTaxCategoryRateRead(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func setTaxRateState(d *schema.ResourceData, taxRate *platform.TaxRate) {
-	log.Printf("[DEBUG] Setting state: %s to taxRate: %s", stringFormatObject(d), stringFormatObject(taxRate))
 	d.Set("name", taxRate.Name)
 	d.Set("amount", taxRate.Amount)
 	d.Set("included_in_price", taxRate.IncludedInPrice)
 	d.Set("country", taxRate.Country)
 	d.Set("state", taxRate.State)
 
-	subRateData := make([]map[string]interface{}, len(taxRate.SubRates))
+	subRateData := make([]map[string]any, len(taxRate.SubRates))
 	for srIndex, subrate := range taxRate.SubRates {
-		subRateData[srIndex] = map[string]interface{}{
+		subRateData[srIndex] = map[string]any{
 			"name":   subrate.Name,
 			"amount": subrate.Amount,
 		}
 	}
 	d.Set("sub_rate", subRateData)
-
-	log.Printf("[DEBUG] Updated state to: %s", stringFormatObject(d))
 }
 
-func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	taxCategoryID := d.Get("tax_category_id").(string)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
@@ -220,6 +209,9 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 
 	taxCategory, _, err := readResourcesFromStateIDs(ctx, d, m)
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
@@ -233,6 +225,9 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 	if d.HasChange("name") || d.HasChange("amount") || d.HasChange("included_in_price") || d.HasChange("country") || d.HasChange("state") || d.HasChange("sub_rate") {
 		taxRateDraft, err := createTaxRateDraft(d)
 		if err != nil {
+			// Workaround invalid state to be written, see
+			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+			d.Partial(true)
 			return diag.FromErr(err)
 		}
 		input.Actions = append(input.Actions, platform.TaxCategoryReplaceTaxRateAction{
@@ -241,16 +236,15 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 		})
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
-
 	client := getClient(m)
-	_, err = client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
+	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
+		_, err := client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
@@ -258,12 +252,17 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 	// then the ID returned in the response
 	updatedTaxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
-
 	if newTaxRate == nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.Errorf("No tax category rate created?")
 	}
 
@@ -276,7 +275,7 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 	var subrates []platform.SubRate
 	var err error
 	if subRateRaw, ok := d.GetOk("sub_rate"); ok {
-		subrates, err = resourceTaxCategoryRateGetSubRates(subRateRaw.([]interface{}))
+		subrates, err = resourceTaxCategoryRateGetSubRates(subRateRaw.([]any))
 		if err != nil {
 			return nil, err
 		}
@@ -289,8 +288,6 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 
 	amountRaw := d.Get("amount").(float64)
 
-	log.Printf("[DEBUG] Got amount: %f", amountRaw)
-
 	taxRateDraft := platform.TaxRateDraft{
 		Name:            d.Get("name").(string),
 		Amount:          &amountRaw,
@@ -300,12 +297,10 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 		SubRates:        subrates,
 	}
 
-	log.Printf("[DEBUG] Created tax rate draft: %#v from input %#v", taxRateDraft, d)
-
 	return &taxRateDraft, nil
 }
 
-func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	taxCategoryID := d.Get("tax_category_id").(string)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
@@ -328,20 +323,17 @@ func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, 
 	input.Actions = append(input.Actions, removeAction)
 
 	client := getClient(m)
-	_, err = client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
+		_, err := client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
-func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m interface{}) (*platform.TaxCategory, *platform.TaxRate, error) {
+func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m any) (*platform.TaxCategory, *platform.TaxRate, error) {
 	client := getClient(m)
 	taxCategoryID := d.Get("tax_category_id").(string)
 	taxRateID := d.Id()
-
-	log.Printf("[DEBUG] Reading tax category from commercetools, taxCategory ID: %s, taxRate ID: %s", taxCategoryID, taxRateID)
 
 	taxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
 
@@ -349,19 +341,14 @@ func readResourcesFromStateIDs(ctx context.Context, d *schema.ResourceData, m in
 		return nil, nil, err
 	}
 
-	log.Print("[DEBUG] Found following tax category:")
-	log.Print(stringFormatObject(taxCategory))
 	taxRate := getTaxRateWithID(taxCategory, taxRateID)
 	if taxRate == nil {
 		return nil, nil, fmt.Errorf("could not find tax rate %s in tax category %s", taxRateID, taxCategory.ID)
 	}
-	log.Print("[DEBUG] Found following tax rate:")
-	log.Print(stringFormatObject(taxRate))
-
 	return taxCategory, taxRate, nil
 }
 
-func validateTaxRateAmount(val interface{}, key string) (warns []string, errs []error) {
+func validateTaxRateAmount(val any, key string) (warns []string, errs []error) {
 	v := val.(float64)
 	if v < 0 || v > 1 {
 		errs = append(errs, fmt.Errorf("%q must be between 0 and 1 inclusive, got: %f", key, v))
