@@ -68,13 +68,14 @@ func NewProjectFromNative(n *platform.Project) Project {
 		ExternalOAuth: []ExternalOAuth{},
 	}
 
+	// always set it to an empty list to avoid the wrong comparison in the update actions part
+	res.ShippingRateCartClassificationValue = []models.CustomFieldLocalizedEnumValue{}
+
 	switch s := n.ShippingRateInputType.(type) {
 	case platform.CartScoreType:
 		res.ShippingRateInputType = types.StringValue("CartScore")
-		res.ShippingRateCartClassificationValue = []models.CustomFieldLocalizedEnumValue{}
 	case platform.CartValueType:
 		res.ShippingRateInputType = types.StringValue("CartValue")
-		res.ShippingRateCartClassificationValue = []models.CustomFieldLocalizedEnumValue{}
 	case platform.CartClassificationType:
 		res.ShippingRateInputType = types.StringValue("CartClassification")
 		values := make([]models.CustomFieldLocalizedEnumValue, len(s.Values))
