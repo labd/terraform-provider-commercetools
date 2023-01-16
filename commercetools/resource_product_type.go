@@ -3,15 +3,18 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"log"
 	"reflect"
+	"strings"
 	"time"
 
+	"github.com/elliotchance/orderedmap/v2"
+	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 var constraintMap = map[string]platform.AttributeConstraintEnum{
@@ -33,6 +36,14 @@ func resourceProductType() *schema.Resource {
 		DeleteContext: resourceProductTypeDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
+		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceProductTypeResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: migrateProductTypeStateV0toV1,
+				Version: 0,
+			},
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -73,9 +84,10 @@ func resourceProductType() *schema.Resource {
 							Required: true,
 						},
 						"label": {
-							Description: "A human-readable label for the attribute",
-							Type:        TypeLocalizedString,
-							Required:    true,
+							Description:      "A human-readable label for the attribute",
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Required:         true,
 						},
 						"required": {
 							Description: "Whether the attribute is required to have a value",
@@ -90,7 +102,7 @@ func resourceProductType() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  platform.AttributeConstraintEnumNone,
-							ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+							ValidateFunc: func(val any, key string) (warns []string, errs []error) {
 								v := val.(string)
 
 								if _, ok := constraintMap[v]; !ok {
@@ -107,8 +119,9 @@ func resourceProductType() *schema.Resource {
 						"input_tip": {
 							Description: "Additional information about the attribute that aids content managers " +
 								"when setting product details",
-							Type:     TypeLocalizedString,
-							Optional: true,
+							Type:             TypeLocalizedString,
+							ValidateDiagFunc: validateLocalizedStringKey,
+							Optional:         true,
 						},
 						"input_hint": {
 							Description: "Provides a visual representation type for this attribute. " +
@@ -131,76 +144,72 @@ func resourceProductType() *schema.Resource {
 				Computed: true,
 			},
 		},
-		CustomizeDiff: customdiff.All(
-			customdiff.ValidateChange("attribute", func(ctx context.Context, old, new, meta interface{}) error {
-				log.Printf("[DEBUG] Start attribute validation")
-				oldLookup := createLookup(old.([]interface{}), "name")
-				newV := new.([]interface{})
-
-				for _, field := range newV {
-					newF := field.(map[string]interface{})
-					name := newF["name"].(string)
-					oldF, ok := oldLookup[name].(map[string]interface{})
-					if !ok {
-						// It means this is a new field, that's ok.
-						log.Printf("[DEBUG] Found new attribute: %s", name)
-						continue
-					}
-
-					log.Printf("[DEBUG] Checking %s", oldF["name"])
-					oldType := oldF["type"].([]interface{})[0].(map[string]interface{})
-					newType := newF["type"].([]interface{})[0].(map[string]interface{})
-
-					if oldType["name"] != newType["name"] {
-						if oldType["name"] != "" || newType["name"] == "" {
-							continue
-						}
-						return fmt.Errorf(
-							"field '%s' type changed from %s to %s. Changing types is not supported; please remove the attribute first and re-define it later",
-							name, oldType["name"], newType["name"])
-					}
-
-					if oldF["required"] != newF["required"] {
-						return fmt.Errorf(
-							"error on the '%s' attribute: Updating the 'required' attribute is not supported. Consider removing the attribute first and then re-adding it",
-							name)
-					}
-				}
-				return nil
-			}),
-		),
+		CustomizeDiff: customdiff.ValidateChange("attribute", func(ctx context.Context, old, new, meta any) error {
+			return resourceProductTypeValidateAttribute(old.([]any), new.([]any))
+		}),
 	}
 }
 
 func attributeTypeElement(setsAllowed bool) *schema.Resource {
 	result := map[string]*schema.Schema{
 		"name": {
-			Type:     schema.TypeString,
+			Type: schema.TypeString,
+			Description: "Name of the field type. Some types require extra " +
+				"fields to be set. Note that changing the type after creating is " +
+				"not supported. You need to delete the attribute and re-add it",
 			Required: true,
-			ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+			ValidateFunc: func(val any, key string) (warns []string, errs []error) {
 				v := val.(string)
+				validValues := []string{
+					"boolean",
+					"text",
+					"ltext",
+					"enum",
+					"lenum",
+					"number",
+					"money",
+					"date",
+					"time",
+					"datetime",
+					"reference",
+					"set",
+					"nested",
+				}
+
+				if !pie.Contains(validValues, v) {
+					errs = append(errs, fmt.Errorf("%s is not a valid type. Valid types are: %s",
+						v, strings.Join(pie.SortStableUsing(validValues, func(a, b string) bool {
+							return a < b
+						}), ", ")))
+				}
+
 				if !setsAllowed && v == "set" {
 					errs = append(errs, fmt.Errorf("sets in another Set are not allowed"))
 				}
 				return
 			},
 		},
-		"values": {
-			Type:     schema.TypeMap,
-			Optional: true,
+		"value": {
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "Values for the `enum` type.",
+			Elem:        valueElement(),
 		},
 		"localized_value": {
-			Type:     schema.TypeList,
-			Optional: true,
-			Elem:     localizedValueElement(),
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "Localized values for the `lenum` type.",
+			Elem:        localizedValueElement(),
 		},
 		"reference_type_id": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Resource type the Custom Field can reference. Required when type is `reference`",
 		},
 		"type_reference": {
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:        schema.TypeString,
+			Description: "Reference to another product type. Required when type is `nested`.",
+			Optional:    true,
 		},
 	}
 
@@ -216,39 +225,36 @@ func attributeTypeElement(setsAllowed bool) *schema.Resource {
 	return &schema.Resource{Schema: result}
 }
 
-func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	var ctType *platform.ProductType
 
-	attributes, err := resourceProductTypeGetAttributeDefinitions(d)
+	attributes, err := expandProductTypeAttributeDefinition(d)
 
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	draft := platform.ProductTypeDraft{
-		Key:         stringRef(d.Get("key")),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 		Attributes:  attributes,
 	}
 
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
+	}
+
+	var ctType *platform.ProductType
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
 		ctType, err = client.ProductTypes().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	if ctType == nil {
-		return diag.Errorf("No type created?")
 	}
 
 	d.SetId(ctType.ID)
@@ -257,117 +263,108 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceProductTypeRead(ctx, d, m)
 }
 
-func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Print("[DEBUG] Reading product type from commercetools")
+func flattenProductTypeAttributes(t *platform.ProductType) ([]map[string]any, error) {
+	attrs := make([]map[string]any, len(t.Attributes))
+	for i, attrDef := range t.Attributes {
+		attrType, err := flattenProductTypeAttributeType(attrDef.Type, true)
+		if err != nil {
+			return nil, err
+		}
+		attrs[i] = map[string]any{
+			"type":       attrType,
+			"name":       attrDef.Name,
+			"label":      attrDef.Label,
+			"required":   attrDef.IsRequired,
+			"input_hint": attrDef.InputHint,
+			"constraint": attrDef.AttributeConstraint,
+			"searchable": attrDef.IsSearchable,
+		}
+		if attrDef.InputTip != nil {
+			attrs[i]["input_tip"] = *attrDef.InputTip
+		}
+	}
+	return attrs, nil
+}
+
+func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	ctType, err := client.ProductTypes().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if utils.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
 
 	if ctType == nil {
-		log.Print("[DEBUG] No product type found")
 		d.SetId("")
 	} else {
-		log.Printf("[DEBUG] Found following product type: %#v", ctType)
-		log.Print(stringFormatObject(ctType))
-
-		attributes := make([]map[string]interface{}, len(ctType.Attributes))
-		for i, fieldDef := range ctType.Attributes {
-			fieldData := make(map[string]interface{})
-			log.Printf("[DEBUG] reading field: %s: %#v", fieldDef.Name, fieldDef)
-			fieldType, err := resourceProductTypeReadAttributeType(fieldDef.Type, true)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			fieldData["type"] = fieldType
-			fieldData["name"] = fieldDef.Name
-			fieldData["label"] = fieldDef.Label
-			fieldData["required"] = fieldDef.IsRequired
-			fieldData["input_hint"] = fieldDef.InputHint
-			if fieldDef.InputTip != nil {
-				fieldData["input_tip"] = *fieldDef.InputTip
-			}
-			fieldData["constraint"] = fieldDef.AttributeConstraint
-			fieldData["searchable"] = fieldDef.IsSearchable
-
-			attributes[i] = fieldData
-		}
-
-		log.Printf("[DEBUG] Created attributes %#v", attributes)
 		d.Set("version", ctType.Version)
 		d.Set("key", ctType.Key)
 		d.Set("name", ctType.Name)
 		d.Set("description", ctType.Description)
-		err = d.Set("attribute", attributes)
+
+		attrs, err := flattenProductTypeAttributes(ctType)
 		if err != nil {
 			return diag.FromErr(err)
 		}
+
+		d.Set("attribute", attrs)
 	}
 	return nil
 }
 
-func resourceProductTypeReadAttributeType(attrType platform.AttributeType, setsAllowed bool) ([]interface{}, error) {
-	typeData := make(map[string]interface{})
+func flattenProductTypeAttributeType(attrType platform.AttributeType, setsAllowed bool) ([]any, error) {
+	result := make(map[string]any)
 
-	if _, ok := attrType.(platform.AttributeBooleanType); ok {
-		typeData["name"] = "boolean"
-	} else if _, ok := attrType.(platform.AttributeTextType); ok {
-		typeData["name"] = "text"
-	} else if _, ok := attrType.(platform.AttributeLocalizableTextType); ok {
-		typeData["name"] = "ltext"
-	} else if f, ok := attrType.(platform.AttributeEnumType); ok {
-		enumValues := make(map[string]interface{}, len(f.Values))
-		for _, value := range f.Values {
-			enumValues[value.Key] = value.Label
-		}
-		typeData["name"] = "enum"
-		typeData["values"] = enumValues
-	} else if f, ok := attrType.(platform.AttributeLocalizedEnumType); ok {
-		typeData["name"] = "lenum"
-		typeData["localized_value"] = readAttributeLocalizedEnum(f.Values)
-	} else if _, ok := attrType.(platform.AttributeNumberType); ok {
-		typeData["name"] = "number"
-	} else if _, ok := attrType.(platform.AttributeMoneyType); ok {
-		typeData["name"] = "money"
-	} else if _, ok := attrType.(platform.AttributeDateType); ok {
-		typeData["name"] = "date"
-	} else if _, ok := attrType.(platform.AttributeTimeType); ok {
-		typeData["name"] = "time"
-	} else if _, ok := attrType.(platform.AttributeDateTimeType); ok {
-		typeData["name"] = "datetime"
-	} else if f, ok := attrType.(platform.AttributeReferenceType); ok {
-		typeData["name"] = "reference"
-		typeData["reference_type_id"] = f.ReferenceTypeId
-	} else if f, ok := attrType.(platform.AttributeNestedType); ok {
-		typeData["name"] = "nested"
-		typeData["type_reference"] = f.TypeReference.ID
-	} else if f, ok := attrType.(platform.AttributeSetType); ok {
-		typeData["name"] = "set"
+	switch v := attrType.(type) {
+	case platform.AttributeBooleanType:
+		result["name"] = "boolean"
+	case platform.AttributeTextType:
+		result["name"] = "text"
+	case platform.AttributeLocalizableTextType:
+		result["name"] = "ltext"
+	case platform.AttributeEnumType:
+		result["name"] = "enum"
+		result["value"] = flattenProductTypePlainEnum(v.Values)
+	case platform.AttributeLocalizedEnumType:
+		result["name"] = "lenum"
+		result["localized_value"] = flattenProductTypeLocalizedEnum(v.Values)
+	case platform.AttributeNumberType:
+		result["name"] = "number"
+	case platform.AttributeMoneyType:
+		result["name"] = "money"
+	case platform.AttributeDateType:
+		result["name"] = "date"
+	case platform.AttributeTimeType:
+		result["name"] = "time"
+	case platform.AttributeDateTimeType:
+		result["name"] = "datetime"
+	case platform.AttributeReferenceType:
+		result["name"] = "reference"
+		result["reference_type_id"] = v.ReferenceTypeId
+	case platform.AttributeNestedType:
+		result["name"] = "nested"
+		result["type_reference"] = v.TypeReference.ID
+	case platform.AttributeSetType:
+		result["name"] = "set"
 		if setsAllowed {
-			elemType, err := resourceProductTypeReadAttributeType(f.ElementType, false)
+			elemType, err := flattenProductTypeAttributeType(v.ElementType, false)
 			if err != nil {
 				return nil, err
 			}
-			typeData["element_type"] = elemType
+			result["element_type"] = elemType
 		}
-	} else {
+	default:
 		return nil, fmt.Errorf("unknown resource Type %T", attrType)
 	}
 
-	return []interface{}{typeData}, nil
+	return []any{result}, nil
 }
 
-func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ProductTypeUpdate{
@@ -397,356 +394,481 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	if d.HasChange("attribute") {
-		old, newAttribute := d.GetChange("attribute")
-		attributeChangeActions, err := resourceProductTypeAttributeChangeActions(
-			old.([]interface{}), newAttribute.([]interface{}))
+		old, new := d.GetChange("attribute")
+		attrChangeActions, err := resourceProductTypeAttributeChangeActions(
+			old.([]any), new.([]any))
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		input.Actions = append(input.Actions, attributeChangeActions...)
+		input.Actions = append(input.Actions, attrChangeActions...)
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
-
-	_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(ctx)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	return resourceProductTypeRead(ctx, d, m)
 }
 
-func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.ProductTypes().WithId(d.Id()).Delete().Version(version).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ProductTypes().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
+	return diag.FromErr(err)
 }
 
-func resourceProductTypeAttributeChangeActions(oldValues []interface{}, newValues []interface{}) ([]platform.ProductTypeUpdateAction, error) {
-	oldLookup := createLookup(oldValues, "name")
-	newLookup := createLookup(newValues, "name")
-	newAttrDefinitions := []platform.AttributeDefinition{}
-	actions := []platform.ProductTypeUpdateAction{}
-	checkAttributeOrder := true
+func resourceProductTypeValidateAttribute(old, new []any) error {
+	oldLookup := createLookup(old, "name")
 
-	for name := range oldLookup {
-		if _, ok := newLookup[name]; !ok {
-			log.Printf("[DEBUG] Attribute deleted: %s", name)
-			actions = append(actions, platform.ProductTypeRemoveAttributeDefinitionAction{Name: name})
-			checkAttributeOrder = false
-		}
-	}
-
-	for _, value := range newValues {
-		newV := value.(map[string]interface{})
-		name := newV["name"].(string)
-		oldValue, existingField := oldLookup[name]
-
-		var attrDef platform.AttributeDefinition
-		if output, err := resourceProductTypeGetAttributeDefinition(newV, false); err == nil {
-			attrDef = output.(platform.AttributeDefinition)
-		} else {
-			return nil, err
-		}
-
-		var attrDefDraft platform.AttributeDefinitionDraft
-		if output, err := resourceProductTypeGetAttributeDefinition(newV, true); err == nil {
-			attrDefDraft = output.(platform.AttributeDefinitionDraft)
-		} else {
-			return nil, err
-		}
-
-		newAttrDefinitions = append(newAttrDefinitions, attrDef)
-
-		if !existingField {
-			log.Printf("[DEBUG] Attribute added: %s", name)
-			actions = append(
-				actions,
-				platform.ProductTypeAddAttributeDefinitionAction{Attribute: attrDefDraft})
-			checkAttributeOrder = false
+	for _, attribute := range new {
+		newF := attribute.(map[string]any)
+		name := newF["name"].(string)
+		oldF, ok := oldLookup[name].(map[string]any)
+		if !ok {
 			continue
 		}
 
-		oldV := oldValue.(map[string]interface{})
-		if !reflect.DeepEqual(oldV["label"], newV["label"]) {
+		oldType := firstElementFromSlice(oldF["type"].([]any))
+		newType := firstElementFromSlice(newF["type"].([]any))
+
+		oldTypeName := oldType["name"].(string)
+		newTypeName := newType["name"].(string)
+
+		if oldTypeName != newTypeName {
+			if oldTypeName == "" || newTypeName == "" {
+				continue
+			}
+
+			return fmt.Errorf(
+				"attribute '%s' type changed from %s to %s."+
+					" Changing types is not supported;"+
+					" please remove the attribute first and re-define it later",
+				name, oldTypeName, newTypeName)
+		}
+
+		if strings.EqualFold(newTypeName, "Set") {
+			oldElement := elementFromSlice(oldType, "element_type")
+			newElement := elementFromSlice(newType, "element_type")
+			oldElementName := oldElement["name"].(string)
+			newElementName := newElement["name"].(string)
+
+			if oldElementName != newElementName {
+				return fmt.Errorf(
+					"attribute '%s' element type changed from %s to %s."+
+						" Changing element types is not supported;"+
+						" please remove the attribute first and re-define it later",
+					name, oldElementName, newElementName)
+			}
+		}
+
+		if oldF["required"] != newF["required"] {
+			return fmt.Errorf(
+				"error on the '%s' attribute: "+
+					"Updating the 'required' attribute is not supported."+
+					"Consider removing the attribute first and then re-adding it",
+				name)
+		}
+	}
+	return nil
+}
+
+func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any) ([]platform.ProductTypeUpdateAction, error) {
+	oldAttrs, err := mapAttributeDefinition(oldValues)
+	if err != nil {
+		return nil, err
+	}
+
+	newAttrs, err := mapAttributeDefinition(newValues)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a copy of the attribute order for commercetools. When we
+	// delete attributes commercetools already re-orders the attributes and we need
+	// to not send a reorder command when the order already matches
+	attrOrder := []string{}
+	attrOrder = append(attrOrder, oldAttrs.Keys()...)
+
+	actions := []platform.ProductTypeUpdateAction{}
+
+	// Check if we have attributes which are removed and generate the corresponding
+	// remove attribute actions
+	for _, name := range oldAttrs.Keys() {
+		if _, ok := newAttrs.Get(name); !ok {
+			actions = append(actions, platform.ProductTypeRemoveAttributeDefinitionAction{Name: name})
+			attrOrder = removeValueFromSlice(attrOrder, name)
+		}
+	}
+
+	for _, name := range newAttrs.Keys() {
+		newAttr, _ := newAttrs.Get(name)
+		oldAttr, isExisting := oldAttrs.Get(name)
+
+		// A new attribute is added. Create the update action skip the rest of the
+		// loop since there cannot be any change if the attribute didn't exist yet.
+		if !isExisting {
+			actions = append(
+				actions,
+				platform.ProductTypeAddAttributeDefinitionAction{
+					Attribute: platform.AttributeDefinitionDraft{
+						Type:                newAttr.Type,
+						Name:                newAttr.Name,
+						Label:               newAttr.Label,
+						IsRequired:          newAttr.IsRequired,
+						AttributeConstraint: &newAttr.AttributeConstraint,
+						InputTip:            newAttr.InputTip,
+						InputHint:           &newAttr.InputHint,
+						IsSearchable:        &newAttr.IsSearchable,
+					},
+				})
+			attrOrder = append(attrOrder, newAttr.Name)
+			continue
+		}
+
+		// This should not be able to happen due to checks earlier
+		if reflect.TypeOf(oldAttr.Type) != reflect.TypeOf(newAttr.Type) {
+			return nil, fmt.Errorf("changing attribute types is not supported in commercetools")
+		}
+
+		// Check if we need to update the attribute label
+		if !reflect.DeepEqual(oldAttr.Label, newAttr.Label) {
 			actions = append(
 				actions,
 				platform.ProductTypeChangeLabelAction{
-					AttributeName: name, Label: attrDef.Label})
+					AttributeName: name,
+					Label:         newAttr.Label,
+				})
 		}
-		if oldV["name"] != newV["name"] {
+
+		if !reflect.DeepEqual(oldAttr.Name, newAttr.Name) {
 			actions = append(
 				actions,
-				platform.ProductTypeChangeAttributeNameAction{
-					AttributeName: name, NewAttributeName: attrDef.Name})
+				platform.ProductTypeChangeNameAction{
+					Name: newAttr.Name,
+				})
 		}
-		if oldV["searchable"] != newV["searchable"] {
+
+		if !reflect.DeepEqual(oldAttr.IsSearchable, newAttr.IsSearchable) {
 			actions = append(
 				actions,
 				platform.ProductTypeChangeIsSearchableAction{
-					AttributeName: name, IsSearchable: attrDef.IsSearchable})
+					AttributeName: name,
+					IsSearchable:  newAttr.IsSearchable,
+				})
 		}
-		if oldV["input_hint"] != newV["input_hint"] {
+
+		// Update the input hint if this is changed
+		if !reflect.DeepEqual(oldAttr.InputHint, newAttr.InputHint) {
 			actions = append(
 				actions,
 				platform.ProductTypeChangeInputHintAction{
-					AttributeName: name, NewValue: attrDef.InputHint})
+					AttributeName: name,
+					NewValue:      newAttr.InputHint,
+				})
 		}
-		if !reflect.DeepEqual(oldV["input_tip"], newV["input_tip"]) {
+
+		if !reflect.DeepEqual(oldAttr.InputTip, newAttr.InputTip) {
 			actions = append(
 				actions,
 				platform.ProductTypeSetInputTipAction{
 					AttributeName: name,
-					InputTip:      attrDef.InputTip,
+					InputTip:      newAttr.InputTip,
 				})
 		}
-		if oldV["constraint"] != newV["constraint"] {
+
+		if !reflect.DeepEqual(oldAttr.AttributeConstraint, newAttr.AttributeConstraint) {
 			actions = append(
 				actions,
 				platform.ProductTypeChangeAttributeConstraintAction{
 					AttributeName: name,
-					NewValue:      platform.AttributeConstraintEnumDraft(attrDef.AttributeConstraint),
+					NewValue:      platform.AttributeConstraintEnumDraft(newAttr.AttributeConstraint),
 				})
 		}
 
-		newFieldType := attrDef.Type
-		oldFieldType := oldV["type"].([]interface{})[0].(map[string]interface{})
+		// Specific updates for EnumType, LocalizedEnumType and a Set of these
+		switch t := newAttr.Type.(type) {
 
-		actions = handlePlainEnumTypeChanges(newFieldType, oldFieldType, actions, name)
-		actions = handleLocalizedEnumTypeChanges(newFieldType, oldFieldType, actions, name)
+		case platform.AttributeLocalizedEnumType:
+			ot := oldAttr.Type.(platform.AttributeLocalizedEnumType)
+			subActions, err := updateAttributeLocalizedEnumType(name, ot, t)
+			if err != nil {
+				return nil, err
+			}
+			actions = append(actions, subActions...)
 
-		if enumType, ok := newFieldType.(platform.AttributeSetType); ok {
+		case platform.AttributeEnumType:
+			ot := oldAttr.Type.(platform.AttributeEnumType)
+			subActions, err := updateAttributeEnumType(name, ot, t)
+			if err != nil {
+				return nil, err
+			}
+			actions = append(actions, subActions...)
 
-			myOldFieldType := oldFieldType["element_type"].([]interface{})[0].(map[string]interface{})
-			actions = handlePlainEnumTypeChanges(enumType.ElementType, myOldFieldType, actions, name)
-			actions = handleLocalizedEnumTypeChanges(enumType.ElementType, myOldFieldType, actions, name)
+		case platform.AttributeSetType:
+			ot := oldAttr.Type.(platform.AttributeSetType)
 
-			log.Printf("[DEBUG] Set detected: %s", name)
-			log.Print(len(myOldFieldType))
+			// This should not be able to happen due to checks earlier
+			if reflect.TypeOf(ot.ElementType) != reflect.TypeOf(t.ElementType) {
+				return nil, fmt.Errorf("changing attribute types is not supported in commercetools")
+			}
+
+			switch st := t.ElementType.(type) {
+
+			case platform.AttributeEnumType:
+				ost := ot.ElementType.(platform.AttributeEnumType)
+				subActions, err := updateAttributeEnumType(name, ost, st)
+				if err != nil {
+					return nil, err
+				}
+				actions = append(actions, subActions...)
+
+			case platform.AttributeLocalizedEnumType:
+				ost := ot.ElementType.(platform.AttributeLocalizedEnumType)
+				subActions, err := updateAttributeLocalizedEnumType(name, ost, st)
+				if err != nil {
+					return nil, err
+				}
+				actions = append(actions, subActions...)
+			}
 		}
+
 	}
 
-	oldNames := make([]string, len(oldValues))
-	newNames := make([]string, len(newValues))
-
-	for i, value := range oldValues {
-		v := value.(map[string]interface{})
-		oldNames[i] = v["name"].(string)
-	}
-	for i, value := range newValues {
-		v := value.(map[string]interface{})
-		newNames[i] = v["name"].(string)
-	}
-
-	if checkAttributeOrder && !reflect.DeepEqual(oldNames, newNames) {
+	if !reflect.DeepEqual(attrOrder, newAttrs.Keys()) {
+		attrs := make([]string, newAttrs.Len())
+		for i, key := range newAttrs.Keys() {
+			if el, ok := newAttrs.Get(key); ok {
+				attrs[i] = el.Name
+			}
+		}
 		actions = append(
 			actions,
-			platform.ProductTypeChangeAttributeOrderAction{
-				Attributes: newAttrDefinitions,
+			platform.ProductTypeChangeAttributeOrderByNameAction{
+				AttributeNames: attrs,
 			})
 	}
-
-	log.Printf("[DEBUG] Construction Attribute change actions")
 
 	return actions, nil
 }
 
-func removeEnumValues(oldEnumKeys []string, newEnumKeys []string, name string) *platform.ProductTypeRemoveEnumValuesAction {
-	var removeEnumKeys []string
-	for _, oldEnumKey := range oldEnumKeys {
-
-		idx := -1
-
-		for key, newEnumValueKey := range newEnumKeys {
-			if newEnumValueKey == oldEnumKey {
-				idx = key
-				break
-			}
-		}
-
-		if idx == -1 {
-			removeEnumKeys = append(removeEnumKeys, oldEnumKey)
-		}
+func updateAttributeEnumType(attrName string, old, new platform.AttributeEnumType) ([]platform.ProductTypeUpdateAction, error) {
+	oldValues := orderedmap.NewOrderedMap[string, platform.AttributePlainEnumValue]()
+	for i := range old.Values {
+		oldValues.Set(old.Values[i].Key, old.Values[i])
 	}
 
-	if len(removeEnumKeys) > 0 {
-		return &platform.ProductTypeRemoveEnumValuesAction{
-			AttributeName: name,
-			Keys:          removeEnumKeys,
+	newValues := orderedmap.NewOrderedMap[string, platform.AttributePlainEnumValue]()
+	for i := range new.Values {
+		newValues.Set(new.Values[i].Key, new.Values[i])
+	}
+
+	valueOrder := []string{}
+	valueOrder = append(valueOrder, oldValues.Keys()...)
+
+	actions := []platform.ProductTypeUpdateAction{}
+
+	// Delete enum values
+	removeKeys := []string{}
+	for _, key := range oldValues.Keys() {
+		if _, ok := newValues.Get(key); !ok {
+			removeKeys = append(removeKeys, key)
+			valueOrder = removeValueFromSlice(valueOrder, key)
 		}
 	}
-	return nil
-}
+	if len(removeKeys) > 0 {
+		actions = append(
+			actions,
+			platform.ProductTypeRemoveEnumValuesAction{
+				AttributeName: attrName,
+				Keys:          removeKeys,
+			})
+	}
 
-func handlePlainEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map[string]interface{}, actions []platform.ProductTypeUpdateAction, name string) []platform.ProductTypeUpdateAction {
-	if enumType, ok := newFieldType.(platform.AttributeEnumType); ok {
-		oldEnumV := oldFieldType["values"].(map[string]interface{})
-		oldEnumKeys := make([]string, 0)
-		newEnumKeys := make([]string, 0)
-		addRemoveEnumValue := false
+	for _, key := range newValues.Keys() {
+		newValue, _ := newValues.Get(key)
 
-		for key := range oldEnumV {
-			oldEnumKeys = append(oldEnumKeys, key)
-		}
-
-		for i, enumValue := range enumType.Values {
-			newEnumKeys = append(newEnumKeys, enumValue.Key)
-			if _, ok := oldEnumV[enumValue.Key]; !ok {
-				// Key does not appear in old enum values, so we'll add it
-				addRemoveEnumValue = true
-				actions = append(
-					actions,
-					platform.ProductTypeAddPlainEnumValueAction{
-						AttributeName: name,
-						Value:         enumType.Values[i],
-					})
-			}
-		}
-
-		action := removeEnumValues(oldEnumKeys, newEnumKeys, name)
-
-		if action != nil {
-			addRemoveEnumValue = true
-			actions = append(actions, action)
-		}
-
-		//if we remove enum values from the list and add at the same new ones, we should not try to change also the order at the same point
-		if addRemoveEnumValue {
-			return actions
-		}
-
-		// todo that this works we need to move away from typemap for enumvalues to use typelist
-		if len(oldEnumKeys) == len(newEnumKeys) && orderChanged(newEnumKeys, oldEnumKeys) {
+		// Check if this is a new value
+		if _, ok := oldValues.Get(key); !ok {
 			actions = append(
 				actions,
-				platform.ProductTypeChangePlainEnumValueOrderAction{Values: enumType.Values, AttributeName: name})
+				platform.ProductTypeAddPlainEnumValueAction{
+					AttributeName: attrName,
+					Value:         newValue,
+				})
+			valueOrder = append(valueOrder, newValue.Key)
+			continue
 		}
 
-		return actions
-	}
+		oldValue, _ := oldValues.Get(key)
 
-	return actions
-}
-
-func handleLocalizedEnumTypeChanges(newFieldType platform.AttributeType, oldFieldType map[string]interface{}, actions []platform.ProductTypeUpdateAction, name string) []platform.ProductTypeUpdateAction {
-	if enumType, ok := newFieldType.(platform.AttributeLocalizedEnumType); ok {
-		oldEnumV := oldFieldType["localized_value"].([]interface{})
-		oldEnumKeys := make([]string, 0)
-		oldEnumValues := make([]map[string]interface{}, 0)
-		newEnumKeys := make([]string, 0)
-		addRemoveEnumValue := false
-
-		for _, value := range oldEnumV {
-			v := value.(map[string]interface{})
-			oldEnumKeys = append(oldEnumKeys, v["key"].(string))
-			oldEnumValues = append(oldEnumValues, v)
-		}
-
-		for i, enumValue := range enumType.Values {
-			newEnumKeys = append(newEnumKeys, enumValue.Key)
-
-			idx := -1
-
-			for key, oldEnumKey := range oldEnumKeys {
-				if oldEnumKey == enumValue.Key {
-					idx = key
-					break
-				}
-			}
-
-			if idx == -1 {
-				addRemoveEnumValue = true
-				// Key does not appear in old enum values, so we'll add it
-				actions = append(
-					actions,
-					platform.ProductTypeAddLocalizedEnumValueAction{
-						AttributeName: name,
-						Value:         enumType.Values[i],
-					})
-			} else {
-				labelChanged := !localizedStringCompare(enumValue.Label, oldEnumValues[idx]["label"].(map[string]interface{}))
-				if labelChanged {
-					actions = append(
-						actions,
-						platform.ProductTypeChangeLocalizedEnumValueLabelAction{
-							AttributeName: name,
-							NewValue:      enumType.Values[i],
-						})
-				}
-			}
-		}
-
-		action := removeEnumValues(oldEnumKeys, newEnumKeys, name)
-
-		if action != nil {
-			addRemoveEnumValue = true
-			actions = append(actions, action)
-		}
-
-		//if we remove enum values from the list and add at the same new ones, we should not try to change also the order at the same point
-		if addRemoveEnumValue {
-			return actions
-		}
-
-		if len(oldEnumKeys) == len(newEnumKeys) && orderChanged(newEnumKeys, oldEnumKeys) {
+		// Check if the label is changed and create an update action
+		if !reflect.DeepEqual(oldValue.Label, newValue.Label) {
 			actions = append(
 				actions,
-				platform.ProductTypeChangeLocalizedEnumValueOrderAction{Values: enumType.Values, AttributeName: name})
-		}
-
-		return actions
-	}
-	return actions
-}
-
-func orderChanged(a []string, b []string) bool {
-	for i, v := range a {
-		if v != b[i] {
-			return true
+				platform.ProductTypeChangePlainEnumValueLabelAction{
+					AttributeName: attrName,
+					NewValue:      newValue,
+				})
 		}
 	}
-	return false
+
+	// Check if the order is changed. We compare this against valueOrder to take
+	// into account new attributes added to the end by commercetools
+	if !reflect.DeepEqual(valueOrder, newValues.Keys()) {
+		values := make([]platform.AttributePlainEnumValue, newValues.Len())
+		for i, key := range newValues.Keys() {
+			if el, ok := newValues.Get(key); ok {
+				values[i] = el
+			}
+		}
+		actions = append(
+			actions,
+			platform.ProductTypeChangePlainEnumValueOrderAction{
+				AttributeName: attrName,
+				Values:        values,
+			})
+	}
+
+	return actions, nil
 }
 
-func resourceProductTypeGetAttributeDefinitions(d *schema.ResourceData) ([]platform.AttributeDefinitionDraft, error) {
-	input := d.Get("attribute").([]interface{})
+func updateAttributeLocalizedEnumType(attrName string, old, new platform.AttributeLocalizedEnumType) ([]platform.ProductTypeUpdateAction, error) {
+	oldValues := orderedmap.NewOrderedMap[string, platform.AttributeLocalizedEnumValue]()
+	for i := range old.Values {
+		oldValues.Set(old.Values[i].Key, old.Values[i])
+	}
+
+	newValues := orderedmap.NewOrderedMap[string, platform.AttributeLocalizedEnumValue]()
+	for i := range new.Values {
+		newValues.Set(new.Values[i].Key, new.Values[i])
+	}
+
+	valueOrder := []string{}
+	valueOrder = append(valueOrder, oldValues.Keys()...)
+
+	actions := []platform.ProductTypeUpdateAction{}
+
+	// Delete enum values
+	removeKeys := []string{}
+	for _, key := range oldValues.Keys() {
+		if _, ok := newValues.Get(key); !ok {
+			removeKeys = append(removeKeys, key)
+			valueOrder = removeValueFromSlice(valueOrder, key)
+		}
+	}
+	if len(removeKeys) > 0 {
+		actions = append(
+			actions,
+			platform.ProductTypeRemoveEnumValuesAction{
+				AttributeName: attrName,
+				Keys:          removeKeys,
+			})
+	}
+
+	for _, key := range newValues.Keys() {
+		newValue, _ := newValues.Get(key)
+
+		// Check if this is a new value
+		if _, ok := oldValues.Get(key); !ok {
+			actions = append(
+				actions,
+				platform.ProductTypeAddLocalizedEnumValueAction{
+					AttributeName: attrName,
+					Value:         newValue,
+				})
+			valueOrder = append(valueOrder, newValue.Key)
+			continue
+		}
+
+		oldValue, _ := oldValues.Get(key)
+
+		// Check if the label is changed and create an update action
+		if !reflect.DeepEqual(oldValue.Label, newValue.Label) {
+			actions = append(
+				actions,
+				platform.ProductTypeChangeLocalizedEnumValueLabelAction{
+					AttributeName: attrName,
+					NewValue:      newValue,
+				})
+		}
+	}
+
+	// Check if the order is changed. We compare this against valueOrder to take
+	// into account new attributes added to the end by commercetools
+	if !reflect.DeepEqual(valueOrder, newValues.Keys()) {
+		values := make([]platform.AttributeLocalizedEnumValue, newValues.Len())
+		for i, key := range newValues.Keys() {
+			if el, ok := newValues.Get(key); ok {
+				values[i] = el
+			}
+		}
+		actions = append(
+			actions,
+			platform.ProductTypeChangeLocalizedEnumValueOrderAction{
+				AttributeName: attrName,
+				Values:        values,
+			})
+	}
+
+	return actions, nil
+}
+
+func mapAttributeDefinition(values []any) (*orderedmap.OrderedMap[string, platform.AttributeDefinition], error) {
+	attrs := orderedmap.NewOrderedMap[string, platform.AttributeDefinition]()
+	for i := range values {
+		raw := values[i].(map[string]any)
+		attr, err := expandProductTypeAttributeDefinitionItem(raw, false)
+		if err != nil {
+			return nil, err
+		}
+
+		attrs.Set(attr.(platform.AttributeDefinition).Name, attr.(platform.AttributeDefinition))
+	}
+	return attrs, nil
+}
+
+func expandProductTypeAttributeDefinition(d *schema.ResourceData) ([]platform.AttributeDefinitionDraft, error) {
+	input := d.Get("attribute").([]any)
 	var result []platform.AttributeDefinitionDraft
 
 	for _, raw := range input {
-		fieldDef, err := resourceProductTypeGetAttributeDefinition(raw.(map[string]interface{}), true)
+		attrDef, err := expandProductTypeAttributeDefinitionItem(raw.(map[string]any), true)
 
 		if err != nil {
 			return nil, err
 		}
 
-		result = append(result, fieldDef.(platform.AttributeDefinitionDraft))
+		result = append(result, attrDef.(platform.AttributeDefinitionDraft))
 	}
 
 	return result, nil
 }
 
-func resourceProductTypeGetAttributeDefinition(input map[string]interface{}, draft bool) (interface{}, error) {
-	attrTypes := input["type"].([]interface{})
-	attrType, err := getAttributeType(attrTypes[0])
+func expandProductTypeAttributeDefinitionItem(input map[string]any, draft bool) (any, error) {
+	attrData := elementFromSlice(input, "type")
+	if attrData == nil {
+		return nil, fmt.Errorf("missing type")
+	}
+
+	attrType, err := expandProductTypeAttributeType(attrData)
 	if err != nil {
 		return nil, err
 	}
 
-	label := unmarshallLocalizedString(input["label"])
+	label := expandLocalizedString(input["label"])
 	var inputTip platform.LocalizedString
 	if inputTipRaw, ok := input["input_tip"]; ok {
-		inputTip = unmarshallLocalizedString(inputTipRaw)
+		inputTip = expandLocalizedString(inputTipRaw)
 	}
 
 	constraint := platform.AttributeConstraintEnumNone
@@ -780,8 +902,8 @@ func resourceProductTypeGetAttributeDefinition(input map[string]interface{}, dra
 	}, nil
 }
 
-func getAttributeType(input interface{}) (platform.AttributeType, error) {
-	config := input.(map[string]interface{})
+func expandProductTypeAttributeType(input any) (platform.AttributeType, error) {
+	config := input.(map[string]any)
 	typeName, ok := config["name"].(string)
 
 	if !ok {
@@ -796,15 +918,16 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "ltext":
 		return platform.AttributeLocalizableTextType{}, nil
 	case "enum":
-		valuesInput, valuesOk := config["values"].(map[string]interface{})
+		valuesInput, valuesOk := config["value"]
 		if !valuesOk {
-			return nil, fmt.Errorf("no values specified for Enum type: %+v", valuesInput)
+			return nil, fmt.Errorf("no value elements specified for Enum type")
 		}
 		var values []platform.AttributePlainEnumValue
-		for k, v := range valuesInput {
+		for _, value := range valuesInput.([]any) {
+			v := value.(map[string]any)
 			values = append(values, platform.AttributePlainEnumValue{
-				Key:   k,
-				Label: v.(string),
+				Key:   v["key"].(string),
+				Label: v["label"].(string),
 			})
 		}
 		return platform.AttributeEnumType{Values: values}, nil
@@ -814,16 +937,15 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 			return nil, fmt.Errorf("no localized_value elements specified for LocalizedEnum type")
 		}
 		var values []platform.AttributeLocalizedEnumValue
-		for _, value := range valuesInput.([]interface{}) {
-			v := value.(map[string]interface{})
-			labels := unmarshallLocalizedString(v["label"])
+		for _, value := range valuesInput.([]any) {
+			v := value.(map[string]any)
+			labels := expandLocalizedString(v["label"])
 
 			values = append(values, platform.AttributeLocalizedEnumValue{
 				Key:   v["key"].(string),
 				Label: labels,
 			})
 		}
-		log.Printf("[DEBUG] GetAttributeType localized enum values: %#v", values)
 		return platform.AttributeLocalizedEnumType{Values: values}, nil
 	case "number":
 		return platform.AttributeNumberType{}, nil
@@ -836,13 +958,13 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	case "datetime":
 		return platform.AttributeDateTimeType{}, nil
 	case "reference":
-		refTypeID, refTypeIDOk := config["reference_type_id"].(string)
-		if !refTypeIDOk {
-			return nil, fmt.Errorf("no reference_type_id specified for Reference type")
+		if ref, ok := config["reference_type_id"].(string); ok {
+			result := platform.AttributeReferenceType{
+				ReferenceTypeId: platform.AttributeReferenceTypeId(ref),
+			}
+			return result, nil
 		}
-		return platform.AttributeReferenceType{
-			ReferenceTypeId: platform.ReferenceTypeId(refTypeID),
-		}, nil
+		return nil, fmt.Errorf("no reference_type_id specified for Reference type")
 	case "nested":
 		typeReference, typeReferenceOk := config["type_reference"].(string)
 		if !typeReferenceOk {
@@ -852,16 +974,12 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 			TypeReference: platform.ProductTypeReference{ID: typeReference},
 		}, nil
 	case "set":
-		elementTypes, elementTypesOk := config["element_type"]
-		if !elementTypesOk {
-			return nil, fmt.Errorf("no element_type specified for Set type")
-		}
-		elementTypeList := elementTypes.([]interface{})
-		if len(elementTypeList) == 0 {
+		data := elementFromSlice(config, "element_type")
+		if data == nil {
 			return nil, fmt.Errorf("no element_type specified for Set type")
 		}
 
-		setAttrType, err := getAttributeType(elementTypeList[0])
+		setAttrType, err := expandProductTypeAttributeType(data)
 		if err != nil {
 			return nil, err
 		}
@@ -874,14 +992,24 @@ func getAttributeType(input interface{}) (platform.AttributeType, error) {
 	return nil, fmt.Errorf("unknown AttributeType %s", typeName)
 }
 
-func readAttributeLocalizedEnum(values []platform.AttributeLocalizedEnumValue) []interface{} {
-	enumValues := make([]interface{}, len(values))
+func flattenProductTypeLocalizedEnum(values []platform.AttributeLocalizedEnumValue) []any {
+	enumValues := make([]any, len(values))
 	for i, value := range values {
-		enumValues[i] = map[string]interface{}{
+		enumValues[i] = map[string]any{
 			"key":   value.Key,
 			"label": value.Label,
 		}
 	}
-	log.Printf("[DEBUG] readLocalizedEnum values: %#v", enumValues)
+	return enumValues
+}
+
+func flattenProductTypePlainEnum(values []platform.AttributePlainEnumValue) []any {
+	enumValues := make([]any, len(values))
+	for i, value := range values {
+		enumValues[i] = map[string]any{
+			"key":   value.Key,
+			"label": value.Label,
+		}
+	}
 	return enumValues
 }

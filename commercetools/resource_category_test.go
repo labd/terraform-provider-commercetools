@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccCategoryCreate_basic(t *testing.T) {
+	resourceName := "commercetools_category.accessories"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,121 +20,57 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 			{
 				Config: testAccCategoryConfig(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories_minimal", "name.en", "accessories_m",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "name.en", "accessories",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "key", "accessories",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "description.en", "Standard description",
-					),
+					resource.TestCheckResourceAttr("commercetools_category.accessories_minimal", "name.en", "accessories_m"),
+					resource.TestCheckResourceAttr(resourceName, "name.en", "accessories"),
+					resource.TestCheckResourceAttr(resourceName, "key", "accessories"),
+					resource.TestCheckResourceAttr(resourceName, "description.en", "Standard description"),
 					resource.TestCheckResourceAttrPair(
-						"commercetools_category.accessories", "parent", "commercetools_category.accessories_base", "id",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "slug.en", "accessories",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "meta_title.en", "meta text",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "meta_description.en", "meta description",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "meta_keywords.en", "keywords",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "assets.0.name.en", "My Product Video",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "assets.0.description.en", "Description",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "assets.0.sources.0.key", "image",
-					),
+						resourceName, "parent", "commercetools_category.accessories_base", "id"),
+					resource.TestCheckResourceAttr(resourceName, "slug.en", "accessories"),
+					resource.TestCheckResourceAttr(resourceName, "order_hint", "0.000016143365484621617765232"),
+					resource.TestCheckResourceAttr(resourceName, "external_id", "some external id"),
+					resource.TestCheckResourceAttr(resourceName, "meta_title.en", "meta text"),
+					resource.TestCheckResourceAttr(resourceName, "meta_description.en", "meta description"),
+					resource.TestCheckResourceAttr(resourceName, "meta_keywords.en", "keywords"),
+					resource.TestCheckResourceAttr(resourceName, "assets.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "assets.0.name.en", "My Product Video"),
+					resource.TestCheckResourceAttr(resourceName, "assets.0.description.en", "Description"),
+					resource.TestCheckResourceAttr(resourceName, "assets.0.sources.0.key", "image"),
 				),
 			},
 			{
 				Config: testAccCategoryUpdate(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "name.en", "accessories",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "key", "accessories",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "description.en", "Updated description",
-					),
-					resource.TestCheckResourceAttrPair(
-						"commercetools_category.accessories", "parent", "commercetools_category.accessories_base", "id",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "slug.en", "accessories_updated",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "meta_title.en", "updated meta text",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "meta_description.en", "updated meta description",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "meta_keywords.en", "keywords, updated",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "assets.0.name.en", "Updated name",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "assets.0.description.en", "Updated description",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "assets.0.sources.0.key", "image",
-					),
+					resource.TestCheckResourceAttr(resourceName, "name.en", "accessories"),
+					resource.TestCheckResourceAttr(resourceName, "key", "accessories"),
+					resource.TestCheckResourceAttr(resourceName, "description.en", "Updated description"),
+					resource.TestCheckResourceAttrPair(resourceName, "parent", "commercetools_category.accessories_base", "id"),
+					resource.TestCheckResourceAttr(resourceName, "slug.en", "accessories_updated"),
+					resource.TestCheckResourceAttr(resourceName, "order_hint", "0.000016143365484621617765232"),
+					resource.TestCheckResourceAttr(resourceName, "external_id", "some external id"),
+					resource.TestCheckResourceAttr(resourceName, "meta_title.en", "updated meta text"),
+					resource.TestCheckResourceAttr(resourceName, "meta_description.en", "updated meta description"),
+					resource.TestCheckResourceAttr(resourceName, "meta_keywords.en", "keywords, updated"),
+					resource.TestCheckResourceAttr(resourceName, "assets.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "assets.0.name.en", "Updated name"),
+					resource.TestCheckResourceAttr(resourceName, "assets.0.description.en", "Updated description"),
+					resource.TestCheckResourceAttr(resourceName, "assets.0.sources.0.key", "image"),
 				),
 			},
 			{
 				Config: testAccCategoryRemoveProperties(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "name.en", "accessories",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "key", "accessories_2",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "description.en", "Updated description",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "slug.en", "accessories_updated",
-					),
-					resource.TestCheckResourceAttrPair(
-						"commercetools_category.accessories", "parent", "commercetools_category.accessories_base", "id",
-					),
-					resource.TestCheckResourceAttr(
-						"commercetools_category.accessories", "order_hint", "0.000016143365484621617765232",
-					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_category.accessories", "meta_title",
-					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_category.accessories", "meta_description",
-					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_category.accessories", "meta_keywords",
-					),
-					resource.TestCheckNoResourceAttr(
-						"commercetools_category.accessories", "assets",
-					),
+					resource.TestCheckResourceAttr(resourceName, "name.en", "accessories"),
+					resource.TestCheckResourceAttr(resourceName, "key", "accessories_2"),
+					resource.TestCheckResourceAttr(resourceName, "description.en", "Updated description"),
+					resource.TestCheckResourceAttr(resourceName, "slug.en", "accessories_updated"),
+					resource.TestCheckResourceAttrPair(resourceName, "parent", "commercetools_category.accessories_base", "id"),
+					resource.TestCheckResourceAttr(resourceName, "order_hint", "0.000016143365484621617765232"),
+					resource.TestCheckResourceAttr(resourceName, "external_id", "some external id"),
+					resource.TestCheckNoResourceAttr(resourceName, "meta_title"),
+					resource.TestCheckNoResourceAttr(resourceName, "meta_description"),
+					resource.TestCheckNoResourceAttr(resourceName, "meta_keywords"),
+					resource.TestCheckResourceAttr(resourceName, "assets.#", "0"),
 				),
 			},
 		},
@@ -142,168 +78,184 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 }
 
 func testAccCategoryConfig() string {
-	return `
-	resource "commercetools_category" "accessories_base" {
-		name = {
-			en = "accessories_b"
-		}
-		key = "accessories_b"
-		description = {
-			en = "Standard description"
-		}
-		slug = {
-			en = "accessories_b"
-		}
-		order_hint = "0.00001614336548703960465522"
-	}
+	return hclTemplate(`
+		resource "commercetools_category" "accessories_base" {
+			key = "accessories_b"
 
-	resource "commercetools_category" "accessories_minimal" {
-		name = {
-			en = "accessories_m"
-		}
-		slug = {
-			en = "accessories_m"
-		}
-	}
-
-	resource "commercetools_category" "accessories" {
-		name = {
-			en = "accessories"
-		}
-		key = "accessories"
-		description = {
-			en = "Standard description"
-		}
-		parent = "${commercetools_category.accessories_base.id}"
-		slug = {
-			en = "accessories"
-		}
-		order_hint = "0.000016143365484621617765232"
-		meta_title = {
-			en = "meta text"
-		}
-		meta_description = {
-			en = "meta description"
-		}
-		meta_keywords = {
-			en = "keywords"
-		}
-		assets {
-			key = "some_key"
 			name = {
-				en = "My Product Video"
+				en = "accessories_b"
 			}
 			description = {
-				en = "Description"
+				en = "Standard description"
 			}
-			sources {
-				uri = "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg"
-				key = "image"
+			slug = {
+				en = "accessories_b"
+			}
+			order_hint = "0.00001614336548703960465522"
+		}
+
+		resource "commercetools_category" "accessories_minimal" {
+			name = {
+				en = "accessories_m"
+			}
+			slug = {
+				en = "accessories_m"
 			}
 		}
-		depends_on = [commercetools_category.accessories_base]
-	}  `
+
+		resource "commercetools_category" "accessories" {
+			key = "accessories"
+
+			name = {
+				en = "accessories"
+			}
+			description = {
+				en = "Standard description"
+			}
+			slug = {
+				en = "accessories"
+			}
+
+			parent 		= commercetools_category.accessories_base.id
+			order_hint 	= "0.000016143365484621617765232"
+			external_id = "some external id"
+
+			meta_title = {
+				en = "meta text"
+			}
+			meta_description = {
+				en = "meta description"
+			}
+			meta_keywords = {
+				en = "keywords"
+			}
+			assets {
+				key = "some_key"
+				name = {
+					en = "My Product Video"
+				}
+				description = {
+					en = "Description"
+				}
+				sources {
+					uri = "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg"
+					key = "image"
+				}
+			}
+			depends_on = [commercetools_category.accessories_base]
+		}
+	`, map[string]any{})
 }
 
 func testAccCategoryUpdate() string {
-	return `
-	resource "commercetools_category" "accessories_base" {
-		name = {
-			en = "accessories_b"
-		}
-		key = "accessories_b"
-		description = {
-			en = "Standard description"
-		}
-		slug = {
-			en = "accessories_b"
-		}
-		order_hint = "0.00001614336548703960465522"
-	}
+	return hclTemplate(`
+		resource "commercetools_category" "accessories_base" {
+			key = "accessories_b"
 
-	resource "commercetools_category" "accessories_minimal" {
-		name = {
-			en = "accessories_m"
-		}
-		slug = {
-			en = "accessories_m"
-		}
-	}
-
-	resource "commercetools_category" "accessories" {
-		name = {
-			en = "accessories"
-		}
-		key = "accessories"
-		description = {
-			en = "Updated description"
-		}
-		parent = "${commercetools_category.accessories_base.id}"
-		slug = {
-			en = "accessories_updated"
-		}
-		order_hint = "0.000016143365484621617765232"
-		meta_title = {
-			en = "updated meta text"
-		}
-		meta_description = {
-			en = "updated meta description"
-		}
-		meta_keywords = {
-			en = "keywords, updated"
-		}
-		assets {
-			key = "some_key"
 			name = {
-				en = "Updated name"
+				en = "accessories_b"
+			}
+			description = {
+				en = "Standard description"
+			}
+			slug = {
+				en = "accessories_b"
+			}
+			order_hint = "0.00001614336548703960465522"
+		}
+
+		resource "commercetools_category" "accessories_minimal" {
+			name = {
+				en = "accessories_m"
+			}
+			slug = {
+				en = "accessories_m"
+			}
+		}
+
+		resource "commercetools_category" "accessories" {
+			key = "accessories"
+
+			name = {
+				en = "accessories"
 			}
 			description = {
 				en = "Updated description"
 			}
-			sources {
-				uri = "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg"
-				key = "image"
 
-				dimensions {
-					w = 10
-					h = 20
+			parent = commercetools_category.accessories_base.id
+			order_hint = "0.000016143365484621617765232"
+			external_id = "some external id"
+
+			slug = {
+				en = "accessories_updated"
+			}
+			meta_title = {
+				en = "updated meta text"
+			}
+			meta_description = {
+				en = "updated meta description"
+			}
+			meta_keywords = {
+				en = "keywords, updated"
+			}
+			assets {
+				key = "some_key"
+				name = {
+					en = "Updated name"
 				}
+				description = {
+					en = "Updated description"
+				}
+				sources {
+					uri = "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg"
+					key = "image"
 
+					dimensions {
+						w = 10
+						h = 20
+					}
+
+				}
 			}
 		}
-	}  `
+	`, map[string]any{})
 }
 
 func testAccCategoryRemoveProperties() string {
-	return `
-	resource "commercetools_category" "accessories_base" {
-		name = {
-			en = "accessories_b"
-		}
-		key = "accessories_b"
-		description = {
-			en = "Standard description"
-		}
-		slug = {
-			en = "accessories_b"
-		}
-		order_hint = "0.00001614336548703960465522"
-	}
+	return hclTemplate(`
+		resource "commercetools_category" "accessories_base" {
+			key = "accessories_b"
 
-	resource "commercetools_category" "accessories" {
-		name = {
-			en = "accessories"
+			name = {
+				en = "accessories_b"
+			}
+			description = {
+				en = "Standard description"
+			}
+			slug = {
+				en = "accessories_b"
+			}
+			order_hint = "0.00001614336548703960465522"
 		}
-		key = "accessories_2"
-		description = {
-			en = "Updated description"
+
+		resource "commercetools_category" "accessories" {
+			key = "accessories_2"
+
+			name = {
+				en = "accessories"
+			}
+			description = {
+				en = "Updated description"
+			}
+			slug = {
+				en = "accessories_updated"
+			}
+			parent 		= commercetools_category.accessories_base.id
+			order_hint 	= "0.000016143365484621617765232"
+			external_id = "some external id"
 		}
-		parent = "${commercetools_category.accessories_base.id}"
-		slug = {
-			en = "accessories_updated"
-		}
-		order_hint = "0.000016143365484621617765232"
-	}  `
+	`, map[string]any{})
 }
 
 func testAccCategoryDestroy(s *terraform.State) error {

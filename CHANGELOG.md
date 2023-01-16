@@ -1,6 +1,175 @@
-unreleased
-==========
-- add support for AWS EventBridge subscription
+v1.6.2 (2023-01-11)
+===================
+ - `resource_state` rewrite both the `state` and `state_transitions` resource
+   and move the code to the new plugin-framework. This should fix some related
+   to mismatching version values by always refreshing these. (#333)
+
+v1.6.1 (2023-01-11)
+===================
+ - `resource_project_settings` fix validation of values for the
+   `delete_days_after_creation` field (should be between 1-90)
+ - `resource_subscription` fix errors when the `format` block was missing (#331)
+
+
+v1.6.0 (2023-01-09)
+===================
+ - `resource_project_settings` migrate the resource to the new
+   terraform-plugin-framework.
+ - `resource_project_settings` add property `delete_days_after_creation` to
+   the `messages` block (#322)
+ - `resource_subscription` Support using IAM authentication for SQS and SNS by
+   making the access_key and access_secret attributes optional. (#316)
+ - `resource_subscription` migrate the resource to the new
+   terraform-plugin-framework.
+ - `resource_subscription` fix handling of changes in the `connection_string`
+   value when the `AzureServiceBus` is used (#320)
+ - `resource_api_extension` add support for triggers on `business-unit`,
+   `quote-request`, `quote`, `staged-quote` (#326)
+
+v1.5.1 (2022-10-04)
+===================
+ - `resource_state_transitions` fix error when we tried to set the transitions
+   value to a value already set in commercetools, causing an error. See #312
+ - `resource_state_transitions` add support for importing existing state
+   transitions
+
+v1.5.0 (2022-09-30)
+===================
+ - `resource_state_transitions` New resource to manage transitions between states.
+   This was previously part of the `resource_state` but that made it imposible
+   to have recursive transitions. This means that `transitions` attribute is now
+   removed from the `resource_state` resource.
+
+   example:
+  ```hcl
+    // Only allow transition from sale to clearance
+    resource "commercetools_state_transitions" "transition-1" {
+      from = commercetools_state.product_for_sale.id
+      to = [
+        commercetools_state.product_clearance.id,
+      ]
+    }
+  ```
+  See #86 for more information
+ - `resource_shipping_zone_rate` Add support for `price_function` when the type
+   is `CartScore` (#202)
+
+
+v1.4.4 (2022-09-23)
+===================
+ - Additional fixes to setting custom field values on supported resources. (#303)
+ - `resource_api_extension` Fix handling masked values for `azure_authentication` (#306)
+ - `resource_subscription` Fix handling masked values for `event_grid` (#306)
+
+v1.4.2 (2022-08-24)
+===================
+ - Fix setting custom field values on supported resources when the fiedl type
+   is a set (#299)
+
+v1.4.1 (2022-08-19)
+===================
+ - `resource_product_type` fix parsing the enums from the state file (#294)
+
+v1.4.0 (2022-08-18)
+===================
+ - `resource_product_discount` new resource to manage product discounts (#266)
+ - `resource_subscription`: Fix a bug where remove the `changes` or `messages`
+   from the resource was resulting in an invalid request. (#138)
+ - `resource_shipping_zone_rate` Fix persisting the shipping rate tiers in the
+   terraform state (#184)
+ - `resource_api_extension` Fix handling of retrieving secrets from
+   commercetools (#284)
+ - `resource_subscription` Fix handling changes in both `changes` and `messages`
+   attributes (#138)
+ - Fix setting custom fields on the various resources when the type is not a
+   string (#289)
+
+v1.3.0 (2022-08-03)
+===================
+  - **Backwards incompatible** Use a list type for enum values instead of a map
+    to keep the ordering intact. This change requires an update to the way the
+    values are defined (#98, #278):
+
+      ```hcl
+      type {
+        name = "enum"
+        values {
+          FLAG-1 = "Flag 1"
+          FLAG-2 = "Flag 2"
+        }
+      }
+      ```
+
+      to
+
+      ```hcl
+      type {
+        name = "enum"
+        value {
+          key   = "FLAG-1"
+          label = "Flag 1"
+        }
+        value {
+          key   = "FLAG-2"
+          label = "FLAG-2"
+        }
+      }
+      ```
+
+ - Update documentation and examples
+ - Add support for custom fields on category, channel, customer_group,
+   discount_code, shipping_method and store resources. (#265)
+ - Improve logic to set the user-agent used in the requests. We now use the
+   provider version. For example:
+     `User-Agent: terraform-provider-commercetools/1.3.0 (bd9cae0)`
+ - Improve the error handling by better communicating the errors raised by
+   commercetools.
+ - Accept a trailing slash in the token url (#182)
+ - Large rewrite of the `type` and `product_type` resources to fix a number
+   of issues (#165, #262, #263, #267)
+
+v1.2.1 (2022-06-16)
+===================
+ - Fix api_extension resource to not error out when the new condition field is
+   not defined. (#261)
+
+v1.2.0 (2022-06-15)
+===================
+- Fix shipping_zone locations ordering by switching to a set instead of a list
+  of locations (#259)
+- Add aliases for destination and platform on subscription and extension
+  resources (#245, #247, #251)
+- Add condition field to api extension resource
+- Add support for terraform import on the api_extension resource
+- Improve error handling, show errors returned by commercetools in terraform
+  output.
+
+v1.1.0 (2022-06-01)
+===================
+- Fix out of bounds error in the commercetools_type resource (#241)
+- Handle changes to access_secret in api_extension resource (#243)
+
+v1.0.1 (2022-05-25)
+===================
+- Minor release to fix hash error
+
+v1.0.0 (2022-05-23)
+===================
+- Use terraform plugin sdk v2. This changed required various changes and should
+  have made the codebase more robust.
+- Fix marshalling the commercetools to terraform state for various resources.
+- Move documentation to the terraform registry, see
+  https://registry.terraform.io/providers/labd/commercetools/latest/docs
+- Use Go 1.18
+- Add support for AWS EventBridge subscription
+- Resource updates:
+  - project_settings: do case insensitive comparison of the languages, currencies
+    and countries
+  - shipping_zone: make the name required
+  - api_extension: Fix handling of timeout_in_ms when empty
+  - category: add support for setting external_id
+  - category: fix empty key being set on creation
+
 
 v0.30.0 (2021-08-04)
 ====================

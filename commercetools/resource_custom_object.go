@@ -3,11 +3,13 @@ package commercetools
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceCustomObject() *schema.Resource {
@@ -48,7 +50,7 @@ func resourceCustomObject() *schema.Resource {
 	}
 }
 
-func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	value := _decodeCustomObjectValue(d.Get("value").(string))
 
@@ -57,7 +59,12 @@ func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m i
 		Key:       d.Get("key").(string),
 		Value:     value,
 	}
-	customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
+	var customObject *platform.CustomObject
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		var err error
+		customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -68,38 +75,27 @@ func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m i
 	return nil
 }
 
-func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	container := d.Get("container").(string)
 	key := d.Get("key").(string)
-	log.Printf("[DEBUG] Reading custom object from commercetools with following values\n Container: %s \n Key: %s", container, key)
 	client := getClient(m)
-
 	customObject, err := client.CustomObjects().WithContainerAndKey(container, key).Get().Execute(ctx)
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if utils.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
 
-	if customObject == nil {
-		log.Print("[DEBUG] No custom object found")
-		d.SetId("")
-	} else {
-		log.Print("[DEBUG] Found following custom object:")
-		log.Print(stringFormatObject(customObject))
-		d.Set("container", customObject.Container)
-		d.Set("key", customObject.Key)
-		d.Set("value", marshallCustomObjectValue(customObject))
-		d.Set("version", customObject.Version)
-	}
+	d.Set("container", customObject.Container)
+	d.Set("key", customObject.Key)
+	d.Set("value", flattenCustomObjectValue(customObject))
+	d.Set("version", customObject.Version)
 	return nil
 }
 
-func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	value := _decodeCustomObjectValue(d.Get("value").(string))
 	originalKey, newKey := d.GetChange("key")
@@ -115,22 +111,35 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m i
 			Key:       newKey.(string),
 			Value:     value,
 		}
-		customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
+		var customObject *platform.CustomObject
+		err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+			var err error
+			customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
+			return utils.ProcessRemoteError(err)
+		})
 		if err != nil {
+			// Workaround invalid state to be written, see
+			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+			d.Partial(true)
 			return diag.FromErr(err)
 		}
 		d.SetId(customObject.ID)
 		d.Set("version", customObject.Version)
 
-		_, err = client.
-			CustomObjects().
-			WithContainerAndKey(originalContainer.(string), originalKey.(string)).
-			Delete().
-			Version(originalVersion.(int)).
-			DataErasure(true).
-			Execute(ctx)
-
+		err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+			_, err := client.
+				CustomObjects().
+				WithContainerAndKey(originalContainer.(string), originalKey.(string)).
+				Delete().
+				Version(originalVersion.(int)).
+				DataErasure(true).
+				Execute(ctx)
+			return utils.ProcessRemoteError(err)
+		})
 		if err != nil {
+			// Workaround invalid state to be written, see
+			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+			d.Partial(true)
 			return diag.FromErr(err)
 		}
 	} else {
@@ -143,8 +152,16 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m i
 			Value:     value,
 			Version:   intRef(d.Get("version")),
 		}
-		customObject, err := client.CustomObjects().Post(draft).Execute(ctx)
+		var customObject *platform.CustomObject
+		err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+			var err error
+			customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
+			return utils.ProcessRemoteError(err)
+		})
 		if err != nil {
+			// Workaround invalid state to be written, see
+			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+			d.Partial(true)
 			return diag.FromErr(err)
 		}
 
@@ -155,7 +172,7 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m i
 	return nil
 }
 
-func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	container := d.Get("container").(string)
 	key := d.Get("key").(string)
 
@@ -177,13 +194,16 @@ func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m i
 		return diags
 	}
 
-	_, err = client.
-		CustomObjects().
-		WithContainerAndKey(container, key).
-		Delete().
-		Version(customObject.Version).
-		DataErasure(false).
-		Execute(ctx)
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.
+			CustomObjects().
+			WithContainerAndKey(container, key).
+			Delete().
+			Version(customObject.Version).
+			DataErasure(false).
+			Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 	if err != nil {
 		var diags diag.Diagnostics
 		diags = append(diags, diag.FromErr(err)...)
@@ -193,13 +213,13 @@ func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m i
 	return nil
 }
 
-func _decodeCustomObjectValue(value string) interface{} {
-	data := make(map[string]interface{})
+func _decodeCustomObjectValue(value string) any {
+	var data any
 	json.Unmarshal([]byte(value), &data)
 	return data
 }
 
-func marshallCustomObjectValue(o *platform.CustomObject) string {
+func flattenCustomObjectValue(o *platform.CustomObject) string {
 	val, err := json.Marshal(o.Value)
 	if err != nil {
 		panic(err)

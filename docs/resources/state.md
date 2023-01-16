@@ -17,39 +17,35 @@ See also the [State API Documentation](https://docs.commercetools.com/api/projec
 
 ```terraform
 resource "commercetools_state" "review_unreviewed" {
-  key = "review-unreviewed"
+  key  = "review-unreviewed"
   type = "ReviewState"
   name = {
-      en = "Unreviewed"
+    en = "Unreviewed"
   }
   description = {
     en = "Not reviewed yet"
   }
   initial = true
-  roles = ["ReviewIncludedInStatistics"]
+  roles   = ["ReviewIncludedInStatistics"]
 }
 
-
-# State with transitions specified:
-
 resource "commercetools_state" "product_for_sale" {
-  key = "product-for-sale"
+  key  = "product-for-sale"
   type = "ProductState"
   name = {
-      en = "For Sale"
+    en = "For Sale"
   }
   description = {
     en = "Regularly stocked product."
   }
   initial = true
-  transitions = ["${commercetools_state.product_clearance.key}"]
 }
 
 resource "commercetools_state" "product_clearance" {
-  key = "product-clearance"
+  key  = "product-clearance"
   type = "ProductState"
   name = {
-      en = "On Clearance"
+    en = "On Clearance"
   }
   description = {
     en = "The product line will not be ordered again."
@@ -62,22 +58,19 @@ resource "commercetools_state" "product_clearance" {
 
 ### Required
 
-- **key** (String) A unique identifier for the state
-- **type** (String) [StateType](https://docs.commercetools.com/api/projects/states#statetype)
+- `type` (String) [StateType](https://docs.commercetools.com/api/projects/states#statetype)
 
 ### Optional
 
-- **description** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **id** (String) The ID of this resource.
-- **initial** (Boolean) A state can be declared as an initial state for any state machine. When a workflow starts, this first state must be an initial state
-- **name** (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
-- **roles** (List of String) Array of [State Role](https://docs.commercetools.com/api/projects/states#staterole)
-- **transitions** (Set of String) Transitions are a way to describe possible transformations of the current state to other states of the same type (for example: Initial -> Shipped). When performing a transitionState update action and transitions is set, the currently referenced state must have a transition to the new state.
-If transitions is an empty list, it means the current state is a final state and no further transitions are allowed.
-If transitions is not set, the validation is turned off. When performing a transitionState update action, any other state of the same type can be transitioned to
+- `description` (Map of String) Description of the State as localized string.
+- `initial` (Boolean) A state can be declared as an initial state for any state machine. When a workflow starts, this first state must be an initial state
+- `key` (String) Timestamp of the last Terraform update of the order.
+- `name` (Map of String) Name of the State as localized string.
+- `roles` (List of String) [State Role](https://docs.commercetools.com/api/projects/states#staterole)
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 

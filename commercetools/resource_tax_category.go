@@ -2,13 +2,13 @@ package commercetools
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceTaxCategory() *schema.Resource {
@@ -44,34 +44,30 @@ func resourceTaxCategory() *schema.Resource {
 	}
 }
 
-func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	var taxCategory *platform.TaxCategory
 	emptyTaxRates := []platform.TaxRateDraft{}
 
 	draft := platform.TaxCategoryDraft{
-		Key:         stringRef(d.Get("key")),
 		Name:        d.Get("name").(string),
 		Description: stringRef(d.Get("description")),
 		Rates:       emptyTaxRates,
 	}
 
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
+	}
+
+	var taxCategory *platform.TaxCategory
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
 		var err error
-
 		taxCategory, err = client.TaxCategories().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	if taxCategory == nil {
-		return diag.Errorf("No tax category created?")
 	}
 
 	d.SetId(taxCategory.ID)
@@ -80,45 +76,38 @@ func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceTaxCategoryRead(ctx, d, m)
 }
 
-func resourceTaxCategoryRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading tax category from commercetools, with taxCategory id: %s", d.Id())
+func resourceTaxCategoryRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-
 	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if utils.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
 
-	if taxCategory == nil {
-		log.Print("[DEBUG] No tax category found")
-		d.SetId("")
-	} else {
-		log.Print("[DEBUG] Found following tax category:")
-		log.Print(stringFormatObject(taxCategory))
-
-		d.Set("version", taxCategory.Version)
-		d.Set("key", taxCategory.Key)
-		d.Set("name", taxCategory.Name)
-		d.Set("description", taxCategory.Description)
-	}
+	d.Set("version", taxCategory.Version)
+	d.Set("key", taxCategory.Key)
+	d.Set("name", taxCategory.Name)
+	d.Set("description", taxCategory.Description)
 	return nil
 }
 
-func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	// Lock to prevent concurrent updates due to Version number conflicts
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
+
+	// Fetch the latest version. The version can be changed outside this resource
+	// when a tax category rate is added.
 	taxCategory, err := client.TaxCategories().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
@@ -148,22 +137,21 @@ func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m in
 			&platform.TaxCategorySetDescriptionAction{Description: &newDescription})
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
-
-	_, err = client.TaxCategories().WithId(d.Id()).Post(input).Execute(ctx)
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err := client.TaxCategories().WithId(d.Id()).Post(input).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
-		}
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	return resourceTaxCategoryRead(ctx, d, m)
 }
 
-func resourceTaxCategoryDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceTaxCategoryDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	// Lock to prevent concurrent updates due to Version number conflicts
@@ -174,10 +162,9 @@ func resourceTaxCategoryDelete(ctx context.Context, d *schema.ResourceData, m in
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	_, err = client.TaxCategories().WithId(d.Id()).Delete().Version(taxCategory.Version).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err = client.TaxCategories().WithId(d.Id()).Delete().Version(taxCategory.Version).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
+	return diag.FromErr(err)
 }

@@ -13,20 +13,17 @@ var testAccProviders map[string]*schema.Provider
 var testAccProvider *schema.Provider
 
 func init() {
-	testAccProvider = Provider()
+	testAccProvider = New("snapshot")()
 	testAccProviders = map[string]*schema.Provider{
 		"commercetools": testAccProvider,
 	}
 }
 
 func TestProvider(t *testing.T) {
-	if err := Provider().InternalValidate(); err != nil {
+	provider := New("snapshot")()
+	if err := provider.InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-}
-
-func TestProvider_impl(t *testing.T) {
-	var _ = Provider()
 }
 
 func testAccPreCheck(t *testing.T) {
@@ -44,7 +41,7 @@ func testAccPreCheck(t *testing.T) {
 		}
 	}
 
-	cfg := map[string]interface{}{
+	cfg := map[string]any{
 		"client_id":     "dummy-client-id",
 		"client_secret": "dummy-client-secret",
 		"project_key":   "terraform-provider-commercetools",

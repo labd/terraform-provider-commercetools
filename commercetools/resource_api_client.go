@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceAPIClient() *schema.Resource {
@@ -47,7 +49,7 @@ func resourceAPIClient() *schema.Resource {
 	}
 }
 
-func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	name := d.Get("name").(string)
 	scopes := d.Get("scope").(*schema.Set).List()
 
@@ -67,12 +69,8 @@ func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m inte
 
 	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
-
 		apiClient, err = client.ApiClients().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -85,16 +83,14 @@ func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m inte
 	return resourceAPIClientRead(ctx, d, m)
 }
 
-func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	apiClient, err := client.ApiClients().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if utils.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
@@ -107,13 +103,13 @@ func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m interf
 	return nil
 }
 
-func resourceAPIClientDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIClientDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
-	_, err := client.ApiClients().WithId(d.Id()).Delete().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ApiClients().WithId(d.Id()).Delete().Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 
-	return nil
+	return diag.FromErr(err)
 }

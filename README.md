@@ -5,9 +5,9 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/labd/terraform-provider-commercetools)](https://goreportcard.com/report/github.com/labd/terraform-provider-commercetools)
 
 
-The Terraform commercetools provider allows you to configure 
+The Terraform commercetools provider allows you to configure
 your [commercetools](https://commercetools.com/) project with
-infrastructure-as-code principles. 
+infrastructure-as-code principles.
 
 # Commercial support
 
@@ -20,16 +20,18 @@ able to offer support. Please contact us at opensource@labdigital.nl
 and check out the [examples](https://registry.terraform.io/providers/labd/commercetools/latest/docs/guides/examples).
 
 
-## Terraform registry
+## Usage
 
-Terraform 0.13 added support for automatically downloading providers from
-the terraform registry. Add the following to your terraform project
+The provider is distributed via the Terraform registry. To use it you need to configure the [`required_provider`](https://www.terraform.io/language/providers/requirements#requiring-providers) block. For example:
 
 ```hcl
 terraform {
   required_providers {
     commercetools = {
       source = "labd/commercetools"
+      
+      # It's recommended to pin the version, e.g.:
+      # version = "~> 1.4.0"
     }
   }
 }
@@ -63,23 +65,22 @@ $ make build
 To then locally test:
 
 ```sh
-$ cp terraform-provider-commercetools ~/.terraform.d/plugins/darwin_amd64/terraform-provider-commercetools
+$ cp terraform-provider-commercetools_${LOCAL_TEST_VERSION} ~/.terraform.d/plugins/local/labd/commercetools/${LOCAL_TEST_VERSION}/${OS_ARCH}/terraform-provider-commercetools_${LOCAL_TEST_VERSION}
 ```
 
-### Update commercetools-go-sdk
-
-The commercetools-go-sdk always uses the latest (master) version. To update to
-the latest version:
-
-```sh
-make update-sdk
-```
+## Adding new resources
+When commercetools releases new features which include new resources these need to be implemented
+in terraform as new resources too. This provider is currently undergoing a migration path to
+move from [terraform-plugin-sdk](https://github.com/hashicorp/terraform-plugin-sdk/) to the new
+[terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework/). All new
+resources therefore need to be written using the terraform-plugin-framework module. See the
+`subscription` component as example.
 
 ## Debugging / Troubleshooting
 
 There are two environment settings for troubleshooting:
 
-- `TF_LOG=1` enables debug output for Terraform.
+- `TF_LOG=INFO` enables debug output for Terraform.
 - `CTP_DEBUG=1` enables debug output for the Commercetools GO SDK this provider uses.
 
 Note this generates a lot of output!

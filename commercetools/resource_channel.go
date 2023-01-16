@@ -2,13 +2,13 @@ package commercetools
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceChannel() *schema.Resource {
@@ -37,61 +37,60 @@ func resourceChannel() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"name": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"description": {
-				Description: "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
-			"version": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"custom": {
+			"address": AddressFieldSchema(),
+			"custom":  CustomFieldSchema(),
+			"geolocation": {
 				Type:     schema.TypeList,
 				MaxItems: 1,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type_key": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"field": {
+						"coordinates": {
 							Type:     schema.TypeList,
-							Optional: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"name": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "The field name of a custom field (https://docs.commercetools.com/api/projects/channels#set-customfield)",
-									},
-									"value": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "The value of a custom field (https://docs.commercetools.com/api/projects/channels#set-customfield) expected as json encoded field to handle all different cases",
-									},
-								},
-							},
+							Elem:     &schema.Schema{Type: schema.TypeFloat},
+							MinItems: 2,
+							MaxItems: 2,
+							Required: true,
 						},
 					},
 				},
+			},
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
 			},
 		},
 	}
 }
 
-func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	name := unmarshallLocalizedString(d.Get("name"))
-	description := unmarshallLocalizedString(d.Get("description"))
+func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	name := expandLocalizedString(d.Get("name"))
+	description := expandLocalizedString(d.Get("description"))
 
 	roles := []platform.ChannelRoleEnum{}
-	for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
+	for _, value := range expandStringArray(d.Get("roles").([]any)) {
 		roles = append(roles, platform.ChannelRoleEnum(value))
+	}
+
+	client := getClient(m)
+
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
 	}
 
 	draft := platform.ChannelDraft{
@@ -99,29 +98,17 @@ func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interf
 		Roles:       roles,
 		Name:        &name,
 		Description: &description,
+		Address:     CreateAddressFieldDraft(d),
+		Custom:      custom,
+		GeoLocation: expandGeoLocation(d),
 	}
 
-	//custom fields are set to be filled
-	if d.HasChange("custom") {
-		typeId, fields := getCustomFieldsData(d)
-
-		draft.Custom = &platform.CustomFieldsDraft{
-			Type:   *typeId,
-			Fields: fields,
-		}
-	}
-
-	client := getClient(m)
 	var channel *platform.Channel
-
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
 
 		channel, err = client.Channels().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -129,132 +116,39 @@ func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	d.SetId(channel.ID)
-	if err := d.Set("version", channel.Version); err != nil {
-		return diag.FromErr(err)
-	}
+	d.Set("version", channel.Version)
 	return resourceChannelRead(ctx, d, m)
 }
 
-func getCustomFieldsData(d *schema.ResourceData) (*platform.TypeResourceIdentifier, *platform.FieldContainer) {
-	custom := d.Get("custom").([]interface{})[0].(map[string]interface{})
-
-	typeKey := custom["type_key"].(string)
-
-	typeId := &platform.TypeResourceIdentifier{
-		Key: &typeKey,
-	}
-
-	fields := &platform.FieldContainer{}
-
-	for _, fieldDef := range custom["field"].([]interface{}) {
-		key := fieldDef.(map[string]interface{})["name"].(string)
-		value := fieldDef.(map[string]interface{})["value"].(string)
-		decodedValue := _decodeCustomFieldValue(value)
-
-		(*fields)[key] = decodedValue
-
-	}
-	return typeId, fields
-}
-
-func _decodeCustomFieldValue(value string) interface{} {
-	var data interface{}
-	_ = json.Unmarshal([]byte(value), &data)
-	return data
-}
-
-func _encodeCustomFieldValue(value interface{}) string {
-	data, _ := json.Marshal(value)
-
-	return string(data)
-}
-
-func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	channel, err := client.Channels().WithId(d.Id()).Get().Expand([]string{"custom.type"}).Execute(ctx)
+	channel, err := client.Channels().WithId(d.Id()).Get().Execute(ctx)
 
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if utils.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
 
 	d.SetId(channel.ID)
-	if err := d.Set("version", channel.Version); err != nil {
-		return diag.FromErr(err)
-	}
-
+	d.Set("version", channel.Version)
 	if channel.Name != nil {
-		if err := d.Set("name", *channel.Name); err != nil {
-			return diag.FromErr(err)
-		}
+		d.Set("name", *channel.Name)
 	}
 	if channel.Description != nil {
-		if err := d.Set("description", *channel.Description); err != nil {
-			return diag.FromErr(err)
-		}
+		d.Set("description", *channel.Description)
 	}
-	if err := d.Set("roles", channel.Roles); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if channel.Custom != nil {
-		data := _decodeCustomFieldValue(_encodeCustomFieldValue(channel.Custom.Fields))
-
-		customStateFields := make([]interface{}, 0)
-
-		//if the length would be 0 we are reading from a remote channel which has already custom fields set
-		//but the terraform state does not match it yet
-		//for the case that we read from the remote channel and the state has custom fields we will use the order of the
-		//existing terraform state all additional fields will be added to the state at then end of the list
-		if len(d.Get("custom").([]interface{})) != 0 {
-			customState := d.Get("custom").([]interface{})[0].(map[string]interface{})
-
-			customStateFields = customState["field"].([]interface{})
-		}
-
-		for fieldKey, fieldValue := range data.(map[string]interface{}) {
-
-			idx := -1
-
-			for i := range customStateFields {
-				if customStateFields[i].(map[string]interface{})["name"] == fieldKey {
-					idx = i
-					break
-				}
-			}
-
-			//add to list of fields as the state does not know about this field but remote it exists
-			if idx == -1 {
-
-				customStateFields = append(customStateFields, map[string]interface{}{
-					"name":  fieldKey,
-					"value": _encodeCustomFieldValue(fieldValue),
-				})
-				continue
-			}
-
-			//update field value
-			customStateFields[idx].(map[string]interface{})["value"] = _encodeCustomFieldValue(fieldValue)
-		}
-
-		customBase := []interface{}{map[string]interface{}{
-			"type_key": channel.Custom.Type.Obj.Key,
-			"field":    customStateFields,
-		}}
-
-		if err := d.Set("custom", customBase); err != nil {
-			return diag.FromErr(err)
-		}
-	}
+	d.Set("key", channel.Key)
+	d.Set("roles", channel.Roles)
+	d.Set("address", flattenAddress(channel.Address))
+	d.Set("geolocation", flattenGeoLocation(channel.GeoLocation))
+	d.Set("custom", flattenCustomFields(channel.Custom))
 	return nil
 }
 
-func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ChannelUpdate{
@@ -270,14 +164,14 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	}
 
 	if d.HasChange("name") {
-		newName := unmarshallLocalizedString(d.Get("name"))
+		newName := expandLocalizedString(d.Get("name"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ChannelChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
-		newDescription := unmarshallLocalizedString(d.Get("description"))
+		newDescription := expandLocalizedString(d.Get("description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ChannelChangeDescriptionAction{Description: newDescription})
@@ -285,7 +179,7 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 
 	if d.HasChange("roles") {
 		roles := []platform.ChannelRoleEnum{}
-		for _, value := range expandStringArray(d.Get("roles").([]interface{})) {
+		for _, value := range expandStringArray(d.Get("roles").([]any)) {
 			roles = append(roles, platform.ChannelRoleEnum(value))
 		}
 		input.Actions = append(
@@ -293,29 +187,84 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m interf
 			&platform.ChannelSetRolesAction{Roles: roles})
 	}
 
-	if d.HasChange("custom") {
-		typeId, fields := getCustomFieldsData(d)
-
+	if d.HasChange("address") {
+		newAddr := CreateAddressFieldDraft(d)
 		input.Actions = append(
 			input.Actions,
-			&platform.ChannelSetCustomTypeAction{Type: typeId, Fields: fields})
+			&platform.ChannelSetAddressAction{Address: newAddr})
 	}
 
-	_, err := client.Channels().WithId(d.Id()).Post(input).Execute(ctx)
+	if d.HasChange("geolocation") {
+		newGeoLocation := expandGeoLocation(d)
+		input.Actions = append(
+			input.Actions,
+			&platform.ChannelSetGeoLocationAction{GeoLocation: newGeoLocation})
+	}
+
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.ChannelSetCustomTypeAction, platform.ChannelSetCustomFieldAction](ctx, client, d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.ChannelUpdateAction))
+		}
+	}
+
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Channels().WithId(d.Id()).Post(input).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	return resourceChannelRead(ctx, d, m)
 }
 
-func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	_, err := client.Channels().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Channels().WithId(d.Id()).Delete().Version(version).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	return nil
+}
+
+func flattenGeoLocation(loc platform.GeoJson) []map[string]any {
+	switch l := loc.(type) {
+	case platform.GeoJsonPoint:
+		return []map[string]any{
+			{
+				"coordinates": l.Coordinates,
+			},
+		}
+	}
+
+	return []map[string]any{}
+}
+
+func expandGeoLocation(d *schema.ResourceData) platform.GeoJson {
+	if geolocation, err := elementFromList(d, "geolocation"); err == nil {
+		if geolocation == nil {
+			return nil
+		}
+
+		points := geolocation["coordinates"].([]any)
+		return platform.GeoJsonPoint{
+			Coordinates: []float64{
+				points[0].(float64),
+				points[1].(float64),
+			},
+		}
+	}
 	return nil
 }

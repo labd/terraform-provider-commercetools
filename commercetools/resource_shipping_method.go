@@ -2,13 +2,13 @@ package commercetools
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceShippingMethod() *schema.Resource {
@@ -38,9 +38,10 @@ func resourceShippingMethod() *schema.Resource {
 				Optional: true,
 			},
 			"localized_description": {
-				Description: "[LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)",
-				Type:        TypeLocalizedString,
-				Optional:    true,
+				Description:      "[LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
 			},
 			"is_default": {
 				Description: "One shipping method in a project can be default",
@@ -54,53 +55,59 @@ func resourceShippingMethod() *schema.Resource {
 			"tax_category_id": {
 				Description: "ID of a [Tax Category](https://docs.commercetoolstools.com/api/projects/taxCategories#taxcategory)",
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 			},
 			"predicate": {
 				Description: "A Cart predicate which can be used to more precisely select a shipping method for a cart",
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"custom": CustomFieldSchema(),
 		},
 	}
 }
 
-func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	var shippingMethod *platform.ShippingMethod
 	taxCategory := platform.TaxCategoryResourceIdentifier{}
 	if taxCategoryID, ok := d.GetOk("tax_category_id"); ok {
 		taxCategory.ID = stringRef(taxCategoryID)
 	}
 
-	localizedDescription := unmarshallLocalizedString(d.Get("localized_description"))
+	localizedDescription := expandLocalizedString(d.Get("localized_description"))
+
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
 
 	draft := platform.ShippingMethodDraft{
-		Key:                  stringRef(d.Get("key")),
 		Name:                 d.Get("name").(string),
 		Description:          stringRef(d.Get("description")),
 		LocalizedDescription: &localizedDescription,
 		IsDefault:            d.Get("is_default").(bool),
 		TaxCategory:          taxCategory,
-		Predicate:            stringRef(d.Get("predicate")),
+		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
+		Custom:               custom,
 	}
 
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
-		var err error
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
+	}
 
+	var shippingMethod *platform.ShippingMethod
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		var err error
 		shippingMethod, err = client.ShippingMethods().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	if shippingMethod == nil {
-		return diag.Errorf("No shipping method created?")
 	}
 
 	d.SetId(shippingMethod.ID)
@@ -109,30 +116,20 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 	return resourceShippingMethodRead(ctx, d, m)
 }
 
-func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Printf("[DEBUG] Reading shipping method from commercetools, with shippingMethod id: %s", d.Id())
-
+func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-
 	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if utils.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
 
 	if shippingMethod == nil {
-		log.Print("[DEBUG] No shipping method found")
 		d.SetId("")
 	} else {
-		log.Print("[DEBUG] Found following shipping method:")
-		log.Print(stringFormatObject(shippingMethod))
-
 		d.Set("version", shippingMethod.Version)
 		d.Set("key", shippingMethod.Key)
 		d.Set("name", shippingMethod.Name)
@@ -141,16 +138,20 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m i
 		d.Set("is_default", shippingMethod.IsDefault)
 		d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
 		d.Set("predicate", shippingMethod.Predicate)
+		d.Set("custom", flattenCustomFields(shippingMethod.Custom))
 	}
 
 	return nil
 }
 
-func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	ctMutexKV.Lock(d.Id())
 	defer ctMutexKV.Unlock(d.Id())
 
 	client := getClient(m)
+
+	// Fetch the latest version. The version can be changed outside this resource
+	// when a shipping methode rate is added.
 	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
 	if err != nil {
 		return diag.FromErr(err)
@@ -183,7 +184,7 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	if d.HasChange("localized_description") {
-		newLocalizedDescription := unmarshallLocalizedString(d.Get("localized_description"))
+		newLocalizedDescription := expandLocalizedString(d.Get("localized_description"))
 		input.Actions = append(
 			input.Actions,
 			&platform.ShippingMethodSetLocalizedDescriptionAction{LocalizedDescription: &newLocalizedDescription})
@@ -204,28 +205,37 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	if d.HasChange("predicate") {
-		newPredicate := d.Get("predicate").(string)
+		newPredicate := nilIfEmpty(stringRef(d.Get("predicate").(string)))
 		input.Actions = append(
 			input.Actions,
-			&platform.ShippingMethodSetPredicateAction{Predicate: &newPredicate})
+			&platform.ShippingMethodSetPredicateAction{Predicate: newPredicate})
 	}
 
-	log.Printf(
-		"[DEBUG] Will perform update operation with the following actions:\n%s",
-		stringFormatActions(input.Actions))
-
-	_, err = client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
-	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			log.Printf("[DEBUG] %v: %v", ctErr, stringFormatErrorExtras(ctErr))
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.ShippingMethodSetCustomTypeAction, platform.ShippingMethodSetCustomFieldAction](ctx, client, d)
+		if err != nil {
+			return diag.FromErr(err)
 		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.ShippingMethodUpdateAction))
+		}
+	}
+
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	return resourceShippingMethodRead(ctx, d, m)
 }
 
-func resourceShippingMethodDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceShippingMethodDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	ctMutexKV.Lock(d.Id())
@@ -236,10 +246,9 @@ func resourceShippingMethodDelete(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	_, err = client.ShippingMethods().WithId(d.Id()).Delete().Version(shippingMethod.Version).Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.ShippingMethods().WithId(d.Id()).Delete().Version(shippingMethod.Version).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
+	return diag.FromErr(err)
 }

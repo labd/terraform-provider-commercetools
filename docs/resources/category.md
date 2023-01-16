@@ -17,10 +17,11 @@ Also see the [Categories HTTP API documentation](https://docs.commercetools.com/
 
 ```terraform
 resource "commercetools_category" "my-category" {
+  key = "my-category-key"
+
   name = {
     en = "My category"
   }
-  key = "my_category"
   description = {
     en = "Standard description"
   }
@@ -33,10 +34,11 @@ resource "commercetools_category" "my-category" {
 }
 
 resource "commercetools_category" "my-second-category" {
+  key = "my-category-key"
+
   name = {
     en = "Second category"
   }
-  key = "my_second_category"
   description = {
     en = "Standard description"
   }
@@ -68,50 +70,78 @@ resource "commercetools_category" "my-second-category" {
 
 ### Required
 
-- **name** (Map of String)
-- **slug** (Map of String) Human readable identifiers, needs to be unique
+- `name` (Map of String)
+- `slug` (Map of String) Human readable identifiers, needs to be unique
 
 ### Optional
 
-- **assets** (Block List) Can be used to store images, icons or movies related to this category (see [below for nested schema](#nestedblock--assets))
-- **description** (Map of String)
-- **id** (String) The ID of this resource.
-- **key** (String) Category-specific unique identifier. Must be unique across a project
-- **meta_description** (Map of String)
-- **meta_keywords** (Map of String)
-- **meta_title** (Map of String)
-- **order_hint** (String) An attribute as base for a custom category order in one level, filled with random value when left empty
-- **parent** (String) A category that is the parent of this category in the category tree
+- `assets` (Block List) Can be used to store images, icons or movies related to this category (see [below for nested schema](#nestedblock--assets))
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
+- `description` (Map of String)
+- `external_id` (String)
+- `key` (String) Category-specific unique identifier. Must be unique across a project
+- `meta_description` (Map of String)
+- `meta_keywords` (Map of String)
+- `meta_title` (Map of String)
+- `order_hint` (String) An attribute as base for a custom category order in one level, filled with random value when left empty
+- `parent` (String) A category that is the parent of this category in the category tree
 
 ### Read-Only
 
-- **version** (Number)
+- `id` (String) The ID of this resource.
+- `version` (Number)
 
 <a id="nestedblock--assets"></a>
 ### Nested Schema for `assets`
 
 Required:
 
-- **name** (Map of String)
+- `name` (Map of String)
 
 Optional:
 
-- **description** (Map of String)
-- **key** (String) Optional User-defined identifier for the asset. Asset keys are unique inside their container (in this case the category)
-- **sources** (Block List) Array of AssetSource, Has at least one entry (see [below for nested schema](#nestedblock--assets--sources))
-- **tags** (List of String)
+- `description` (Map of String)
+- `key` (String) Optional User-defined identifier for the asset. Asset keys are unique inside their container (in this case the category)
+- `sources` (Block List) Array of AssetSource, Has at least one entry (see [below for nested schema](#nestedblock--assets--sources))
+- `tags` (List of String)
+
+Read-Only:
+
+- `id` (String) The ID of this resource.
 
 <a id="nestedblock--assets--sources"></a>
 ### Nested Schema for `assets.sources`
 
 Required:
 
-- **uri** (String)
+- `uri` (String)
 
 Optional:
 
-- **content_type** (String)
-- **dimensions** (Map of String)
-- **key** (String) Unique identifier, must be unique within the Asset
+- `content_type` (String)
+- `dimensions` (Block List, Max: 1) (see [below for nested schema](#nestedblock--assets--sources--dimensions))
+- `key` (String) Unique identifier, must be unique within the Asset
+
+<a id="nestedblock--assets--sources--dimensions"></a>
+### Nested Schema for `assets.sources.dimensions`
+
+Required:
+
+- `h` (Number) The height of the asset source
+- `w` (Number) The width of the asset source
+
+
+
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
 
 

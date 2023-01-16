@@ -1,0 +1,12 @@
+{
+    "go.testEnvVars": {
+        "TF_ACC": "1",
+        "TF_LOG": "INFO",
+        "CTP_CLIENT_ID": "unittest",
+        "CTP_CLIENT_SECRET": "x",
+        "CTP_PROJECT_KEY": "unittest",
+        "CTP_SCOPES": "manage_project:projectkey",
+        "CTP_API_URL": "http://localhost:8989",
+        "CTP_AUTH_URL": "http://localhost:8989",
+    }
+}

@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func resourceAPIExtension() *schema.Resource {
@@ -23,6 +25,9 @@ func resourceAPIExtension() *schema.Resource {
 		ReadContext:   resourceAPIExtensionRead,
 		UpdateContext: resourceAPIExtensionUpdate,
 		DeleteContext: resourceAPIExtensionDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
 			{
@@ -50,6 +55,7 @@ func resourceAPIExtension() *schema.Resource {
 							Required:     true,
 							ValidateFunc: validateDestinationType,
 						},
+
 						// HTTP specific fields
 						"url": {
 							Type:     schema.TypeString,
@@ -74,8 +80,9 @@ func resourceAPIExtension() *schema.Resource {
 							Optional: true,
 						},
 						"access_secret": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
 						},
 					},
 				},
@@ -98,6 +105,11 @@ func resourceAPIExtension() *schema.Resource {
 							Required:    true,
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
+						"condition": {
+							Description: "Valid predicate that controls the conditions under which the API Extension is called.",
+							Type:        schema.TypeString,
+							Optional:    true,
+						},
 					},
 				},
 			},
@@ -114,7 +126,7 @@ func resourceAPIExtension() *schema.Resource {
 	}
 }
 
-func validateDestinationType(val interface{}, key string) (warns []string, errs []error) {
+func validateDestinationType(val any, key string) (warns []string, errs []error) {
 	var v = strings.ToLower(val.(string))
 
 	switch v {
@@ -123,36 +135,58 @@ func validateDestinationType(val interface{}, key string) (warns []string, errs 
 		"awslambda":
 		return
 	default:
-		errs = append(errs, fmt.Errorf("%q not a valid value for %q", val, key))
+		errs = append(errs, fmt.Errorf("%q not a valid value for %q, valid options are: http, awslambda", val, key))
 	}
 	return
 }
 
-func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := getClient(m)
-	var extension *platform.Extension
+func validateExtensionDestination(draft platform.ExtensionDraft) error {
 
-	triggers := unmarshallExtensionTriggers(d)
-	destination, err := unmarshallExtensionDestination(d)
+	switch t := draft.Destination.(type) {
+	case platform.AWSLambdaDestination:
+		if t.Arn == "" {
+			return fmt.Errorf("arn is required when using AWSLambda as destination")
+		}
+	}
+	return nil
+}
+
+func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
+	client := getClient(m)
+
+	triggers := expandExtensionTriggers(d)
+	destination, err := expandExtensionDestination(d)
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	draft := platform.ExtensionDraft{
-		Key:         stringRef(d.Get("key")),
 		Destination: destination,
 		Triggers:    triggers,
-		TimeoutInMs: intRef(d.Get("timeout_in_ms")),
 	}
 
+	timeoutInMs := d.Get("timeout_in_ms")
+	if timeoutInMs != 0 {
+		draft.TimeoutInMs = intRef(timeoutInMs)
+	}
+
+	key := stringRef(d.Get("key"))
+	if *key != "" {
+		draft.Key = key
+	}
+
+	if err := validateExtensionDestination(draft); err != nil {
+		return diag.FromErr(err)
+	}
+
+	var extension *platform.Extension
 	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
 		var err error
-
 		extension, err = client.Extensions().Post(draft).Execute(ctx)
-		if err != nil {
-			return handleCommercetoolsError(err)
-		}
-		return nil
+		return utils.ProcessRemoteError(err)
 	})
 
 	if err != nil {
@@ -169,39 +203,27 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m i
 	return resourceAPIExtensionRead(ctx, d, m)
 }
 
-func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	log.Print("[DEBUG] Reading extensions from commercetools")
+func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	extension, err := client.Extensions().WithId(d.Id()).Get().Execute(ctx)
-
 	if err != nil {
-		if ctErr, ok := err.(platform.ErrorResponse); ok {
-			if ctErr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
+		if utils.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
 		}
 		return diag.FromErr(err)
 	}
 
-	if extension == nil {
-		log.Print("[DEBUG] No extensions found")
-		d.SetId("")
-	} else {
-		log.Print("[DEBUG] Found following extensions:")
-		log.Print(stringFormatObject(extension))
-
-		d.Set("version", extension.Version)
-		d.Set("key", extension.Key)
-		d.Set("destination", marshallExtensionDestination(extension.Destination))
-		d.Set("trigger", marshallExtensionTriggers(extension.Triggers))
-		d.Set("timeout_in_ms", extension.TimeoutInMs)
-	}
+	d.Set("version", extension.Version)
+	d.Set("key", extension.Key)
+	d.Set("destination", flattenExtensionDestination(extension.Destination, d))
+	d.Set("trigger", flattenExtensionTriggers(extension.Triggers))
+	d.Set("timeout_in_ms", extension.TimeoutInMs)
 	return nil
 }
 
-func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
 	input := platform.ExtensionUpdate{
@@ -217,15 +239,18 @@ func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m i
 	}
 
 	if d.HasChange("trigger") {
-		triggers := unmarshallExtensionTriggers(d)
+		triggers := expandExtensionTriggers(d)
 		input.Actions = append(
 			input.Actions,
 			&platform.ExtensionChangeTriggersAction{Triggers: triggers})
 	}
 
 	if d.HasChange("destination") {
-		destination, err := unmarshallExtensionDestination(d)
+		destination, err := expandExtensionDestination(d)
 		if err != nil {
+			// Workaround invalid state to be written, see
+			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+			d.Partial(true)
 			return diag.FromErr(err)
 		}
 		input.Actions = append(
@@ -240,15 +265,22 @@ func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m i
 			&platform.ExtensionSetTimeoutInMsAction{TimeoutInMs: &newTimeout})
 	}
 
-	_, err := client.Extensions().WithId(d.Id()).Post(input).Execute(ctx)
+	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		_, err := client.Extensions().WithId(d.Id()).Post(input).Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
+
 	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
 		return diag.FromErr(err)
 	}
 
 	return resourceAPIExtensionRead(ctx, d, m)
 }
 
-func resourceAPIExtensionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceAPIExtensionDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
 	_, err := client.Extensions().WithId(d.Id()).Delete().Version(version).Execute(ctx)
@@ -262,7 +294,7 @@ func resourceAPIExtensionDelete(ctx context.Context, d *schema.ResourceData, m i
 // Helper methods
 //
 
-func unmarshallExtensionDestination(d *schema.ResourceData) (platform.Destination, error) {
+func expandExtensionDestination(d *schema.ResourceData) (platform.Destination, error) {
 	input, err := elementFromList(d, "destination")
 	if err != nil {
 		return nil, err
@@ -270,14 +302,14 @@ func unmarshallExtensionDestination(d *schema.ResourceData) (platform.Destinatio
 
 	switch strings.ToLower(input["type"].(string)) {
 	case "http":
-		auth, err := unmarshallExtensionDestinationAuthentication(input)
+		auth, err := expandExtensionDestinationAuthentication(input)
 		if err != nil {
 			return nil, err
 		}
 
 		return platform.HttpDestination{
 			Url:            input["url"].(string),
-			Authentication: &auth,
+			Authentication: auth,
 		}, nil
 	case "awslambda":
 		return platform.AWSLambdaDestination{
@@ -290,7 +322,7 @@ func unmarshallExtensionDestination(d *schema.ResourceData) (platform.Destinatio
 	}
 }
 
-func unmarshallExtensionDestinationAuthentication(destInput map[string]interface{}) (platform.HttpDestinationAuthentication, error) {
+func expandExtensionDestinationAuthentication(destInput map[string]any) (platform.HttpDestinationAuthentication, error) {
 	authKeys := [2]string{"authorization_header", "azure_authentication"}
 	count := 0
 	for _, key := range authKeys {
@@ -306,12 +338,12 @@ func unmarshallExtensionDestinationAuthentication(destInput map[string]interface
 	}
 
 	if val, ok := isNotEmpty(destInput, "authorization_header"); ok {
-		return &platform.AuthorizationHeaderAuthentication{
+		return platform.AuthorizationHeaderAuthentication{
 			HeaderValue: val.(string),
 		}, nil
 	}
 	if val, ok := isNotEmpty(destInput, "azure_authentication"); ok {
-		return &platform.AzureFunctionsAuthentication{
+		return platform.AzureFunctionsAuthentication{
 			Key: val.(string),
 		}, nil
 	}
@@ -319,59 +351,118 @@ func unmarshallExtensionDestinationAuthentication(destInput map[string]interface
 	return nil, nil
 }
 
-func marshallExtensionDestination(d platform.Destination) []map[string]string {
-	switch v := d.(type) {
+// flattenExtensionDestination flattens the destination returned by
+// commercetools to write it in the state file.
+func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
+	// Special handling is required here since the destination contains a secret
+	// value which is returned as a masked value by the commercetools API.  This
+	// means we need to extract the value from the current raw state file.
+	// However when importing a resource we don't have the value so we need to
+	// handle that scenario as well.
+	isExisting := true
+	rawState := d.GetRawState()
+	if !rawState.IsNull() {
+		isExisting = !rawState.AsValueMap()["version"].IsNull()
+	}
+
+	var current platform.Destination
+	if isExisting {
+		current, _ = expandExtensionDestination(d)
+	}
+
+	// A destination is either HTTP or AWSLambda
+	switch d := dst.(type) {
+
+	// For the HTTP Destination there are two specific authentication types:
+	// AuthorizationHeader and AzureFunctions.
 	case platform.HttpDestination:
-		switch a := v.Authentication.(type) {
+		switch d.Authentication.(type) {
+
 		case platform.AuthorizationHeaderAuthentication:
+
+			// The headerValue value is masked when retrieved from commercetools,
+			// so use the value from the state file instead (if it exists)
+			secretValue := ""
+			if current != nil {
+				if c, ok := current.(platform.HttpDestination); ok {
+					if auth, ok := c.Authentication.(platform.AuthorizationHeaderAuthentication); ok {
+						secretValue = auth.HeaderValue
+					}
+				}
+			}
+
 			return []map[string]string{{
 				"type":                 "HTTP",
-				"url":                  v.Url,
-				"authorization_header": a.HeaderValue,
+				"url":                  d.Url,
+				"authorization_header": secretValue,
 			}}
+
 		case platform.AzureFunctionsAuthentication:
+			// The headerValue value is masked when retrieved from commercetools,
+			// so use the value from the state file instead (if it exists)
+			secretValue := ""
+			if current != nil {
+				if c, ok := current.(platform.AzureFunctionsAuthentication); ok {
+					secretValue = c.Key
+				}
+			}
 			return []map[string]string{{
 				"type":                 "HTTP",
-				"url":                  v.Url,
-				"azure_authentication": a.Key,
+				"url":                  d.Url,
+				"azure_authentication": secretValue,
+			}}
+
+		default:
+			log.Println("Unexpected authentication type")
+			return []map[string]string{{
+				"type": "HTTP",
+				"url":  d.Url,
 			}}
 		}
-		return []map[string]string{{
-			"type": "HTTP",
-			"url":  v.Url,
-		}}
 
 	case platform.AWSLambdaDestination:
+
+		// The accessSecret value is masked when retrieved from commercetools,
+		// so use the value from the state file instead (if it exists)
+		secretValue := ""
+		if current != nil {
+			if c, ok := current.(platform.AWSLambdaDestination); ok {
+				secretValue = c.AccessSecret
+			}
+		}
+
 		return []map[string]string{{
 			"type":          "awslambda",
-			"access_key":    v.AccessKey,
-			"access_secret": v.AccessSecret,
-			"arn":           v.Arn,
+			"access_key":    d.AccessKey,
+			"access_secret": secretValue,
+			"arn":           d.Arn,
 		}}
 
+	default:
+		return []map[string]string{}
 	}
-	return []map[string]string{}
 }
 
-func marshallExtensionTriggers(triggers []platform.ExtensionTrigger) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(triggers))
+func flattenExtensionTriggers(triggers []platform.ExtensionTrigger) []map[string]any {
+	result := make([]map[string]any, 0, len(triggers))
 
 	for _, t := range triggers {
-		result = append(result, map[string]interface{}{
+		result = append(result, map[string]any{
 			"resource_type_id": t.ResourceTypeId,
 			"actions":          t.Actions,
+			"condition":        nilIfEmpty(t.Condition),
 		})
 	}
 
 	return result
 }
 
-func unmarshallExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger {
-	input := d.Get("trigger").([]interface{})
+func expandExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger {
+	input := d.Get("trigger").([]any)
 	var result []platform.ExtensionTrigger
 
 	for _, raw := range input {
-		i := raw.(map[string]interface{})
+		i := raw.(map[string]any)
 		var typeId platform.ExtensionResourceTypeId
 
 		switch i["resource_type_id"].(string) {
@@ -383,75 +474,32 @@ func unmarshallExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTri
 			typeId = platform.ExtensionResourceTypeIdPayment
 		case "customer":
 			typeId = platform.ExtensionResourceTypeIdCustomer
+		case "quote-request":
+			typeId = platform.ExtensionResourceTypeIdQuoteRequest
+		case "staged-quote":
+			typeId = platform.ExtensionResourceTypeIdStagedQuote
+		case "quote":
+			typeId = platform.ExtensionResourceTypeIdQuote
+		case "business-unit":
+			typeId = platform.ExtensionResourceTypeIdBusinessUnit
 		}
 
-		rawActions := i["actions"].([]interface{})
+		rawActions := i["actions"].([]any)
 		actions := make([]platform.ExtensionAction, 0, len(rawActions))
 		for _, item := range rawActions {
 			actions = append(actions, platform.ExtensionAction(item.(string)))
 		}
 
+		var condition *string
+		if val, ok := i["condition"].(string); ok {
+			condition = nilIfEmpty(stringRef(val))
+		}
+
 		result = append(result, platform.ExtensionTrigger{
 			ResourceTypeId: typeId,
 			Actions:        actions,
+			Condition:      condition,
 		})
 	}
 	return result
-}
-
-func resourceAPIExtensionResourceV0() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"key": {
-				Description: "User-specific unique identifier for the extension",
-				Type:        schema.TypeString,
-				Optional:    true,
-			},
-			"destination": {
-				Description: "[Destination](https://docs.commercetools.com/api/projects/api-extensions#destination) " +
-					"Details where the extension can be reached",
-				Type:     schema.TypeSet,
-				MaxItems: 1,
-				Required: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-			"trigger": {
-				Description: "Array of [Trigger](https://docs.commercetools.com/api/projects/api-extensions#trigger) " +
-					"Describes what triggers the extension",
-				Type:     schema.TypeList,
-				Required: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"resource_type_id": {
-							Description: "Currently, cart, order, payment, and customer are supported",
-							Type:        schema.TypeString,
-							Required:    true,
-						},
-						"actions": {
-							Description: "Currently, Create and Update are supported",
-							Type:        schema.TypeList,
-							Required:    true,
-							Elem:        &schema.Schema{Type: schema.TypeString},
-						},
-					},
-				},
-			},
-			"timeout_in_ms": {
-				Description: "Extension timeout in milliseconds",
-				Type:        schema.TypeInt,
-				Optional:    true,
-			},
-			"version": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-		},
-	}
-}
-
-func migrateAPIExtensionStateV0toV1(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
-	transformToList(rawState, "destination")
-	return rawState, nil
 }
