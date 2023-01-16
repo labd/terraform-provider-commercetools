@@ -41,9 +41,11 @@ func TestNewProjectFromNative(t *testing.T) {
 				},
 				Messages: []Messages{
 					{
-						Enabled: types.BoolValue(false),
+						Enabled:                 types.BoolValue(false),
+						DeleteDaysAfterCreation: types.Int64Value(DefaultDeleteDaysAfterCreation),
 					},
 				},
+				ShippingRateCartClassificationValue: []models.CustomFieldLocalizedEnumValue{},
 			},
 		},
 	}
