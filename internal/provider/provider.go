@@ -16,6 +16,7 @@ import (
 	"github.com/labd/commercetools-go-sdk/platform"
 	"golang.org/x/oauth2/clientcredentials"
 
+	custom_type "github.com/labd/terraform-provider-commercetools/internal/datasource/type"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/project"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/state"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/state_transition"
@@ -177,7 +178,9 @@ func (p *ctProvider) Configure(ctx context.Context, req provider.ConfigureReques
 
 // DataSources defines the data sources implemented in the provider.
 func (p *ctProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		custom_type.NewTypeDataSource,
+	}
 }
 
 // Resources defines the resources implemented in the provider.
