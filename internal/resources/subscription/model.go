@@ -266,7 +266,7 @@ func (d Destination) ToNative() platform.Destination {
 	case GoogleCloudPubSub:
 		return platform.GoogleCloudPubSubDestination{
 			ProjectId: d.ProjectID.ValueString(),
-			Topic:     d.TopicARN.ValueString(),
+			Topic:     d.Topic.ValueString(),
 		}
 	case SQS:
 		result := platform.SqsDestination{
