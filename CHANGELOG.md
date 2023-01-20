@@ -1,3 +1,10 @@
+v1.6.3 (2023-01-20)
+===================
+ - `resource_subscription` fix the `GoogleCloudPubSub` integration where the
+   wrong topic value was used (#337).
+ - `resource_project_settings` fix continous terraform updates for the
+   `shipping_rate_cart_classification_value` block (#335)
+
 v1.6.2 (2023-01-11)
 ===================
  - `resource_state` rewrite both the `state` and `state_transitions` resource
