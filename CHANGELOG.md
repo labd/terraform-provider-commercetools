@@ -1,3 +1,9 @@
+v1.6.4 (2023-01-23)
+===================
+ - `resource_subscription` fix issue in the state upgrader when upgrading
+   from schema version 0 to 1.
+ - `resource_state` fix handling of both the name and description attributes.
+
 v1.6.3 (2023-01-20)
 ===================
  - `resource_subscription` fix the `GoogleCloudPubSub` integration where the
