@@ -26,16 +26,13 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
 
-    - name: Install dependencies
-      run: go get ./commercetools
-
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
       with:
         args: --issues-exit-code=0 --timeout=5m
 
     - name: Run tests
-      run: go test -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./commercetools -v ./commercetools
+      run: go test -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./... -v ./...
       env:
         TF_ACC: 1
         CTP_CLIENT_ID: unittest
