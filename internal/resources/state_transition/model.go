@@ -11,6 +11,7 @@ import (
 )
 
 type StateTransition struct {
+	ID      types.String   `tfsdk:"id"`
 	From    types.String   `tfsdk:"from"`
 	To      []types.String `tfsdk:"to"`
 	Version types.Int64    `tfsdk:"-"`
@@ -39,6 +40,7 @@ func (s StateTransition) updateActions(plan StateTransition) platform.StateUpdat
 
 func NewStateTransitionFromNative(n *platform.State) StateTransition {
 	return StateTransition{
+		ID:   types.StringValue(n.ID),
 		From: types.StringValue(n.ID),
 		To: pie.Map(n.Transitions, func(ref platform.StateReference) types.String {
 			return types.StringValue(ref.ID)

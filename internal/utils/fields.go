@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -35,14 +36,14 @@ func FromOptionalString(value *string) basetypes.StringValue {
 }
 func FromOptionalLocalizedString(value *platform.LocalizedString) customtypes.LocalizedStringValue {
 	if value == nil {
-		return nil
+		return customtypes.NewLocalizedStringNull()
 	}
 
-	result := make(customtypes.LocalizedStringValue, len(*value))
+	result := make(map[string]attr.Value, len(*value))
 	for k, v := range *value {
 		result[k] = types.StringValue(v)
 	}
-	return result
+	return customtypes.NewLocalizedStringValue(result)
 }
 
 func FromOptionalInt(value *int) basetypes.Int64Value {

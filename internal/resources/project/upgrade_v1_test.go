@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -12,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/labd/terraform-provider-commercetools/internal/customtypes"
 	"github.com/labd/terraform-provider-commercetools/internal/models"
 )
 
@@ -81,10 +83,10 @@ func Test_upgradeStateV0(t *testing.T) {
 		ShippingRateCartClassificationValue: []models.CustomFieldLocalizedEnumValue{
 			{
 				Key: types.StringValue("Small"),
-				Label: map[string]types.String{
+				Label: customtypes.NewLocalizedStringValue(map[string]attr.Value{
 					"en": types.StringValue("Small"),
 					"nl": types.StringValue("Klein"),
-				},
+				}),
 			},
 		},
 	}

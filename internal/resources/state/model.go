@@ -3,6 +3,7 @@ package state
 import (
 	"reflect"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -27,9 +28,9 @@ func NewStateFromNative(n *platform.State) State {
 		ID:          types.StringValue(n.ID),
 		Version:     types.Int64Value(int64(n.Version)),
 		Key:         types.StringValue(n.Key),
-		Type:        types.StringValue(string(n.Type)),
 		Name:        utils.FromOptionalLocalizedString(n.Name),
 		Description: utils.FromOptionalLocalizedString(n.Description),
+		Type:        types.StringValue(string(n.Type)),
 		Initial:     types.BoolValue(n.Initial),
 	}
 
@@ -47,8 +48,8 @@ func (s State) draft() platform.StateDraft {
 	result := platform.StateDraft{
 		Key:         s.Key.ValueString(),
 		Type:        platform.StateTypeEnum(s.Type.ValueString()),
-		Name:        s.Name.NativeValue(),
-		Description: s.Description.NativeValue(),
+		Name:        s.Name.ValueLocalizedStringRef(),
+		Description: s.Description.ValueLocalizedStringRef(),
 		Initial:     utils.BoolRef(s.Initial.ValueBool()),
 		Roles: pie.Map(s.Roles, func(v types.String) platform.StateRoleEnum {
 			val := v.ValueString()
@@ -68,14 +69,19 @@ func (s State) updateActions(plan State) platform.StateUpdate {
 	if !reflect.DeepEqual(s.Name, plan.Name) {
 		result.Actions = append(
 			result.Actions,
-			platform.StateSetNameAction{Name: *plan.Name.NativeValue()})
+			platform.StateSetNameAction{
+				Name: plan.Name.ValueLocalizedString(),
+			})
 	}
 
 	// setDescription
-	if !reflect.DeepEqual(s.Name, plan.Name) {
+	if !reflect.DeepEqual(s.Description, plan.Description) {
+		spew.Dump(s.Description, plan.Description)
 		result.Actions = append(
 			result.Actions,
-			platform.StateSetDescriptionAction{Description: *plan.Description.NativeValue()})
+			platform.StateSetDescriptionAction{
+				Description: plan.Description.ValueLocalizedString(),
+			})
 	}
 
 	// changeKey
