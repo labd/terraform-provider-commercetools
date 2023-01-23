@@ -3,7 +3,6 @@ package state
 import (
 	"reflect"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -76,7 +75,6 @@ func (s State) updateActions(plan State) platform.StateUpdate {
 
 	// setDescription
 	if !reflect.DeepEqual(s.Description, plan.Description) {
-		spew.Dump(s.Description, plan.Description)
 		result.Actions = append(
 			result.Actions,
 			platform.StateSetDescriptionAction{
