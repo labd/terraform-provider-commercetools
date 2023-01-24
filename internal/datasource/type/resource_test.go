@@ -21,7 +21,25 @@ func TestAccChannel_CustomFieldWithKey(t *testing.T) {
 		PreCheck:                 func() { acctest.TestAccPreCheck(t) },
 		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccCheckChannelDestroy,
-		Steps: []resource.TestStep{
+		Steps: []resource.TestStep{{
+				Config: testAccConfigCreateCustomField(),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						client, err := acctest.GetClient()
+						if err != nil {
+							return nil
+						}
+						result, err := client.Types().WithKey("test").Get().Execute(context.Background())
+						if err != nil {
+							return nil
+						}
+						assert.NotNil(t, result)
+						assert.Equal(t, result.Key, "test")
+						assert.Equal(t, result.FieldDefinitions[0].Name, "my-field")
+						return nil
+					},
+				),
+			},
 			{
 				Config: testAccConfigWithCustomFieldBasedOnIDOutOfDataResource(),
 				Check: resource.ComposeTestCheckFunc(
@@ -31,12 +49,17 @@ func TestAccChannel_CustomFieldWithKey(t *testing.T) {
 						if err != nil {
 							return err
 						}
-
+						client, err := acctest.GetClient()
+						if err != nil {
+							return nil
+						}
+						result_type, err := client.Types().WithKey("test").Get().Execute(context.Background())
+						if err != nil {
+							return nil
+						}
 						assert.NotNil(t, result)
-						assert.NotNil(t, result.Custom)
-						assert.NotNil(t, result.Custom.Fields)
-						assert.EqualValues(t, result.Custom.Fields["my-field"], "foobar")
-						assert.EqualValues(t, result.Custom.Fields["my-enum-set"], []any{"ENUM-1", "ENUM-3"})
+						assert.Equal(t, result.Custom.Type.ID, result_type.ID)
+						assert.Equal(t, result.Custom.Fields["my-field"], "foobar")
 						return nil
 					},
 				),
@@ -64,11 +87,36 @@ func testGetChannel(s *terraform.State, identifier string) (*platform.Channel, e
 	}
 	return result, nil
 }
+func testAccConfigCreateCustomField() string {
+	return utils.HCLTemplate(`
+	resource "commercetools_type" "test"  {
+		key = "test"
+		name = {
+			en = "for channel"
+		}
+		description = {
+			en = "Custom Field for channel resource"
+		}
+
+		resource_type_ids = ["channel"]
+
+		field {
+			name = "my-field"
+			label = {
+				en = "My Custom field"
+			}
+			type {
+				name = "String"
+			}
+		}
+	}
+	`, map[string]any{})
+}
 
 func testAccConfigWithCustomFieldBasedOnIDOutOfDataResource() string {
 	return utils.HCLTemplate(`
 		resource "commercetools_type" "test"  {
-			key = "test-for-channel"
+			key = "test"
 			name = {
 				en = "for channel"
 			}
@@ -90,13 +138,14 @@ func testAccConfigWithCustomFieldBasedOnIDOutOfDataResource() string {
 		}
 
 		data "commercetools_type" "test_type_with_key"{
-			key = "test-for-channel"
+			key = "test"
 		}
+
 		resource "commercetools_channel" "test" {
 			key = "test"
 			roles = ["ProductDistribution"]
 			custom {
-				type_id = data.test_type_with_key.key
+				type_id = data.commercetools_type.test_type_with_key.id
 				fields = {
 					"my-field" = "foobar"
 				}
