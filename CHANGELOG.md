@@ -1,3 +1,8 @@
+v1.6.6 (2023-01-24)
+==================
+ - `resource_subscription` Remove requirement to specify `access_key` when
+   the `access_secret` is defined. The latter is only needed for EventGrid.
+
 v1.6.5 (2023-01-24)
 ==================
  - Add new data source data `commercetools_type` to retrieve information
