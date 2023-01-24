@@ -1,3 +1,8 @@
+v1.6.5 (2023-01-24)
+==================
+ - Add new data source data `commercetools_type` to retrieve information
+   about a type based on the key.
+
 v1.6.4 (2023-01-23)
 ===================
  - `resource_subscription` fix issue in the state upgrader when upgrading
