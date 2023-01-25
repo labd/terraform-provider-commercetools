@@ -1,3 +1,8 @@
+v1.6.7 (2023-01-24)
+==================
+ - `resource_project` Add extra checks to make sure we have a `message` block
+   before reading it(#340)
+
 v1.6.6 (2023-01-24)
 ==================
  - `resource_subscription` Remove requirement to specify `access_key` when

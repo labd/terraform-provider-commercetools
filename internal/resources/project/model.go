@@ -127,14 +127,14 @@ func (p *Project) setStateData(o Project) {
 	}
 
 	// The commercetools default for delete_days_after_creation is 15, so if the
-	//
-	if p.Messages[0].DeleteDaysAfterCreation.ValueInt64() == DefaultDeleteDaysAfterCreation && o.Messages[0].DeleteDaysAfterCreation.IsNull() {
-		p.Messages[0].DeleteDaysAfterCreation = o.Messages[0].DeleteDaysAfterCreation
+	if len(p.Messages) > 0 && len(o.Messages) > 0 {
+		if p.Messages[0].DeleteDaysAfterCreation.ValueInt64() == DefaultDeleteDaysAfterCreation && o.Messages[0].DeleteDaysAfterCreation.IsNull() {
+			p.Messages[0].DeleteDaysAfterCreation = o.Messages[0].DeleteDaysAfterCreation
+		}
 	}
-
 	// If the state has no data for messages (0 items) and the configuration is
 	// the default we match the state
-	if p.Messages[0].isDefault() && (len(o.Messages) == 0 || o.Messages[0].isDefault()) {
+	if len(p.Messages) > 0 && p.Messages[0].isDefault() && (len(o.Messages) == 0 || o.Messages[0].isDefault()) {
 		p.Messages = o.Messages
 	}
 }
