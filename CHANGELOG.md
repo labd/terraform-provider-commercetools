@@ -1,3 +1,8 @@
+v1.6.8 (2023-02-02)
+==================
+ - `resource_subscription` Fix removing requirement to specify `access_key` when
+   the `access_secret` is defined. The latter is only needed for EventGrid.
+
 v1.6.7 (2023-01-24)
 ==================
  - `resource_project` Add extra checks to make sure we have a `message` block
