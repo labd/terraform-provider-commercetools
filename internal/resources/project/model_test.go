@@ -3,10 +3,12 @@ package project
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/labd/terraform-provider-commercetools/internal/customtypes"
 	"github.com/labd/terraform-provider-commercetools/internal/models"
 )
 
@@ -87,21 +89,21 @@ func TestUpdateActions(t *testing.T) {
 				ShippingRateCartClassificationValue: []models.CustomFieldLocalizedEnumValue{
 					{
 						Key: types.StringValue("Light"),
-						Label: map[string]types.String{
+						Label: customtypes.NewLocalizedStringValue(map[string]attr.Value{
 							"nl": types.StringValue("licht"),
 							"en": types.StringValue("light"),
-						},
+						}),
 					},
 				},
 			},
 			action: platform.ProjectUpdate{
 				Version: 1,
 				Actions: []platform.ProjectUpdateAction{
-					platform.ProjectChangeNameAction{
-						Name: "my new name",
-					},
 					platform.ProjectChangeCountriesAction{
 						Countries: []string{"NL", "DE"},
+					},
+					platform.ProjectChangeNameAction{
+						Name: "my new name",
 					},
 					platform.ProjectSetShippingRateInputTypeAction{
 						ShippingRateInputType: platform.CartClassificationType{

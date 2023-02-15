@@ -10,11 +10,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk_resource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/labd/commercetools-go-sdk/platform"
 
+	"github.com/labd/terraform-provider-commercetools/internal/customtypes"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
@@ -58,13 +61,13 @@ func (r *stateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Optional:    true,
 			},
 			"name": schema.MapAttribute{
-				ElementType:         types.StringType,
+				CustomType:          customtypes.NewLocalizedStringType(),
 				Description:         "Name of the State as localized string.",
 				MarkdownDescription: "Name of the State as localized string.",
 				Optional:            true,
 			},
 			"description": schema.MapAttribute{
-				ElementType:         types.StringType,
+				CustomType:          customtypes.NewLocalizedStringType(),
 				Description:         "Description of the State as localized string.",
 				MarkdownDescription: "Description of the State as localized string.",
 				Optional:            true,
@@ -87,6 +90,10 @@ func (r *stateResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Description: "A state can be declared as an initial state for any state machine. When a workflow " +
 					"starts, this first state must be an initial state",
 				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"roles": schema.ListAttribute{
 				MarkdownDescription: `[State Role](https://docs.commercetools.com/api/projects/states#staterole)`,
@@ -178,7 +185,7 @@ func (r *stateResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	current.matchDefaults(state)
 
 	// Set refreshed state
-	diags = resp.State.Set(ctx, &current)
+	diags = resp.State.Set(ctx, current)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

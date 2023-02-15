@@ -1,3 +1,36 @@
+v1.6.8 (2023-02-02)
+==================
+ - `resource_subscription` Fix removing requirement to specify `access_key` when
+   the `access_secret` is defined. The latter is only needed for EventGrid.
+
+v1.6.7 (2023-01-24)
+==================
+ - `resource_project` Add extra checks to make sure we have a `message` block
+   before reading it(#340)
+
+v1.6.6 (2023-01-24)
+==================
+ - `resource_subscription` Remove requirement to specify `access_key` when
+   the `access_secret` is defined. The latter is only needed for EventGrid.
+
+v1.6.5 (2023-01-24)
+==================
+ - Add new data source data `commercetools_type` to retrieve information
+   about a type based on the key.
+
+v1.6.4 (2023-01-23)
+===================
+ - `resource_subscription` fix issue in the state upgrader when upgrading
+   from schema version 0 to 1.
+ - `resource_state` fix handling of both the name and description attributes.
+
+v1.6.3 (2023-01-20)
+===================
+ - `resource_subscription` fix the `GoogleCloudPubSub` integration where the
+   wrong topic value was used (#337).
+ - `resource_project_settings` fix continous terraform updates for the
+   `shipping_rate_cart_classification_value` block (#335)
+
 v1.6.2 (2023-01-11)
 ===================
  - `resource_state` rewrite both the `state` and `state_transitions` resource

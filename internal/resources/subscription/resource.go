@@ -149,18 +149,16 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 						"access_key": schema.StringAttribute{
 							Optional: true,
 							Validators: []validator.String{
-								stringvalidator.AlsoRequires(
-									path.MatchRelative().AtParent().AtName("access_secret"),
-								),
+								// TODO Require value if access_secret is set and
+								// type is SNS, SQS
 							},
 							Sensitive: true,
 						},
 						"access_secret": schema.StringAttribute{
-							Optional: true,
+							Optional:   true,
 							Validators: []validator.String{
-								stringvalidator.AlsoRequires(
-									path.MatchRelative().AtParent().AtName("access_key"),
-								),
+								// TODO Require value if access_key is set and
+								// type is SNS, SQS
 							},
 							Sensitive: true,
 						},

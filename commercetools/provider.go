@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -30,40 +31,34 @@ func New(version string) func() *schema.Provider {
 				"client_id": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("CTP_CLIENT_ID", nil),
 					Description: "The OAuth Client ID for a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
 					Sensitive:   true,
 				},
 				"client_secret": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("CTP_CLIENT_SECRET", nil),
 					Description: "The OAuth Client Secret for a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
 					Sensitive:   true,
 				},
 				"project_key": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("CTP_PROJECT_KEY", nil),
 					Description: "The project key of commercetools platform project. https://docs.commercetools.com/getting-started",
 					Sensitive:   true,
 				},
 				"scopes": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("CTP_SCOPES", nil),
 					Description: "A list as string of OAuth scopes assigned to a project key, to access resources in a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
 				},
 				"api_url": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("CTP_API_URL", nil),
 					Description: "The API URL of the commercetools platform. https://docs.commercetools.com/http-api",
 				},
 				"token_url": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("CTP_AUTH_URL", nil),
 					Description: "The authentication URL of the commercetools platform. https://docs.commercetools.com/http-api-authorization",
 				},
 			},
@@ -98,15 +93,22 @@ func New(version string) func() *schema.Provider {
 	}
 }
 
+func getDefault(d *schema.ResourceData, key string, envKey string) string {
+	if val := d.Get(key).(string); val != "" {
+		return val
+	}
+	return os.Getenv(envKey)
+}
+
 func providerConfigure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
-		clientID := d.Get("client_id").(string)
-		clientSecret := d.Get("client_secret").(string)
-		projectKey := d.Get("project_key").(string)
-		scopesRaw := d.Get("scopes").(string)
-		apiURL := d.Get("api_url").(string)
+		clientID := getDefault(d, "client_id", "CTP_CLIENT_ID")
+		clientSecret := getDefault(d, "client_secret", "CTP_CLIENT_SECRET")
+		projectKey := getDefault(d, "project_key", "CTP_PROJECT_KEY")
+		scopesRaw := getDefault(d, "scopes", "CTP_SCOPES")
+		apiURL := getDefault(d, "api_url", "CTP_API_URL")
 
-		tokenURL, err := url.Parse(d.Get("token_url").(string))
+		tokenURL, err := url.Parse(getDefault(d, "token_url", "CTP_AUTH_URL"))
 		if err != nil {
 			return nil, diag.FromErr(err)
 

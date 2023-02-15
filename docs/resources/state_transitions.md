@@ -69,4 +69,8 @@ resource "commercetools_state_transitions" "transition_2" {
 If transitions is an empty list, it means the current state is a final state and no further transitions are allowed.
 If transitions is not set, the validation is turned off. When performing a transitionState update action, any other state of the same type can be transitioned to
 
+### Read-Only
+
+- `id` (String) ID of the state to transition from
+
 

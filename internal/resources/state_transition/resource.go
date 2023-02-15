@@ -55,6 +55,10 @@ func (r *stateTransitionResource) Schema(_ context.Context, _ resource.SchemaReq
 			"performing a transitionState update action, any other state of the same type can be transitioned to.\n\n" +
 			"Note: Only one resource can be created for each state",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "ID of the state to transition from",
+				Computed:    true,
+			},
 			"from": schema.StringAttribute{
 				Description: "ID of the state to transition from",
 				Required:    true,
