@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.14.3
 	github.com/hashicorp/terraform-plugin-mux v0.8.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.1
-	github.com/labd/commercetools-go-sdk v1.2.1-0.20221221185604-b337ce17e269
+	github.com/labd/commercetools-go-sdk v1.2.1-0.20230227114902-2a3c3778415c
 	github.com/stretchr/testify v1.7.2
 	golang.org/x/oauth2 v0.0.0-20220524215830-622c5d57e401
 )
