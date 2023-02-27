@@ -2,6 +2,7 @@ package state_transition
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -153,6 +154,11 @@ func (r *stateTransitionResource) Read(ctx context.Context, req resource.ReadReq
 
 	res, err := r.client.States().WithId(resourceID).Get().Execute(ctx)
 	if err != nil {
+		if errors.Is(err, platform.ErrNotFound) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+
 		resp.Diagnostics.AddError(
 			"Error reading state",
 			"Could not retrieve state, unexpected error: "+err.Error(),

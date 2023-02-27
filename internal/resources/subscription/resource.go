@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"time"
 
@@ -147,7 +148,7 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 							},
 						},
 						"access_key": schema.StringAttribute{
-							Optional: true,
+							Optional:   true,
 							Validators: []validator.String{
 								// TODO Require value if access_secret is set and
 								// type is SNS, SQS
@@ -321,6 +322,10 @@ func (r *subscriptionResource) Read(ctx context.Context, req resource.ReadReques
 
 	subscription, err := r.client.Subscriptions().WithId(state.ID.ValueString()).Get().Execute(ctx)
 	if err != nil {
+		if errors.Is(err, platform.ErrNotFound) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error reading subscription",
 			"Could not retrieve subscription, unexpected error: "+err.Error(),

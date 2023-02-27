@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -174,6 +175,11 @@ func (r *stateResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 	res, err := r.client.States().WithId(state.ID.ValueString()).Get().Execute(ctx)
 	if err != nil {
+		if errors.Is(err, platform.ErrNotFound) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+
 		resp.Diagnostics.AddError(
 			"Error reading state",
 			"Could not retrieve state, unexpected error: "+err.Error(),
