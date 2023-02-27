@@ -1,3 +1,8 @@
+v1.6.9 (2023-02-27)
+===================
+ -  `resource_subscription` Fix handling of missing subscriptions available in
+    the state but not in commercetools. (#345)
+
 v1.6.8 (2023-02-02)
 ==================
  - `resource_subscription` Fix removing requirement to specify `access_key` when
