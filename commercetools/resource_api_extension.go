@@ -131,11 +131,12 @@ func validateDestinationType(val any, key string) (warns []string, errs []error)
 
 	switch v {
 	case
+		"googlecloudfunction",
 		"http",
 		"awslambda":
 		return
 	default:
-		errs = append(errs, fmt.Errorf("%q not a valid value for %q, valid options are: http, awslambda", val, key))
+		errs = append(errs, fmt.Errorf("%q not a valid value for %q, valid options are: googlecloudfunction, http, awslambda", val, key))
 	}
 	return
 }
@@ -301,6 +302,10 @@ func expandExtensionDestination(d *schema.ResourceData) (platform.Destination, e
 	}
 
 	switch strings.ToLower(input["type"].(string)) {
+	case "googlecloudfunction":
+		return platform.GoogleCloudFunctionDestination{
+			Url:            input["url"].(string),
+		}, nil
 	case "http":
 		auth, err := expandExtensionDestinationAuthentication(input)
 		if err != nil {
@@ -370,8 +375,14 @@ func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceDat
 		current, _ = expandExtensionDestination(d)
 	}
 
-	// A destination is either HTTP or AWSLambda
+	// A destination is either GoogleCloudFunction, HTTP or AWSLambda
 	switch d := dst.(type) {
+
+    case platform.GoogleCloudFunctionDestination:
+        return []map[string]string{{
+            "type": "GoogleCloudFunction",
+            "url":  d.Url,
+        }}
 
 	// For the HTTP Destination there are two specific authentication types:
 	// AuthorizationHeader and AzureFunctions.
