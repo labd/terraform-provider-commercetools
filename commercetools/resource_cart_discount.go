@@ -498,6 +498,7 @@ func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]any {
 			"supply_channel_id":       v.SupplyChannel.ID,
 			"distribution_channel_id": v.DistributionChannel.ID,
 			"product_id":              v.Product.ID,
+			"variant":                 v.VariantId,
 		}}
 	case platform.CartDiscountValueRelative:
 		return []map[string]any{{
