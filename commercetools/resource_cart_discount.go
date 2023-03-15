@@ -493,10 +493,20 @@ func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]any {
 			"money": flattenTypedMoney(v.Money),
 		}}
 	case platform.CartDiscountValueGiftLineItem:
+		var supplyChannelID string
+		if v.SupplyChannel != nil {
+			supplyChannelID = v.SupplyChannel.ID
+		}
+
+		var distributionChannelID string
+		if v.DistributionChannel != nil {
+			distributionChannelID = v.DistributionChannel.ID
+		}
+
 		return []map[string]any{{
 			"type":                    "giftLineItem",
-			"supply_channel_id":       v.SupplyChannel.ID,
-			"distribution_channel_id": v.DistributionChannel.ID,
+			"supply_channel_id":       supplyChannelID,
+			"distribution_channel_id": distributionChannelID,
 			"product_id":              v.Product.ID,
 			"variant":                 v.VariantId,
 		}}
