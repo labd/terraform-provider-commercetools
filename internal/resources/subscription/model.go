@@ -262,6 +262,7 @@ func (d Destination) ToNative() platform.Destination {
 	case EventGrid:
 		return platform.AzureEventGridDestination{
 			AccessKey: d.AccessKey.ValueString(),
+			Uri: d.URI.ValueString(),
 		}
 	case GoogleCloudPubSub:
 		return platform.GoogleCloudPubSubDestination{
