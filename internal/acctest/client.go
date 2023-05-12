@@ -1,6 +1,7 @@
 package acctest
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -45,6 +46,10 @@ func GetClient() (*platform.ByProjectKeyRequestBuilder, error) {
 }
 
 func CheckApiResult(err error) error {
+	if errors.Is(err, platform.ErrNotFound) {
+		return nil
+	}
+
 	switch v := err.(type) {
 	case platform.GenericRequestError:
 		if v.StatusCode == 404 {
