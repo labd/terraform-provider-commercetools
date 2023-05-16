@@ -1,6 +1,7 @@
 package commercetools
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -58,6 +59,10 @@ func TestCompareDateString(t *testing.T) {
 }
 
 func checkApiResult(err error) error {
+	if errors.Is(err, platform.ErrNotFound) {
+		return nil
+	}
+
 	switch v := err.(type) {
 	case platform.GenericRequestError:
 		if v.StatusCode == 404 {
