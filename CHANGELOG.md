@@ -1,3 +1,10 @@
+v1.7.0 (2023-05-22)
+===================
+ -  fix: remove duplicate project_key in example. (#350)
+ -  chore: update to latest packages
+ -  fix: set `URI` for destination of EventGrid (#364)
+ -  fix: improve README for local run (#370)
+
 v1.6.9 (2023-02-27)
 ===================
  -  `resource_subscription` Fix handling of missing subscriptions available in
