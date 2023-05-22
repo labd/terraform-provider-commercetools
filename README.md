@@ -65,8 +65,27 @@ $ make build
 To then locally test:
 
 ```sh
-$ cp terraform-provider-commercetools_${LOCAL_TEST_VERSION} ~/.terraform.d/plugins/local/labd/commercetools/${LOCAL_TEST_VERSION}/${OS_ARCH}/terraform-provider-commercetools_${LOCAL_TEST_VERSION}
+$ cd $GOPATH/src/github.com/labd/terraform-provider-commercetools
+$ make build-local
 ```
+A build is created `terraform-provider-commercetools_99.0.0` in the root directory and added to plugin folder available locally:
+```sh
+~/.terraform.d/plugins/local/labd/commercetools/99.0.0/${OS_ARCH}/terraform-provider-commercetools_v99.0.0
+```
+
+Use version `99.0.0` in the provider to test your changes locally
+
+```hcl
+terraform {
+  required_providers {
+    commercetools = {
+      source = "labd/commercetools"
+      version = "99.0.0"
+    }
+  }
+}
+```
+
 
 ## Adding new resources
 When commercetools releases new features which include new resources these need to be implemented
