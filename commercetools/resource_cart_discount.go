@@ -483,14 +483,24 @@ func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]any {
 
 	switch v := val.(type) {
 	case platform.CartDiscountValueAbsolute:
+		manyMoney := make([]map[string]any, len(v.Money))
+		for i, money := range v.Money {
+			manyMoney[i] = flattenTypedMoney(money)
+		}
 		return []map[string]any{{
-			"type":  "absolute",
-			"money": flattenTypedMoney(v.Money),
+			"type":      "absolute",
+			"money":     manyMoney,
+			"permyriad": 0,
 		}}
 	case platform.CartDiscountValueFixed:
+		manyMoney := make([]map[string]any, len(v.Money))
+		for i, money := range v.Money {
+			manyMoney[i] = flattenTypedMoney(money)
+		}
 		return []map[string]any{{
-			"type":  "fixed",
-			"money": flattenTypedMoney(v.Money),
+			"type":      "fixed",
+			"money":     manyMoney,
+			"permyriad": 0,
 		}}
 	case platform.CartDiscountValueGiftLineItem:
 		return []map[string]any{{

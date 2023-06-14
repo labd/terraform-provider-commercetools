@@ -3,6 +3,7 @@ package commercetools
 import (
 	"time"
 
+	"fmt"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
 
@@ -36,7 +37,7 @@ func flattenTypedMoney(val platform.TypedMoney) map[string]any {
 			"fraction_digits": v.FractionDigits,
 		}
 	}
-	panic("Unknown money type")
+	panic(fmt.Sprintf("Unknown money type: %T", val))
 }
 
 func expandTypedMoney(d map[string]any) []platform.Money {
