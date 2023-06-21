@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
@@ -231,7 +232,7 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 			return diag.FromErr(err)
 		}
 		input.Actions = append(input.Actions, platform.TaxCategoryReplaceTaxRateAction{
-			TaxRateId: d.Id(),
+			TaxRateId: stringRef(d.Id()),
 			TaxRate:   *taxRateDraft,
 		})
 	}
@@ -318,7 +319,7 @@ func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	removeAction := platform.TaxCategoryRemoveTaxRateAction{
-		TaxRateId: *taxRate.ID,
+		TaxRateId: stringRef(taxRate.ID),
 	}
 	input.Actions = append(input.Actions, removeAction)
 
