@@ -1,0 +1,57 @@
+version: '3'
+
+tasks:
+  build-local:
+    cmds:
+      - go build -o terraform-provider-{{ .NAME }}_{{ .VERSION }}
+      - mkdir -p ~/.terraform.d/plugins/registry.terraform.io/labd/{{ .NAME }}/{{ .VERSION }}/{{ .PLATFORM }}/
+      - mv terraform-provider-{{ .NAME }}_{{ .VERSION }} ~/.terraform.d/plugins/registry.terraform.io/labd/{{ .NAME }}/{{ .VERSION }}/{{ .PLATFORM }}/terraform-provider-{{ .NAME }}_v{{ .VERSION }}
+      - cmd: codesign --deep --force -s - ~/.terraform.d/plugins/registry.terraform.io/labd/{{ .NAME }}/{{ .VERSION }}/{{ .PLATFORM }}/terraform-provider-{{ .NAME }}_v{{ .VERSION }}
+        platforms: [darwin]
+    vars:
+      VERSION: 99.0.0
+      NAME: commercetools
+      PLATFORM:
+        sh: echo "$(go env GOOS)_$(go env GOARCH)"
+
+  format:
+    cmds:
+      - go fmt ./...
+
+  test:
+    cmds:
+      - go test -v ./...
+
+  docs:
+    cmds:
+      - go generate
+
+  coverage-html:
+    cmds:
+      - go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...
+      - go tool cover -html=coverage.txt
+
+  coverage:
+    cmds:
+      - go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...
+      - go tool cover -func=coverage.txt
+
+  testacc:
+    cmds:
+      - TF_ACC=1 go test -v ./...
+
+  testacct:
+    cmds:
+      - TF_ACC=1 go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... -v ./...
+
+  mockacc:
+    cmds:
+      - go test -count=1 -v ./...
+    env:
+      TF_ACC: 1
+      CTP_CLIENT_ID: unittest
+      CTP_CLIENT_SECRET: x
+      CTP_PROJECT_KEY: unittest
+      CTP_SCOPES: manage_project:projectkey
+      CTP_API_URL: http://localhost:8989
+      CTP_AUTH_URL: http://localhost:8989
