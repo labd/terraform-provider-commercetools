@@ -47,7 +47,8 @@ jobs:
         CTP_API_URL: http://localhost:8989
         CTP_AUTH_URL: http://localhost:8989
 
-    - name: Upload to codecov
-      uses: codecov/codecov-action@v3
-      with:
-        verbose: true
+    # Don't run this for this fork
+    # - name: Upload to codecov
+    #   uses: codecov/codecov-action@v3
+    #   with:
+    #     verbose: true
