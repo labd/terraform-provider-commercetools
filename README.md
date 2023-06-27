@@ -17,7 +17,7 @@ able to offer support. Please contact us at opensource@labdigital.nl
 # Quick start
 
 [Read our documentation](https://registry.terraform.io/providers/labd/commercetools/latest/docs)
-and check out the [examples](https://registry.terraform.io/providers/labd/commercetools/latest/docs/guides/examples).
+and check out the [examples](https://registry.terraform.io/providers/labd/commercetools/latest/docs/guides/extensions).
 
 
 ## Usage
