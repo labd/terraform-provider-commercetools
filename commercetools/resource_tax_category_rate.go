@@ -319,7 +319,7 @@ func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	removeAction := platform.TaxCategoryRemoveTaxRateAction{
-		TaxRateId: stringRef(taxRate.ID),
+		TaxRateId: taxRate.ID,
 	}
 	input.Actions = append(input.Actions, removeAction)
 
