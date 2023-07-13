@@ -36,5 +36,3 @@ resource "commercetools_custom_object" "my-custom-object" {
 
 - `id` (String) The ID of this resource.
 - `version` (Number)
-
-

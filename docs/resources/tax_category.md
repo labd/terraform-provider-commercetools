@@ -39,5 +39,3 @@ resource "commercetools_tax_category" "my-tax-category" {
 
 - `id` (String) The ID of this resource.
 - `version` (Number)
-
-

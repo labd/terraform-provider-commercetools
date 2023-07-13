@@ -34,5 +34,3 @@ resource "commercetools_api_client" "my-api-client" {
 
 - `id` (String) The ID of this resource.
 - `secret` (String, Sensitive)
-
-

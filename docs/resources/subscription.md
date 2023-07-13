@@ -98,5 +98,3 @@ Required:
 
 - `resource_type_id` (String) [Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#changesubscription)
 - `types` (List of String) types must contain valid message types for this resource, for example for resource type product the message type ProductPublished is valid. If no types of messages are given, the subscription is valid for all messages of this resource
-
-

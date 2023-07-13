@@ -55,5 +55,3 @@ Required:
 Optional:
 
 - `state` (String)
-
-

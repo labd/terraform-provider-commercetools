@@ -152,5 +152,3 @@ Required:
 Optional:
 
 - `predicate` (String) LineItems/CustomLineItems target specific fields
-
-

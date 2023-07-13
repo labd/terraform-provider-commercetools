@@ -72,5 +72,3 @@ If transitions is not set, the validation is turned off. When performing a trans
 ### Read-Only
 
 - `id` (String) ID of the state to transition from
-
-

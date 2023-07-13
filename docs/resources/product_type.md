@@ -210,7 +210,7 @@ Optional:
 - `value` (Block List) Values for the `enum` type. (see [below for nested schema](#nestedblock--attribute--type--element_type--value))
 
 <a id="nestedblock--attribute--type--element_type--localized_value"></a>
-### Nested Schema for `attribute.type.element_type.value`
+### Nested Schema for `attribute.type.element_type.localized_value`
 
 Required:
 
@@ -244,5 +244,3 @@ Required:
 
 - `key` (String)
 - `label` (String)
-
-

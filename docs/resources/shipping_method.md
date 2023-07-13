@@ -64,5 +64,3 @@ Required:
 Optional:
 
 - `fields` (Map of String)
-
-

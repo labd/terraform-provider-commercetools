@@ -105,5 +105,3 @@ Required:
 Optional:
 
 - `label` (Map of String)
-
-

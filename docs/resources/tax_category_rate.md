@@ -69,5 +69,3 @@ Required:
 
 - `amount` (Number) Number Percentage in the range of [0..1]
 - `name` (String)
-
-

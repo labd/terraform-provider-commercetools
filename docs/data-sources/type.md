@@ -22,5 +22,3 @@ Fetches type information
 ### Read-Only
 
 - `id` (String) ID of the custom type
-
-

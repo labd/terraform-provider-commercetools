@@ -106,5 +106,3 @@ Required:
 Optional:
 
 - `fraction_digits` (Number) The number of default fraction digits for the given currency, like 2 for EUR or 0 for JPY
-
-

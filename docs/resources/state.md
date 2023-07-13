@@ -72,5 +72,3 @@ resource "commercetools_state" "product_clearance" {
 
 - `id` (String) The ID of this resource.
 - `version` (Number)
-
-

@@ -154,5 +154,3 @@ Required:
 
 - `currency_code` (String)
 - `function` (String)
-
-

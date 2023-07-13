@@ -105,5 +105,3 @@ Optional:
 Required:
 
 - `coordinates` (List of Number)
-
-
