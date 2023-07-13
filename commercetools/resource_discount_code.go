@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
+
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
@@ -109,12 +110,16 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m a
 		d.Partial(true)
 		return diag.FromErr(err)
 	}
+	cartPredicate := stringRef(d.Get("predicate"))
+	if cartPredicate != nil && *cartPredicate == "" {
+		cartPredicate = nil
+	}
 
 	draft := platform.DiscountCodeDraft{
 		Name:                       &name,
 		Description:                &description,
 		Code:                       d.Get("code").(string),
-		CartPredicate:              stringRef(d.Get("predicate")),
+		CartPredicate:              cartPredicate,
 		IsActive:                   boolRef(d.Get("is_active")),
 		MaxApplicationsPerCustomer: intRef(d.Get("max_applications_per_customer")),
 		MaxApplications:            intRef(d.Get("max_applications")),
