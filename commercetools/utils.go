@@ -22,6 +22,10 @@ func getClient(m any) *platform.ByProjectKeyRequestBuilder {
 }
 
 func stringRef(value any) *string {
+	if _, ok := value.(*string); ok {
+		return value.(*string)
+	}
+
 	if value == nil {
 		return nil
 	}
