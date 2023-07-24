@@ -47,6 +47,7 @@ resource "commercetools_shipping_method" "standard" {
 - `is_default` (Boolean) One shipping method in a project can be default
 - `key` (String) User-specific unique identifier for the shipping method
 - `localized_description` (Map of String) [LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)
+- `localized_name` (Map of String) [LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)
 - `predicate` (String) A Cart predicate which can be used to more precisely select a shipping method for a cart
 
 ### Read-Only
