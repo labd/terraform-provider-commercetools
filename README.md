@@ -158,3 +158,4 @@ This project is developed by [Lab Digital](https://www.labdigital.nl). We
 welcome additional contributors. Please see our
 [GitHub repository](https://github.com/labd/terraform-provider-commercetools)
 for more information.
+
