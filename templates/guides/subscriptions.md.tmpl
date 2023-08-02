@@ -134,3 +134,49 @@ resource "commercetools_subscription" "subscribe" {
   ]
 }
 ```
+
+## Azure EventGrid Example
+
+```hcl
+provider "azurerm" {} #initiate properly
+
+provider "commercetools" {
+  client_id     = "foo"
+  client_secret = "bar"
+  project_key   = "some-project"
+  scopes        = "manage_project:some-project"
+  token_url     = "https://auth.sphere.io"
+  api_url       = "https://api.sphere.io"
+}
+
+resource "azurerm_eventgrid_topic" "order_changes" {
+  name                = "my_topic_name"
+  location            = var.azure_resource_group.location
+  resource_group_name = var.azure_resource_group.name
+  input_schema        = "CloudEventSchemaV1_0"
+}
+
+resource "commercetools_subscription" "order_changes" {
+  key = "commercetools_order_changes"
+
+  destination {
+    type       = "EventGrid"
+    uri        = azurerm_eventgrid_topic.order_changes.endpoint
+    access_key = azurerm_eventgrid_topic.order_changes.primary_access_key
+  }
+
+  changes {
+    resource_type_ids = ["order"]
+  }
+
+  message {
+    resource_type_id = "order"
+    types            = ["OrderCreated", "OrderPaymentStateChanged"]
+  }
+
+  format {
+    type                 = "CloudEvents"
+    cloud_events_version = "1.0"
+  }
+}
+```
