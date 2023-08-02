@@ -16,3 +16,5 @@ crash.log
 
 // Go modules
 vendor/
+
+/.idea

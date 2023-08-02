@@ -179,3 +179,4 @@ resource "commercetools_subscription" "order_changes" {
     cloud_events_version = "1.0"
   }
 }
+```

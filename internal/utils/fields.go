@@ -39,11 +39,7 @@ func FromOptionalLocalizedString(value *platform.LocalizedString) customtypes.Lo
 		return customtypes.NewLocalizedStringNull()
 	}
 
-	result := make(map[string]attr.Value, len(*value))
-	for k, v := range *value {
-		result[k] = types.StringValue(v)
-	}
-	return customtypes.NewLocalizedStringValue(result)
+	return FromLocalizedString(*value)
 }
 
 func FromOptionalInt(value *int) basetypes.Int64Value {
@@ -58,6 +54,14 @@ func FromOptionalBool(value *bool) basetypes.BoolValue {
 		return types.BoolNull()
 	}
 	return types.BoolValue(*value)
+}
+
+func FromLocalizedString(value platform.LocalizedString) customtypes.LocalizedStringValue {
+	result := make(map[string]attr.Value, len(value))
+	for k, v := range value {
+		result[k] = types.StringValue(v)
+	}
+	return customtypes.NewLocalizedStringValue(result)
 }
 
 func StringRef(value any) *string {

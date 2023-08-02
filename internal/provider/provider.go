@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/attribute_group"
 	"net/http"
 	"os"
 	"strings"
@@ -190,5 +191,6 @@ func (p *ctProvider) Resources(_ context.Context) []func() resource.Resource {
 		project.NewResource,
 		state.NewResource,
 		state_transition.NewResource,
+		attribute_group.NewResource,
 	}
 }
