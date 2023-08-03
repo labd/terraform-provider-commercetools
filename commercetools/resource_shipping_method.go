@@ -15,7 +15,7 @@ func resourceShippingMethod() *schema.Resource {
 	return &schema.Resource{
 		Description: "With Shipping Methods you can specify which shipping services you want to provide to your " +
 			"customers for deliveries to different areas of the world at rates you can define.\n\n" +
-			"See also the [Shipping Methods API Documentation](https://docs.commercetoolstools.com/api/projects/shippingMethods)",
+			"See also the [Shipping Methods API Documentation](https://docs.commercetools.com/api/projects/shippingMethods)",
 		CreateContext: resourceShippingMethodCreate,
 		ReadContext:   resourceShippingMethodRead,
 		UpdateContext: resourceShippingMethodUpdate,
@@ -38,13 +38,13 @@ func resourceShippingMethod() *schema.Resource {
 				Optional: true,
 			},
 			"localized_name": {
-				Description:      "[LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)",
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
 				Type:             TypeLocalizedString,
 				ValidateDiagFunc: validateLocalizedStringKey,
 				Optional:         true,
 			},
 			"localized_description": {
-				Description:      "[LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)",
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
 				Type:             TypeLocalizedString,
 				ValidateDiagFunc: validateLocalizedStringKey,
 				Optional:         true,
@@ -59,7 +59,7 @@ func resourceShippingMethod() *schema.Resource {
 				Computed: true,
 			},
 			"tax_category_id": {
-				Description: "ID of a [Tax Category](https://docs.commercetoolstools.com/api/projects/taxCategories#taxcategory)",
+				Description: "ID of a [Tax Category](https://docs.commercetools.com/api/projects/taxCategories#taxcategory)",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
