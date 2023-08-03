@@ -4,14 +4,14 @@ page_title: "commercetools_shipping_method Resource - terraform-provider-commerc
 subcategory: ""
 description: |-
   With Shipping Methods you can specify which shipping services you want to provide to your customers for deliveries to different areas of the world at rates you can define.
-  See also the Shipping Methods API Documentation https://docs.commercetoolstools.com/api/projects/shippingMethods
+  See also the Shipping Methods API Documentation https://docs.commercetools.com/api/projects/shippingMethods
 ---
 
 # commercetools_shipping_method (Resource)
 
 With Shipping Methods you can specify which shipping services you want to provide to your customers for deliveries to different areas of the world at rates you can define.
 
-See also the [Shipping Methods API Documentation](https://docs.commercetoolstools.com/api/projects/shippingMethods)
+See also the [Shipping Methods API Documentation](https://docs.commercetools.com/api/projects/shippingMethods)
 
 ## Example Usage
 
@@ -38,7 +38,7 @@ resource "commercetools_shipping_method" "standard" {
 ### Required
 
 - `name` (String)
-- `tax_category_id` (String) ID of a [Tax Category](https://docs.commercetoolstools.com/api/projects/taxCategories#taxcategory)
+- `tax_category_id` (String) ID of a [Tax Category](https://docs.commercetools.com/api/projects/taxCategories#taxcategory)
 
 ### Optional
 
@@ -46,7 +46,8 @@ resource "commercetools_shipping_method" "standard" {
 - `description` (String)
 - `is_default` (Boolean) One shipping method in a project can be default
 - `key` (String) User-specific unique identifier for the shipping method
-- `localized_description` (Map of String) [LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)
+- `localized_description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `localized_name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `predicate` (String) A Cart predicate which can be used to more precisely select a shipping method for a cart
 
 ### Read-Only
