@@ -2,7 +2,7 @@
 name: Support request
 about: When you are running into an issue
 title: ''
-labels: ''
+labels: question, triage
 assignees: ''
 
 ---

@@ -2,7 +2,7 @@
 name: Feature request
 about: When you are missing a specific feature
 title: ''
-labels: feature-request
+labels: enhancement, triage
 assignees: ''
 
 ---
