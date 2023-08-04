@@ -7,13 +7,18 @@ on:
   issues:
     types:
       - opened
-      
+
 jobs:
   add_to_project:
     name: Add issue or PR to project
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/add-to-project@v0.5.0
+      - name: add triage
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: triage
+      - name: set to project board
+        uses: actions/add-to-project@v0.5.0
         with:
           project-url: https://github.com/orgs/labd/projects/3
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
