@@ -1,4 +1,4 @@
-name: Add all new pull requests and issues to project
+name: Triage
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   add_to_project:
-    name: Add issue or PR to project
+    name: Prepare issue or PR for triage
     runs-on: ubuntu-latest
     steps:
       - name: add triage
