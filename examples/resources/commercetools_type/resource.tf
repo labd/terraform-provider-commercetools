@@ -32,11 +32,11 @@ resource "commercetools_type" "my-custom-type" {
       name = "Enum"
       value {
         key   = "day"
-        value = "Daytime"
+        label = "Daytime"
       }
       value {
         key   = "evening"
-        value = "Evening"
+        label = "Evening"
       }
     }
   }
