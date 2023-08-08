@@ -3,17 +3,17 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"github.com/labd/commercetools-go-sdk/platform"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAccCartDiscountCreate_basic(t *testing.T) {
-	identifier := "standard"
-	resourceName := "commercetools_cart_discount.standard"
+func TestAccCartDiscountRelative(t *testing.T) {
+	identifier := "relative"
+	resourceName := "commercetools_cart_discount.relative"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -21,11 +21,11 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 		CheckDestroy: testAccCheckCartDiscountDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCartDiscountConfig(identifier, "standard"),
+				Config: testAccCartDiscountRelativeConfig(identifier, "relative"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "key", "standard"),
-					resource.TestCheckResourceAttr(resourceName, "name.en", "standard name"),
-					resource.TestCheckResourceAttr(resourceName, "description.en", "Standard description"),
+					resource.TestCheckResourceAttr(resourceName, "key", "relative"),
+					resource.TestCheckResourceAttr(resourceName, "name.en", "relative name"),
+					resource.TestCheckResourceAttr(resourceName, "description.en", "relative description"),
 					resource.TestCheckResourceAttr(resourceName, "sort_order", "0.9"),
 					resource.TestCheckResourceAttr(resourceName, "predicate", "1=1"),
 					resource.TestCheckResourceAttr(resourceName, "stacking_mode", "Stacking"),
@@ -44,8 +44,8 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 						}
 
 						assert.NotNil(t, res)
-						assert.EqualValues(t, res.Name["en"], "standard name")
-						assert.EqualValues(t, (*res.Key), "standard")
+						assert.EqualValues(t, res.Name["en"], "relative name")
+						assert.EqualValues(t, *res.Key, "relative")
 						assert.True(t, res.IsActive)
 						assert.True(t, res.RequiresDiscountCode)
 						return nil
@@ -53,11 +53,11 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCartDiscountUpdate(identifier, "standard_new"),
+				Config: testAccCartDiscountRelativeUpdate(identifier, "relative_new"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "key", "standard_new"),
-					resource.TestCheckResourceAttr(resourceName, "name.en", "standard name"),
-					resource.TestCheckResourceAttr(resourceName, "description.en", "Standard description new"),
+					resource.TestCheckResourceAttr(resourceName, "key", "relative_new"),
+					resource.TestCheckResourceAttr(resourceName, "name.en", "relative name"),
+					resource.TestCheckResourceAttr(resourceName, "description.en", "relative description new"),
 					resource.TestCheckResourceAttr(resourceName, "sort_order", "0.8"),
 					resource.TestCheckResourceAttr(resourceName, "predicate", "1=1"),
 					resource.TestCheckResourceAttr(resourceName, "stacking_mode", "Stacking"),
@@ -73,10 +73,10 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCartDiscountRemoveProperties(identifier, "standard_new"),
+				Config: testAccCartDiscountRelativeRemoveProperties(identifier, "relative_new"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "key", "standard_new"),
-					resource.TestCheckResourceAttr(resourceName, "name.en", "standard name"),
+					resource.TestCheckResourceAttr(resourceName, "key", "relative_new"),
+					resource.TestCheckResourceAttr(resourceName, "name.en", "relative name"),
 					resource.TestCheckNoResourceAttr(resourceName, "description.en"),
 					resource.TestCheckResourceAttr(resourceName, "sort_order", "0.8"),
 					resource.TestCheckResourceAttr(resourceName, "predicate", "1=1"),
@@ -95,15 +95,15 @@ func TestAccCartDiscountCreate_basic(t *testing.T) {
 	})
 }
 
-func testAccCartDiscountConfig(identifier, key string) string {
+func testAccCartDiscountRelativeConfig(identifier, key string) string {
 	return hclTemplate(`
 		resource "commercetools_cart_discount" "{{ .identifier }}" {
 			key = "{{ .key }}"
 			name = {
-				en = "standard name"
+				en = "relative name"
 			}
 			description = {
-				en = "Standard description"
+				en = "relative description"
 			}
 
 			sort_order             = "0.9"
@@ -129,15 +129,15 @@ func testAccCartDiscountConfig(identifier, key string) string {
 	})
 }
 
-func testAccCartDiscountUpdate(identifier, key string) string {
+func testAccCartDiscountRelativeUpdate(identifier, key string) string {
 	return hclTemplate(`
 		resource "commercetools_cart_discount" "{{ .identifier }}" {
 			key = "{{ .key }}"
 			name = {
-				en = "standard name"
+				en = "relative name"
 			}
 			description = {
-				en = "Standard description new"
+				en = "relative description new"
 			}
 
 			sort_order             = "0.8"
@@ -165,12 +165,12 @@ func testAccCartDiscountUpdate(identifier, key string) string {
 	})
 }
 
-func testAccCartDiscountRemoveProperties(identifier, key string) string {
+func testAccCartDiscountRelativeRemoveProperties(identifier, key string) string {
 	return hclTemplate(`
 		resource "commercetools_cart_discount" "{{ .identifier }}" {
 			key = "{{ .key }}"
 			name = {
-				en = "standard name"
+				en = "relative name"
 			}
 
 			sort_order             = "0.8"
@@ -191,27 +191,6 @@ func testAccCartDiscountRemoveProperties(identifier, key string) string {
 		"identifier": identifier,
 		"key":        key,
 	})
-}
-
-func testAccCheckCartDiscountDestroy(s *terraform.State) error {
-	client := getClient(testAccProvider.Meta())
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "commercetools_cart_discount" {
-			continue
-		}
-		response, err := client.CartDiscounts().WithId(rs.Primary.ID).Get().Execute(context.Background())
-		if err == nil {
-			if response != nil && response.ID == rs.Primary.ID {
-				return fmt.Errorf("cart discount (%s) still exists", rs.Primary.ID)
-			}
-			return nil
-		}
-		if newErr := checkApiResult(err); newErr != nil {
-			return newErr
-		}
-	}
-	return nil
 }
 
 func testGetCartDiscount(s *terraform.State, identifier string) (*platform.CartDiscount, error) {

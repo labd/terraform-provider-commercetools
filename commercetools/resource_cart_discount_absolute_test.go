@@ -1,22 +1,19 @@
 package commercetools
 
 import (
-	"context"
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccCartDiscountCreate_absolute(t *testing.T) {
+func TestAccCartDiscountAbsolute(t *testing.T) {
 	identifier := "absolute"
 	resourceName := "commercetools_cart_discount.absolute"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCartDiscountAbsoluteDestroy,
+		CheckDestroy: testAccCheckCartDiscountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCartDiscountAbsoluteConfig(identifier),
@@ -27,6 +24,8 @@ func TestAccCartDiscountCreate_absolute(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "value.0.money.0.cent_amount", "1000"),
 					resource.TestCheckResourceAttr(resourceName, "value.0.money.1.currency_code", "EUR"),
 					resource.TestCheckResourceAttr(resourceName, "value.0.money.1.cent_amount", "2000"),
+					resource.TestCheckResourceAttr(resourceName, "target.0.type", "customLineItems"),
+					resource.TestCheckResourceAttr(resourceName, "target.0.predicate", "1=1"),
 				),
 			},
 		},
@@ -43,7 +42,7 @@ func testAccCartDiscountAbsoluteConfig(identifier string) string {
 			predicate              = "1=1"
 
 			target {
-				type      = "lineItems"
+				type      = "customLineItems"
 				predicate = "1=1"
 			}
 
@@ -62,25 +61,4 @@ func testAccCartDiscountAbsoluteConfig(identifier string) string {
 	`, map[string]any{
 		"identifier": identifier,
 	})
-}
-
-func testAccCheckCartDiscountAbsoluteDestroy(s *terraform.State) error {
-	client := getClient(testAccProvider.Meta())
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "commercetools_cart_discount" {
-			continue
-		}
-		response, err := client.CartDiscounts().WithId(rs.Primary.ID).Get().Execute(context.Background())
-		if err == nil {
-			if response != nil && response.ID == rs.Primary.ID {
-				return fmt.Errorf("cart discount (%s) still exists", rs.Primary.ID)
-			}
-			return nil
-		}
-		if newErr := checkApiResult(err); newErr != nil {
-			return newErr
-		}
-	}
-	return nil
 }

@@ -90,24 +90,26 @@ func resourceCartDiscount() *schema.Resource {
 							},
 						},
 						"product_id": {
-							Description: "Gift Line Item discount specific field",
+							Description: "ResourceIdentifier of a Product. Required when value type is giftLineItem",
 							Type:        schema.TypeString,
 							Optional:    true,
 						},
-						"variant": {
-							Description: "Gift Line Item discount specific field",
+						"variant_id": {
+							Description: "ProductVariant of the Product. Required when value type is giftLineItem",
 							Type:        schema.TypeInt,
 							Optional:    true,
 						},
 						"supply_channel_id": {
-							Description: "Gift Line Item discount specific field",
-							Type:        schema.TypeString,
-							Optional:    true,
+							Description: "Channel must have the role InventorySupply. " +
+								"Optional when value type is giftLineItem",
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 						"distribution_channel_id": {
-							Description: "Gift Line Item discount specific field",
-							Type:        schema.TypeString,
-							Optional:    true,
+							Description: "Channel must have the role ProductDistribution. " +
+								"Optional when value type is giftLineItem",
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -210,6 +212,7 @@ func validateCartDiscountValueType(val any, key string) (warns []string, errs []
 	case
 		"relative",
 		"absolute",
+		"fixed",
 		"giftLineItem":
 		return
 	default:
@@ -326,7 +329,7 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	d.SetId(cartDiscount.ID)
-	d.Set("version", cartDiscount.Version)
+	_ = d.Set("version", cartDiscount.Version)
 
 	return resourceCartDiscountRead(ctx, d, m)
 }
@@ -342,19 +345,19 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m any
 		return diag.FromErr(err)
 	}
 
-	d.Set("version", cartDiscount.Version)
-	d.Set("key", cartDiscount.Key)
-	d.Set("name", cartDiscount.Name)
-	d.Set("description", cartDiscount.Description)
-	d.Set("value", flattenCartDiscountValue(cartDiscount.Value))
-	d.Set("predicate", cartDiscount.CartPredicate)
-	d.Set("target", flattenCartDiscountTarget(cartDiscount.Target))
-	d.Set("sort_order", cartDiscount.SortOrder)
-	d.Set("is_active", cartDiscount.IsActive)
-	d.Set("valid_from", flattenTime(cartDiscount.ValidFrom))
-	d.Set("valid_until", flattenTime(cartDiscount.ValidUntil))
-	d.Set("requires_discount_code", cartDiscount.RequiresDiscountCode)
-	d.Set("stacking_mode", cartDiscount.StackingMode)
+	_ = d.Set("version", cartDiscount.Version)
+	_ = d.Set("key", cartDiscount.Key)
+	_ = d.Set("name", cartDiscount.Name)
+	_ = d.Set("description", cartDiscount.Description)
+	_ = d.Set("value", flattenCartDiscountValue(cartDiscount.Value))
+	_ = d.Set("predicate", cartDiscount.CartPredicate)
+	_ = d.Set("target", flattenCartDiscountTarget(cartDiscount.Target))
+	_ = d.Set("sort_order", cartDiscount.SortOrder)
+	_ = d.Set("is_active", cartDiscount.IsActive)
+	_ = d.Set("valid_from", flattenTime(cartDiscount.ValidFrom))
+	_ = d.Set("valid_until", flattenTime(cartDiscount.ValidUntil))
+	_ = d.Set("requires_discount_code", cartDiscount.RequiresDiscountCode)
+	_ = d.Set("stacking_mode", cartDiscount.StackingMode)
 	return nil
 }
 
@@ -523,9 +526,8 @@ func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]any {
 			manyMoney[i] = flattenTypedMoney(money)
 		}
 		return []map[string]any{{
-			"type":      "absolute",
-			"money":     manyMoney,
-			"permyriad": 0,
+			"type":  "absolute",
+			"money": manyMoney,
 		}}
 	case platform.CartDiscountValueFixed:
 		manyMoney := make([]map[string]any, len(v.Money))
@@ -533,9 +535,8 @@ func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]any {
 			manyMoney[i] = flattenTypedMoney(money)
 		}
 		return []map[string]any{{
-			"type":      "fixed",
-			"money":     manyMoney,
-			"permyriad": 0,
+			"type":  "fixed",
+			"money": manyMoney,
 		}}
 	case platform.CartDiscountValueGiftLineItem:
 		var supplyChannelID string
@@ -553,7 +554,7 @@ func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]any {
 			"supply_channel_id":       supplyChannelID,
 			"distribution_channel_id": distributionChannelID,
 			"product_id":              v.Product.ID,
-			"variant":                 v.VariantId,
+			"variant_id":              v.VariantId,
 		}}
 	case platform.CartDiscountValueRelative:
 		return []map[string]any{{
@@ -576,6 +577,11 @@ func expandCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValue
 		return platform.CartDiscountValueAbsoluteDraft{
 			Money: money,
 		}, nil
+	case "fixed":
+		money := expandTypedMoney(value)
+		return platform.CartDiscountValueFixedDraft{
+			Money: money,
+		}, nil
 	case "giftLineItem":
 		draft := &platform.CartDiscountValueGiftLineItemDraft{}
 
@@ -589,7 +595,7 @@ func expandCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValue
 			draft.DistributionChannel = &platform.ChannelResourceIdentifier{ID: &val}
 		}
 
-		draft.VariantId = value["variant"].(int)
+		draft.VariantId = value["variant_id"].(int)
 
 		return draft, nil
 
