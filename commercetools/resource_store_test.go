@@ -78,6 +78,14 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccStoreConfigWithCountries("test", name, key),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "countries.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "countries.0", "BE"),
+					resource.TestCheckResourceAttr(resourceName, "countries.1", "NL"),
+				),
+			},
+			{
 				Config: testAccStoreConfigWithLanguages("other", name, key, languages),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("commercetools_store.other", "languages.#", "1"),
@@ -213,6 +221,23 @@ func testAccStoreConfigWithLanguages(id, name, key string, languages []string) s
 		"name":      name,
 		"key":       key,
 		"languages": languages,
+	})
+}
+
+func testAccStoreConfigWithCountries(id, name, key string) string {
+	return hclTemplate(`
+        resource "commercetools_store" "{{ .id }}" {
+            key = "{{ .key }}"
+            name = {
+                en = "{{ .name }}"
+                nl = "{{ .name }}"
+            }
+            countries = ["BE", "NL"]
+        }
+    `, map[string]any{
+		"id":   id,
+		"name": name,
+		"key":  key,
 	})
 }
 

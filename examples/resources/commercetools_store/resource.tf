@@ -48,6 +48,7 @@ resource "commercetools_store" "my-store" {
   name = {
     en-US = "My store"
   }
+  countries             = ["NL", "BE"]
   languages             = ["en-US"]
   distribution_channels = ["US-DIST"]
   supply_channels       = ["US-SUP"]
