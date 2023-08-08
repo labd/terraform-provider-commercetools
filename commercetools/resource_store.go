@@ -48,6 +48,13 @@ func resourceStore() *schema.Resource {
 				Optional:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			"countries": {
+				Description: "A two-digit country code as per " +
+				"[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
+				Type:        schema.TypeList,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"distribution_channels": {
 				Description: "Set of ResourceIdentifier to a Channel with ProductDistribution",
 				Type:        schema.TypeList,
@@ -84,6 +91,7 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 		Key:                  d.Get("key").(string),
 		Name:                 &name,
 		Languages:            expandStringArray(d.Get("languages").([]any)),
+		Countries:            expandStoreCountries(d.Get("countries").([]any)),
 		DistributionChannels: dcIdentifiers,
 		SupplyChannels:       scIdentifiers,
 		Custom:               custom,
@@ -133,7 +141,9 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m any) diag.
 	if store.Languages != nil {
 		d.Set("languages", store.Languages)
 	}
-
+	if store.Countries != nil {
+		d.Set("countries", store.Countries)
+	}
 	if store.DistributionChannels != nil {
 		channelKeys, err := flattenStoreChannels(store.DistributionChannels)
 		if err != nil {
@@ -174,6 +184,14 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 		input.Actions = append(
 			input.Actions,
 			&platform.StoreSetLanguagesAction{Languages: languages})
+	}
+
+	if d.HasChange("countries") {
+		countries := expandStoreCountries(d.Get("countries").([]any))
+
+		input.Actions = append(
+			input.Actions,
+			&platform.StoreSetCountriesAction{Countries: countries})
 	}
 
 	if d.HasChange("distribution_channels") {
@@ -252,6 +270,22 @@ func convertChannelKeysToIdentifiers(channelKeys []string) []platform.ChannelRes
 func expandStoreChannels(channelData any) []platform.ChannelResourceIdentifier {
 	channelKeys := expandStringArray(channelData.([]any))
 	return convertChannelKeysToIdentifiers(channelKeys)
+}
+
+func convertCountryCodesToStoreCountries(countryCodes []string) []platform.StoreCountry {
+	storeCountries := make([]platform.StoreCountry, 0)
+	for i := 0; i < len(countryCodes); i++ {
+		storeCountry := platform.StoreCountry{
+			Code: countryCodes[i],
+		}
+		storeCountries = append(storeCountries, storeCountry)
+	}
+	return storeCountries
+}
+
+func expandStoreCountries(countryData any) []platform.StoreCountry {
+	countryCodes := expandStringArray(countryData.([]any))
+	return convertCountryCodesToStoreCountries(countryCodes)
 }
 
 func flattenStoreChannels(channels []platform.ChannelReference) ([]string, error) {
