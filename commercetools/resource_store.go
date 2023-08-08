@@ -50,10 +50,10 @@ func resourceStore() *schema.Resource {
 			},
 			"countries": {
 				Description: "A two-digit country code as per " +
-				"[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
-				Type:        schema.TypeList,
-				Optional:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
+					"[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"distribution_channels": {
 				Description: "Set of ResourceIdentifier to a Channel with ProductDistribution",
@@ -109,7 +109,7 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 	}
 
 	d.SetId(store.ID)
-	d.Set("version", store.Version)
+	_ = d.Set("version", store.Version)
 	return resourceStoreRead(ctx, d, m)
 }
 
@@ -131,25 +131,29 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m any) diag.
 	}
 
 	d.SetId(store.ID)
-	d.Set("key", store.Key)
+	_ = d.Set("key", store.Key)
 	if store.Name != nil {
-		d.Set("name", *store.Name)
+		_ = d.Set("name", *store.Name)
 	} else {
-		d.Set("name", nil)
+		_ = d.Set("name", nil)
 	}
-	d.Set("version", store.Version)
+	_ = d.Set("version", store.Version)
 	if store.Languages != nil {
-		d.Set("languages", store.Languages)
+		_ = d.Set("languages", store.Languages)
 	}
 	if store.Countries != nil {
-		d.Set("countries", store.Countries)
+		countries, err := flattenCountries(store.Countries)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		_ = d.Set("countries", countries)
 	}
 	if store.DistributionChannels != nil {
 		channelKeys, err := flattenStoreChannels(store.DistributionChannels)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		d.Set("distribution_channels", channelKeys)
+		_ = d.Set("distribution_channels", channelKeys)
 	}
 
 	if store.SupplyChannels != nil {
@@ -157,9 +161,9 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m any) diag.
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		d.Set("supply_channels", channelKeys)
+		_ = d.Set("supply_channels", channelKeys)
 	}
-	d.Set("custom", flattenCustomFields(store.Custom))
+	_ = d.Set("custom", flattenCustomFields(store.Custom))
 	return nil
 }
 
@@ -297,4 +301,12 @@ func flattenStoreChannels(channels []platform.ChannelReference) ([]string, error
 		channelKeys = append(channelKeys, channels[i].Obj.Key)
 	}
 	return channelKeys, nil
+}
+
+func flattenCountries(countries []platform.StoreCountry) ([]string, error) {
+	countryCodes := make([]string, 0)
+	for _, country := range countries {
+		countryCodes = append(countryCodes, country.Code)
+	}
+	return countryCodes, nil
 }
