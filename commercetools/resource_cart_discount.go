@@ -126,15 +126,36 @@ func resourceCartDiscount() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Description:  "Supports lineItems/customLineItems/shipping",
+							Description:  "Supports lineItems/customLineItems/multiBuyLineItems/multiBuyCustomLineItems/shipping",
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateTargetType,
 						},
 						"predicate": {
-							Description: "LineItems/CustomLineItems target specific fields",
+							Description: "LineItems/CustomLineItems/MultiBuyLineItems/MultiBuyCustomLineItems target specific fields",
 							Type:        schema.TypeString,
 							Optional:    true,
+						},
+						"trigger_quantity": {
+							Description: "MultiBuyLineItems/MultiBuyCustomLineItems target specific fields",
+							Type:        schema.TypeInt,
+							Optional:    true,
+						},
+						"discounted_quantity": {
+							Description: "MultiBuyLineItems/MultiBuyCustomLineItems target specific fields",
+							Type:        schema.TypeInt,
+							Optional:    true,
+						},
+						"max_occurrence": {
+							Description: "MultiBuyLineItems/MultiBuyCustomLineItems target specific fields",
+							Type:        schema.TypeInt,
+							Optional:    true,
+						},
+						"selection_mode": {
+							Description:  "MultiBuyLineItems/MultiBuyCustomLineItems target specific fields",
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateSelectionMode,
 						},
 					},
 				},
@@ -202,6 +223,8 @@ func validateTargetType(val any, key string) (warns []string, errs []error) {
 	case
 		"lineItems",
 		"customLineItems",
+		"multiBuyLineItems",
+		"multiBuyCustomLineItems",
 		"shipping":
 		return
 	default:
@@ -215,6 +238,18 @@ func validateStackingMode(val any, key string) (warns []string, errs []error) {
 	case
 		"Stacking",
 		"StopAfterThisDiscount":
+		return
+	default:
+		errs = append(errs, fmt.Errorf("%q not a valid value for %q", val, key))
+	}
+	return
+}
+
+func validateSelectionMode(val any, key string) (warns []string, errs []error) {
+	switch val {
+	case
+		"Cheapest",
+		"MostExpensive":
 		return
 	default:
 		errs = append(errs, fmt.Errorf("%q not a valid value for %q", val, key))
@@ -493,11 +528,22 @@ func flattenCartDiscountValue(val platform.CartDiscountValue) []map[string]any {
 			"money": flattenTypedMoney(v.Money),
 		}}
 	case platform.CartDiscountValueGiftLineItem:
+		var supplyChannelID string
+		if v.SupplyChannel != nil {
+			supplyChannelID = v.SupplyChannel.ID
+		}
+
+		var distributionChannelID string
+		if v.DistributionChannel != nil {
+			distributionChannelID = v.DistributionChannel.ID
+		}
+
 		return []map[string]any{{
 			"type":                    "giftLineItem",
-			"supply_channel_id":       v.SupplyChannel.ID,
-			"distribution_channel_id": v.DistributionChannel.ID,
+			"supply_channel_id":       supplyChannelID,
+			"distribution_channel_id": distributionChannelID,
 			"product_id":              v.Product.ID,
+			"variant":                 v.VariantId,
 		}}
 	case platform.CartDiscountValueRelative:
 		return []map[string]any{{
@@ -543,6 +589,9 @@ func expandCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValue
 }
 
 func flattenCartDiscountTarget(val platform.CartDiscountTarget) []map[string]any {
+	if val == nil {
+		return nil
+	}
 	switch v := val.(type) {
 	case platform.CartDiscountLineItemsTarget:
 		return []map[string]any{{
@@ -553,6 +602,24 @@ func flattenCartDiscountTarget(val platform.CartDiscountTarget) []map[string]any
 		return []map[string]any{{
 			"type":      "customLineItems",
 			"predicate": v.Predicate,
+		}}
+	case platform.MultiBuyLineItemsTarget:
+		return []map[string]any{{
+			"type":                "multiBuyLineItems",
+			"predicate":           v.Predicate,
+			"trigger_quantity":    v.TriggerQuantity,
+			"discounted_quantity": v.DiscountedQuantity,
+			"max_occurrence":      v.MaxOccurrence,
+			"selection_mode":      v.SelectionMode,
+		}}
+	case platform.MultiBuyCustomLineItemsTarget:
+		return []map[string]any{{
+			"type":                "multiBuyCustomLineItems",
+			"predicate":           v.Predicate,
+			"trigger_quantity":    v.TriggerQuantity,
+			"discounted_quantity": v.DiscountedQuantity,
+			"max_occurrence":      v.MaxOccurrence,
+			"selection_mode":      v.SelectionMode,
 		}}
 	case platform.CartDiscountShippingCostTarget:
 		return []map[string]any{{
@@ -582,6 +649,39 @@ func expandCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscountTarg
 		return platform.CartDiscountCustomLineItemsTarget{
 			Predicate: input["predicate"].(string),
 		}, nil
+	case "multiBuyLineItems":
+		selectionMode, err := expandSelectionMode(input["selection_mode"].(string))
+		if err != nil {
+			return nil, err
+		}
+		target := platform.MultiBuyLineItemsTarget{
+			Predicate:          input["predicate"].(string),
+			TriggerQuantity:    input["trigger_quantity"].(int),
+			DiscountedQuantity: input["discounted_quantity"].(int),
+			SelectionMode:      selectionMode,
+		}
+		maxOccurrence := input["max_occurrence"].(int)
+		if maxOccurrence > 0 {
+			target.MaxOccurrence = &maxOccurrence
+		}
+		return target, nil
+	case "multiBuyCustomLineItems":
+		selectionMode, err := expandSelectionMode(input["selection_mode"].(string))
+		if err != nil {
+			return nil, err
+		}
+		target := platform.MultiBuyCustomLineItemsTarget{
+			Predicate:          input["predicate"].(string),
+			TriggerQuantity:    input["trigger_quantity"].(int),
+			DiscountedQuantity: input["discounted_quantity"].(int),
+			SelectionMode:      selectionMode,
+		}
+		maxOccurrence := input["max_occurrence"].(int)
+		if maxOccurrence > 0 {
+			target.MaxOccurrence = &maxOccurrence
+		}
+		return target, nil
+
 	case "shipping":
 		return platform.CartDiscountShippingCostTarget{}, nil
 	default:
@@ -598,5 +698,16 @@ func expandCartDiscountStackingMode(d *schema.ResourceData) (platform.StackingMo
 		return platform.StackingModeStopAfterThisDiscount, nil
 	default:
 		return "", fmt.Errorf("stacking mode %s not implemented", d.Get("stacking_mode").(string))
+	}
+}
+
+func expandSelectionMode(selectionMode string) (platform.SelectionMode, error) {
+	switch selectionMode {
+	case "Cheapest":
+		return platform.SelectionModeCheapest, nil
+	case "MostExpensive":
+		return platform.SelectionModeMostExpensive, nil
+	default:
+		return "", fmt.Errorf("selection mode %s not implemented", selectionMode)
 	}
 }
