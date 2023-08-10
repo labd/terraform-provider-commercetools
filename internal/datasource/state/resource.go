@@ -13,43 +13,44 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ datasource.DataSource              = &CustomTypeSource{}
-	_ datasource.DataSourceWithConfigure = &CustomTypeSource{}
+	_ datasource.DataSource              = &StateSource{}
+	_ datasource.DataSourceWithConfigure = &StateSource{}
 )
 
-// NewDataSource is a helper function to simplify the provider implementation.
+// NewDataSource is a helper function to simplify the data source implementation.
 func NewDataSource() datasource.DataSource {
-	return &CustomTypeSource{}
+	return &StateSource{}
 }
 
-// CustomTypeSource is the data source implementation.
-type CustomTypeSource struct {
+// StateSource is the data source implementation.
+type StateSource struct {
 	client *platform.ByProjectKeyRequestBuilder
 	mutex  *utils.MutexKV
 }
 
-// CustomTypeSourceModel maps the data source schema data.
-type CustomTypeSourceModel struct {
+// StateModel maps the data source schema data.
+type StateModel struct {
 	ID  types.String `tfsdk:"id"`
 	Key types.String `tfsdk:"key"`
 }
 
 // Metadata returns the data source type name.
-func (d *CustomTypeSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_type"
+func (d *StateSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_state"
 }
 
 // Schema defines the schema for the data source.
-func (d *CustomTypeSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *StateSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Fetches type information",
+		Description: "Fetches state information for the given key. " +
+			"This is an easy way to import the id of an existing state for a given key.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "ID of the custom type",
+				Description: "ID of the state",
 				Computed:    true,
 			},
 			"key": schema.StringAttribute{
-				Description: "Key of the custom type",
+				Description: "Key of the state",
 				Required:    true,
 			},
 		},
@@ -57,7 +58,7 @@ func (d *CustomTypeSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 }
 
 // Configure adds the provider configured client to the data source.
-func (d *CustomTypeSource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
+func (d *StateSource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -67,8 +68,8 @@ func (d *CustomTypeSource) Configure(_ context.Context, req datasource.Configure
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *CustomTypeSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state CustomTypeSourceModel
+func (d *StateSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var state StateModel
 
 	diags := req.Config.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -76,10 +77,10 @@ func (d *CustomTypeSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	resource, err := d.client.Types().WithKey(state.Key.ValueString()).Get().Execute(ctx)
+	resource, err := d.client.States().WithKey(state.Key.ValueString()).Get().Execute(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Unable to Read Type",
+			"Unable to read state",
 			err.Error(),
 		)
 		return
