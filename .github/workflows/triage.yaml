@@ -10,12 +10,12 @@ on:
 
 jobs:
   add_to_project:
-    name: Prepare issue or PR for triage
+    name: Push issue or PR to board
     runs-on: ubuntu-latest
     steps:
       - name: get app token
         id: get-app-token
-        uses: labdigital-main/action-gh-app-token@main
+        uses: labd/action-gh-app-token@main
         with:
           app-id: ${{ secrets.RD_APP_ID }}
           private-key: ${{ secrets.RD_APP_PRIVATE_KEY }}

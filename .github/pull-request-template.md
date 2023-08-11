@@ -2,10 +2,6 @@
 
 Describe in detail the changes you are proposing, and the rationale.
 
-See the contributing guide:
-
-https://github.com/labd/terraform-provider-commercetools/blob/main/README.md#contributing
-
 -->
 
 <!--
