@@ -164,6 +164,7 @@ resource "commercetools_cart_discount" "my-cart-discount" {
 
 ### Optional
 
+- `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `is_active` (Boolean) Only active discount can be applied to the cart
 - `key` (String) User-specific unique identifier for a cart discount. Must be unique across a project
@@ -202,6 +203,18 @@ Required:
 - `cent_amount` (Number) The amount in cents (the smallest indivisible unit of the currency)
 - `currency_code` (String) The currency code compliant to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
 
+
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Required:
+
+- `type_id` (String)
+
+Optional:
+
+- `fields` (Map of String)
 
 
 <a id="nestedblock--target"></a>

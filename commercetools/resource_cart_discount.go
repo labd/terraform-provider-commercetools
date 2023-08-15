@@ -203,6 +203,7 @@ func resourceCartDiscount() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"custom": CustomFieldSchema(),
 		},
 	}
 }
@@ -276,6 +277,14 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m a
 		return diag.FromErr(err)
 	}
 
+	custom, err := CreateCustomFieldDraft(ctx, client, d)
+	if err != nil {
+		// Workaround invalid state to be written, see
+		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+		d.Partial(true)
+		return diag.FromErr(err)
+	}
+
 	draft := platform.CartDiscountDraft{
 		Name:                 name,
 		Description:          &description,
@@ -284,6 +293,7 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m a
 		SortOrder:            d.Get("sort_order").(string),
 		IsActive:             boolRef(d.Get("is_active")),
 		RequiresDiscountCode: ctutils.BoolRef(d.Get("requires_discount_code").(bool)),
+		Custom:               custom,
 		StackingMode:         &stackingMode,
 	}
 
@@ -358,6 +368,7 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m any
 	_ = d.Set("valid_until", flattenTime(cartDiscount.ValidUntil))
 	_ = d.Set("requires_discount_code", cartDiscount.RequiresDiscountCode)
 	_ = d.Set("stacking_mode", cartDiscount.StackingMode)
+	_ = d.Set("custom", flattenCustomFields(cartDiscount.Custom))
 	return nil
 }
 
@@ -483,6 +494,16 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m a
 		input.Actions = append(
 			input.Actions,
 			&platform.CartDiscountChangeStackingModeAction{StackingMode: newStackingMode})
+	}
+
+	if d.HasChange("custom") {
+		actions, err := CustomFieldUpdateActions[platform.CartDiscountSetCustomTypeAction, platform.CartDiscountSetCustomFieldAction](ctx, client, d)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for i := range actions {
+			input.Actions = append(input.Actions, actions[i].(platform.CartDiscountUpdateAction))
+		}
 	}
 
 	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
