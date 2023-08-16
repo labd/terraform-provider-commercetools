@@ -1,0 +1,3 @@
+kind: Fixed
+body: Fixed forced replacement issue in commercetools_category when name or key change
+time: 2023-08-16T10:02:20.792642738+02:00
