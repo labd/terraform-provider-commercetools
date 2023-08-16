@@ -1,0 +1,3 @@
+kind: Fixed
+body: Added correct handling of azure_authentication to prevent unnecessary updates
+time: 2023-08-16T16:36:09.628212354+02:00
