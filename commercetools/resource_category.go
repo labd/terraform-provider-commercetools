@@ -34,14 +34,12 @@ func resourceCategory() *schema.Resource {
 			"key": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
 				Description: "Category-specific unique identifier. Must be unique across a project",
 			},
 			"name": {
 				Type:             TypeLocalizedString,
 				ValidateDiagFunc: validateLocalizedStringKey,
 				Required:         true,
-				ForceNew:         true,
 			},
 			"description": {
 				Type:             TypeLocalizedString,
