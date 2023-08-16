@@ -301,3 +301,60 @@ func testGetExtension(s *terraform.State, identifier string) (*platform.Extensio
 	}
 	return result, nil
 }
+
+func TestAccAPIExtension_azure_authentication(t *testing.T) {
+	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
+	timeoutInMs := acctest.RandIntRange(200, 1800)
+	identifier := "ext"
+	resourceName := "commercetools_api_extension.ext"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAPIExtensionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAPIExtensionAzureFunctionsConfig(identifier, name, timeoutInMs),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAPIExtensionExists("ext"),
+					resource.TestCheckResourceAttr(
+						resourceName, "key", name),
+					resource.TestCheckResourceAttr(
+						resourceName, "timeout_in_ms", strconv.FormatInt(int64(timeoutInMs), 10)),
+					resource.TestCheckResourceAttr(
+						resourceName, "trigger.0.actions.#", "1"),
+					resource.TestCheckResourceAttr(
+						resourceName, "trigger.0.actions.0", "Create"),
+				),
+			},
+			{
+				Config:   testAccAPIExtensionAzureFunctionsConfig(identifier, name, timeoutInMs),
+				PlanOnly: true,
+			},
+		},
+	})
+}
+
+func testAccAPIExtensionAzureFunctionsConfig(identifier, key string, timeoutInMs int) string {
+	return hclTemplate(`
+		resource "commercetools_api_extension" "{{ .identifier }}" {
+		  key = "{{ .key }}"
+	      timeout_in_ms = {{ .timeoutInMs }}
+		
+		  destination {
+			url                  = "http://google.com"
+			azure_authentication = "my-other-auth-string"
+			type                 = "HTTP"
+		  }
+		
+		  trigger {
+			resource_type_id = "customer"
+			actions          = ["Create"]
+		  }
+		}
+	`, map[string]any{
+		"identifier":  identifier,
+		"key":         key,
+		"timeoutInMs": timeoutInMs,
+	})
+}
