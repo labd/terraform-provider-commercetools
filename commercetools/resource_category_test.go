@@ -70,11 +70,8 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "meta_title.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "meta_description.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "meta_keywords.#", "0"),
-
-					//TODO: Skipping this check until issue with asset removal is fixed
-					//resource.TestCheckResourceAttr(resourceName, "assets.#", "0"),
+					resource.TestCheckResourceAttr(resourceName, "assets.#", "0"),
 				),
-				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
