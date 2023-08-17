@@ -3,8 +3,9 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"github.com/labd/commercetools-go-sdk/platform"
 	"testing"
+
+	"github.com/labd/commercetools-go-sdk/platform"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -95,6 +96,75 @@ func TestAccCartDiscountRelative(t *testing.T) {
 	})
 }
 
+func TestAccCartDiscountRelative_CustomField(t *testing.T) {
+	identifier := "relative_with_custom_field"
+	resourceName := "commercetools_cart_discount." + identifier
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCartDiscountDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCartDiscountRelativeConfigWithCustomField(identifier, "relative_new_with_custom_field"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", "relative_new_with_custom_field"),
+					func(s *terraform.State) error {
+						result, err := testGetCartDiscount(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						assert.NotNil(t, result)
+						assert.NotNil(t, result.Custom)
+						assert.NotNil(t, result.Custom.Fields)
+						assert.EqualValues(t, "foobar", result.Custom.Fields["my-string-field"])
+						assert.EqualValues(t, []any{"ENUM-1", "ENUM-3"}, result.Custom.Fields["my-enum-set-field"])
+						assert.EqualValues(t, map[string]interface{}{"centAmount": float64(150000), "currencyCode": "EUR", "fractionDigits": float64(2), "type": "centPrecision"}, result.Custom.Fields["my-money-field"])
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccCartDiscountRelativeUpdateCustomField(identifier, "relative_new_with_custom_field"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", "relative_new_with_custom_field"),
+					func(s *terraform.State) error {
+						result, err := testGetCartDiscount(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						assert.NotNil(t, result)
+						assert.NotNil(t, result.Custom)
+						assert.NotNil(t, result.Custom.Fields)
+						assert.EqualValues(t, "foobar_foobar", result.Custom.Fields["my-string-field"])
+						assert.EqualValues(t, []any{"ENUM-2"}, result.Custom.Fields["my-enum-set-field"])
+						assert.EqualValues(t, map[string]interface{}{"centAmount": float64(2000), "currencyCode": "USD", "fractionDigits": float64(2), "type": "centPrecision"}, result.Custom.Fields["my-money-field"])
+						return nil
+					},
+				),
+			},
+			{
+				Config: testAccCartDiscountRelativeRemoveCustomField(identifier, "relative_new_with_custom_field"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", "relative_new_with_custom_field"),
+					func(s *terraform.State) error {
+						result, err := testGetCartDiscount(s, resourceName)
+						if err != nil {
+							return err
+						}
+
+						assert.NotNil(t, result)
+						assert.Nil(t, result.Custom.Fields["my-string-field"])
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func testAccCartDiscountRelativeConfig(identifier, key string) string {
 	return hclTemplate(`
 		resource "commercetools_cart_discount" "{{ .identifier }}" {
@@ -121,6 +191,113 @@ func testAccCartDiscountRelativeConfig(identifier, key string) string {
 			value {
 				type      = "relative"
 				permyriad = 1000
+			}
+		}
+	`, map[string]any{
+		"identifier": identifier,
+		"key":        key,
+	})
+}
+
+func testAccCartDiscountRelativeConfigWithCustomField(identifier, key string) string {
+	return hclTemplate(`
+		resource "commercetools_type" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "for relative cart-discount"
+			}
+			description = {
+				en = "Custom Field for relative cart-discount resource"
+			}
+
+			resource_type_ids = ["cart-discount"]
+
+			field {
+				name = "my-string-field"
+				label = {
+					en = "My Custom 'String' field"
+				}
+				type {
+					name = "String"
+				}
+			}
+
+			field {
+				name = "my-enum-set-field"
+				label = {
+					en = "My Custom 'Set of enums' field"
+				}
+				type {
+					name = "Set"
+					element_type {
+						name = "Enum"
+						value {
+							key   = "ENUM-1"
+							label = "ENUM 1"
+						}
+						value {
+							key   = "ENUM-2"
+							label = "ENUM 2"
+						}
+						value {
+							key   = "ENUM-3"
+							label = "ENUM 3"
+						}
+					}
+				}
+			}
+
+			field {
+				name = "my-money-field"
+				label = {
+					en = "My Custom 'Money' field"
+				}
+				required = true
+				type {
+					name = "Money"
+				}
+				input_hint = "SingleLine"
+			}
+		}
+
+		resource "commercetools_cart_discount" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "relative name"
+			}
+			description = {
+				en = "relative description"
+			}
+
+			sort_order             = "0.9"
+			predicate              = "1=1"
+			stacking_mode          = "Stacking"
+			requires_discount_code = true
+			valid_from             = "2018-01-02T15:04:05Z"
+			valid_until            = "2019-01-02T15:04:05Z"
+
+			target {
+				type      = "lineItems"
+				predicate = "1=1"
+			}
+
+			value {
+				type      = "relative"
+				permyriad = 1000
+			}
+
+			custom {
+				type_id = commercetools_type.{{ .identifier }}.id
+				fields = {
+					"my-string-field" = "foobar"
+					"my-enum-set-field" = jsonencode(["ENUM-1", "ENUM-3"])
+					"my-money-field" = jsonencode({
+						"type" : "centPrecision",
+						"currencyCode" : "EUR",
+						"centAmount" : 150000,
+						"fractionDigits" : 2
+					})
+				}
 			}
 		}
 	`, map[string]any{
@@ -165,6 +342,112 @@ func testAccCartDiscountRelativeUpdate(identifier, key string) string {
 	})
 }
 
+func testAccCartDiscountRelativeUpdateCustomField(identifier, key string) string {
+	return hclTemplate(`
+		resource "commercetools_type" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "for relative cart-discount"
+			}
+			description = {
+				en = "Custom Field for relative cart-discount resource"
+			}
+
+			resource_type_ids = ["cart-discount"]
+
+			field {
+				name = "my-string-field"
+				label = {
+					en = "My Custom 'String' field"
+				}
+				type {
+					name = "String"
+				}
+			}
+
+			field {
+				name = "my-enum-set-field"
+				label = {
+					en = "My Custom 'Set of enums' field"
+				}
+				type {
+					name = "Set"
+					element_type {
+						name = "Enum"
+						value {
+							key   = "ENUM-1"
+							label = "ENUM 1"
+						}
+						value {
+							key   = "ENUM-2"
+							label = "ENUM 2"
+						}
+						value {
+							key   = "ENUM-3"
+							label = "ENUM 3"
+						}
+					}
+				}
+			}
+
+			field {
+				name = "my-money-field"
+				label = {
+					en = "My Custom 'Money' field"
+				}
+				required = true
+				type {
+					name = "Money"
+				}
+				input_hint = "SingleLine"
+			}
+		}
+		resource "commercetools_cart_discount" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "relative name"
+			}
+			description = {
+				en = "relative description"
+			}
+
+			sort_order             = "0.9"
+			predicate              = "1=1"
+			stacking_mode          = "Stacking"
+			requires_discount_code = true
+			valid_from             = "2018-01-02T15:04:05Z"
+			valid_until            = "2019-01-02T15:04:05Z"
+
+			target {
+				type      = "lineItems"
+				predicate = "1=1"
+			}
+
+			value {
+				type      = "relative"
+				permyriad = 1000
+			}
+
+			custom {
+				type_id = commercetools_type.{{ .identifier }}.id
+				fields = {
+					"my-string-field" = "foobar_foobar"
+					"my-enum-set-field" = jsonencode(["ENUM-2"])
+					"my-money-field" = jsonencode({
+						"type" : "centPrecision",
+						"currencyCode" : "USD",
+						"centAmount" : 2000,
+						"fractionDigits" : 2
+					})
+				}
+			}
+		}
+	`, map[string]any{
+		"identifier": identifier,
+		"key":        key,
+	})
+}
+
 func testAccCartDiscountRelativeRemoveProperties(identifier, key string) string {
 	return hclTemplate(`
 		resource "commercetools_cart_discount" "{{ .identifier }}" {
@@ -185,6 +468,111 @@ func testAccCartDiscountRelativeRemoveProperties(identifier, key string) string 
 			value {
 				type      = "relative"
 				permyriad = 1000
+			}
+		}
+	`, map[string]any{
+		"identifier": identifier,
+		"key":        key,
+	})
+}
+
+func testAccCartDiscountRelativeRemoveCustomField(identifier, key string) string {
+	return hclTemplate(`
+		resource "commercetools_type" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "for relative cart-discount"
+			}
+			description = {
+				en = "Custom Field for relative cart-discount resource"
+			}
+
+			resource_type_ids = ["cart-discount"]
+
+			field {
+				name = "my-string-field"
+				label = {
+					en = "My Custom 'String' field"
+				}
+				type {
+					name = "String"
+				}
+			}
+
+			field {
+				name = "my-enum-set-field"
+				label = {
+					en = "My Custom 'Set of enums' field"
+				}
+				type {
+					name = "Set"
+					element_type {
+						name = "Enum"
+						value {
+							key   = "ENUM-1"
+							label = "ENUM 1"
+						}
+						value {
+							key   = "ENUM-2"
+							label = "ENUM 2"
+						}
+						value {
+							key   = "ENUM-3"
+							label = "ENUM 3"
+						}
+					}
+				}
+			}
+
+			field {
+				name = "my-money-field"
+				label = {
+					en = "My Custom 'Money' field"
+				}
+				required = true
+				type {
+					name = "Money"
+				}
+				input_hint = "SingleLine"
+			}
+		}
+		resource "commercetools_cart_discount" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			name = {
+				en = "relative name"
+			}
+			description = {
+				en = "relative description"
+			}
+
+			sort_order             = "0.9"
+			predicate              = "1=1"
+			stacking_mode          = "Stacking"
+			requires_discount_code = true
+			valid_from             = "2018-01-02T15:04:05Z"
+			valid_until            = "2019-01-02T15:04:05Z"
+
+			target {
+				type      = "lineItems"
+				predicate = "1=1"
+			}
+
+			value {
+				type      = "relative"
+				permyriad = 1000
+			}
+
+			custom {
+				type_id = commercetools_type.{{ .identifier }}.id
+				fields = {
+					"my-enum-set-field" = jsonencode(["ENUM-1", "ENUM-3"])
+					"my-money-field" = jsonencode({
+						"type" : "centPrecision",
+						"currencyCode" : "USD",
+						"centAmount" : 2000,
+						"fractionDigits" : 2
+					})
+				}
 			}
 		}
 	`, map[string]any{
