@@ -11,9 +11,9 @@ import (
 )
 
 func TestAssociateRoleResource_Create(t *testing.T) {
-	rn := "commercetools_associate_role.sales_manager_eu"
+	rn := "commercetools_associate_role.sales_manager_associate_role"
 
-	id := "sales_manager_eu"
+	id := "sales_manager_associate_role"
 	key := "sales_manager_europe_region"
 	name := "Sales Manager - Europe"
 
