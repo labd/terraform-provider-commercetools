@@ -17,8 +17,8 @@ var (
 	_ datasource.DataSourceWithConfigure = &CustomTypeSource{}
 )
 
-// NewCustomTypeSource is a helper function to simplify the provider implementation.
-func NewTypeDataSource() datasource.DataSource {
+// NewDataSource is a helper function to simplify the provider implementation.
+func NewDataSource() datasource.DataSource {
 	return &CustomTypeSource{}
 }
 

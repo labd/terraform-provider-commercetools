@@ -34,14 +34,12 @@ func resourceCategory() *schema.Resource {
 			"key": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
 				Description: "Category-specific unique identifier. Must be unique across a project",
 			},
 			"name": {
 				Type:             TypeLocalizedString,
 				ValidateDiagFunc: validateLocalizedStringKey,
 				Required:         true,
-				ForceNew:         true,
 			},
 			"description": {
 				Type:             TypeLocalizedString,
@@ -257,32 +255,32 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m any) di
 		return diag.FromErr(err)
 	}
 
-	d.Set("version", category.Version)
-	d.Set("key", category.Key)
-	d.Set("name", category.Name)
+	_ = d.Set("version", category.Version)
+	_ = d.Set("key", category.Key)
+	_ = d.Set("name", category.Name)
 	if category.Parent != nil {
-		d.Set("parent", category.Parent.ID)
+		_ = d.Set("parent", category.Parent.ID)
 	} else {
-		d.Set("parent", "")
+		_ = d.Set("parent", "")
 	}
-	d.Set("order_hint", category.OrderHint)
-	d.Set("external_id", category.ExternalId)
+	_ = d.Set("order_hint", category.OrderHint)
+	_ = d.Set("external_id", category.ExternalId)
 	if category.Description != nil {
-		d.Set("description", *category.Description)
+		_ = d.Set("description", *category.Description)
 	}
 	if category.MetaTitle != nil {
-		d.Set("meta_title", *category.MetaTitle)
+		_ = d.Set("meta_title", *category.MetaTitle)
 	}
 	if category.MetaDescription != nil {
-		d.Set("meta_description", *category.MetaDescription)
+		_ = d.Set("meta_description", *category.MetaDescription)
 	}
 	if category.MetaKeywords != nil {
-		d.Set("meta_keywords", *category.MetaKeywords)
+		_ = d.Set("meta_keywords", *category.MetaKeywords)
 	}
 	if category.Assets != nil {
-		d.Set("assets", flattenCategoryAssets(category.Assets))
+		_ = d.Set("assets", flattenCategoryAssets(category.Assets))
 	}
-	d.Set("custom", flattenCustomFields(category.Custom))
+	_ = d.Set("custom", flattenCustomFields(category.Custom))
 	return nil
 }
 
@@ -366,30 +364,36 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m any) 
 	}
 
 	if d.HasChange("assets") {
-		assets := expandCategoryAssets(d)
-		for _, asset := range assets {
-			if asset.ID == "" {
-				input.Actions = append(input.Actions, &platform.CategoryAddAssetAction{Asset: platform.AssetDraft{
-					Key:         asset.Key,
-					Name:        asset.Name,
-					Description: asset.Description,
-					Sources:     asset.Sources,
-					Tags:        asset.Tags,
-				}})
-			} else {
-				input.Actions = append(
-					input.Actions,
-					&platform.CategoryChangeAssetNameAction{Name: asset.Name, AssetKey: asset.Key},
-					&platform.CategorySetAssetDescriptionAction{Description: asset.Description, AssetKey: asset.Key},
-					&platform.CategorySetAssetSourcesAction{Sources: asset.Sources, AssetKey: asset.Key},
-				)
-				if len(asset.Tags) > 0 {
-					input.Actions = append(
-						input.Actions,
-						&platform.CategorySetAssetTagsAction{Tags: asset.Tags, AssetKey: asset.Key},
-					)
-				}
+		// Instead of having to perform operations on lists of assets we remove all assets on change and recreate the new
+		//list
+		oldState, newState := d.GetChange("assets")
+
+		oldAssets, ok := oldState.([]interface{})
+		if !ok {
+			return diag.Errorf("old asset state is not a list")
+		}
+
+		for _, assetData := range oldAssets {
+			asset, ok := assetData.(map[string]interface{})
+			if !ok {
+				return diag.Errorf("asset is not in format map[string]interface{}")
 			}
+			id := asset["id"].(string)
+			input.Actions = append(input.Actions, &platform.CategoryRemoveAssetAction{AssetId: &id})
+		}
+
+		newAssets, ok := newState.([]interface{})
+		if !ok {
+			return diag.Errorf("new asset state is not a list")
+		}
+
+		for _, assetData := range newAssets {
+			if !ok {
+				return diag.Errorf("asset is not in format map[string]interface{}")
+			}
+			input.Actions = append(input.Actions, &platform.CategoryAddAssetAction{
+				Asset: *expandCategoryAssetDraft(assetData),
+			})
 		}
 	}
 

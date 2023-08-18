@@ -22,24 +22,24 @@ func TestAccChannel_CustomFieldWithKey(t *testing.T) {
 		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccCheckChannelDestroy,
 		Steps: []resource.TestStep{{
-				Config: testAccConfigCreateCustomField(),
-				Check: resource.ComposeTestCheckFunc(
-					func(s *terraform.State) error {
-						client, err := acctest.GetClient()
-						if err != nil {
-							return nil
-						}
-						result, err := client.Types().WithKey("test").Get().Execute(context.Background())
-						if err != nil {
-							return nil
-						}
-						assert.NotNil(t, result)
-						assert.Equal(t, result.Key, "test")
-						assert.Equal(t, result.FieldDefinitions[0].Name, "my-field")
+			Config: testAccConfigCreateCustomField(),
+			Check: resource.ComposeTestCheckFunc(
+				func(s *terraform.State) error {
+					client, err := acctest.GetClient()
+					if err != nil {
 						return nil
-					},
-				),
-			},
+					}
+					result, err := client.Types().WithKey("test").Get().Execute(context.Background())
+					if err != nil {
+						return nil
+					}
+					assert.NotNil(t, result)
+					assert.Equal(t, result.Key, "test")
+					assert.Equal(t, result.FieldDefinitions[0].Name, "my-field")
+					return nil
+				},
+			),
+		},
 			{
 				Config: testAccConfigWithCustomFieldBasedOnIDOutOfDataResource(),
 				Check: resource.ComposeTestCheckFunc(

@@ -407,7 +407,7 @@ func fieldTypeElement(setsAllowed bool) *schema.Resource {
 		"reference_type_id": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "Resource type the Custom Field can reference. Required when type is `reference`",
+			Description: "Resource type the Custom Field can reference. Required when type is `Reference`",
 		},
 	}
 	if setsAllowed {

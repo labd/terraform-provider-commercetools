@@ -131,11 +131,12 @@ func validateDestinationType(val any, key string) (warns []string, errs []error)
 
 	switch v {
 	case
+		"googlecloudfunction",
 		"http",
 		"awslambda":
 		return
 	default:
-		errs = append(errs, fmt.Errorf("%q not a valid value for %q, valid options are: http, awslambda", val, key))
+		errs = append(errs, fmt.Errorf("%q not a valid value for %q, valid options are: googlecloudfunction, http, awslambda", val, key))
 	}
 	return
 }
@@ -198,7 +199,7 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	d.SetId(extension.ID)
-	d.Set("version", extension.Version)
+	_ = d.Set("version", extension.Version)
 
 	return resourceAPIExtensionRead(ctx, d, m)
 }
@@ -215,11 +216,11 @@ func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m any
 		return diag.FromErr(err)
 	}
 
-	d.Set("version", extension.Version)
-	d.Set("key", extension.Key)
-	d.Set("destination", flattenExtensionDestination(extension.Destination, d))
-	d.Set("trigger", flattenExtensionTriggers(extension.Triggers))
-	d.Set("timeout_in_ms", extension.TimeoutInMs)
+	_ = d.Set("version", extension.Version)
+	_ = d.Set("key", extension.Key)
+	_ = d.Set("destination", flattenExtensionDestination(extension.Destination, d))
+	_ = d.Set("trigger", flattenExtensionTriggers(extension.Triggers))
+	_ = d.Set("timeout_in_ms", extension.TimeoutInMs)
 	return nil
 }
 
@@ -301,6 +302,10 @@ func expandExtensionDestination(d *schema.ResourceData) (platform.Destination, e
 	}
 
 	switch strings.ToLower(input["type"].(string)) {
+	case "googlecloudfunction":
+		return platform.GoogleCloudFunctionDestination{
+			Url: input["url"].(string),
+		}, nil
 	case "http":
 		auth, err := expandExtensionDestinationAuthentication(input)
 		if err != nil {
@@ -370,8 +375,14 @@ func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceDat
 		current, _ = expandExtensionDestination(d)
 	}
 
-	// A destination is either HTTP or AWSLambda
+	// A destination is either GoogleCloudFunction, HTTP or AWSLambda
 	switch d := dst.(type) {
+
+	case platform.GoogleCloudFunctionDestination:
+		return []map[string]string{{
+			"type": "GoogleCloudFunction",
+			"url":  d.Url,
+		}}
 
 	// For the HTTP Destination there are two specific authentication types:
 	// AuthorizationHeader and AzureFunctions.
@@ -402,8 +413,10 @@ func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceDat
 			// so use the value from the state file instead (if it exists)
 			secretValue := ""
 			if current != nil {
-				if c, ok := current.(platform.AzureFunctionsAuthentication); ok {
-					secretValue = c.Key
+				if c, ok := current.(platform.HttpDestination); ok {
+					if auth, ok := c.Authentication.(platform.AzureFunctionsAuthentication); ok {
+						secretValue = auth.Key
+					}
 				}
 			}
 			return []map[string]string{{

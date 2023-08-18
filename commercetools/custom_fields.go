@@ -54,7 +54,8 @@ type SetCustomTypeAction interface {
 		platform.CategorySetCustomTypeAction |
 		platform.ShippingMethodSetCustomTypeAction |
 		platform.CustomerGroupSetCustomTypeAction |
-		platform.DiscountCodeSetCustomTypeAction
+		platform.DiscountCodeSetCustomTypeAction |
+		platform.CartDiscountSetCustomTypeAction
 }
 
 type SetCustomFieldAction interface {
@@ -63,20 +64,12 @@ type SetCustomFieldAction interface {
 		platform.CategorySetCustomFieldAction |
 		platform.ShippingMethodSetCustomFieldAction |
 		platform.CustomerGroupSetCustomFieldAction |
-		platform.DiscountCodeSetCustomFieldAction
-}
-
-func CustomFieldCreateFieldContainer(data map[string]any) *platform.FieldContainer {
-	if raw, ok := data["fields"].(map[string]any); ok {
-		fields := platform.FieldContainer(raw)
-		return &fields
-	}
-	return nil
+		platform.DiscountCodeSetCustomFieldAction |
+		platform.CartDiscountSetCustomFieldAction
 }
 
 func customFieldEncodeType(t *platform.Type, name string, value any) (any, error) {
-	// Sub-optimal to do this everytime, however performance is not that
-	// important here and impact is neglible
+	// Suboptimal to do this everytime, however performance is not that important here and impact is negligible
 	fieldTypes := map[string]platform.FieldType{}
 	for _, field := range t.FieldDefinitions {
 		fieldTypes[field.Name] = field.Type
@@ -122,7 +115,18 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 
 		result := make([]any, len(values))
 		for i := range values {
-			itemValue, err := customFieldEncodeValue(v.ElementType, name, values[i])
+			var element = values[i]
+			_, ok := element.(string)
+
+			//We need to re-marshal the data here, so we can recursively pass it back to the encoding function
+			if !ok {
+				marshalledValue, err := json.Marshal(values[i])
+				if err != nil {
+					return nil, err
+				}
+				element = string(marshalledValue)
+			}
+			itemValue, err := customFieldEncodeValue(v.ElementType, name, element)
 			if err != nil {
 				return nil, err
 			}
@@ -261,22 +265,22 @@ func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](ctx
 		return nil, err
 	}
 
-	old, new := d.GetChange("custom")
-	old_data := firstElementFromSlice(old.([]any))
-	new_data := firstElementFromSlice(new.([]any))
-	old_type_id := old_data["type_id"]
-	new_type_id := new_data["type_id"]
+	oldState, newState := d.GetChange("custom")
+	oldData := firstElementFromSlice(oldState.([]any))
+	newData := firstElementFromSlice(newState.([]any))
+	oldTypeId := oldData["type_id"]
+	newTypeId := newData["type_id"]
 
 	// Remove custom field from resource
-	if new_type_id == nil {
+	if newTypeId == nil {
 		action := T{
 			Type: nil,
 		}
 		return []any{action}, nil
 	}
 
-	if old_type_id == nil || (old_type_id.(string) != new_type_id.(string)) {
-		value, err := CreateCustomFieldDraftRaw(new_data, t)
+	if oldTypeId == nil || (oldTypeId.(string) != newTypeId.(string)) {
+		value, err := CreateCustomFieldDraftRaw(newData, t)
 		if err != nil {
 			return nil, err
 		}
@@ -288,10 +292,10 @@ func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](ctx
 	}
 
 	changes := diffSlices(
-		old_data["fields"].(map[string]any),
-		new_data["fields"].(map[string]any))
+		oldData["fields"].(map[string]any),
+		newData["fields"].(map[string]any))
 
-	result := []any{}
+	var result []any
 	for key := range changes {
 		val, err := customFieldEncodeType(t, key, changes[key])
 		if err != nil {

@@ -14,12 +14,14 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 	name := "test sh method"
 	key := "test-sh-method"
 	description := "test shipping method description"
+	localizedName := "some localized shipping method test name"
 	predicate := "1 = 1"
 	resourceName := "commercetools_shipping_method.standard"
 
 	newName := "new test sh method"
 	newKey := "new-test-sh-method"
 	newDescription := "new test shipping method description"
+	newLocalizedName := "some new localized shipping method test name"
 	newPredicate := "2 = 2"
 
 	resource.Test(t, resource.TestCase{
@@ -28,23 +30,25 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 		CheckDestroy: testAccCheckShippingMethodDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingMethodConfig(name, key, description, description, false, true, predicate),
+				Config: testAccShippingMethodConfig(name, key, description, description, localizedName, false, true, predicate),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", name),
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					resource.TestCheckResourceAttr(resourceName, "description", description),
 					resource.TestCheckResourceAttr(resourceName, "localized_description.en", description),
+					resource.TestCheckResourceAttr(resourceName, "localized_name.en", localizedName),
 					resource.TestCheckResourceAttr(resourceName, "is_default", "false"),
 					resource.TestCheckResourceAttr(resourceName, "predicate", predicate),
 				),
 			},
 			{
-				Config: testAccShippingMethodConfig(newName, newKey, newDescription, newDescription, true, true, newPredicate),
+				Config: testAccShippingMethodConfig(newName, newKey, newDescription, newDescription, newLocalizedName, true, true, newPredicate),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", newName),
 					resource.TestCheckResourceAttr(resourceName, "key", newKey),
 					resource.TestCheckResourceAttr(resourceName, "description", newDescription),
 					resource.TestCheckResourceAttr(resourceName, "localized_description.en", newDescription),
+					resource.TestCheckResourceAttr(resourceName, "localized_name.en", newLocalizedName),
 					resource.TestCheckResourceAttr(resourceName, "is_default", "true"),
 					resource.TestCheckResourceAttrSet(resourceName, "tax_category_id"),
 					resource.TestCheckResourceAttr(resourceName, "predicate", newPredicate),
@@ -54,7 +58,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 	})
 }
 
-func testAccShippingMethodConfig(name string, key string, description string, localizedDescription string, isDefault bool, setTaxCategory bool, predicate string) string {
+func testAccShippingMethodConfig(name string, key string, description string, localizedDescription string, localizedName string, isDefault bool, setTaxCategory bool, predicate string) string {
 	taxCategoryReference := ""
 	if setTaxCategory {
 		taxCategoryReference = "tax_category_id = commercetools_tax_category.test.id"
@@ -73,6 +77,9 @@ func testAccShippingMethodConfig(name string, key string, description string, lo
 			localized_description = {
 				en = "{{ .localizedDescription }}"
 			}
+			localized_name = {
+				en = "{{ .localizedName }}"
+			}
 			is_default = "{{ .isDefault }}"
 			predicate = "{{ .predicate }}"
 
@@ -84,6 +91,7 @@ func testAccShippingMethodConfig(name string, key string, description string, lo
 			"key":                  key,
 			"description":          description,
 			"localizedDescription": localizedDescription,
+			"localizedName":        localizedName,
 			"isDefault":            isDefault,
 			"predicate":            predicate,
 			"taxCategoryReference": taxCategoryReference,

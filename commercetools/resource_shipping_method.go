@@ -15,7 +15,7 @@ func resourceShippingMethod() *schema.Resource {
 	return &schema.Resource{
 		Description: "With Shipping Methods you can specify which shipping services you want to provide to your " +
 			"customers for deliveries to different areas of the world at rates you can define.\n\n" +
-			"See also the [Shipping Methods API Documentation](https://docs.commercetoolstools.com/api/projects/shippingMethods)",
+			"See also the [Shipping Methods API Documentation](https://docs.commercetools.com/api/projects/shippingMethods)",
 		CreateContext: resourceShippingMethodCreate,
 		ReadContext:   resourceShippingMethodRead,
 		UpdateContext: resourceShippingMethodUpdate,
@@ -37,8 +37,14 @@ func resourceShippingMethod() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"localized_name": {
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
+				Type:             TypeLocalizedString,
+				ValidateDiagFunc: validateLocalizedStringKey,
+				Optional:         true,
+			},
 			"localized_description": {
-				Description:      "[LocalizedString](https://docs.commercetoolstools.com/api/types#localizedstring)",
+				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
 				Type:             TypeLocalizedString,
 				ValidateDiagFunc: validateLocalizedStringKey,
 				Optional:         true,
@@ -53,7 +59,7 @@ func resourceShippingMethod() *schema.Resource {
 				Computed: true,
 			},
 			"tax_category_id": {
-				Description: "ID of a [Tax Category](https://docs.commercetoolstools.com/api/projects/taxCategories#taxcategory)",
+				Description: "ID of a [Tax Category](https://docs.commercetools.com/api/projects/taxCategories#taxcategory)",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
@@ -75,6 +81,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	localizedDescription := expandLocalizedString(d.Get("localized_description"))
+	localizedName := expandLocalizedString(d.Get("localized_name"))
 
 	custom, err := CreateCustomFieldDraft(ctx, client, d)
 	if err != nil {
@@ -88,6 +95,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		Name:                 d.Get("name").(string),
 		Description:          stringRef(d.Get("description")),
 		LocalizedDescription: &localizedDescription,
+		LocalizedName:        &localizedName,
 		IsDefault:            d.Get("is_default").(bool),
 		TaxCategory:          taxCategory,
 		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
@@ -135,6 +143,7 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m a
 		d.Set("name", shippingMethod.Name)
 		d.Set("description", shippingMethod.Description)
 		d.Set("localized_description", shippingMethod.LocalizedDescription)
+		d.Set("localized_name", shippingMethod.LocalizedName)
 		d.Set("is_default", shippingMethod.IsDefault)
 		d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
 		d.Set("predicate", shippingMethod.Predicate)
@@ -188,6 +197,13 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 		input.Actions = append(
 			input.Actions,
 			&platform.ShippingMethodSetLocalizedDescriptionAction{LocalizedDescription: &newLocalizedDescription})
+	}
+
+	if d.HasChange("localized_name") {
+		newLocalizedName := expandLocalizedString(d.Get("localized_name"))
+		input.Actions = append(
+			input.Actions,
+			&platform.ShippingMethodSetLocalizedNameAction{LocalizedName: &newLocalizedName})
 	}
 
 	if d.HasChange("is_default") {
