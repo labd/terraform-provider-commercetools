@@ -297,14 +297,21 @@ func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](ctx
 
 	var result []any
 	for key := range changes {
-		val, err := customFieldEncodeType(t, key, changes[key])
-		if err != nil {
-			return nil, err
+		if changes[key] == nil {
+			result = append(result, F{
+				Name:  key,
+				Value: nil,
+			})
+		} else {
+			val, err := customFieldEncodeType(t, key, changes[key])
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, F{
+				Name:  key,
+				Value: val,
+			})
 		}
-		result = append(result, F{
-			Name:  key,
-			Value: val,
-		})
 	}
 	return result, nil
 }
