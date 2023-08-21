@@ -34,14 +34,52 @@ func NewResource() resource.Resource {
 	return &associateRoleResource{}
 }
 
-// Configure implements resource.ResourceWithConfigure.
-func (r *associateRoleResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
+// Schema implements resource.Resource.
+func (*associateRoleResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Associate Roles provide a way to group granular Permissions and assign " +
+			"them to Associates within a Business Unit.\n\n" +
+			"See also the [Associate Role API Documentation](https://docs.commercetools.com/api/projects/associate-roles)",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "Unique identifier of the AssociateRole.",
+				Computed:    true,
+			},
+			"version": schema.Int64Attribute{
+				Description: "Current version of the AssociateRole.",
+				Computed:    true,
+			},
+			"key": schema.StringAttribute{
+				Description: "User-defined unique identifier of the AssociateRole.",
+				Required:    true,
+			},
+			"buyer_assignable": schema.BoolAttribute{
+				Description: "Whether the AssociateRole can be assigned to an Associate by a buyer. If false, " +
+					"the AssociateRole can only be assigned using the general endpoint.",
+				Optional: true,
+			},
+			"name": schema.StringAttribute{
+				Description: "Name of the AssociateRole.",
+				Optional:    true,
+			},
+			"permissions": schema.ListAttribute{
+				Required:    true,
+				ElementType: types.StringType,
+				Description: "List of Permissions for the AssociateRole.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
+			},
+		},
 	}
+}
 
-	data := req.ProviderData.(*utils.ProviderData)
-	r.client = data.Client
+// Metadata implements resource.Resource.
+func (*associateRoleResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_associate_role"
 }
 
 // Create implements resource.Resource.
@@ -109,11 +147,6 @@ func (r *associateRoleResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 }
 
-// Metadata implements resource.Resource.
-func (*associateRoleResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_associate_role"
-}
-
 // Read implements resource.Resource.
 func (r *associateRoleResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get the current state.
@@ -148,50 +181,6 @@ func (r *associateRoleResource) Read(ctx context.Context, req resource.ReadReque
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
-	}
-}
-
-// Schema implements resource.Resource.
-func (*associateRoleResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		Description: "Associate Roles provide a way to group granular Permissions and assign " +
-			"them to Associates within a Business Unit.\n\n" +
-			"See also the [Associate Role API Documentation](https://docs.commercetools.com/api/projects/associate-roles)",
-		Version: 1,
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Description: "Unique identifier of the AssociateRole.",
-				Computed:    true,
-			},
-			"version": schema.Int64Attribute{
-				Description: "Current version of the AssociateRole.",
-				Computed:    true,
-			},
-			"key": schema.StringAttribute{
-				Description: "User-defined unique identifier of the AssociateRole.",
-				Required:    true,
-			},
-			"buyer_assignable": schema.BoolAttribute{
-				Description: "Whether the AssociateRole can be assigned to an Associate by a buyer. If false, " +
-					"the AssociateRole can only be assigned using the general endpoint.",
-				Optional: true,
-			},
-			"name": schema.StringAttribute{
-				Description: "Name of the AssociateRole.",
-				Optional:    true,
-			},
-			"permissions": schema.ListAttribute{
-				Required:    true,
-				ElementType: types.StringType,
-				Description: "List of Permissions for the AssociateRole.",
-				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
-				},
-				PlanModifiers: []planmodifier.List{
-					listplanmodifier.UseStateForUnknown(),
-				},
-			},
-		},
 	}
 }
 
@@ -237,6 +226,16 @@ func (r *associateRoleResource) Update(ctx context.Context, req resource.UpdateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+}
+
+// Configure implements resource.ResourceWithConfigure.
+func (r *associateRoleResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	data := req.ProviderData.(*utils.ProviderData)
+	r.client = data.Client
 }
 
 // ImportState implements resource.ResourceWithImportState.
