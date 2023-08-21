@@ -33,6 +33,17 @@ func TestAssociateRoleResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr(rn, "permissions.#", "7"),
 				),
 			},
+			{
+				Config: testAssociateRoleConfigUpdate(id, "Sales Manager - DACH", key, true, `"AddChildUnits"`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "name", "Sales Manager - DACH"),
+					resource.TestCheckResourceAttr(rn, "key", key),
+					resource.TestCheckResourceAttr(rn, "id", id),
+					resource.TestCheckResourceAttr(rn, "permissions.#", "8"),
+					resource.TestCheckResourceAttr(rn, "permissions.7", "AddChildUnits"),
+					resource.TestCheckResourceAttr(rn, "buyer_assignable", "true"),
+				),
+			},
 		},
 	})
 }
@@ -61,5 +72,31 @@ func testAssociateRoleConfig(identifier, name, key string) string {
 		"identifier": identifier,
 		"name":       name,
 		"key":        key,
+	})
+}
+
+func testAssociateRoleConfigUpdate(identifier, name, key string, buyerAssign bool, permission string) string {
+	return utils.HCLTemplate(`
+		resource "commercetools_associate_role" "{{ .identifier }}" {
+			key = "{{ .key }}"
+			buyer_assignable = {{ .buyer_assignable }}
+			name = "{{ .name }}"
+			permissions = [
+				"AddChildUnits",
+				"UpdateBusinessUnitDetails",
+				"UpdateAssociates",
+				"CreateMyCarts",
+				"DeleteMyCarts",
+				"UpdateMyCarts",
+				"ViewMyCarts",
+				{{ .permissions }},
+			]
+		}
+	`, map[string]any{
+		"identifier":       identifier,
+		"name":             name,
+		"key":              key,
+		"buyer_assignable": buyerAssign,
+		"permissions":      permission,
 	})
 }
