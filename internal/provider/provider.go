@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/labd/terraform-provider-commercetools/internal/resources/attribute_group"
 	"net/http"
 	"os"
 	"strings"
@@ -19,6 +18,8 @@ import (
 
 	datasourcestate "github.com/labd/terraform-provider-commercetools/internal/datasource/state"
 	datasourcetype "github.com/labd/terraform-provider-commercetools/internal/datasource/type"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/associate_role"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/attribute_group"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/project"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/state"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/state_transition"
@@ -160,7 +161,6 @@ func (p *ctProvider) Configure(ctx context.Context, req provider.ConfigureReques
 		UserAgent:   fmt.Sprintf("terraform-provider-commercetools/%s", p.version),
 		HTTPClient:  httpClient,
 	})
-
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to create client",
@@ -175,7 +175,6 @@ func (p *ctProvider) Configure(ctx context.Context, req provider.ConfigureReques
 	}
 	resp.DataSourceData = data
 	resp.ResourceData = data
-
 }
 
 // DataSources defines the data sources implemented in the provider.
@@ -194,5 +193,6 @@ func (p *ctProvider) Resources(_ context.Context) []func() resource.Resource {
 		state.NewResource,
 		state_transition.NewResource,
 		attribute_group.NewResource,
+		associate_role.NewResource,
 	}
 }
