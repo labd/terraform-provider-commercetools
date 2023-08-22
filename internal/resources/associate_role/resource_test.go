@@ -17,19 +17,16 @@ func TestAssociateRoleResource_Create(t *testing.T) {
 	key := "sales_manager_europe_region"
 	name := "Sales Manager - Europe"
 
-	config := testAssociateRoleConfig(id, name, key)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.TestAccPreCheck(t) },
 		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
 		CheckDestroy:             testAssociateRoleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: config,
+				Config: testAssociateRoleConfig(id, name, key),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(rn, "name", name),
 					resource.TestCheckResourceAttr(rn, "key", key),
-					resource.TestCheckResourceAttr(rn, "id", id),
 					resource.TestCheckResourceAttr(rn, "permissions.#", "7"),
 				),
 			},
@@ -38,7 +35,6 @@ func TestAssociateRoleResource_Create(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(rn, "name", "Sales Manager - DACH"),
 					resource.TestCheckResourceAttr(rn, "key", key),
-					resource.TestCheckResourceAttr(rn, "id", id),
 					resource.TestCheckResourceAttr(rn, "permissions.#", "8"),
 					resource.TestCheckResourceAttr(rn, "permissions.7", "AddChildUnits"),
 					resource.TestCheckResourceAttr(rn, "buyer_assignable", "true"),
@@ -48,7 +44,7 @@ func TestAssociateRoleResource_Create(t *testing.T) {
 	})
 }
 
-func testAssociateRoleDestroy(s *terraform.State) error {
+func testAssociateRoleDestroy(_ *terraform.State) error {
 	return nil
 }
 

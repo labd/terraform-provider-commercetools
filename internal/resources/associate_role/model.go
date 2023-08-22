@@ -34,11 +34,11 @@ func NewAssociateRoleFromNative(ar *platform.AssociateRole) AssociateRole {
 
 func (ar AssociateRole) draft() platform.AssociateRoleDraft {
 	return platform.AssociateRoleDraft{
-		Key:             ar.Key.String(),
+		Key:             ar.Key.ValueString(),
 		Name:            ar.Name.ValueStringPointer(),
 		BuyerAssignable: ar.BuyerAssignable.ValueBoolPointer(),
 		Permissions: pie.Map(ar.Permissions, func(p types.String) platform.Permission {
-			return platform.Permission(p.String())
+			return platform.Permission(p.ValueString())
 		}),
 	}
 }
@@ -75,7 +75,7 @@ func (ar AssociateRole) updateActions(plan AssociateRole) platform.AssociateRole
 	// setNewOrRemovedPermissions
 	if !reflect.DeepEqual(ar.Permissions, plan.Permissions) {
 		// we completely override the values as calculating
-		// differences will over complicate operations.
+		// differences will overcomplicate operations.
 		result.Actions = append(
 			result.Actions,
 			platform.AssociateRoleSetPermissionsAction{
