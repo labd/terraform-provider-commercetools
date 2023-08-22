@@ -75,15 +75,12 @@ func (s *Subscription) matchDefaults(state Subscription) {
 	}
 }
 
-func (s *Subscription) setDefaults() {
+func (s *Subscription) setSecretValues(state Subscription) {
+	s.Destination[0].setSecretValues(&state.Destination[0])
 }
 
-func (p *Subscription) setSecretValues(state Subscription) {
-	p.Destination[0].setSecretValues(&state.Destination[0])
-}
-
-func (s Subscription) draft() platform.SubscriptionDraft {
-	changes := []platform.ChangeSubscription{}
+func (s *Subscription) draft() platform.SubscriptionDraft {
+	var changes []platform.ChangeSubscription
 	for _, c := range s.Changes {
 		changes = append(changes, c.toNative()...)
 	}
@@ -104,7 +101,7 @@ func (s Subscription) draft() platform.SubscriptionDraft {
 	return draft
 }
 
-func (s Subscription) updateActions(plan Subscription) platform.SubscriptionUpdate {
+func (s *Subscription) updateActions(plan Subscription) platform.SubscriptionUpdate {
 	result := platform.SubscriptionUpdate{
 		Version: int(s.Version.ValueInt64()),
 		Actions: []platform.SubscriptionUpdateAction{},
@@ -132,7 +129,7 @@ func (s Subscription) updateActions(plan Subscription) platform.SubscriptionUpda
 
 	// setChanges
 	if !reflect.DeepEqual(s.Changes, plan.Changes) {
-		changes := []platform.ChangeSubscription{}
+		var changes []platform.ChangeSubscription
 		for _, c := range plan.Changes {
 			changes = append(changes, c.toNative()...)
 		}
@@ -195,7 +192,7 @@ func (d *Destination) setSecretValues(state *Destination) {
 	case AzureServiceBus:
 		// Quick hack. Filter out the shared access key since that value is
 		// masked by commercetools. If the strings are equal then copy the val
-		// from the state. Otherwise we use the value from the plan
+		// from the state. Otherwise, we use the value from the plan
 		re := regexp.MustCompile(`;?SharedAccessKey=[^;]+`)
 		planVal := re.ReplaceAllString(d.ConnectionString.ValueString(), "")
 		stateVal := re.ReplaceAllString(state.ConnectionString.ValueString(), "")
@@ -246,7 +243,7 @@ func NewDestinationFromNative(n platform.Destination) *Destination {
 	return d
 }
 
-func (d Destination) ToNative() platform.Destination {
+func (d *Destination) ToNative() platform.Destination {
 	val := d.Type.ValueString()
 
 	switch val {
