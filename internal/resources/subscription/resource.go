@@ -29,7 +29,7 @@ var (
 	_ resource.ResourceWithImportState = &subscriptionResource{}
 )
 
-// NewOrderResource is a helper function to simplify the provider implementation.
+// NewSubscriptionResource is a helper function to simplify the provider implementation.
 func NewSubscriptionResource() resource.Resource {
 	return &subscriptionResource{}
 }
@@ -262,7 +262,7 @@ func (r *subscriptionResource) Configure(_ context.Context, req resource.Configu
 	r.client = data.Client
 }
 
-func (p *subscriptionResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+func (r *subscriptionResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
 	return map[int64]resource.StateUpgrader{
 		0: {
 			StateUpgrader: upgradeStateV0,
@@ -417,6 +417,25 @@ func (r *subscriptionResource) Delete(ctx context.Context, req resource.DeleteRe
 }
 
 func (r *subscriptionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Retrieve import ID and save to id attribute
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	subscription, err := r.client.Subscriptions().WithId(req.ID).Get().Execute(ctx)
+	if err != nil {
+		if errors.Is(err, platform.ErrNotFound) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError(
+			"Error reading subscription",
+			"Could not retrieve subscription, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
+	current := NewSubscriptionFromNative(subscription)
+
+	// Set refreshed state
+	diags := resp.State.Set(ctx, &current)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
