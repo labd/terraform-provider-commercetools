@@ -51,7 +51,7 @@ func resourceStore() *schema.Resource {
 			"countries": {
 				Description: "A two-digit country code as per " +
 					"[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
@@ -91,7 +91,7 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 		Key:                  d.Get("key").(string),
 		Name:                 &name,
 		Languages:            expandStringArray(d.Get("languages").([]any)),
-		Countries:            expandStoreCountries(d.Get("countries").([]any)),
+		Countries:            expandStoreCountries(d.Get("countries").(*schema.Set)),
 		DistributionChannels: dcIdentifiers,
 		SupplyChannels:       scIdentifiers,
 		Custom:               custom,
@@ -191,7 +191,7 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 	}
 
 	if d.HasChange("countries") {
-		countries := expandStoreCountries(d.Get("countries").([]any))
+		countries := expandStoreCountries(d.Get("countries").(*schema.Set))
 
 		input.Actions = append(
 			input.Actions,
@@ -288,7 +288,7 @@ func convertCountryCodesToStoreCountries(countryCodes []string) []platform.Store
 }
 
 func expandStoreCountries(countryData any) []platform.StoreCountry {
-	countryCodes := expandStringArray(countryData.([]any))
+	countryCodes := expandStringArray(countryData.(*schema.Set).List())
 	return convertCountryCodesToStoreCountries(countryCodes)
 }
 

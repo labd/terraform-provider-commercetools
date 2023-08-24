@@ -94,7 +94,7 @@ resource "commercetools_store" "my-store" {
 
 ### Optional
 
-- `countries` (List of String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
+- `countries` (Set of String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 - `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `distribution_channels` (List of String) Set of ResourceIdentifier to a Channel with ProductDistribution
 - `languages` (List of String) [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)
