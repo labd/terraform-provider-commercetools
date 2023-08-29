@@ -62,14 +62,14 @@ func extractRawDetailedError(content []byte) error {
 	// code, message and detailedErrorMessage values.
 	if val, ok := data["errors"].([]any); ok {
 		for i := range val {
-			if error, ok := val[i].(map[string]any); ok {
+			if err, ok := val[i].(map[string]any); ok {
 				var message string
 
-				if detail, ok := error["message"].(string); ok {
+				if detail, ok := err["message"].(string); ok {
 					message = detail
 				}
 
-				if detail, ok := error["detailedErrorMessage"].(string); ok {
+				if detail, ok := err["detailedErrorMessage"].(string); ok {
 					if message != "" {
 						return fmt.Errorf("%s %s", message, detail)
 					}
@@ -87,8 +87,12 @@ func extractRawDetailedError(content []byte) error {
 	return nil
 }
 
-// utils.IsResourceNotFoundError returns true if commercetools returned a 404 error
+// IsResourceNotFoundError returns true if commercetools returned a 404 error
 func IsResourceNotFoundError(err error) bool {
+	if errors.Is(err, platform.ErrNotFound) {
+		return true
+	}
+
 	switch e := err.(type) {
 	case platform.ResourceNotFoundError:
 		return true
