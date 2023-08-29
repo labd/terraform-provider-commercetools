@@ -62,14 +62,14 @@ func extractRawDetailedError(content []byte) error {
 	// code, message and detailedErrorMessage values.
 	if val, ok := data["errors"].([]any); ok {
 		for i := range val {
-			if err, ok := val[i].(map[string]any); ok {
+			if error, ok := val[i].(map[string]any); ok {
 				var message string
 
-				if detail, ok := err["message"].(string); ok {
+				if detail, ok := error["message"].(string); ok {
 					message = detail
 				}
 
-				if detail, ok := err["detailedErrorMessage"].(string); ok {
+				if detail, ok := error["detailedErrorMessage"].(string); ok {
 					if message != "" {
 						return fmt.Errorf("%s %s", message, detail)
 					}
