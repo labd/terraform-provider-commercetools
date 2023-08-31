@@ -77,6 +77,37 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 	})
 }
 
+func TestAccCategoryRecreateAfterDelete(t *testing.T) {
+	resourceName := "commercetools_category.accessories"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCategoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCategoryConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", "accessories"),
+				),
+			},
+			{
+				Config: testAccCategoryConfig(),
+				PreConfig: func() {
+					client := getClient(testAccProvider.Meta())
+					_, err := client.Categories().WithKey("accessories").Delete().Execute(context.Background())
+					if err != nil {
+						t.Fatal(err)
+					}
+				},
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "key", "accessories"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCategoryConfig() string {
 	return hclTemplate(`
 		resource "commercetools_category" "accessories_base" {
