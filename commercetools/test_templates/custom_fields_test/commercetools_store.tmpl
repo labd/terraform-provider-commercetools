@@ -1,0 +1,6 @@
+{{define "commercetools_store"}}
+resource "commercetools_store" "{{.resource_name}}" {
+    key = "{{.resource_key}}"
+    {{if .custom}}{{template "custom" .}}{{end}}
+}
+{{end}}

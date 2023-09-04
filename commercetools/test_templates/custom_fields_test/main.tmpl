@@ -1,0 +1,11 @@
+{{define "main"}}
+{{template "commercetools_product_type"}}
+{{template "commercetools_type" .}}
+{{if eq .resource_type "commercetools_channel"}}{{template "commercetools_channel" .}}{{end}}
+{{if eq .resource_type "commercetools_cart_discount"}}{{template "commercetools_cart_discount" .}}{{end}}
+{{if eq .resource_type "commercetools_category"}}{{template "commercetools_category" .}}{{end}}
+{{if eq .resource_type "commercetools_customer_group"}}{{template "commercetools_customer_group" .}}{{end}}
+{{if eq .resource_type "commercetools_discount_code"}}{{template "commercetools_discount_code" .}}{{end}}
+{{if eq .resource_type "commercetools_shipping_method"}}{{template "commercetools_shipping_method" .}}{{end}}
+{{if eq .resource_type "commercetools_store"}}{{template "commercetools_store" .}}{{end}}
+{{end}}

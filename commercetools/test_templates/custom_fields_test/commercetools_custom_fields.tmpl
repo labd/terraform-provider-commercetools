@@ -1,0 +1,56 @@
+{{define "custom"}}
+  custom {
+    type_id = commercetools_type.test.id
+    fields = {
+      {{range $key, $value := .custom}}
+        {{if eq $value "Boolean"}}
+          "Boolean-field" : true
+        {{end}}
+        {{if eq $value "Number"}}
+          "Number-field" : 1234
+        {{end}}
+        {{if eq $value "String"}}
+          "String-field" : "foobar"
+        {{end}}
+        {{if eq $value "LocalizedString"}}
+          "LocalizedString-field" = jsonencode({
+            en = "Localized String"
+            fr = "Chaîne localisée"
+          })
+        {{end}}
+        {{if eq $value "Enum"}}
+          "Enum-field" : "value2"
+        {{end}}
+        {{if eq $value "LocalizedEnum"}}
+          "LocalizedEnum-field" = "value1"
+        {{end}}
+        {{if eq $value "Money"}}
+          "Money-field" = jsonencode({
+						"type" : "centPrecision",
+						"currencyCode" : "EUR",
+						"centAmount" : 150000,
+						"fractionDigits" : 2
+					})
+        {{end}}
+        {{if eq $value "Date"}}
+          "Date-field" : "2023-08-29"
+        {{end}}
+        {{if eq $value "Time"}}
+          "Time-field" : "20:22:11.123"
+        {{end}}
+        {{if eq $value "DateTime"}}
+          "DateTime-field" : "2023-08-29T20:22:11.123Z"
+        {{end}}
+        {{if eq $value "Reference"}}
+          "Reference-field" = jsonencode({
+            "typeId": "product-type",
+            "id": commercetools_product_type.test.id
+          })
+        {{end}}
+        {{if eq $value "Set"}}
+          "Set-field" = jsonencode(["ENUM-1", "ENUM-3"])
+        {{end}}
+      {{end}}
+    }
+  }
+{{end}}

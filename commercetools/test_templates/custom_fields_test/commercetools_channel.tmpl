@@ -1,0 +1,13 @@
+{{define "commercetools_channel"}}
+resource "commercetools_channel" {{.resource_name}} {
+  key   = "{{.resource_key}}"
+  roles = ["ProductDistribution"]
+  name = {
+    nl-NL = "Channel"
+  }
+  description = {
+    nl-NL = "Channel"
+  }
+  {{if .custom}}{{template "custom" .}}{{end}}
+}
+{{end}}

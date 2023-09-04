@@ -1,0 +1,16 @@
+{{define "commercetools_shipping_method"}}
+resource "commercetools_tax_category" "test_tax_category" {
+    key         = "test-tax-category-key"
+    name        = "test-tax-cateogry"
+    description = "test tax category"
+}
+resource "commercetools_shipping_method" "{{.resource_name}}" {
+    key             = "{{.resource_key}}"
+    name            = "Test tax category"
+    description     = "Test tax category"
+    is_default      = true
+    tax_category_id = commercetools_tax_category.test_tax_category.id
+    predicate       = "1 = 1"
+    {{if .custom}}{{template "custom" .}}{{end}}
+}
+{{end}}
