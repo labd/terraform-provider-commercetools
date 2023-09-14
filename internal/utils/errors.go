@@ -87,8 +87,14 @@ func extractRawDetailedError(content []byte) error {
 	return nil
 }
 
-// utils.IsResourceNotFoundError returns true if commercetools returned a 404 error
+// IsResourceNotFoundError returns true if commercetools returned a 404 error
 func IsResourceNotFoundError(err error) bool {
+	//Occasionally the SDK returns a sentinel value instead of the parsed error response for 404.
+	//This is a workaround to handle that case.
+	if errors.Is(err, platform.ErrNotFound) {
+		return true
+	}
+
 	switch e := err.(type) {
 	case platform.ResourceNotFoundError:
 		return true
