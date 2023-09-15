@@ -20,6 +20,11 @@ var ProtoV5ProviderFactories map[string]func() (tfprotov5.ProviderServer, error)
 var Provider tfprotov5.ProviderServer
 
 func init() {
+	if os.Getenv("TF_ACC") != "1" {
+		log.Println("TF_ACC is not set, skipping acceptance tests")
+		return
+	}
+
 	ProtoV5ProviderFactories = protoV5ProviderFactoriesInit("commercetools")
 	newProvider := providerserver.NewProtocol5(provider.New("testing"))()
 	if err := ConfigureProvider(newProvider); err != nil {

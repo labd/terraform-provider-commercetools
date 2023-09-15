@@ -1,0 +1,3 @@
+kind: Fixed
+body: Added fix to update countryTaxRateFallbackEnabled separately
+time: 2023-09-15T10:59:19.608693032+02:00
