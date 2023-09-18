@@ -80,49 +80,93 @@ var customFieldResourceTypes = []string{"commercetools_channel", "commercetools_
 	"commercetools_customer_group", "commercetools_discount_code", "commercetools_shipping_method", "commercetools_store"}
 
 // List of the custom field types
-var customFieldTypes = []string{"Boolean", "Number", "String", "LocalizedString", "Enum", "LocalizedEnum", "Money",
+var customFieldTypes = []string{"String", "Boolean", "Number", "LocalizedString", "Enum", "LocalizedEnum", "Money",
 	"Date", "Time", "DateTime", "Reference", "Set"}
 
-// Test Setting of all custom fields to each supported resource
-func TestAccCustomField_Set(t *testing.T) {
+func TestAccCustomField_SetAndRemove(t *testing.T) {
 	for _, customFieldResourceType := range customFieldResourceTypes {
-		fmt.Println("Testing custom fields set for:", customFieldResourceType)
+		fmt.Println("Testing custom fields for:", customFieldResourceType)
 		resourceShortName := "ct" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 		resourceFullName := customFieldResourceType + "." + resourceShortName
 		resourceKey := "key" + resourceShortName
+
+		// Define Test Steps
+		var customFieldsAccTestSteps = []resource.TestStep{
+			{
+				Config: getResourceConfig(customFieldResourceType, resourceShortName, resourceKey, customFieldTypes),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					func(s *terraform.State) error {
+						customFields, err := getResourceCustomFields(s, customFieldResourceType, resourceFullName)
+						if err != nil {
+							return err
+						}
+						productType, err := testGetProductType(s, "commercetools_product_type.test")
+						if err != nil {
+							return err
+						}
+						assert.EqualValues(t, true, customFields.Fields["Boolean-field"], fmt.Sprintf("Boolean-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, 1234, customFields.Fields["Number-field"], fmt.Sprintf("Number-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, "foobar", customFields.Fields["String-field"], fmt.Sprintf("String-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, map[string]interface{}{"en": "Localized String", "fr": "Chaîne localisée"}, customFields.Fields["LocalizedString-field"], fmt.Sprintf("LocalizedString-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, "value2", customFields.Fields["Enum-field"], fmt.Sprintf("Enum-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, "value1", customFields.Fields["LocalizedEnum-field"], fmt.Sprintf("LocalizedEnum-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, map[string]interface{}{"centAmount": float64(150000), "currencyCode": "EUR", "fractionDigits": float64(2), "type": "centPrecision"}, customFields.Fields["Money-field"], fmt.Sprintf("Money-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, "2023-08-29", customFields.Fields["Date-field"], fmt.Sprintf("Date-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, "20:22:11.123", customFields.Fields["Time-field"], fmt.Sprintf("Time-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, "2023-08-29T20:22:11.123Z", customFields.Fields["DateTime-field"], fmt.Sprintf("DateTime-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, map[string]interface{}{"id": productType.ID, "typeId": "product-type"}, customFields.Fields["Reference-field"], fmt.Sprintf("Reference-field unexpected value for %s resource.", customFieldResourceType))
+						assert.EqualValues(t, []any{"ENUM-1", "ENUM-3"}, customFields.Fields["Set-field"], fmt.Sprintf("Set-field unexpected value' for %s resource.", customFieldResourceType))
+						return nil
+					},
+				),
+			},
+		}
+
+		// Remove Custom fields from the resource one by one
+		for index := range customFieldTypes {
+			var customFieldTypesReduced = []string{}
+			for i := range customFieldTypes {
+				if i == index {
+					continue
+				}
+				customFieldTypesReduced = append(customFieldTypesReduced, customFieldTypes[i])
+			}
+			fieldTypeValue := customFieldTypes[index]
+
+			customFieldsAccTestSteps = append(customFieldsAccTestSteps, resource.TestStep{
+				Config: getResourceConfig(customFieldResourceType, resourceShortName, resourceKey, customFieldTypesReduced),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					func(s *terraform.State) error {
+						customFields, err := getResourceCustomFields(s, customFieldResourceType, resourceFullName)
+						if err != nil {
+							return err
+						}
+						assert.Nil(t, customFields.Fields[fmt.Sprintf("%s-field", fieldTypeValue)], fmt.Sprintf("%s-field expected to be removed.", fieldTypeValue))
+						return nil
+					},
+				),
+			})
+		}
+
+		// Remove all Custom fields from the resource
+		customFieldsAccTestSteps = append(customFieldsAccTestSteps, resource.TestStep{
+			Config: getResourceConfig(customFieldResourceType, resourceShortName, resourceKey, []string{}),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				func(s *terraform.State) error {
+					customFields, err := getResourceCustomFields(s, customFieldResourceType, resourceFullName)
+					if err != nil {
+						return err
+					}
+					assert.Nil(t, customFields, fmt.Sprintf("%v-field expected to be nil.", customFields))
+					return nil
+				},
+			),
+		})
+
 		resource.Test(t, resource.TestCase{
 			PreCheck:  func() { testAccPreCheck(t) },
 			Providers: testAccProviders,
-			Steps: []resource.TestStep{
-				{
-					Config: getResourceConfig(customFieldResourceType, resourceShortName, resourceKey, customFieldTypes),
-					Check: resource.ComposeAggregateTestCheckFunc(
-						func(s *terraform.State) error {
-							customFields, err := getResourceCustomFields(s, customFieldResourceType, resourceFullName)
-							if err != nil {
-								return err
-							}
-							productType, err := testGetProductType(s, "commercetools_product_type.test")
-							if err != nil {
-								return err
-							}
-							assert.EqualValues(t, true, customFields.Fields["Boolean-field"], fmt.Sprintf("Boolean-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, 1234, customFields.Fields["Number-field"], fmt.Sprintf("Number-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, "foobar", customFields.Fields["String-field"], fmt.Sprintf("String-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, map[string]interface{}{"en": "Localized String", "fr": "Chaîne localisée"}, customFields.Fields["LocalizedString-field"], fmt.Sprintf("LocalizedString-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, "value2", customFields.Fields["Enum-field"], fmt.Sprintf("Enum-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, "value1", customFields.Fields["LocalizedEnum-field"], fmt.Sprintf("LocalizedEnum-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, map[string]interface{}{"centAmount": float64(150000), "currencyCode": "EUR", "fractionDigits": float64(2), "type": "centPrecision"}, customFields.Fields["Money-field"], fmt.Sprintf("Money-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, "2023-08-29", customFields.Fields["Date-field"], fmt.Sprintf("Date-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, "20:22:11.123", customFields.Fields["Time-field"], fmt.Sprintf("Time-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, "2023-08-29T20:22:11.123Z", customFields.Fields["DateTime-field"], fmt.Sprintf("DateTime-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, map[string]interface{}{"id": productType.ID, "typeId": "product-type"}, customFields.Fields["Reference-field"], fmt.Sprintf("Reference-field unexpected value for %s resource.", customFieldResourceType))
-							assert.EqualValues(t, []any{"ENUM-1", "ENUM-3"}, customFields.Fields["Set-field"], fmt.Sprintf("Set-field unexpected value' for %s resource.", customFieldResourceType))
-							return nil
-						},
-					),
-				},
-			},
+			Steps:     customFieldsAccTestSteps,
 		})
 	}
 }
