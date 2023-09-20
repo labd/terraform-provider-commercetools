@@ -163,6 +163,14 @@ func (p Project) updateActions(plan Project) platform.ProjectUpdate {
 					CartsConfiguration: val,
 				},
 			)
+
+			//ProjectChangeCartsConfigurationAction does not actually update CountryTaxRateFallbackEnabled,
+			// so added extra mutation in same flow to keep consistent with previous code
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeCountryTaxRateFallbackEnabledAction{
+					CountryTaxRateFallbackEnabled: *val.CountryTaxRateFallbackEnabled,
+				},
+			)
 		}
 	}
 

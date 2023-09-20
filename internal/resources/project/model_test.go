@@ -1,6 +1,7 @@
 package project
 
 import (
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -118,6 +119,39 @@ func TestUpdateActions(t *testing.T) {
 							},
 						},
 					},
+				},
+			},
+		},
+		{
+			name: "Carts Configuration",
+			state: Project{
+				Version: types.Int64Value(1),
+				Carts: []Carts{
+					{
+						CountryTaxRateFallbackEnabled:   types.BoolValue(true),
+						DeleteDaysAfterLastModification: types.Int64Value(10),
+					},
+				},
+			},
+			plan: Project{
+				Version: types.Int64Value(1),
+				Carts: []Carts{
+					{
+						CountryTaxRateFallbackEnabled:   types.BoolValue(false),
+						DeleteDaysAfterLastModification: types.Int64Value(90),
+					},
+				},
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{
+					platform.ProjectChangeCartsConfigurationAction{
+						CartsConfiguration: platform.CartsConfiguration{
+							CountryTaxRateFallbackEnabled:   utils.BoolRef(false),
+							DeleteDaysAfterLastModification: utils.IntRef(90),
+						},
+					},
+					platform.ProjectChangeCountryTaxRateFallbackEnabledAction{CountryTaxRateFallbackEnabled: false},
 				},
 			},
 		},
