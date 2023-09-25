@@ -1,0 +1,3 @@
+kind: Fixed
+body: prevented issue with bool valueunknown check
+time: 2023-09-25T09:56:15.850639829+02:00

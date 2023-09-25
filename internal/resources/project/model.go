@@ -238,7 +238,7 @@ func (p Project) updateActions(plan Project) platform.ProjectUpdate {
 	}
 
 	// changeOrderSearchStatus
-	if !p.EnableSearchIndexOrders.Equal(plan.EnableSearchIndexOrders) {
+	if !(p.EnableSearchIndexOrders.ValueBool() == plan.EnableSearchIndexOrders.ValueBool()) {
 		status := platform.OrderSearchStatusDeactivated
 		if plan.EnableSearchIndexOrders.ValueBool() {
 			status = platform.OrderSearchStatusActivated
@@ -251,7 +251,7 @@ func (p Project) updateActions(plan Project) platform.ProjectUpdate {
 	}
 
 	// changeProductSearchIndexingEnabled
-	if !p.EnableSearchIndexProducts.Equal(plan.EnableSearchIndexProducts) {
+	if !(p.EnableSearchIndexProducts.ValueBool() == plan.EnableSearchIndexProducts.ValueBool()) {
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeProductSearchIndexingEnabledAction{
 				Enabled: plan.EnableSearchIndexProducts.ValueBool(),
