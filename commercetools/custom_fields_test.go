@@ -173,12 +173,12 @@ func TestAccCustomField_SetAndRemove(t *testing.T) {
 
 func getResourceConfig(resourceType, resourceName, resourceKey string, customFields []string) string {
 	// Load templates
-	template, err := template.ParseGlob("test_templates/custom_fields_test/*")
+	tpl, err := template.ParseGlob("testdata/custom_fields_test/*")
 	if err != nil {
 		panic(err)
 	}
 
-	template_data := map[string]any{
+	templateData := map[string]any{
 		"resource_type": resourceType,
 		"resource_name": resourceName,
 		"resource_key":  resourceKey,
@@ -186,7 +186,7 @@ func getResourceConfig(resourceType, resourceName, resourceKey string, customFie
 	}
 
 	var out bytes.Buffer
-	err = template.ExecuteTemplate(&out, "main", template_data)
+	err = tpl.ExecuteTemplate(&out, "main", templateData)
 	if err != nil {
 		panic(err)
 	}
