@@ -1,0 +1,7 @@
+{{define "commercetools_customer_group"}}
+resource "commercetools_customer_group" "{{.resource_name}}" {
+    key  = "{{.resource_key}}"
+    name = "Test Customer Group"
+    {{if .custom}}{{template "custom" .}}{{end}}
+}
+{{end}}

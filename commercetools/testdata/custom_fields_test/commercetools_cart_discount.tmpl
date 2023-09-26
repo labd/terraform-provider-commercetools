@@ -1,0 +1,26 @@
+{{define "commercetools_cart_discount"}}
+resource "commercetools_cart_discount" "{{.resource_name}}" {
+	key = "{{.resource_key}}"
+	name = {
+		en = "relative name"
+	}
+	description = {
+		en = "relative description"
+	}
+	sort_order             = "0.9"
+	predicate              = "1=1"
+	stacking_mode          = "Stacking"
+	requires_discount_code = true
+	valid_from             = "2018-01-02T15:04:05Z"
+	valid_until            = "2019-01-02T15:04:05Z"
+	target {
+		type      = "lineItems"
+		predicate = "1=1"
+	}
+	value {
+		type      = "relative"
+		permyriad = 1000
+	}
+    {{if .custom}}{{template "custom" .}}{{end}}
+}
+{{end}}

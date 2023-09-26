@@ -1,0 +1,182 @@
+{{define "commercetools_type"}}
+resource "commercetools_type" "test" {
+  key = "custom-type"
+  name = {
+    en = "custom-type"
+  }
+
+  resource_type_ids = [
+    "cart-discount",
+    "discount-code",
+    "store",
+    "category",
+    "channel",
+    "shipping-method",
+    "customer-group"
+  ]
+
+  # CustomFieldBooleanType
+  field {
+    name = "Boolean-field"
+    label = {
+      en = "Boolean field"
+    }
+    type {
+      name = "Boolean"
+    }
+  }
+  # CustomFieldNumberType
+  field {
+    name = "Number-field"
+    label = {
+      en = "Number field"
+    }
+    type {
+      name = "Number"
+    }
+  }
+  # CustomFieldStringType
+  field {
+    name = "String-field"
+    label = {
+      en = "String field"
+    }
+    type {
+      name = "String"
+    }
+  }
+  # CustomFieldLocalizedStringtype
+  field {
+    name = "LocalizedString-field"
+    label = {
+      en = "LocalizedString field"
+    }
+    type {
+      name = "LocalizedString"
+    }
+  }
+  # CustomFieldEnumType
+  field {
+    name = "Enum-field"
+    label = {
+      en = "Enum field"
+    }
+    type {
+      name = "Enum"
+      value {
+        key   = "value1"
+        label = "Value1"
+      }
+      value {
+        key   = "value2"
+        label = "Value2"
+      }
+      value {
+        key   = "value3"
+        label = "Value3"
+      }
+    }
+  }
+  # CustomFieldLocalizedEnumType
+  field {
+    name = "LocalizedEnum-field"
+    label = {
+      en = "LocalizedEnum field"
+    }
+    type {
+      name = "LocalizedEnum"
+      localized_value {
+        key = "value1"
+        label = {
+          en = "Value1"
+          fr = "Valeur1"
+        }
+      }
+      localized_value {
+        key = "value2"
+        label = {
+          en = "Value2"
+          fr = "Valeur2"
+        }
+      }
+    }
+  }
+  # CustomFieldMoneyType
+  field {
+    name = "Money-field"
+    label = {
+      en = "Money field"
+    }
+    type {
+      name = "Money"
+    }
+  }
+  # CustomFieldDateType
+  field {
+    name = "Date-field"
+    label = {
+      en = "Date field"
+    }
+    type {
+      name = "Date"
+    }
+  }
+  # CustomFieldTimeType
+  field {
+    name = "Time-field"
+    label = {
+      en = "Time field"
+    }
+    type {
+      name = "Time"
+    }
+  }
+  # CustomFieldDateTimeType
+  field {
+    name = "DateTime-field"
+    label = {
+      en = "DateTime field"
+    }
+    type {
+      name = "DateTime"
+    }
+  }
+  # CustomFieldReferenceType
+  field {
+    name = "Reference-field"
+    label = {
+      en = "Reference field"
+    }
+    type {
+      name = "Reference"
+      reference_type_id = "product-type"
+    }
+  }
+  ## CustomFieldSetType
+  # CustomFieldSetType-Boolean
+  field {
+    name = "Set-field"
+    label = {
+      en = "Set field"
+    }
+    type {
+      name = "Set"
+      element_type {
+        name = "Enum"
+        value {
+          key   = "ENUM-1"
+          label = "ENUM 1"
+				}
+				value {
+					key   = "ENUM-2"
+					label = "ENUM 2"
+				}
+				value {
+					key   = "ENUM-3"
+					label = "ENUM 3"
+				}
+      }
+    }
+  }
+}
+{{end}}

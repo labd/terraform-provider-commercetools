@@ -1,0 +1,32 @@
+
+{{define "commercetools_discount_code"}}
+resource "commercetools_cart_discount" "commercetools_cart_discount_test" {
+	key = "commercetools_cart_discount_test"
+	name = {
+		en = "relative name"
+	}
+	description = {
+		en = "relative description"
+	}
+	sort_order             = "0.9"
+	predicate              = "1=1"
+	stacking_mode          = "Stacking"
+	requires_discount_code = true
+	valid_from             = "2018-01-02T15:04:05Z"
+	valid_until            = "2019-01-02T15:04:05Z"
+	target {
+		type      = "lineItems"
+		predicate = "1=1"
+	}
+	value {
+		type      = "relative"
+		permyriad = 1000
+	}
+}
+
+resource "commercetools_discount_code" "{{.resource_name}}" {
+    code        = "2"
+    cart_discounts = [commercetools_cart_discount.commercetools_cart_discount_test.id]
+    {{if .custom}}{{template "custom" .}}{{end}}
+}
+{{end}}

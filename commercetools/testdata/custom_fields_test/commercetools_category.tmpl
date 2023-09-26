@@ -1,0 +1,12 @@
+{{define "commercetools_category"}}
+resource "commercetools_category" "{{.resource_name}}" {
+    key = "{{.resource_key}}"
+    name = {
+		en = "commercetools category name"
+	}
+    slug = {
+        en = "commercetools_category"
+    }
+    {{if .custom}}{{template "custom" .}}{{end}}
+}
+{{end}}
