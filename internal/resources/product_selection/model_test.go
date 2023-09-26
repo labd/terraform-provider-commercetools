@@ -32,7 +32,7 @@ func TestProductSelection_UpdateActions(t *testing.T) {
 			},
 			platform.ProductSelectionUpdate{
 				Actions: []platform.ProductSelectionUpdateAction{
-					platform.AttributeGroupChangeNameAction{
+					platform.ProductSelectionChangeNameAction{
 						Name: map[string]string{"en-US": "Example other product selection"},
 					},
 				},
@@ -55,7 +55,7 @@ func TestNewProductSelectionFromNative(t *testing.T) {
 		expect ProductSelection
 	}{
 		{
-			"decode remote associate role representation into local resource",
+			"decode remote product selection representation into local resource",
 			&platform.ProductSelection{
 				ID:      "rand-uuid-or-other-string",
 				Version: 1,
