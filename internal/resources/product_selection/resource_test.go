@@ -1,6 +1,8 @@
 package product_selection_test
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -26,7 +28,7 @@ func TestProductSelctionResource_Create(t *testing.T) {
 			{
 				Config: testProductSelectionConfig(id, name, key, mode),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "name", name),
+					resource.TestCheckResourceAttr(rn, "name.en", name),
 					resource.TestCheckResourceAttr(rn, "key", key),
 					resource.TestCheckResourceAttr(rn, "mode", mode),
 				),
@@ -34,7 +36,7 @@ func TestProductSelctionResource_Create(t *testing.T) {
 			{
 				Config: testProductSelectionConfigUpdate(id, "the selection updated", key, mode),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(rn, "name", "the selection updated"),
+					resource.TestCheckResourceAttr(rn, "name.en", "the selection updated"),
 					resource.TestCheckResourceAttr(rn, "key", key),
 				),
 			},
@@ -42,7 +44,27 @@ func TestProductSelctionResource_Create(t *testing.T) {
 	})
 }
 
-func testProductSelectionDestroy(_ *terraform.State) error {
+func testProductSelectionDestroy(s *terraform.State) error {
+	client, err := acctest.GetClient()
+	if err != nil {
+		return err
+	}
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "commercetools_product_selection" {
+			continue
+		}
+		response, err := client.ProductSelections().WithId(rs.Primary.ID).Get().Execute(context.Background())
+		if err == nil {
+			if response != nil && response.ID == rs.Primary.ID {
+				return fmt.Errorf("product selection (%s) still exists", rs.Primary.ID)
+			}
+			return nil
+		}
+		if newErr := acctest.CheckApiResult(err); newErr != nil {
+			return newErr
+		}
+	}
 	return nil
 }
 
@@ -50,7 +72,9 @@ func testProductSelectionConfig(identifier, name, key string, mode string) strin
 	return utils.HCLTemplate(`
 		resource "commercetools_product_selection" "{{ .identifier }}" {
 			key = "{{ .key }}"
-			name = "{{ .name }}"
+			name       	= {
+				"en" 	= "{{ .name }}"
+			}
 			mode = "{{ .mode }}"
 		}
 	`, map[string]any{
@@ -65,7 +89,9 @@ func testProductSelectionConfigUpdate(identifier, name, key string, mode string)
 	return utils.HCLTemplate(`
 		resource "commercetools_product_selection" "{{ .identifier }}" {
 			key = "{{ .key }}"
-			name = "{{ .name }}"
+			name       	= {
+				"en" 	= "{{ .name }}"
+			}
 			mode = "{{ .mode }}"
 		}
 	`, map[string]any{
