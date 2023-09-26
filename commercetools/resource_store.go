@@ -67,6 +67,25 @@ func resourceStore() *schema.Resource {
 				Optional:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
+			"product_selection": {
+				Description: "Controls availability of Products for this Store via Product Selections",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"active": {
+							Description: "If true, all Products assigned to this Product Selection are part of the Store's assortment",
+							Type:        schema.TypeBool,
+							Required:    true,
+						},
+						"product_selection_id": {
+							Description: "Resource Identifier of a ProductSelection",
+							Type:        schema.TypeString,
+							Required:    true,
+						},
+					},
+				},
+			},
 			"custom": CustomFieldSchema(),
 		},
 	}
@@ -78,6 +97,7 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 	name := expandLocalizedString(d.Get("name"))
 	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
 	scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
+	psIdentifiers := expandProductSelections(d.Get("product_selection").(*schema.Set))
 
 	custom, err := CreateCustomFieldDraft(ctx, client, d)
 	if err != nil {
@@ -94,6 +114,7 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 		Countries:            expandStoreCountries(d.Get("countries").(*schema.Set)),
 		DistributionChannels: dcIdentifiers,
 		SupplyChannels:       scIdentifiers,
+		ProductSelections:    psIdentifiers,
 		Custom:               custom,
 	}
 
@@ -119,7 +140,7 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m any) diag.
 	store, err := client.Stores().
 		WithId(d.Id()).
 		Get().
-		Expand([]string{"distributionChannels[*]", "supplyChannels[*]"}).
+		Expand([]string{"distributionChannels[*]", "supplyChannels[*]", "productSelections[*].productSelection"}).
 		Execute(ctx)
 
 	if err != nil {
@@ -163,6 +184,15 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m any) diag.
 		}
 		_ = d.Set("supply_channels", channelKeys)
 	}
+
+	if store.ProductSelections != nil {
+		selections, err := flattenProductSelections(store.ProductSelections)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		_ = d.Set("product_selection", selections)
+	}
+
 	_ = d.Set("custom", flattenCustomFields(store.Custom))
 	return nil
 }
@@ -221,6 +251,31 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 		)
 	}
 
+	if d.HasChange("product_selection") {
+		old, new := d.GetChange("product_selection")
+
+		oldProductSelections := expandProductSelections(old.(*schema.Set))
+		newProductSelections := expandProductSelections(new.(*schema.Set))
+
+		for i, productSelection := range oldProductSelections {
+			if !productSelectionInSlice(productSelection, newProductSelections) {
+				input.Actions = append(
+					input.Actions,
+					&platform.StoreRemoveProductSelectionAction{ProductSelection: oldProductSelections[i].ProductSelection})
+			}
+		}
+		for i, location := range newProductSelections {
+			if !productSelectionInSlice(location, oldProductSelections) {
+				input.Actions = append(
+					input.Actions,
+					&platform.StoreAddProductSelectionAction{
+						ProductSelection: newProductSelections[i].ProductSelection,
+						Active:           newProductSelections[i].Active,
+					})
+			}
+		}
+	}
+
 	if d.HasChange("custom") {
 
 		actions, err := CustomFieldUpdateActions[platform.StoreSetCustomTypeAction, platform.StoreSetCustomFieldAction](ctx, client, d)
@@ -276,6 +331,33 @@ func expandStoreChannels(channelData any) []platform.ChannelResourceIdentifier {
 	return convertChannelKeysToIdentifiers(channelKeys)
 }
 
+func expandProductSelections(input *schema.Set) []platform.ProductSelectionSettingDraft {
+	inputSlice := input.List()
+	result := make([]platform.ProductSelectionSettingDraft, len(inputSlice))
+
+	for i := range inputSlice {
+		raw := inputSlice[i].(map[string]any)
+		active, ok := raw["active"].(bool)
+		if !ok {
+			active = false
+		}
+
+		var productSelectionRef *string
+		if productSelection, ok := raw["product_selection_id"].(string); ok && productSelection != "" {
+			productSelectionRef = &productSelection
+		}
+
+		result[i] = platform.ProductSelectionSettingDraft{
+			Active: utils.BoolRef(active),
+			ProductSelection: platform.ProductSelectionResourceIdentifier{
+				ID: productSelectionRef,
+			},
+		}
+	}
+
+	return result
+}
+
 func convertCountryCodesToStoreCountries(countryCodes []string) []platform.StoreCountry {
 	storeCountries := make([]platform.StoreCountry, 0)
 	for i := 0; i < len(countryCodes); i++ {
@@ -303,10 +385,32 @@ func flattenStoreChannels(channels []platform.ChannelReference) ([]string, error
 	return channelKeys, nil
 }
 
+func flattenProductSelections(selections []platform.ProductSelectionSetting) ([]map[string]any, error) {
+	result := make([]map[string]any, len(selections))
+
+	for i := range selections {
+		result[i] = map[string]any{
+			"active":               selections[i].Active,
+			"product_selection_id": selections[i].ProductSelection.ID,
+		}
+	}
+
+	return result, nil
+}
+
 func flattenCountries(countries []platform.StoreCountry) ([]string, error) {
 	countryCodes := make([]string, 0)
 	for _, country := range countries {
 		countryCodes = append(countryCodes, country.Code)
 	}
 	return countryCodes, nil
+}
+
+func productSelectionInSlice(needle platform.ProductSelectionSettingDraft, haystack []platform.ProductSelectionSettingDraft) bool {
+	for _, item := range haystack {
+		if item == needle {
+			return true
+		}
+	}
+	return false
 }
