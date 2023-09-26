@@ -99,6 +99,7 @@ resource "commercetools_store" "my-store" {
 - `distribution_channels` (List of String) Set of ResourceIdentifier to a Channel with ProductDistribution
 - `languages` (List of String) [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)
 - `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `product_selection` (Block Set) Controls availability of Products for this Store via Product Selections (see [below for nested schema](#nestedblock--product_selection))
 - `supply_channels` (List of String) Set of ResourceIdentifier of Channels with InventorySupply
 
 ### Read-Only
@@ -116,3 +117,12 @@ Required:
 Optional:
 
 - `fields` (Map of String)
+
+
+<a id="nestedblock--product_selection"></a>
+### Nested Schema for `product_selection`
+
+Required:
+
+- `active` (Boolean) If true, all Products assigned to this Product Selection are part of the Store's assortment
+- `product_selection_id` (String) Resource Identifier of a ProductSelection
