@@ -10,8 +10,8 @@ infrastructure-as-code principles.
 
 # Commercial support
 
-Need support implementing this terraform module in your organization? We are
-able to offer support. Please contact us at opensource@labdigital.nl
+Need support implementing this terraform provider in your organization? Or are you missing features 
+that need to be added, then we are able to offer support. Please contact us at opensource@labdigital.nl
 
 # Quick start
 
