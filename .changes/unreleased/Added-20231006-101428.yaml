@@ -1,4 +1,0 @@
-kind: Added
-body: Add property `product_selection` to `commercetools_store` for binding product
-  selections to stores
-time: 2023-10-06T10:14:28.997358+02:00
