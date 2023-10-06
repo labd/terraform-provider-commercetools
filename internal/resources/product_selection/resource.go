@@ -9,10 +9,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-
 	"github.com/labd/commercetools-go-sdk/platform"
+
 	"github.com/labd/terraform-provider-commercetools/internal/customtypes"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
@@ -54,11 +57,16 @@ func (*productSelectionResource) Schema(_ context.Context, req resource.SchemaRe
 				Description: "Specifies in which way the Products are assigned to the ProductSelection." +
 					"Currently, the only way of doing this is to specify each Product individually, either by including or excluding them explicitly." +
 					"Default: Individual",
+				Default:  stringdefault.StaticString(string(platform.ProductSelectionModeIndividual)),
+				Computed: true,
 				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.String{
 					stringvalidator.OneOf(
-						"Individual",
-						"IndividualExclusion",
+						string(platform.ProductSelectionModeIndividual),
+						string(platform.ProductSelectionModeIndividualExclusion),
 					),
 				},
 			},
