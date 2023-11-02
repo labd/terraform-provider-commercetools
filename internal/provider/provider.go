@@ -20,6 +20,7 @@ import (
 	datasourcetype "github.com/labd/terraform-provider-commercetools/internal/datasource/type"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/associate_role"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/attribute_group"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/product"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/product_selection"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/project"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/state"
@@ -196,5 +197,6 @@ func (p *ctProvider) Resources(_ context.Context) []func() resource.Resource {
 		attribute_group.NewResource,
 		associate_role.NewResource,
 		product_selection.NewResource,
+		product.NewResource,
 	}
 }
