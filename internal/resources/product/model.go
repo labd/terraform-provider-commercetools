@@ -25,7 +25,7 @@ type Product struct {
 	MetaTitle       customtypes.LocalizedStringValue `tfsdk:"meta_title"`
 	MetaDescription customtypes.LocalizedStringValue `tfsdk:"meta_description"`
 	MetaKeywords    customtypes.LocalizedStringValue `tfsdk:"meta_keywords"`
-	MasterVariant   *ProductVariant                  `tfsdk:"master_variant"`
+	MasterVariant   ProductVariant                   `tfsdk:"master_variant"`
 	Variants        []ProductVariant                 `tfsdk:"variant"`
 	TaxCategoryId   types.String                     `tfsdk:"tax_category_id"`
 	StateId         types.String                     `tfsdk:"state_id"`
@@ -68,7 +68,7 @@ func NewProductFromNative(p *platform.Product) Product {
 		MetaTitle:       utils.FromOptionalLocalizedString(p.MasterData.Staged.MetaTitle),
 		MetaDescription: utils.FromOptionalLocalizedString(p.MasterData.Staged.MetaDescription),
 		MetaKeywords:    utils.FromOptionalLocalizedString(p.MasterData.Staged.MetaKeywords),
-		MasterVariant:   NewProductVariantFromNativeRef(p.MasterData.Staged.MasterVariant),
+		MasterVariant:   NewProductVariantFromNative(p.MasterData.Staged.MasterVariant),
 		Variants:        pie.Map(p.MasterData.Staged.Variants, NewProductVariantFromNative),
 		Publish:         utils.FromOptionalBool(&p.MasterData.Published),
 	}
@@ -134,7 +134,7 @@ func (p Product) draft() platform.ProductDraft {
 		MetaTitle:       p.MetaTitle.ValueLocalizedStringRef(),
 		MetaDescription: p.MetaDescription.ValueLocalizedStringRef(),
 		MetaKeywords:    p.MetaKeywords.ValueLocalizedStringRef(),
-		MasterVariant:   NewProductVariantDraftRef(*p.MasterVariant),
+		MasterVariant:   NewProductVariantDraftRef(p.MasterVariant),
 		Variants:        pie.Map(p.Variants, NewProductVariantDraft),
 		Categories: pie.Map(p.Categories, func(categoryId basetypes.StringValue) platform.CategoryResourceIdentifier {
 			return platform.CategoryResourceIdentifier{
@@ -312,8 +312,8 @@ func (p Product) updateActions(plan Product) platform.ProductUpdate {
 	}
 
 	// # ProductVariants Actions
-	currentVariants := append(p.Variants, *p.MasterVariant)
-	planVariants := append(plan.Variants, *plan.MasterVariant)
+	currentVariants := append(p.Variants, p.MasterVariant)
+	planVariants := append(plan.Variants, plan.MasterVariant)
 	variantsAdded, _, variantsRemoved := compare(currentVariants, planVariants, "Sku")
 
 	// addVariant
