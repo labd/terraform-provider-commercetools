@@ -5,9 +5,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"os"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -81,11 +79,6 @@ func TestAccProductResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "variant.0.price.1.key", "base_price_gbr"),
 					resource.TestCheckResourceAttr(resourceName, "variant.0.price.1.value.cent_amount", "880299"),
 					resource.TestCheckResourceAttr(resourceName, "variant.0.price.1.value.currency_code", "GBP"),
-					// func(s *terraform.State) error {
-					// 	fmt.Println("Sleeping...")
-					// 	time.Sleep(10 * time.Second)
-					// 	return nil
-					// },
 				),
 			},
 		},
@@ -95,7 +88,6 @@ func TestAccProductResource_Create(t *testing.T) {
 func TestAccProductResource_Update(t *testing.T) {
 	testData := copyMap(templateData)
 	resourceName := "commercetools_product." + testData["identifier"]
-	// var taxCategoryId string
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.TestAccPreCheck(t) },
@@ -172,14 +164,6 @@ func TestAccProductResource_Update(t *testing.T) {
 				),
 			},
 			{
-				// Test changeMasterVariant action
-				Config: getUpdatedResourceConfig(testData, "master_variant", "variant-1-key"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "master_variant.key", "variant-1-key"),
-					resource.TestCheckResourceAttr(resourceName, "variant.0.key", "master-variant-key"),
-				),
-			},
-			{
 				// Test setTaxCategory action
 				Config: getUpdatedResourceConfig(testData, "taxCategoryRef", "vat_tax"),
 				Check: resource.ComposeTestCheckFunc(
@@ -187,13 +171,6 @@ func TestAccProductResource_Update(t *testing.T) {
 						testData["identifier"], "tax_category_id", "commercetools_tax_category", "vat_tax"),
 				),
 			},
-			// {
-			// 	// Test setTaxCategory to empty value action
-			// 	Config: getUpdatedResourceConfig(testData, "setTaxCategory", "false"),
-			// 	Check: resource.ComposeTestCheckFunc(
-			// 		checkTaxCategory("", testData["identifier"]),
-			// 	),
-			// },
 			{
 				// Test addPrice action
 				Config: getUpdatedResourceConfig(testData, "addPrice", "true"),
@@ -201,13 +178,6 @@ func TestAccProductResource_Update(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "master_variant.price.2.key", "base_price_usd"),
 				),
 			},
-			// {
-			// 	// Test changePrice action
-			// 	Config: getUpdatedResourceConfig(testData, "addPriceValue", "2000"),
-			// 	Check: resource.ComposeTestCheckFunc(
-			// 		resource.TestCheckResourceAttr(resourceName, "master_variant.price.2.value.cent_amount", "2000"),
-			// 	),
-			// },
 			{
 				// Test removePrice action
 				Config: getUpdatedResourceConfig(testData, "addPrice", "false"),
@@ -297,22 +267,6 @@ func getResourceConfig(data map[string]string) string {
 	err = tpl.ExecuteTemplate(&out, "main", data)
 	if err != nil {
 		panic(err)
-	}
-
-	// fmt.Println(out.String())
-
-	f, err := os.Create(
-		fmt.Sprintf(
-			"/workspaces/terraform-provider-commercetools/test-folder/%s-temp.tf",
-			time.Now().UTC().Format(time.RFC3339Nano),
-		),
-	)
-	if err != nil {
-		panic(err)
-	}
-	_, err2 := f.WriteString(out.String())
-	if err2 != nil {
-		panic(err2)
 	}
 
 	return out.String()

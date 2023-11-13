@@ -233,22 +233,6 @@ func Test_UpdateActions(t *testing.T) {
 			},
 		},
 	}
-	// price1 := Price{
-	// 	ID:  types.StringValue("price-1-id"),
-	// 	Key: types.StringValue("price-1-key"),
-	// 	Value: Money{
-	// 		CentAmount:   types.Int64Value(1000),
-	// 		CurrencyCode: types.StringValue("USD"),
-	// 	},
-	// }
-	// price2 := Price{
-	// 	ID:  types.StringValue("price-2-id"),
-	// 	Key: types.StringValue("price-2-key"),
-	// 	Value: Money{
-	// 		CentAmount:   types.Int64Value(2000),
-	// 		CurrencyCode: types.StringValue("USD"),
-	// 	},
-	// }
 	testCases := []struct {
 		name     string
 		state    Product
