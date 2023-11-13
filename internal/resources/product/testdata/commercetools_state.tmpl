@@ -1,0 +1,25 @@
+{{ define "commercetools_state" }}
+resource "commercetools_state" "product_state_for_sale" {
+    key  = "product-for-sale"
+    type = "ProductState"
+    name = {
+        en-GB = "For Sale"
+    }
+    description = {
+        en-GB = "Regularly stocked product."
+    }
+    initial = true
+}
+
+resource "commercetools_state" "product_out_of_stock" {
+    key  = "product-out-of-stock"
+    type = "ProductState"
+    name = {
+        en-GB = "Out of stock"
+    }
+    description = {
+        en-GB = "Out of stock product."
+    }
+    initial = false
+}
+{{ end }}

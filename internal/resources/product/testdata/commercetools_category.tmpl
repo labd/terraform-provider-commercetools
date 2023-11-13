@@ -1,0 +1,35 @@
+{{ define "commercetools_category" }}
+resource "commercetools_category" "category1" {
+    key = "category-1-key"
+
+    name = {
+        en-GB = "Category One"
+    }
+    description = {
+        en-GB = "Category One description"
+    }
+    slug = {
+        en-GB = "category_1"
+    }
+    meta_title = {
+        en-GB = "Category One Meta Title"
+    }
+}
+
+resource "commercetools_category" "category2" {
+    key = "category-2-key"
+
+    name = {
+        en-GB = "Category Two"
+    }
+    description = {
+        en-GB = "Category Two description"
+    }
+    slug = {
+        en-GB = "category_2"
+    }
+    meta_title = {
+        en-GB = "Category Two Meta Title"
+    }
+}
+{{ end }}

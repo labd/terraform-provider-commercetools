@@ -1,0 +1,136 @@
+{{ define "commercetools_product" }}
+resource "commercetools_product" "{{ .identifier }}" {
+    key = "{{ .key }}"
+    name = {
+        en-GB = "{{ .name }}"
+    }
+    slug = {
+        en-GB = "{{ .slug }}"
+    }
+    description = {
+        en-GB = "{{ .description }}"
+    }
+    product_type_id = commercetools_product_type.default_product_type.id
+    publish         = {{ .published }}
+    categories = [
+        commercetools_category.category1.id,
+        {{ if eq .addToCategory "true" }}
+        commercetools_category.category2.id,
+        {{ end }}
+    ]
+    {{ if eq .setTaxCategory "true" }}
+    tax_category_id = commercetools_tax_category.{{ .taxCategoryRef }}.id
+    {{ end }}
+    meta_title = {
+        en-GB = "{{ .metaTitle }}"
+    }
+    meta_description = {
+        en-GB = "{{ .metaDescription }}"
+    }
+    meta_keywords = {
+        en-GB = "{{ .metaKeywords }}"
+    }
+    state_id = commercetools_state.{{ .stateName }}.id
+    
+    {{ if eq .masterVariant "master-variant-key" }}
+    master_variant {
+    {{ else }}
+    variant {
+    {{ end }}
+        key = "master-variant-key"
+        sku = "100000"
+        attribute {
+            name  = "name"
+            value = jsonencode({ "en-GB" : "{{ .masterVariantNameAttrValue }}" })
+        }
+        attribute {
+            name  = "description"
+            value = jsonencode({ "en-GB" : "Test product basic variant description" })
+        }
+        price {
+            key = "base_price_eur"
+            value {
+                cent_amount   = 1000000
+                currency_code = "EUR"
+            }
+        }
+        price {
+            key = "base_price_gbr"
+            value {
+                cent_amount   = 872795
+                currency_code = "GBP"
+            }
+        }
+        {{ if eq .addPrice "true" }}
+        price {
+            key = "base_price_usd"
+            value {
+                cent_amount   = {{ .addPriceValue }}
+                currency_code = "USD"
+            }
+        }
+        {{ end }}
+
+    }
+
+    {{ if eq .masterVariant "variant-1-key" }}
+    master_variant {
+    {{ else }}
+    variant {
+    {{ end }}
+        key = "variant-1-key"
+        sku = "100001"
+        attribute {
+            name  = "name"
+            value = jsonencode({ "en-GB" : "Test product variant one" })
+        }
+        attribute {
+            name  = "description"
+            value = jsonencode({ "en-GB" : "Test product variant one description" })
+        }
+        price {
+            key = "base_price_eur"
+            value {
+                cent_amount   = 1010000
+                currency_code = "EUR"
+            }
+        }
+        price {
+            key = "base_price_gbr"
+            value {
+                cent_amount   = 880299
+                currency_code = "GBP"
+            }
+        }
+    }
+
+    {{ if eq .addVariant "true" }}
+    variant {
+        key = "variant-2-key"
+        sku = "100002"
+        attribute {
+            name  = "name"
+            value = jsonencode({ "en-GB" : "Test product variant two" })
+        }
+        attribute {
+            name  = "description"
+            value = jsonencode({ "en-GB" : "Test product variant two description" })
+        }
+        price {
+            key = "base_price_eur"
+            value {
+                cent_amount   = 1231231
+                currency_code = "EUR"
+            }
+        }
+        price {
+            key = "base_price_gbr"
+            value {
+                cent_amount   = 123123
+                currency_code = "GBP"
+            }
+        }
+    }
+    {{ end }}
+}
+{{ end }}
