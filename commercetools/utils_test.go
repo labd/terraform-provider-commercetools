@@ -3,6 +3,7 @@ package commercetools
 import (
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -73,5 +74,21 @@ func checkApiResult(err error) error {
 		return nil
 	default:
 		return fmt.Errorf("unexpected result returned")
+	}
+}
+
+func TestIntNilIfEmpty(t *testing.T) {
+	testCases := []struct {
+		input    *int
+		expected *int
+	}{
+		{nil, nil},
+		{intRef(0), nil},
+		{intRef(1), intRef(1)},
+	}
+
+	for _, tt := range testCases {
+		v := intNilIfEmpty(tt.input)
+		assert.Equal(t, tt.expected, v)
 	}
 }

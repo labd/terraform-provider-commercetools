@@ -2,6 +2,7 @@ package commercetools
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -67,14 +68,20 @@ func resourceDiscountCode() *schema.Resource {
 				Optional:    true,
 			},
 			"max_applications_per_customer": {
-				Description: "The discount code can only be applied maxApplicationsPerCustomer times per customer",
-				Type:        schema.TypeInt,
-				Optional:    true,
+				Description: "The discount code can only be applied the specified times per customer. " +
+					"Note that due to an engine constraint 0 cannot be set for this field, " +
+					"so possible values are either larger than 0 or not set",
+				Type:         schema.TypeInt,
+				ValidateFunc: validation.IntAtLeast(1),
+				Optional:     true,
 			},
 			"max_applications": {
-				Description: "The discount code can only be applied maxApplications times",
-				Type:        schema.TypeInt,
-				Optional:    true,
+				Description: "The discount code can only be applied the specified times overall" +
+					"Note that due to an engine constraint 0 cannot be set for this field, " +
+					"so possible values are either larger than 0 or not set",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validation.IntAtLeast(1),
 			},
 			"groups": {
 				Description: "The groups to which this discount code belong",
@@ -121,8 +128,8 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m a
 		Code:                       d.Get("code").(string),
 		CartPredicate:              cartPredicate,
 		IsActive:                   boolRef(d.Get("is_active")),
-		MaxApplicationsPerCustomer: intRef(d.Get("max_applications_per_customer")),
-		MaxApplications:            intRef(d.Get("max_applications")),
+		MaxApplicationsPerCustomer: intNilIfEmpty(intRef(d.Get("max_applications_per_customer"))),
+		MaxApplications:            intNilIfEmpty(intRef(d.Get("max_applications"))),
 		Groups:                     expandDiscountCodeGroups(d),
 		CartDiscounts:              expandDiscountCodeCartDiscounts(d),
 		Custom:                     custom,
@@ -217,17 +224,19 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	if d.HasChange("max_applications") {
-		newMaxApplications := d.Get("max_applications").(int)
+		maxApplications := d.Get("max_applications").(int)
 		input.Actions = append(
 			input.Actions,
-			&platform.DiscountCodeSetMaxApplicationsAction{MaxApplications: &newMaxApplications})
+			&platform.DiscountCodeSetMaxApplicationsAction{MaxApplications: intNilIfEmpty(&maxApplications)})
 	}
 
 	if d.HasChange("max_applications_per_customer") {
-		newMaxApplications := d.Get("max_applications_per_customer").(int)
+		maxApplicationsPerCustomer := d.Get("max_applications_per_customer").(int)
 		input.Actions = append(
 			input.Actions,
-			&platform.DiscountCodeSetMaxApplicationsPerCustomerAction{MaxApplicationsPerCustomer: &newMaxApplications})
+			&platform.DiscountCodeSetMaxApplicationsPerCustomerAction{
+				MaxApplicationsPerCustomer: intNilIfEmpty(&maxApplicationsPerCustomer),
+			})
 	}
 
 	if d.HasChange("cart_discounts") {
