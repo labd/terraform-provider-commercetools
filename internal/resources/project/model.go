@@ -116,7 +116,7 @@ func NewProjectFromNative(n *platform.Project) Project {
 }
 
 func (p *Project) setStateData(o Project) {
-	if len(p.ExternalOAuth) > 0 && len(o.ExternalOAuth) > 0 {
+	if len(p.ExternalOAuth) > 0 {
 		p.ExternalOAuth[0].AuthorizationHeader = o.ExternalOAuth[0].AuthorizationHeader
 	}
 
@@ -139,7 +139,7 @@ func (p *Project) setStateData(o Project) {
 	}
 }
 
-func (p *Project) updateActions(plan Project) platform.ProjectUpdate {
+func (p Project) updateActions(plan Project) platform.ProjectUpdate {
 	result := platform.ProjectUpdate{
 		Version: int(p.Version.ValueInt64()),
 		Actions: []platform.ProjectUpdateAction{},
