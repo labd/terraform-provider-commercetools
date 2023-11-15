@@ -599,7 +599,7 @@ func expandCartDiscountValue(d *schema.ResourceData) (platform.CartDiscountValue
 			Money: money,
 		}, nil
 	case "fixed":
-		money := expandTypedMoney(value)
+		money := expandTypedMoneyDraft(value)
 		return platform.CartDiscountValueFixedDraft{
 			Money: money,
 		}, nil
