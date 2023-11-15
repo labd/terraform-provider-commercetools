@@ -14,9 +14,9 @@ import (
 func TestAccProductDiscountCreate_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckProductDiscountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckProductDiscountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccProductDiscountConfig(),

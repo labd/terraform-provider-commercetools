@@ -18,12 +18,12 @@ import (
 )
 
 func init() {
-	// Set descriptions to support markdown syntax, this will be used in document generation
+	// Set descriptions to support Markdown syntax, this will be used in document generation
 	// and the language server.
 	schema.DescriptionKind = schema.StringMarkdown
 }
 
-// Provider returns a terraform.ResourceProvider.
+// New returns a new terraform.ResourceProvider.
 func New(version string) func() *schema.Provider {
 	return func() *schema.Provider {
 		p := &schema.Provider{
@@ -88,7 +88,7 @@ func New(version string) func() *schema.Provider {
 				// "commercetools_subscription":       resourceSubscription(),
 			},
 		}
-		p.ConfigureContextFunc = providerConfigure(version, p)
+		p.ConfigureContextFunc = providerConfigure(version)
 		return p
 	}
 }
@@ -100,7 +100,7 @@ func getDefault(d *schema.ResourceData, key string, envKey string) string {
 	return os.Getenv(envKey)
 }
 
-func providerConfigure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
+func providerConfigure(version string) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		clientID := getDefault(d, "client_id", "CTP_CLIENT_ID")
 		clientSecret := getDefault(d, "client_secret", "CTP_CLIENT_SECRET")

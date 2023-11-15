@@ -86,26 +86,6 @@ func expandLocalizedString(val any) platform.LocalizedString {
 	return result
 }
 
-func expandCentPrecisionMoneyDraft(d map[string]any) []platform.CentPrecisionMoneyDraft {
-	input := d["money"].([]any)
-	var result []platform.CentPrecisionMoneyDraft
-	for _, raw := range input {
-		data := raw.(map[string]any)
-		item := platform.CentPrecisionMoneyDraft{}
-		if currencyCode, ok := data["currency_code"].(string); ok {
-			item.CurrencyCode = currencyCode
-		}
-		if centAmount, ok := data["cent_amount"].(int); ok {
-			item.CentAmount = &centAmount
-		}
-		if fractionDigits, ok := data["fraction_digits"].(int); ok {
-			item.FractionDigits = &fractionDigits
-		}
-		result = append(result, item)
-	}
-	return result
-}
-
 func expandMoneyDraft(d map[string]any) []platform.Money {
 	input := d["money"].([]any)
 	var result []platform.Money

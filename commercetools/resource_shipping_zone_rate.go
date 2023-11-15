@@ -3,11 +3,11 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -171,7 +171,7 @@ func resourceShippingZoneRateImportState(ctx context.Context, d *schema.Resource
 	shippingZoneRateState.SetId(d.Id())
 	shippingZoneRateState.SetType("commercetools_shipping_zone_rate")
 
-	setShippingZoneRateState(d, shippingMethod)
+	_ = setShippingZoneRateState(d, shippingMethod)
 
 	results = append(results, shippingZoneRateState)
 
@@ -221,7 +221,7 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 		ShippingRate: *draft,
 	})
 
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var err error
 		shippingMethod, err = client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -231,7 +231,7 @@ func resourceShippingZoneRateCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	d.SetId(buildShippingZoneRateID(shippingMethod.ID, shippingZoneID, string(draft.Price.CurrencyCode)))
+	d.SetId(buildShippingZoneRateID(shippingMethod.ID, shippingZoneID, draft.Price.CurrencyCode))
 	return resourceShippingZoneRateRead(ctx, d, m)
 }
 
@@ -302,10 +302,10 @@ func resourceShippingZoneRateUpdate(ctx context.Context, d *schema.ResourceData,
 				ShippingRate: *newShippingRateDraft,
 			})
 
-		d.SetId(buildShippingZoneRateID(shippingMethod.ID, shippingZoneID, string(newShippingRateDraft.Price.CurrencyCode)))
+		d.SetId(buildShippingZoneRateID(shippingMethod.ID, shippingZoneID, newShippingRateDraft.Price.CurrencyCode))
 	}
 
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.ShippingMethods().WithId(shippingMethodID).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -365,7 +365,7 @@ func resourceShippingZoneRateDelete(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err = client.ShippingMethods().WithId(shippingMethodID).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -404,7 +404,7 @@ func getShippingIDs(shippingZoneRateID string) (string, string, string) {
 }
 
 // find the shippingRate in a shippingMethod. This is done by a combination of
-// the zone id and the ccurrency of the rate. The currency must be unique within
+// the zone id and the currency of the rate. The currency must be unique within
 // commercetools so this should be safe.
 func findShippingZoneRate(shippingMethod *platform.ShippingMethod, shippingZoneID string, currencyCode string) (*platform.ShippingRate, error) {
 	for _, zoneRate := range shippingMethod.ZoneRates {
@@ -423,8 +423,8 @@ func findShippingZoneRate(shippingMethod *platform.ShippingMethod, shippingZoneI
 func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.ShippingMethod) error {
 	shippingMethodID, shippingZoneID, currencyCode := getShippingIDs(d.Id())
 
-	d.Set("shipping_method_id", shippingMethodID)
-	d.Set("shipping_zone_id", shippingZoneID)
+	_ = d.Set("shipping_method_id", shippingMethodID)
+	_ = d.Set("shipping_zone_id", shippingZoneID)
 
 	shippingRate, err := findShippingZoneRate(shippingMethod, shippingZoneID, currencyCode)
 
@@ -433,11 +433,11 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 	}
 
 	tiers := flattenShippingZoneRateTiers(shippingRate)
-	d.Set("shipping_rate_price_tier", tiers)
+	_ = d.Set("shipping_rate_price_tier", tiers)
 
 	if typedPrice, ok := shippingRate.Price.(platform.CentPrecisionMoney); ok {
 		price := map[string]any{
-			"currency_code": string(typedPrice.CurrencyCode),
+			"currency_code": typedPrice.CurrencyCode,
 			"cent_amount":   typedPrice.CentAmount,
 		}
 		err = d.Set("price", []any{price})
@@ -445,7 +445,7 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 			return err
 		}
 	} else {
-		d.Set("price", nil)
+		_ = d.Set("price", nil)
 		if err != nil {
 			return err
 		}
@@ -453,7 +453,7 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 
 	if typedFreeAbove, ok := (shippingRate.FreeAbove).(platform.CentPrecisionMoney); ok {
 		freeAbove := map[string]any{
-			"currency_code": string(typedFreeAbove.CurrencyCode),
+			"currency_code": typedFreeAbove.CurrencyCode,
 			"cent_amount":   typedFreeAbove.CentAmount,
 		}
 		err = d.Set("free_above", []any{freeAbove})
@@ -461,7 +461,7 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 			return err
 		}
 	} else {
-		d.Set("free_above", nil)
+		_ = d.Set("free_above", nil)
 		if err != nil {
 			return err
 		}
@@ -470,7 +470,7 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 }
 
 func flattenShippingZoneRateTiers(shippingRate *platform.ShippingRate) []any {
-	tiers := []any{}
+	var tiers []any
 
 	for _, v := range shippingRate.Tiers {
 		switch shippingRateTier := v.(type) {

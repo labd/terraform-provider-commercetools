@@ -15,9 +15,9 @@ func TestAccDiscountCodeCreate_basic(t *testing.T) {
 	resourceName := "commercetools_discount_code.standard"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDiscountCodeDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckDiscountCodeDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDiscountCodeConfig(),
@@ -71,9 +71,9 @@ func TestAccDiscountCode_CustomField(t *testing.T) {
 	resourceName := "commercetools_discount_code.standard"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCustomerGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckCustomerGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDiscountCodeCustomField(),

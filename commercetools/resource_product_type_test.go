@@ -30,7 +30,7 @@ type TestProductTypeElementType struct {
 }
 
 func TestResourceProductTypeValidateAttribute(t *testing.T) {
-	old := []any{
+	o := []any{
 		map[string]any{
 			"name": "attr-one",
 			"type": []any{
@@ -40,7 +40,7 @@ func TestResourceProductTypeValidateAttribute(t *testing.T) {
 			},
 		},
 	}
-	new := []any{
+	n := []any{
 		map[string]any{
 			"name": "attr-one",
 			"type": []any{
@@ -50,12 +50,12 @@ func TestResourceProductTypeValidateAttribute(t *testing.T) {
 			},
 		},
 	}
-	err := resourceProductTypeValidateAttribute(old, new)
+	err := resourceProductTypeValidateAttribute(o, n)
 	assert.NotNil(t, err)
 }
 
 func TestResourceProductTypeValidateAttributeSet(t *testing.T) {
-	old := []any{
+	o := []any{
 		map[string]any{
 			"name": "attr-one",
 			"type": []any{
@@ -70,7 +70,7 @@ func TestResourceProductTypeValidateAttributeSet(t *testing.T) {
 			},
 		},
 	}
-	new := []any{
+	n := []any{
 		map[string]any{
 			"name": "attr-one",
 			"type": []any{
@@ -85,7 +85,7 @@ func TestResourceProductTypeValidateAttributeSet(t *testing.T) {
 			},
 		},
 	}
-	err := resourceProductTypeValidateAttribute(old, new)
+	err := resourceProductTypeValidateAttribute(o, n)
 	assert.NotNil(t, err)
 }
 
@@ -188,20 +188,20 @@ func TestAccProductTypes_basic(t *testing.T) {
 	resourceName := "commercetools_product_type.acctest_producttype"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckProductTypesDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckProductTypesDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccProductTypeConfig(identifier, key),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetProductType(s, resourceName)
+						r, err := testGetProductType(s, resourceName)
 						if err != nil {
 							return err
 						}
-						assert.EqualValues(t, *resource.Key, key)
+						assert.EqualValues(t, *r.Key, key)
 						return nil
 					},
 					resource.TestCheckResourceAttr(
@@ -282,11 +282,11 @@ func TestAccProductTypes_basic(t *testing.T) {
 						resourceName, "attribute.2.type.0.element_type.0.localized_value.1.label.de", "Mittagessen",
 					),
 					func(s *terraform.State) error {
-						resource, err := testGetProductType(s, resourceName)
+						r, err := testGetProductType(s, resourceName)
 						if err != nil {
 							return err
 						}
-						assert.EqualValues(t, *resource.Key, key)
+						assert.EqualValues(t, *r.Key, key)
 						return nil
 					},
 				),
@@ -301,9 +301,9 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 	resourceName := fmt.Sprintf("commercetools_product_type.%s", identifier)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTypesDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckTypesDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfigAttributes(
@@ -315,7 +315,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetProductType(s, resourceName)
+						r, err := testGetProductType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -339,8 +339,8 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputTip:            nil,
 							},
 						}
-						assert.EqualValues(t, *resource.Key, key)
-						assert.EqualValues(t, expected, resource.Attributes)
+						assert.EqualValues(t, *r.Key, key)
+						assert.EqualValues(t, expected, r.Attributes)
 						return nil
 					},
 				),
@@ -356,7 +356,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetProductType(s, resourceName)
+						r, err := testGetProductType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -388,8 +388,8 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputTip:            nil,
 							},
 						}
-						assert.EqualValues(t, *resource.Key, key)
-						assert.EqualValues(t, expected, resource.Attributes)
+						assert.EqualValues(t, *r.Key, key)
+						assert.EqualValues(t, expected, r.Attributes)
 						return nil
 					},
 				),
@@ -405,7 +405,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetProductType(s, resourceName)
+						r, err := testGetProductType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -435,8 +435,8 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 							},
 						}
 
-						assert.EqualValues(t, *resource.Key, key)
-						assert.EqualValues(t, expected, resource.Attributes)
+						assert.EqualValues(t, *r.Key, key)
+						assert.EqualValues(t, expected, r.Attributes)
 						return nil
 					},
 				),
@@ -453,7 +453,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetProductType(s, resourceName)
+						r, err := testGetProductType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -490,8 +490,8 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 							},
 						}
 
-						assert.EqualValues(t, *resource.Key, key)
-						assert.EqualValues(t, expected, resource.Attributes)
+						assert.EqualValues(t, *r.Key, key)
+						assert.EqualValues(t, expected, r.Attributes)
 						return nil
 					},
 				),
@@ -506,7 +506,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetProductType(s, resourceName)
+						r, err := testGetProductType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -529,8 +529,8 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 							},
 						}
 
-						assert.EqualValues(t, *resource.Key, key)
-						assert.EqualValues(t, expected, resource.Attributes)
+						assert.EqualValues(t, *r.Key, key)
+						assert.EqualValues(t, expected, r.Attributes)
 						return nil
 					},
 				),
@@ -545,9 +545,9 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 	resourceName := fmt.Sprintf("commercetools_product_type.%s", identifier)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTypesDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckTypesDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfigAttributes(
@@ -587,7 +587,7 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetProductType(s, resourceName)
+						r, err := testGetProductType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -635,8 +635,8 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 								InputTip:            nil,
 							},
 						}
-						assert.EqualValues(t, *resource.Key, key)
-						assert.EqualValues(t, expected, resource.Attributes)
+						assert.EqualValues(t, *r.Key, key)
+						assert.EqualValues(t, expected, r.Attributes)
 						return nil
 					},
 				),
@@ -672,7 +672,7 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetProductType(s, resourceName)
+						r, err := testGetProductType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -712,8 +712,8 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 								InputTip:            nil,
 							},
 						}
-						assert.EqualValues(t, *resource.Key, key)
-						assert.EqualValues(t, expected, resource.Attributes)
+						assert.EqualValues(t, *r.Key, key)
+						assert.EqualValues(t, expected, r.Attributes)
 						return nil
 					},
 				),

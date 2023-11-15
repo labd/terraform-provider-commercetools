@@ -25,9 +25,9 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 	newPredicate := "2 = 2"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckShippingMethodDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckShippingMethodDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccShippingMethodConfig(name, key, description, description, localizedName, false, true, predicate),

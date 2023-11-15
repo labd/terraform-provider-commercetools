@@ -3,10 +3,10 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/ctutils"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -324,7 +324,7 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	var cartDiscount *platform.CartDiscount
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var err error
 		cartDiscount, err = client.CartDiscounts().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -506,7 +506,7 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m a
 		}
 	}
 
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.CartDiscounts().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -525,7 +525,7 @@ func resourceCartDiscountDelete(ctx context.Context, d *schema.ResourceData, m a
 	client := getClient(m)
 	version := d.Get("version").(int)
 
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.CartDiscounts().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})

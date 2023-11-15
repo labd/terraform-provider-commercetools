@@ -134,7 +134,7 @@ func TestExpandTypeFieldType(t *testing.T) {
 }
 
 func TestResourceTypeValidateField(t *testing.T) {
-	old := []any{
+	o := []any{
 		map[string]any{
 			"name": "field-one",
 			"type": []any{
@@ -144,7 +144,7 @@ func TestResourceTypeValidateField(t *testing.T) {
 			},
 		},
 	}
-	new := []any{
+	n := []any{
 		map[string]any{
 			"name": "field-one",
 			"type": []any{
@@ -154,13 +154,13 @@ func TestResourceTypeValidateField(t *testing.T) {
 			},
 		},
 	}
-	err := resourceTypeValidateField(old, new)
+	err := resourceTypeValidateField(o, n)
 	assert.NotNil(t, err)
 }
 
 func TestResourceTypeValidateFieldSet(t *testing.T) {
 
-	old := []any{
+	o := []any{
 		map[string]any{
 			"name": "field-one",
 			"type": []any{
@@ -175,7 +175,7 @@ func TestResourceTypeValidateFieldSet(t *testing.T) {
 			},
 		},
 	}
-	new := []any{
+	n := []any{
 		map[string]any{
 			"name": "field-one",
 			"type": []any{
@@ -190,7 +190,7 @@ func TestResourceTypeValidateFieldSet(t *testing.T) {
 			},
 		},
 	}
-	err := resourceTypeValidateField(old, new)
+	err := resourceTypeValidateField(o, n)
 	assert.NotNil(t, err)
 }
 
@@ -200,20 +200,20 @@ func TestAccTypes_basic(t *testing.T) {
 	resourceName := fmt.Sprintf("commercetools_type.%s", identifier)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTypesDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckTypesDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTypeConfig(identifier, key),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetType(s, resourceName)
+						r, err := testGetType(s, resourceName)
 						if err != nil {
 							return err
 						}
-						assert.EqualValues(t, resource.Key, key)
+						assert.EqualValues(t, r.Key, key)
 						return nil
 					},
 				),
@@ -228,9 +228,9 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 	resourceName := fmt.Sprintf("commercetools_type.%s", identifier)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTypesDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckTypesDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTypeConfig(identifier, key),
@@ -243,11 +243,11 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						resourceName, "field.1.type.0.element_type.0.value.#", "2"),
 					func(s *terraform.State) error {
-						resource, err := testGetType(s, resourceName)
+						r, err := testGetType(s, resourceName)
 						if err != nil {
 							return err
 						}
-						assert.EqualValues(t, resource.Key, key)
+						assert.EqualValues(t, r.Key, key)
 						return nil
 					},
 				),
@@ -268,11 +268,11 @@ func TestAccTypes_UpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						resourceName, "field.1.type.0.element_type.0.value.1.label", "Evening Changed"),
 					func(s *terraform.State) error {
-						resource, err := testGetType(s, resourceName)
+						r, err := testGetType(s, resourceName)
 						if err != nil {
 							return err
 						}
-						assert.EqualValues(t, resource.Key, key)
+						assert.EqualValues(t, r.Key, key)
 						return nil
 					},
 				),
@@ -287,9 +287,9 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 	resourceName := fmt.Sprintf("commercetools_type.%s", identifier)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTypesDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckTypesDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfigFields(
@@ -301,7 +301,7 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetType(s, resourceName)
+						r, err := testGetType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -321,8 +321,8 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 								InputHint: &SingleText,
 							},
 						}
-						assert.EqualValues(t, resource.Key, key)
-						assert.EqualValues(t, expected, resource.FieldDefinitions)
+						assert.EqualValues(t, r.Key, key)
+						assert.EqualValues(t, expected, r.FieldDefinitions)
 						return nil
 					},
 				),
@@ -338,7 +338,7 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetType(s, resourceName)
+						r, err := testGetType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -364,8 +364,8 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 								InputHint: &SingleText,
 							},
 						}
-						assert.EqualValues(t, resource.Key, key)
-						assert.EqualValues(t, expected, resource.FieldDefinitions)
+						assert.EqualValues(t, r.Key, key)
+						assert.EqualValues(t, expected, r.FieldDefinitions)
 						return nil
 					},
 				),
@@ -381,7 +381,7 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetType(s, resourceName)
+						r, err := testGetType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -408,8 +408,8 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 							},
 						}
 
-						assert.EqualValues(t, resource.Key, key)
-						assert.EqualValues(t, expected, resource.FieldDefinitions)
+						assert.EqualValues(t, r.Key, key)
+						assert.EqualValues(t, expected, r.FieldDefinitions)
 						return nil
 					},
 				),
@@ -426,7 +426,7 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetType(s, resourceName)
+						r, err := testGetType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -459,8 +459,8 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 							},
 						}
 
-						assert.EqualValues(t, resource.Key, key)
-						assert.EqualValues(t, expected, resource.FieldDefinitions)
+						assert.EqualValues(t, r.Key, key)
+						assert.EqualValues(t, expected, r.FieldDefinitions)
 						return nil
 					},
 				),
@@ -475,7 +475,7 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", key),
 					func(s *terraform.State) error {
-						resource, err := testGetType(s, resourceName)
+						r, err := testGetType(s, resourceName)
 						if err != nil {
 							return err
 						}
@@ -496,8 +496,8 @@ func TestAccTypes_FieldOrderUpdates(t *testing.T) {
 							},
 						}
 
-						assert.EqualValues(t, resource.Key, key)
-						assert.EqualValues(t, expected, resource.FieldDefinitions)
+						assert.EqualValues(t, r.Key, key)
+						assert.EqualValues(t, expected, r.FieldDefinitions)
 						return nil
 					},
 				),
@@ -756,7 +756,7 @@ func testAccCheckTypesDestroy(s *terraform.State) error {
 func testGetType(s *terraform.State, identifier string) (*platform.Type, error) {
 	rs, ok := s.RootModule().Resources[identifier]
 	if !ok {
-		return nil, fmt.Errorf("Type %s not found", identifier)
+		return nil, fmt.Errorf("type %s not found", identifier)
 	}
 
 	client := getClient(testAccProvider.Meta())

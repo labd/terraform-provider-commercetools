@@ -11,9 +11,9 @@ func TestAccCartDiscountFixed(t *testing.T) {
 	resourceName := "commercetools_cart_discount.fixed"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCartDiscountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckCartDiscountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCartDiscountFixedConfig(identifier),

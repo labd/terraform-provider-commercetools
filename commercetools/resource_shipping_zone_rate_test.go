@@ -17,9 +17,9 @@ func TestAccShippingZoneRate_createAndUpdate(t *testing.T) {
 	resourceName := "commercetools_shipping_zone_rate.standard-de"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckShippingZoneRateDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckShippingZoneRateDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccShippingZoneRateConfig(taxCategoryName, shippingMethodName, "EUR"),

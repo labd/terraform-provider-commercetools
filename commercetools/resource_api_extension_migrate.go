@@ -58,7 +58,7 @@ func resourceAPIExtensionResourceV0() *schema.Resource {
 	}
 }
 
-func migrateAPIExtensionStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+func migrateAPIExtensionStateV0toV1(_ context.Context, rawState map[string]any, _ any) (map[string]any, error) {
 	transformToList(rawState, "destination")
 	return rawState, nil
 }

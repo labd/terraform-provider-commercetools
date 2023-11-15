@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 
@@ -67,7 +67,7 @@ func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m any)
 
 	var apiClient *platform.ApiClient
 
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		var err error
 		apiClient, err = client.ApiClients().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -78,7 +78,7 @@ func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m any)
 	}
 
 	d.SetId(apiClient.ID)
-	d.Set("secret", apiClient.Secret)
+	_ = d.Set("secret", apiClient.Secret)
 
 	return resourceAPIClientRead(ctx, d, m)
 }
@@ -96,17 +96,17 @@ func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m any) d
 	}
 
 	d.SetId(apiClient.ID)
-	d.Set("name", apiClient.Name)
+	_ = d.Set("name", apiClient.Name)
 	scopes := strings.Split(apiClient.Scope, " ")
 	sort.Strings(scopes)
-	d.Set("scope", scopes)
+	_ = d.Set("scope", scopes)
 	return nil
 }
 
 func resourceAPIClientDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.ApiClients().WithId(d.Id()).Delete().Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})

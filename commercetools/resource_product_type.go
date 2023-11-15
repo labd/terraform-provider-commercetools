@@ -3,6 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"reflect"
 	"strings"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -60,7 +60,7 @@ func resourceProductType() *schema.Resource {
 				Optional:    true,
 			},
 			"attribute": {
-				Description: "[Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition)",
+				Description: "[Product attribute definition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition)",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Elem: &schema.Resource{
@@ -106,7 +106,7 @@ func resourceProductType() *schema.Resource {
 								v := val.(string)
 
 								if _, ok := constraintMap[v]; !ok {
-									allowedConstraints := []string{}
+									var allowedConstraints []string
 									for key := range constraintMap {
 										allowedConstraints = append(allowedConstraints, key)
 									}
@@ -246,7 +246,7 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m an
 	}
 
 	var ctType *platform.ProductType
-	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		var err error
 
 		ctType, err = client.ProductTypes().Post(draft).Execute(ctx)
@@ -258,7 +258,7 @@ func resourceProductTypeCreate(ctx context.Context, d *schema.ResourceData, m an
 	}
 
 	d.SetId(ctType.ID)
-	d.Set("version", ctType.Version)
+	_ = d.Set("version", ctType.Version)
 
 	return resourceProductTypeRead(ctx, d, m)
 }
@@ -301,17 +301,17 @@ func resourceProductTypeRead(ctx context.Context, d *schema.ResourceData, m any)
 	if ctType == nil {
 		d.SetId("")
 	} else {
-		d.Set("version", ctType.Version)
-		d.Set("key", ctType.Key)
-		d.Set("name", ctType.Name)
-		d.Set("description", ctType.Description)
+		_ = d.Set("version", ctType.Version)
+		_ = d.Set("key", ctType.Key)
+		_ = d.Set("name", ctType.Name)
+		_ = d.Set("description", ctType.Description)
 
 		attrs, err := flattenProductTypeAttributes(ctType)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		d.Set("attribute", attrs)
+		_ = d.Set("attribute", attrs)
 	}
 	return nil
 }
@@ -387,23 +387,23 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m an
 	}
 
 	if d.HasChange("description") {
-		newDescr := d.Get("description").(string)
+		newDescription := d.Get("description").(string)
 		input.Actions = append(
 			input.Actions,
-			&platform.ProductTypeChangeDescriptionAction{Description: newDescr})
+			&platform.ProductTypeChangeDescriptionAction{Description: newDescription})
 	}
 
 	if d.HasChange("attribute") {
-		old, new := d.GetChange("attribute")
+		o, n := d.GetChange("attribute")
 		attrChangeActions, err := resourceProductTypeAttributeChangeActions(
-			old.([]any), new.([]any))
+			o.([]any), n.([]any))
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		input.Actions = append(input.Actions, attrChangeActions...)
 	}
 
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -420,7 +420,7 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m an
 func resourceProductTypeDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.ProductTypes().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -494,12 +494,12 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 	}
 
 	// Create a copy of the attribute order for commercetools. When we
-	// delete attributes commercetools already re-orders the attributes and we need
+	// delete attributes commercetools already re-orders the attributes, and we need
 	// to not send a reorder command when the order already matches
-	attrOrder := []string{}
+	var attrOrder []string
 	attrOrder = append(attrOrder, oldAttrs.Keys()...)
 
-	actions := []platform.ProductTypeUpdateAction{}
+	var actions []platform.ProductTypeUpdateAction
 
 	// Check if we have attributes which are removed and generate the corresponding
 	// remove attribute actions
@@ -672,13 +672,13 @@ func updateAttributeEnumType(attrName string, old, new platform.AttributeEnumTyp
 		newValues.Set(new.Values[i].Key, new.Values[i])
 	}
 
-	valueOrder := []string{}
+	var valueOrder []string
 	valueOrder = append(valueOrder, oldValues.Keys()...)
 
-	actions := []platform.ProductTypeUpdateAction{}
+	var actions []platform.ProductTypeUpdateAction
 
 	// Delete enum values
-	removeKeys := []string{}
+	var removeKeys []string
 	for _, key := range oldValues.Keys() {
 		if _, ok := newValues.Get(key); !ok {
 			removeKeys = append(removeKeys, key)
@@ -753,13 +753,13 @@ func updateAttributeLocalizedEnumType(attrName string, old, new platform.Attribu
 		newValues.Set(new.Values[i].Key, new.Values[i])
 	}
 
-	valueOrder := []string{}
+	var valueOrder []string
 	valueOrder = append(valueOrder, oldValues.Keys()...)
 
-	actions := []platform.ProductTypeUpdateAction{}
+	var actions []platform.ProductTypeUpdateAction
 
 	// Delete enum values
-	removeKeys := []string{}
+	var removeKeys []string
 	for _, key := range oldValues.Keys() {
 		if _, ok := newValues.Get(key); !ok {
 			removeKeys = append(removeKeys, key)

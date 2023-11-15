@@ -147,7 +147,7 @@ func resourceCartDiscountResourceV0() *schema.Resource {
 	}
 }
 
-func migrateCartDiscountStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+func migrateCartDiscountStateV0toV1(_ context.Context, rawState map[string]any, _ any) (map[string]any, error) {
 	transformToList(rawState, "target")
 	return rawState, nil
 }

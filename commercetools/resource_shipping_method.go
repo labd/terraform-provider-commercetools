@@ -2,10 +2,10 @@ package commercetools
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -108,7 +108,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	var shippingMethod *platform.ShippingMethod
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var err error
 		shippingMethod, err = client.ShippingMethods().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -119,7 +119,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	d.SetId(shippingMethod.ID)
-	d.Set("version", shippingMethod.Version)
+	_ = d.Set("version", shippingMethod.Version)
 
 	return resourceShippingMethodRead(ctx, d, m)
 }
@@ -138,16 +138,16 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m a
 	if shippingMethod == nil {
 		d.SetId("")
 	} else {
-		d.Set("version", shippingMethod.Version)
-		d.Set("key", shippingMethod.Key)
-		d.Set("name", shippingMethod.Name)
-		d.Set("description", shippingMethod.Description)
-		d.Set("localized_description", shippingMethod.LocalizedDescription)
-		d.Set("localized_name", shippingMethod.LocalizedName)
-		d.Set("is_default", shippingMethod.IsDefault)
-		d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
-		d.Set("predicate", shippingMethod.Predicate)
-		d.Set("custom", flattenCustomFields(shippingMethod.Custom))
+		_ = d.Set("version", shippingMethod.Version)
+		_ = d.Set("key", shippingMethod.Key)
+		_ = d.Set("name", shippingMethod.Name)
+		_ = d.Set("description", shippingMethod.Description)
+		_ = d.Set("localized_description", shippingMethod.LocalizedDescription)
+		_ = d.Set("localized_name", shippingMethod.LocalizedName)
+		_ = d.Set("is_default", shippingMethod.IsDefault)
+		_ = d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
+		_ = d.Set("predicate", shippingMethod.Predicate)
+		_ = d.Set("custom", flattenCustomFields(shippingMethod.Custom))
 	}
 
 	return nil
@@ -237,7 +237,7 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 		}
 	}
 
-	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -262,7 +262,7 @@ func resourceShippingMethodDelete(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.ShippingMethods().WithId(d.Id()).Delete().Version(shippingMethod.Version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})

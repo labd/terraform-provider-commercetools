@@ -124,7 +124,7 @@ func TestAccCustomField_SetAndRemove(t *testing.T) {
 
 		// Remove Custom fields from the resource one by one
 		for index := range customFieldTypes {
-			var customFieldTypesReduced = []string{}
+			var customFieldTypesReduced []string
 			for i := range customFieldTypes {
 				if i == index {
 					continue
@@ -164,9 +164,9 @@ func TestAccCustomField_SetAndRemove(t *testing.T) {
 		})
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { testAccPreCheck(t) },
-			Providers: testAccProviders,
-			Steps:     customFieldsAccTestSteps,
+			PreCheck:          func() { testAccPreCheck(t) },
+			ProviderFactories: testAccProviders,
+			Steps:             customFieldsAccTestSteps,
 		})
 	}
 }
@@ -225,7 +225,7 @@ func getResourceCustomFields(s *terraform.State, resourceType, identifier string
 func testGetCategory(s *terraform.State, identifier string) (*platform.Category, error) {
 	rs, ok := s.RootModule().Resources[identifier]
 	if !ok {
-		return nil, fmt.Errorf("Category %s not found", identifier)
+		return nil, fmt.Errorf("category %s not found", identifier)
 	}
 
 	client := getClient(testAccProvider.Meta())
@@ -239,7 +239,7 @@ func testGetCategory(s *terraform.State, identifier string) (*platform.Category,
 func testGetShippingMethod(s *terraform.State, identifier string) (*platform.ShippingMethod, error) {
 	rs, ok := s.RootModule().Resources[identifier]
 	if !ok {
-		return nil, fmt.Errorf("Shipping Method %s not found", identifier)
+		return nil, fmt.Errorf("shipping Method %s not found", identifier)
 	}
 
 	client := getClient(testAccProvider.Meta())

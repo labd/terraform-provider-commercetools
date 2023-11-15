@@ -241,19 +241,19 @@ func getTypeResource(ctx context.Context, client *platform.ByProjectKeyRequestBu
 		return nil, nil
 	}
 
-	if type_id, ok := data["type_id"].(string); ok {
+	if typeId, ok := data["type_id"].(string); ok {
 		if cacheTypes == nil {
 			cacheTypes = make(map[string]*platform.Type)
 		}
-		if t, exists := cacheTypes[type_id]; exists {
+		if t, exists := cacheTypes[typeId]; exists {
 			if t == nil {
-				return nil, fmt.Errorf("type %s not in cache due to previous error", type_id)
+				return nil, fmt.Errorf("type %s not in cache due to previous error", typeId)
 			}
 			return t, nil
 		}
 
-		t, err := client.Types().WithId(type_id).Get().Execute(ctx)
-		cacheTypes[type_id] = t
+		t, err := client.Types().WithId(typeId).Get().Execute(ctx)
+		cacheTypes[typeId] = t
 		return t, err
 	}
 	return nil, fmt.Errorf("missing type_id for custom fields")

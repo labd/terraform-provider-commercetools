@@ -3,10 +3,10 @@ package commercetools
 import (
 	"context"
 	"errors"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -119,7 +119,7 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 	}
 
 	var store *platform.Store
-	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		var err error
 		store, err = client.Stores().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -252,10 +252,10 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 	}
 
 	if d.HasChange("product_selection") {
-		old, new := d.GetChange("product_selection")
+		o, n := d.GetChange("product_selection")
 
-		oldProductSelections := expandProductSelections(old.(*schema.Set))
-		newProductSelections := expandProductSelections(new.(*schema.Set))
+		oldProductSelections := expandProductSelections(o.(*schema.Set))
+		newProductSelections := expandProductSelections(n.(*schema.Set))
 
 		for i, productSelection := range oldProductSelections {
 			if !productSelectionInSlice(productSelection, newProductSelections) {
@@ -290,7 +290,7 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 		}
 	}
 
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.Stores().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -308,7 +308,7 @@ func resourceStoreDelete(ctx context.Context, d *schema.ResourceData, m any) dia
 	client := getClient(m)
 	version := d.Get("version").(int)
 
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.Stores().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})

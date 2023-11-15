@@ -100,9 +100,9 @@ func TestAccAPIExtension_basic(t *testing.T) {
 	resourceName := "commercetools_api_extension.ext"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAPIExtensionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckAPIExtensionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAPIExtensionGCFConfig(identifier, name, timeoutInMs),
@@ -309,9 +309,9 @@ func TestAccAPIExtension_azure_authentication(t *testing.T) {
 	resourceName := "commercetools_api_extension.ext"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAPIExtensionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckAPIExtensionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAPIExtensionAzureFunctionsConfig(identifier, name, timeoutInMs),

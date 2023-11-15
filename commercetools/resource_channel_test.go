@@ -15,9 +15,9 @@ func TestAccChannel_AllFields(t *testing.T) {
 	resourceName := "commercetools_channel.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckChannelDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckChannelDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccNewChannelConfigWithAllFields(),
@@ -120,9 +120,9 @@ func TestAccChannel_CustomField(t *testing.T) {
 	resourceName := "commercetools_channel.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckChannelDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckChannelDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccNewChannelConfigWithCustomField(),
@@ -291,7 +291,7 @@ func testAccCheckChannelDestroy(s *terraform.State) error {
 func testGetChannel(s *terraform.State, identifier string) (*platform.Channel, error) {
 	rs, ok := s.RootModule().Resources[identifier]
 	if !ok {
-		return nil, fmt.Errorf("Channel %s not found", identifier)
+		return nil, fmt.Errorf("channel %s not found", identifier)
 	}
 
 	client := getClient(testAccProvider.Meta())

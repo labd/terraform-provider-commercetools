@@ -2,10 +2,10 @@ package commercetools
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -46,7 +46,7 @@ func resourceTaxCategory() *schema.Resource {
 
 func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
-	emptyTaxRates := []platform.TaxRateDraft{}
+	var emptyTaxRates []platform.TaxRateDraft
 
 	draft := platform.TaxCategoryDraft{
 		Name:        d.Get("name").(string),
@@ -60,7 +60,7 @@ func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m an
 	}
 
 	var taxCategory *platform.TaxCategory
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var err error
 		taxCategory, err = client.TaxCategories().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -71,7 +71,7 @@ func resourceTaxCategoryCreate(ctx context.Context, d *schema.ResourceData, m an
 	}
 
 	d.SetId(taxCategory.ID)
-	d.Set("version", taxCategory.Version)
+	_ = d.Set("version", taxCategory.Version)
 
 	return resourceTaxCategoryRead(ctx, d, m)
 }
@@ -87,10 +87,10 @@ func resourceTaxCategoryRead(ctx context.Context, d *schema.ResourceData, m any)
 		return diag.FromErr(err)
 	}
 
-	d.Set("version", taxCategory.Version)
-	d.Set("key", taxCategory.Key)
-	d.Set("name", taxCategory.Name)
-	d.Set("description", taxCategory.Description)
+	_ = d.Set("version", taxCategory.Version)
+	_ = d.Set("key", taxCategory.Key)
+	_ = d.Set("name", taxCategory.Name)
+	_ = d.Set("description", taxCategory.Description)
 	return nil
 }
 
@@ -137,7 +137,7 @@ func resourceTaxCategoryUpdate(ctx context.Context, d *schema.ResourceData, m an
 			&platform.TaxCategorySetDescriptionAction{Description: &newDescription})
 	}
 
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.TaxCategories().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -162,7 +162,7 @@ func resourceTaxCategoryDelete(ctx context.Context, d *schema.ResourceData, m an
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err = client.TaxCategories().WithId(d.Id()).Delete().Version(taxCategory.Version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
