@@ -69,8 +69,10 @@ func NewProductFromNative(p *platform.Product) Product {
 		MetaDescription: utils.FromOptionalLocalizedString(p.MasterData.Staged.MetaDescription),
 		MetaKeywords:    utils.FromOptionalLocalizedString(p.MasterData.Staged.MetaKeywords),
 		MasterVariant:   NewProductVariantFromNative(p.MasterData.Staged.MasterVariant),
-		Variants:        pie.Map(p.MasterData.Staged.Variants, NewProductVariantFromNative),
-		Publish:         utils.FromOptionalBool(&p.MasterData.Published),
+		Variants: pie.SortUsing(pie.Map(p.MasterData.Staged.Variants, NewProductVariantFromNative), func(a, b ProductVariant) bool {
+			return a.ID.ValueInt64() < b.ID.ValueInt64()
+		}),
+		Publish: utils.FromOptionalBool(&p.MasterData.Published),
 	}
 
 	// Add product categories

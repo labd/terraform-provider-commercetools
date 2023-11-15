@@ -3,9 +3,12 @@ package product
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 	"regexp"
 	"time"
 
+	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -453,4 +456,119 @@ func (r *productResource) ImportState(ctx context.Context, req resource.ImportSt
 	if resp.Diagnostics.HasError() {
 		return
 	}
+}
+
+var _ resource.ResourceWithModifyPlan = &productResource{}
+
+func (r productResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() || req.State.Raw.IsNull() || req.Config.Raw.IsNull() {
+		return
+	}
+
+	var state Product
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var config Product
+	diags = req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Master variant change
+	if !state.MasterVariant.Sku.Equal(config.MasterVariant.Sku) {
+		// Check if new Master persits within the Variants
+		newMasterIndex := pie.FindFirstUsing(state.Variants, func(pv ProductVariant) bool { return pv.Sku.Equal(config.MasterVariant.Sku) })
+		if newMasterIndex == -1 {
+			resp.Diagnostics.AddError(
+				"Master Variant must be within the Variants.",
+				fmt.Sprintf("Variant with sku %s not found on product %s", config.MasterVariant.Sku, state.ID),
+			)
+			return
+		} else {
+			currentVariants := append(state.Variants, state.MasterVariant)
+			newMaster := config.MasterVariant
+			currentMasterVariant := getVariantBySku(currentVariants, config.MasterVariant.Sku.ValueString())
+			newMaster.ID = currentMasterVariant.ID
+			updatedPrices := []Price{}
+			for _, p := range newMaster.Prices {
+				currentPrice := getPriceByKey(currentMasterVariant.Prices, p.Key.ValueString())
+				if currentPrice != nil {
+					p.ID = currentPrice.ID
+				} else {
+					p.ID = types.StringUnknown()
+				}
+				updatedPrices = append(updatedPrices, p)
+			}
+			newMaster.Prices = updatedPrices
+			diags = resp.Plan.SetAttribute(ctx, path.Root("master_variant"), newMaster)
+			resp.Diagnostics.Append(diags...)
+		}
+	}
+
+	// Variants change
+	if !reflect.DeepEqual(state.Variants, config.Variants) {
+		currentVariants := append(state.Variants, state.MasterVariant)
+		newVariants := []ProductVariant{}
+		for _, v := range config.Variants {
+			currentVariant := getVariantBySku(currentVariants, v.Sku.ValueString())
+			if currentVariant != nil {
+				v.ID = currentVariant.ID
+				updatedPrices := []Price{}
+				for _, p := range v.Prices {
+					currentPrice := getPriceByKey(currentVariant.Prices, p.Key.ValueString())
+					if currentPrice != nil {
+						p.ID = currentPrice.ID
+					} else {
+						p.ID = types.StringUnknown()
+					}
+					updatedPrices = append(updatedPrices, p)
+				}
+				v.Prices = updatedPrices
+			} else {
+				v.ID = types.Int64Unknown()
+				updatedPrices := []Price{}
+				for _, p := range v.Prices {
+					p.ID = types.StringUnknown()
+					updatedPrices = append(updatedPrices, p)
+				}
+				v.Prices = updatedPrices
+			}
+			newVariants = append(newVariants, v)
+		}
+
+		diags = resp.Plan.SetAttribute(ctx, path.Root("variant"),
+			pie.SortUsing(newVariants, func(a, b ProductVariant) bool {
+				if a.ID.IsUnknown() {
+					return false
+				}
+				if b.ID.IsUnknown() {
+					return true
+				}
+				return a.ID.ValueInt64() < b.ID.ValueInt64()
+			}))
+		resp.Diagnostics.Append(diags...)
+	}
+}
+
+func getVariantBySku(variants []ProductVariant, sku string) *ProductVariant {
+	for _, v := range variants {
+		if v.Sku.ValueString() == sku {
+			return &v
+		}
+	}
+	return nil
+}
+
+func getPriceByKey(prices []Price, key string) *Price {
+	for _, p := range prices {
+		if p.Key.ValueString() == key {
+			return &p
+		}
+	}
+	return nil
 }

@@ -104,7 +104,7 @@ resource "commercetools_product" "{{ .identifier }}" {
         }
     }
 
-    {{ if eq .addVariant "true" }}
+    {{ if eq .addVariant1 "true" }}
     variant {
         key = "variant-2-key"
         sku = "100002"
@@ -127,6 +127,35 @@ resource "commercetools_product" "{{ .identifier }}" {
             key = "base_price_gbr"
             value {
                 cent_amount   = 123123
+                currency_code = "GBP"
+            }
+        }
+    }
+    {{ end }}
+
+    {{ if eq .addVariant2 "true" }}
+    variant {
+        key = "variant-3-key"
+        sku = "100003"
+        attribute {
+            name  = "name"
+            value = jsonencode({ "en-GB" : "Test product variant three" })
+        }
+        attribute {
+            name  = "description"
+            value = jsonencode({ "en-GB" : "Test product variant three description" })
+        }
+        price {
+            key = "base_price_eur"
+            value {
+                cent_amount   = 30000
+                currency_code = "EUR"
+            }
+        }
+        price {
+            key = "base_price_gbr"
+            value {
+                cent_amount   = 333333
                 currency_code = "GBP"
             }
         }

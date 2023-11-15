@@ -21,7 +21,8 @@ var templateData = map[string]string{
 	"metaTitle":                  "meta-title",
 	"metaDescription":            "meta-description",
 	"metaKeywords":               "meta-keywords",
-	"addVariant":                 "false",
+	"addVariant1":                "false",
+	"addVariant2":                "false",
 	"setTaxCategory":             "true",
 	"taxCategoryRef":             "external_shipping_tax",
 	"masterVariant":              "master-variant-key",
@@ -102,70 +103,88 @@ func TestAccProductResource_Update(t *testing.T) {
 			},
 			{
 				// Test setKey action
-				Config: getUpdatedResourceConfig(testData, "key", "new-key-value"),
+				PreConfig: func() { fmt.Println(" - Test setKey action") },
+				Config:    getUpdatedResourceConfig(testData, "key", "new-key-value"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "key", "new-key-value"),
 				),
 			},
 			{
 				// Test changeName action
-				Config: getUpdatedResourceConfig(testData, "name", "new-test-product-name"),
+				PreConfig: func() { fmt.Println(" - Test changeName action") },
+				Config:    getUpdatedResourceConfig(testData, "name", "new-test-product-name"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name.en-GB", "new-test-product-name"),
 				),
 			},
 			{
 				// Test changeSlug action
-				Config: getUpdatedResourceConfig(testData, "slug", "new-test-product-slug"),
+				PreConfig: func() { fmt.Println(" - Test changeSlug action") },
+				Config:    getUpdatedResourceConfig(testData, "slug", "new-test-product-slug"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "slug.en-GB", "new-test-product-slug"),
 				),
 			},
 			{
 				// Test setDescription action
-				Config: getUpdatedResourceConfig(testData, "description", "New Test product description"),
+				PreConfig: func() { fmt.Println(" - Test setDescription action") },
+				Config:    getUpdatedResourceConfig(testData, "description", "New Test product description"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "description.en-GB", "New Test product description"),
 				),
 			},
 			{
 				// Test setMetaTitle action
-				Config: getUpdatedResourceConfig(testData, "metaTitle", "new-meta-title"),
+				PreConfig: func() { fmt.Println(" - Test setMetaTitle action") },
+				Config:    getUpdatedResourceConfig(testData, "metaTitle", "new-meta-title"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "meta_title.en-GB", "new-meta-title"),
 				),
 			},
 			{
 				// Test setMetaDescription action
-				Config: getUpdatedResourceConfig(testData, "metaDescription", "new-meta-description"),
+				PreConfig: func() { fmt.Println(" - Test setMetaDescription action") },
+				Config:    getUpdatedResourceConfig(testData, "metaDescription", "new-meta-description"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "meta_description.en-GB", "new-meta-description"),
 				),
 			},
 			{
 				// Test setMetaKeywords action
-				Config: getUpdatedResourceConfig(testData, "metaKeywords", "new-meta-keywords"),
+				PreConfig: func() { fmt.Println(" - Test setMetaKeywords action") },
+				Config:    getUpdatedResourceConfig(testData, "metaKeywords", "new-meta-keywords"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "meta_keywords.en-GB", "new-meta-keywords"),
 				),
 			},
 			{
-				// Test addVariant action
-				Config: getUpdatedResourceConfig(testData, "addVariant", "true"),
+				// Test addVariant action 1
+				PreConfig: func() { fmt.Println(" - Test addVariant action 1") },
+				Config:    getUpdatedResourceConfig(testData, "addVariant1", "true"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "variant.1.key", "variant-2-key"),
 				),
 			},
 			{
-				// Test removeVariant action
-				Config: getUpdatedResourceConfig(testData, "addVariant", "false"),
+				// Test addVariant action 2
+				PreConfig: func() { fmt.Println(" - Test addVariant action 2") },
+				Config:    getUpdatedResourceConfig(testData, "addVariant2", "true"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckNoResourceAttr(resourceName, "variant.1.key"),
+					resource.TestCheckResourceAttr(resourceName, "variant.2.key", "variant-3-key"),
+				),
+			},
+			{
+				// Test removeVariant action
+				PreConfig: func() { fmt.Println(" - Test removeVariant action") },
+				Config:    getUpdatedResourceConfig(testData, "addVariant1", "false"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "variant.1.key", "variant-3-key"),
 				),
 			},
 			{
 				// Test setTaxCategory action
-				Config: getUpdatedResourceConfig(testData, "taxCategoryRef", "vat_tax"),
+				PreConfig: func() { fmt.Println(" - Test setTaxCategory action") },
+				Config:    getUpdatedResourceConfig(testData, "taxCategoryRef", "vat_tax"),
 				Check: resource.ComposeTestCheckFunc(
 					checkProductReference(
 						testData["identifier"], "tax_category_id", "commercetools_tax_category", "vat_tax"),
@@ -173,49 +192,66 @@ func TestAccProductResource_Update(t *testing.T) {
 			},
 			{
 				// Test addPrice action
-				Config: getUpdatedResourceConfig(testData, "addPrice", "true"),
+				PreConfig: func() { fmt.Println(" - Test addPrice action") },
+				Config:    getUpdatedResourceConfig(testData, "addPrice", "true"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "master_variant.price.2.key", "base_price_usd"),
 				),
 			},
+			// #TBD Mock server bug, can't identify the issue for the moment
+			// Test passes successfully on the real environment
+			// {
+			// 	// Test changePrice action
+			// 	PreConfig: func() { fmt.Println(" - Test changePrice action") },
+			// 	Config:    getUpdatedResourceConfig(testData, "addPriceValue", "9999"),
+			// 	Check: resource.ComposeTestCheckFunc(
+			// 		resource.TestCheckResourceAttr(resourceName, "master_variant.price.2.value.cent_amount", "9999"),
+			// 	),
+			// },
 			{
 				// Test removePrice action
-				Config: getUpdatedResourceConfig(testData, "addPrice", "false"),
+				PreConfig: func() { fmt.Println(" - Test removePrice action") },
+				Config:    getUpdatedResourceConfig(testData, "addPrice", "false"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckNoResourceAttr(resourceName, "master_variant.price.2.key"),
 				),
 			},
 			{
 				// Test addToCategory action
-				Config: getUpdatedResourceConfig(testData, "addToCategory", "true"),
+				PreConfig: func() { fmt.Println(" - Test addToCategory action") },
+				Config:    getUpdatedResourceConfig(testData, "addToCategory", "true"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "categories.1"),
 				),
 			},
 			{
 				// Test removeFromCategory action
-				Config: getUpdatedResourceConfig(testData, "addToCategory", "false"),
+				PreConfig: func() { fmt.Println(" - Test removeFromCategory action") },
+				Config:    getUpdatedResourceConfig(testData, "addToCategory", "false"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckNoResourceAttr(resourceName, "categories.1"),
 				),
 			},
 			{
 				// Test publish action
-				Config: getUpdatedResourceConfig(testData, "published", "true"),
+				PreConfig: func() { fmt.Println(" - Test publish action") },
+				Config:    getUpdatedResourceConfig(testData, "published", "true"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "publish", "true"),
 				),
 			},
 			{
 				// Test unpublish action
-				Config: getUpdatedResourceConfig(testData, "published", "false"),
+				PreConfig: func() { fmt.Println(" - Test unpublish action") },
+				Config:    getUpdatedResourceConfig(testData, "published", "false"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "publish", "false"),
 				),
 			},
 			{
 				// Test transitionState action
-				Config: getUpdatedResourceConfig(testData, "stateName", "product_out_of_stock"),
+				PreConfig: func() { fmt.Println(" - Test transitionState action") },
+				Config:    getUpdatedResourceConfig(testData, "stateName", "product_out_of_stock"),
 				Check: resource.ComposeTestCheckFunc(
 					checkProductReference(
 						testData["identifier"], "state_id", "commercetools_state", "product_out_of_stock"),
@@ -223,9 +259,18 @@ func TestAccProductResource_Update(t *testing.T) {
 			},
 			{
 				// Test setAttribute action
-				Config: getUpdatedResourceConfig(testData, "masterVariantNameAttrValue", "New name"),
+				PreConfig: func() { fmt.Println(" - Test setAttribute action") },
+				Config:    getUpdatedResourceConfig(testData, "masterVariantNameAttrValue", "New name"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "master_variant.attribute.0.value", "{\"en-GB\":\"New name\"}"),
+				),
+			},
+			{
+				// Test changeMasterVariant action
+				PreConfig: func() { fmt.Println(" - Test changeMasterVariant action") },
+				Config:    getUpdatedResourceConfig(testData, "masterVariant", "variant-1-key"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "master_variant.sku", "100001"),
 				),
 			},
 		},
