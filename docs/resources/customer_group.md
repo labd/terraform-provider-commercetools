@@ -4,14 +4,14 @@ page_title: "commercetools_customer_group Resource - terraform-provider-commerce
 subcategory: ""
 description: |-
   A Customer can be a member of a customer group (for example reseller, gold member). Special prices can be assigned to specific products based on a customer group.
-  See also the Custome Group API Documentation https://docs.commercetools.com/api/projects/customerGroups
+  See also the Customer Group API Documentation https://docs.commercetools.com/api/projects/customerGroups
 ---
 
 # commercetools_customer_group (Resource)
 
 A Customer can be a member of a customer group (for example reseller, gold member). Special prices can be assigned to specific products based on a customer group.
 
-See also the [Custome Group API Documentation](https://docs.commercetools.com/api/projects/customerGroups)
+See also the [Customer Group API Documentation](https://docs.commercetools.com/api/projects/customerGroups)
 
 ## Example Usage
 
