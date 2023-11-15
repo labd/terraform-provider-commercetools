@@ -183,3 +183,75 @@ func TestUpdateActions(t *testing.T) {
 		})
 	}
 }
+
+func TestSetStateData(t *testing.T) {
+	tests := []struct {
+		name     string
+		state    Project
+		plan     Project
+		expected Project
+	}{
+		{
+			name: "externalOAuth nil",
+			state: Project{
+				ExternalOAuth: nil,
+				Carts: []Carts{
+					{},
+				},
+			},
+			plan: Project{
+				ExternalOAuth: nil,
+			},
+			expected: Project{
+				ExternalOAuth: nil,
+				Carts:         nil,
+			},
+		}, {
+			name: "externalOAuth in state",
+			state: Project{
+				ExternalOAuth: []ExternalOAuth{
+					{AuthorizationHeader: types.StringValue("some-value")},
+				},
+				Carts: []Carts{
+					{},
+				},
+			},
+			plan: Project{
+				ExternalOAuth: nil,
+			},
+			expected: Project{
+				ExternalOAuth: []ExternalOAuth{
+					{AuthorizationHeader: types.StringValue("some-value")},
+				},
+				Carts: nil,
+			},
+		}, {
+			name: "externalOAuth in plan",
+			state: Project{
+				ExternalOAuth: []ExternalOAuth{
+					{AuthorizationHeader: types.StringValue("some-value")},
+				},
+				Carts: []Carts{
+					{},
+				},
+			},
+			plan: Project{
+				ExternalOAuth: []ExternalOAuth{
+					{AuthorizationHeader: types.StringValue("some-other-value")},
+				},
+			},
+			expected: Project{
+				ExternalOAuth: []ExternalOAuth{
+					{AuthorizationHeader: types.StringValue("some-other-value")},
+				},
+				Carts: nil,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.state.setStateData(tt.plan)
+			assert.Equal(t, tt.expected, tt.state)
+		})
+	}
+}
