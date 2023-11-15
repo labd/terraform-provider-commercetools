@@ -129,7 +129,7 @@ func (s *Subscription) updateActions(plan Subscription) platform.SubscriptionUpd
 
 	// setChanges
 	if !reflect.DeepEqual(s.Changes, plan.Changes) {
-		var changes []platform.ChangeSubscription
+		var changes = make([]platform.ChangeSubscription, 0, len(plan.Changes))
 		for _, c := range plan.Changes {
 			changes = append(changes, c.toNative()...)
 		}
@@ -143,9 +143,11 @@ func (s *Subscription) updateActions(plan Subscription) platform.SubscriptionUpd
 
 	// setMessages
 	if !reflect.DeepEqual(s.Messages, plan.Messages) {
-		messages := pie.Map(plan.Messages, func(m Message) platform.MessageSubscription {
-			return m.toNative()
-		})
+		var messages = make([]platform.MessageSubscription, 0, len(plan.Messages))
+		for _, m := range plan.Messages {
+			messages = append(messages, m.toNative())
+		}
+
 		result.Actions = append(
 			result.Actions,
 			platform.SubscriptionSetMessagesAction{Messages: messages})
