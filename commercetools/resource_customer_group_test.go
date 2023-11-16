@@ -14,9 +14,9 @@ import (
 func TestAccCustomerGroupCreate_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCustomerGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckCustomerGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCustomerGroupConfig(),
@@ -88,9 +88,9 @@ func TestAccCustomerGroupCreate_basic(t *testing.T) {
 func TestAccCustomerGroupCreate_CustomField(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCustomerGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckCustomerGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCustomerGroupCustomField(),

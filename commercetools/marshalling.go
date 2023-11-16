@@ -56,6 +56,23 @@ func expandTypedMoney(d map[string]any) []platform.Money {
 	return result
 }
 
+func expandTypedMoneyDraft(d map[string]any) []platform.TypedMoneyDraft {
+	input := d["money"].([]any)
+	var result []platform.TypedMoneyDraft
+
+	for _, raw := range input {
+		i := raw.(map[string]any)
+		priceCurrencyCode := i["currency_code"].(string)
+
+		result = append(result, platform.Money{
+			CurrencyCode: priceCurrencyCode,
+			CentAmount:   i["cent_amount"].(int),
+		})
+	}
+
+	return result
+}
+
 func expandLocalizedString(val any) platform.LocalizedString {
 	values, ok := val.(map[string]any)
 	if !ok {
@@ -65,26 +82,6 @@ func expandLocalizedString(val any) platform.LocalizedString {
 	result := make(platform.LocalizedString, len(values))
 	for k := range values {
 		result[k] = values[k].(string)
-	}
-	return result
-}
-
-func expandCentPrecisionMoneyDraft(d map[string]any) []platform.CentPrecisionMoneyDraft {
-	input := d["money"].([]any)
-	var result []platform.CentPrecisionMoneyDraft
-	for _, raw := range input {
-		data := raw.(map[string]any)
-		item := platform.CentPrecisionMoneyDraft{}
-		if currencyCode, ok := data["currency_code"].(string); ok {
-			item.CurrencyCode = currencyCode
-		}
-		if centAmount, ok := data["cent_amount"].(int); ok {
-			item.CentAmount = centAmount
-		}
-		if fractionDigits, ok := data["fraction_digits"].(int); ok {
-			item.FractionDigits = &fractionDigits
-		}
-		result = append(result, item)
 	}
 	return result
 }

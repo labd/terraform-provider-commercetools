@@ -3,10 +3,10 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 
@@ -98,7 +98,7 @@ func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceD
 
 	taxRateState.SetId(*taxRate.ID)
 	taxRateState.SetType("commercetools_tax_category_rate")
-	taxRateState.Set("tax_category_id", taxCategory.ID)
+	_ = taxRateState.Set("tax_category_id", taxCategory.ID)
 
 	setTaxRateState(taxRateState, taxRate)
 
@@ -107,7 +107,7 @@ func resourceTaxCategoryRateImportState(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceTaxCategoryRateGetSubRates(input []any) ([]platform.SubRate, error) {
-	result := []platform.SubRate{}
+	var result []platform.SubRate
 
 	for _, raw := range input {
 		raw := raw.(map[string]any)
@@ -147,7 +147,7 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 
 	input.Actions = append(input.Actions, platform.TaxCategoryAddTaxRateAction{TaxRate: *taxRateDraft})
 
-	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 30*time.Second, func() *retry.RetryError {
 		taxCategory, err = client.TaxCategories().WithId(taxCategoryID).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -157,7 +157,7 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	// Refresh the taxCategory. When a tax rate is added the ID is different
-	// then the ID returned in the response
+	// from the ID returned in the response
 	updatedTaxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
 	newTaxRate := findNewTaxRate(updatedTaxCategory, oldTaxRateIds)
 
@@ -166,7 +166,7 @@ func resourceTaxCategoryRateCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	d.SetId(*newTaxRate.ID)
-	d.Set("tax_category_id", taxCategory.ID)
+	_ = d.Set("tax_category_id", taxCategory.ID)
 
 	return resourceTaxCategoryRateRead(ctx, d, m)
 }
@@ -185,20 +185,20 @@ func resourceTaxCategoryRateRead(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func setTaxRateState(d *schema.ResourceData, taxRate *platform.TaxRate) {
-	d.Set("name", taxRate.Name)
-	d.Set("amount", taxRate.Amount)
-	d.Set("included_in_price", taxRate.IncludedInPrice)
-	d.Set("country", taxRate.Country)
-	d.Set("state", taxRate.State)
+	_ = d.Set("name", taxRate.Name)
+	_ = d.Set("amount", taxRate.Amount)
+	_ = d.Set("included_in_price", taxRate.IncludedInPrice)
+	_ = d.Set("country", taxRate.Country)
+	_ = d.Set("state", taxRate.State)
 
 	subRateData := make([]map[string]any, len(taxRate.SubRates))
-	for srIndex, subrate := range taxRate.SubRates {
+	for srIndex, subRate := range taxRate.SubRates {
 		subRateData[srIndex] = map[string]any{
-			"name":   subrate.Name,
-			"amount": subrate.Amount,
+			"name":   subRate.Name,
+			"amount": subRate.Amount,
 		}
 	}
-	d.Set("sub_rate", subRateData)
+	_ = d.Set("sub_rate", subRateData)
 }
 
 func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
@@ -238,7 +238,7 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	client := getClient(m)
-	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 30*time.Second, func() *retry.RetryError {
 		_, err := client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -250,7 +250,7 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	// Refresh the taxCategory. When a tax rate is added the ID is different
-	// then the ID returned in the response
+	// from the ID returned in the response
 	updatedTaxCategory, err := client.TaxCategories().WithId(taxCategoryID).Get().Execute(ctx)
 	if err != nil {
 		// Workaround invalid state to be written, see
@@ -273,10 +273,10 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) {
-	var subrates []platform.SubRate
+	var subRates []platform.SubRate
 	var err error
 	if subRateRaw, ok := d.GetOk("sub_rate"); ok {
-		subrates, err = resourceTaxCategoryRateGetSubRates(subRateRaw.([]any))
+		subRates, err = resourceTaxCategoryRateGetSubRates(subRateRaw.([]any))
 		if err != nil {
 			return nil, err
 		}
@@ -295,7 +295,7 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 		IncludedInPrice: d.Get("included_in_price").(bool),
 		Country:         countryCode,
 		State:           stringRef(d.Get("state")),
-		SubRates:        subrates,
+		SubRates:        subRates,
 	}
 
 	return &taxRateDraft, nil
@@ -324,7 +324,7 @@ func resourceTaxCategoryRateDelete(ctx context.Context, d *schema.ResourceData, 
 	input.Actions = append(input.Actions, removeAction)
 
 	client := getClient(m)
-	err = resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 30*time.Second, func() *retry.RetryError {
 		_, err := client.TaxCategories().WithId(taxCategory.ID).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -358,7 +358,7 @@ func validateTaxRateAmount(val any, key string) (warns []string, errs []error) {
 }
 
 func getTaxRateIds(taxCategory *platform.TaxCategory) []string {
-	taxRateIds := []string{}
+	var taxRateIds []string
 	for _, rate := range taxCategory.Rates {
 		taxRateIds = append(taxRateIds, *rate.ID)
 	}

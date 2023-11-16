@@ -12,9 +12,9 @@ import (
 func TestAccCustomObjectCreate_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCustomObjectDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckCustomObjectDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCustomObjectNumber(),
@@ -108,9 +108,9 @@ func TestAccCustomObjectCreate_basic(t *testing.T) {
 func TestAccCustomObjectCreate_object(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCustomObjectDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckCustomObjectDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCustomObjectNestedData(),

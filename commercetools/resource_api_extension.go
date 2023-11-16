@@ -3,12 +3,12 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 
@@ -17,7 +17,7 @@ import (
 
 func resourceAPIExtension() *schema.Resource {
 	return &schema.Resource{
-		Description: "Create a new API extension to extend the bevahiour of an API with business logic. " +
+		Description: "Create a new API extension to extend the behaviour of an API with business logic. " +
 			"Note that API extensions affect the performance of the API it is extending. If it fails, the whole API " +
 			"call fails \n\n" +
 			"Also see the [API Extension API Documentation](https://docs.commercetools.com/api/projects/api-extensions)",
@@ -184,7 +184,7 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	var extension *platform.Extension
-	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		var err error
 		extension, err = client.Extensions().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -266,7 +266,7 @@ func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m a
 			&platform.ExtensionSetTimeoutInMsAction{TimeoutInMs: &newTimeout})
 	}
 
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.Extensions().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -360,10 +360,10 @@ func expandExtensionDestinationAuthentication(destInput map[string]any) (platfor
 // commercetools to write it in the state file.
 func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceData) []map[string]string {
 	// Special handling is required here since the destination contains a secret
-	// value which is returned as a masked value by the commercetools API.  This
-	// means we need to extract the value from the current raw state file.
-	// However when importing a resource we don't have the value so we need to
-	// handle that scenario as well.
+	// value which is returned as a masked value by the commercetools API. This means
+	// we need to extract the value from the current raw state file. However, when
+	// importing a resource we don't have the value, so we need to handle that
+	// scenario as well.
 	isExisting := true
 	rawState := d.GetRawState()
 	if !rawState.IsNull() {

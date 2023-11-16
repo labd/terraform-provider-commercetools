@@ -3,6 +3,7 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"reflect"
 	"strings"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -128,7 +128,7 @@ func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag
 	name := expandLocalizedString(d.Get("name"))
 	description := expandLocalizedString(d.Get("description"))
 
-	resourceTypeIds := []platform.ResourceTypeId{}
+	var resourceTypeIds []platform.ResourceTypeId
 	for _, item := range expandStringArray(d.Get("resource_type_ids").([]any)) {
 		resourceTypeIds = append(resourceTypeIds, platform.ResourceTypeId(item))
 
@@ -151,7 +151,7 @@ func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag
 	}
 
 	var ctType *platform.Type
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var err error
 
 		ctType, err = client.Types().Post(draft).Execute(ctx)
@@ -166,7 +166,7 @@ func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag
 	}
 
 	d.SetId(ctType.ID)
-	d.Set("version", ctType.Version)
+	_ = d.Set("version", ctType.Version)
 
 	return resourceTypeRead(ctx, d, m)
 }
@@ -187,14 +187,14 @@ func resourceTypeRead(ctx context.Context, d *schema.ResourceData, m any) diag.D
 	if ctType == nil {
 		d.SetId("")
 	} else {
-		d.Set("version", ctType.Version)
-		d.Set("key", ctType.Key)
-		d.Set("name", ctType.Name)
-		d.Set("description", ctType.Description)
-		d.Set("resource_type_ids", ctType.ResourceTypeIds)
+		_ = d.Set("version", ctType.Version)
+		_ = d.Set("key", ctType.Key)
+		_ = d.Set("name", ctType.Name)
+		_ = d.Set("description", ctType.Description)
+		_ = d.Set("resource_type_ids", ctType.ResourceTypeIds)
 
 		if fields, err := flattenTypeFields(ctType); err == nil {
-			d.Set("field", fields)
+			_ = d.Set("field", fields)
 		} else {
 			return diag.FromErr(err)
 		}
@@ -233,8 +233,8 @@ func resourceTypeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag
 	}
 
 	if d.HasChange("field") {
-		old, new := d.GetChange("field")
-		fieldChangeActions, err := resourceTypeFieldChangeActions(old.([]any), new.([]any))
+		o, n := d.GetChange("field")
+		fieldChangeActions, err := resourceTypeFieldChangeActions(o.([]any), n.([]any))
 		if err != nil {
 			// Workaround invalid state to be written, see
 			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
@@ -244,7 +244,7 @@ func resourceTypeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag
 		input.Actions = append(input.Actions, fieldChangeActions...)
 	}
 
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.Types().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -261,7 +261,7 @@ func resourceTypeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag
 func resourceTypeDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.Types().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -657,12 +657,12 @@ func resourceTypeFieldChangeActions(oldValues []any, newValues []any) ([]platfor
 	}
 
 	// Create a copy of the field order for commercetools. When we
-	// delete fields commercetools already re-orders the fields and we need
+	// delete fields commercetools already re-orders the fields, and we need
 	// to not send a reorder command when the order already matches
-	fieldOrder := []string{}
+	var fieldOrder []string
 	fieldOrder = append(fieldOrder, oldFields.Keys()...)
 
-	actions := []platform.TypeUpdateAction{}
+	var actions []platform.TypeUpdateAction
 
 	// Check if we have fields which are removed and generate the corresponding
 	// remove field actions
@@ -785,10 +785,10 @@ func updateCustomFieldEnumType(fieldName string, old, new platform.CustomFieldEn
 		newValues.Set(new.Values[i].Key, new.Values[i])
 	}
 
-	valueOrder := []string{}
+	var valueOrder []string
 	valueOrder = append(valueOrder, oldValues.Keys()...)
 
-	actions := []platform.TypeUpdateAction{}
+	var actions []platform.TypeUpdateAction
 	for _, key := range newValues.Keys() {
 		newValue, _ := newValues.Get(key)
 
@@ -843,10 +843,10 @@ func updateCustomFieldLocalizedEnumType(fieldName string, old, new platform.Cust
 		newValues.Set(new.Values[i].Key, new.Values[i])
 	}
 
-	valueOrder := []string{}
+	var valueOrder []string
 	valueOrder = append(valueOrder, oldValues.Keys()...)
 
-	actions := []platform.TypeUpdateAction{}
+	var actions []platform.TypeUpdateAction
 	for _, key := range newValues.Keys() {
 		newValue, _ := newValues.Get(key)
 

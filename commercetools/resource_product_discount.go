@@ -3,10 +3,10 @@ package commercetools
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -164,7 +164,7 @@ func resourceProductDiscountCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	var productDiscount *platform.ProductDiscount
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var err error
 		productDiscount, err = client.ProductDiscounts().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -175,7 +175,7 @@ func resourceProductDiscountCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	d.SetId(productDiscount.ID)
-	d.Set("version", productDiscount.Version)
+	_ = d.Set("version", productDiscount.Version)
 
 	return resourceProductDiscountRead(ctx, d, m)
 }
@@ -195,16 +195,16 @@ func resourceProductDiscountRead(ctx context.Context, d *schema.ResourceData, m 
 	if productDiscount == nil {
 		d.SetId("")
 	} else {
-		d.Set("version", productDiscount.Version)
-		d.Set("key", productDiscount.Key)
-		d.Set("name", productDiscount.Name)
-		d.Set("description", productDiscount.Description)
-		d.Set("value", flattenProductDiscountValue(productDiscount.Value))
-		d.Set("predicate", productDiscount.Predicate)
-		d.Set("sort_order", productDiscount.SortOrder)
-		d.Set("is_active", productDiscount.IsActive)
-		d.Set("valid_from", flattenTime(productDiscount.ValidFrom))
-		d.Set("valid_until", flattenTime(productDiscount.ValidUntil))
+		_ = d.Set("version", productDiscount.Version)
+		_ = d.Set("key", productDiscount.Key)
+		_ = d.Set("name", productDiscount.Name)
+		_ = d.Set("description", productDiscount.Description)
+		_ = d.Set("value", flattenProductDiscountValue(productDiscount.Value))
+		_ = d.Set("predicate", productDiscount.Predicate)
+		_ = d.Set("sort_order", productDiscount.SortOrder)
+		_ = d.Set("is_active", productDiscount.IsActive)
+		_ = d.Set("valid_from", flattenTime(productDiscount.ValidFrom))
+		_ = d.Set("valid_until", flattenTime(productDiscount.ValidUntil))
 	}
 
 	return nil
@@ -302,7 +302,7 @@ func resourceProductDiscountUpdate(ctx context.Context, d *schema.ResourceData, 
 		}
 	}
 
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.ProductDiscounts().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -321,7 +321,7 @@ func resourceProductDiscountDelete(ctx context.Context, d *schema.ResourceData, 
 	client := getClient(m)
 	version := d.Get("version").(int)
 
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.ProductDiscounts().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})

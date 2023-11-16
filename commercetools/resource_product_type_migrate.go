@@ -70,7 +70,7 @@ func resourceProductTypeResourceV0() *schema.Resource {
 							ValidateFunc: func(val any, key string) (warns []string, errs []error) {
 								v := val.(string)
 								if _, ok := constraintMap[v]; !ok {
-									allowedConstraints := []string{}
+									var allowedConstraints []string
 									for key := range constraintMap {
 										allowedConstraints = append(allowedConstraints, key)
 									}
@@ -155,7 +155,7 @@ func attributeTypeElementV0(setsAllowed bool) *schema.Resource {
 	return &schema.Resource{Schema: result}
 }
 
-func migrateProductTypeStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+func migrateProductTypeStateV0toV1(_ context.Context, rawState map[string]any, _ any) (map[string]any, error) {
 	attr, ok := rawState["attribute"].([]any)
 	if !ok {
 		return rawState, nil
@@ -202,7 +202,7 @@ func migrateProductTypeAttributeV0toV1(attr map[string]any) {
 		if !ok {
 			return
 		}
-		// "values" and "value" cannot co exist, so this needs an upgrade
+		// "values" and "value" cannot co-exist, so this needs an upgrade
 		value := make([]map[string]string, len(elementTypeValues))
 		i := 0
 		for k, v := range elementTypeValues {
@@ -223,7 +223,7 @@ func migrateProductTypeAttributeV0toV1(attr map[string]any) {
 			return
 		}
 
-		// "values" and "value" cannot co exist, so this needs an upgrade
+		// "values" and "value" cannot co-exist, so this needs an upgrade
 		value := make([]map[string]string, len(itemTypeValues))
 		i := 0
 		for k, v := range itemTypeValues {

@@ -2,10 +2,10 @@ package commercetools
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -78,7 +78,7 @@ func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m any) d
 	name := expandLocalizedString(d.Get("name"))
 	description := expandLocalizedString(d.Get("description"))
 
-	roles := []platform.ChannelRoleEnum{}
+	var roles []platform.ChannelRoleEnum
 	for _, value := range expandStringArray(d.Get("roles").([]any)) {
 		roles = append(roles, platform.ChannelRoleEnum(value))
 	}
@@ -104,7 +104,7 @@ func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m any) d
 	}
 
 	var channel *platform.Channel
-	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		var err error
 
 		channel, err = client.Channels().Post(draft).Execute(ctx)
@@ -116,7 +116,7 @@ func resourceChannelCreate(ctx context.Context, d *schema.ResourceData, m any) d
 	}
 
 	d.SetId(channel.ID)
-	d.Set("version", channel.Version)
+	_ = d.Set("version", channel.Version)
 	return resourceChannelRead(ctx, d, m)
 }
 
@@ -133,18 +133,18 @@ func resourceChannelRead(ctx context.Context, d *schema.ResourceData, m any) dia
 	}
 
 	d.SetId(channel.ID)
-	d.Set("version", channel.Version)
+	_ = d.Set("version", channel.Version)
 	if channel.Name != nil {
-		d.Set("name", *channel.Name)
+		_ = d.Set("name", *channel.Name)
 	}
 	if channel.Description != nil {
-		d.Set("description", *channel.Description)
+		_ = d.Set("description", *channel.Description)
 	}
-	d.Set("key", channel.Key)
-	d.Set("roles", channel.Roles)
-	d.Set("address", flattenAddress(channel.Address))
-	d.Set("geolocation", flattenGeoLocation(channel.GeoLocation))
-	d.Set("custom", flattenCustomFields(channel.Custom))
+	_ = d.Set("key", channel.Key)
+	_ = d.Set("roles", channel.Roles)
+	_ = d.Set("address", flattenAddress(channel.Address))
+	_ = d.Set("geolocation", flattenGeoLocation(channel.GeoLocation))
+	_ = d.Set("custom", flattenCustomFields(channel.Custom))
 	return nil
 }
 
@@ -178,7 +178,7 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m any) d
 	}
 
 	if d.HasChange("roles") {
-		roles := []platform.ChannelRoleEnum{}
+		var roles []platform.ChannelRoleEnum
 		for _, value := range expandStringArray(d.Get("roles").([]any)) {
 			roles = append(roles, platform.ChannelRoleEnum(value))
 		}
@@ -211,7 +211,7 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m any) d
 		}
 	}
 
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.Channels().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -228,7 +228,7 @@ func resourceChannelUpdate(ctx context.Context, d *schema.ResourceData, m any) d
 func resourceChannelDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.Channels().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})

@@ -129,7 +129,7 @@ func resourceCategoryResourceV0() *schema.Resource {
 	}
 }
 
-func migrateCategoryStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+func migrateCategoryStateV0toV1(_ context.Context, rawState map[string]any, _ any) (map[string]any, error) {
 	for _, asset := range rawState["assets"].([]any) {
 		sources := asset.(map[string]any)["sources"]
 		for _, source := range sources.([]any) {

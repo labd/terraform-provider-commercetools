@@ -2,10 +2,10 @@ package commercetools
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -228,7 +228,7 @@ func resourceCategoryCreate(ctx context.Context, d *schema.ResourceData, m any) 
 	}
 
 	var category *platform.Category
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var err error
 		category, err = client.Categories().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -407,7 +407,7 @@ func resourceCategoryUpdate(ctx context.Context, d *schema.ResourceData, m any) 
 		}
 	}
 
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.Categories().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -425,7 +425,7 @@ func resourceCategoryDelete(ctx context.Context, d *schema.ResourceData, m any) 
 	client := getClient(m)
 
 	version := d.Get("version").(int)
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.Categories().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -482,26 +482,6 @@ func expandCategoryAssetDrafts(d *schema.ResourceData) []platform.AssetDraft {
 	var result []platform.AssetDraft
 	for _, raw := range input {
 		result = append(result, *expandCategoryAssetDraft(raw))
-	}
-	return result
-}
-
-func expandCategoryAssets(d *schema.ResourceData) []platform.Asset {
-	input := d.Get("assets").([]any)
-	var result []platform.Asset
-	for _, raw := range input {
-		draft := expandCategoryAssetDraft(raw)
-		i := raw.(map[string]any)
-		id := i["id"].(string)
-		asset := platform.Asset{
-			ID:          id,
-			Key:         draft.Key,
-			Name:        draft.Name,
-			Description: draft.Description,
-			Sources:     draft.Sources,
-			Tags:        draft.Tags,
-		}
-		result = append(result, asset)
 	}
 	return result
 }

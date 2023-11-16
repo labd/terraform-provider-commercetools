@@ -2,10 +2,10 @@ package commercetools
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -15,7 +15,7 @@ func resourceCustomerGroup() *schema.Resource {
 	return &schema.Resource{
 		Description: "A Customer can be a member of a customer group (for example reseller, gold member). " +
 			"Special prices can be assigned to specific products based on a customer group.\n\n" +
-			"See also the [Custome Group API Documentation](https://docs.commercetools.com/api/projects/customerGroups)",
+			"See also the [Customer Group API Documentation](https://docs.commercetools.com/api/projects/customerGroups)",
 		CreateContext: resourceCustomerGroupCreate,
 		ReadContext:   resourceCustomerGroupRead,
 		UpdateContext: resourceCustomerGroupUpdate,
@@ -65,7 +65,7 @@ func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	var customerGroup *platform.CustomerGroup
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var err error
 		customerGroup, err = client.CustomerGroups().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -80,7 +80,7 @@ func resourceCustomerGroupCreate(ctx context.Context, d *schema.ResourceData, m 
 	}
 
 	d.SetId(customerGroup.ID)
-	d.Set("version", customerGroup.Version)
+	_ = d.Set("version", customerGroup.Version)
 
 	return resourceCustomerGroupRead(ctx, d, m)
 }
@@ -99,10 +99,10 @@ func resourceCustomerGroupRead(ctx context.Context, d *schema.ResourceData, m an
 	if customerGroup == nil {
 		d.SetId("")
 	} else {
-		d.Set("version", customerGroup.Version)
-		d.Set("name", customerGroup.Name)
-		d.Set("key", customerGroup.Key)
-		d.Set("custom", flattenCustomFields(customerGroup.Custom))
+		_ = d.Set("version", customerGroup.Version)
+		_ = d.Set("name", customerGroup.Name)
+		_ = d.Set("key", customerGroup.Key)
+		_ = d.Set("custom", flattenCustomFields(customerGroup.Custom))
 	}
 
 	return nil
@@ -140,7 +140,7 @@ func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 		}
 	}
 
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.CustomerGroups().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -157,7 +157,7 @@ func resourceCustomerGroupUpdate(ctx context.Context, d *schema.ResourceData, m 
 func resourceCustomerGroupDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 	version := d.Get("version").(int)
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.CustomerGroups().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})

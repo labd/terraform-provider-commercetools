@@ -13,8 +13,8 @@ import (
 )
 
 func TestExpandShippingZoneLocations(t *testing.T) {
-	resource := resourceShippingZone().Schema["location"].Elem.(*schema.Resource)
-	input := schema.NewSet(schema.HashResource(resource), []any{
+	r := resourceShippingZone().Schema["location"].Elem.(*schema.Resource)
+	input := schema.NewSet(schema.HashResource(r), []any{
 		map[string]any{
 			"country": "DE",
 			"state":   "",
@@ -50,9 +50,9 @@ func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
 	newDescription := "new description"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckShippingZoneDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckShippingZoneDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccShippingZoneConfig(name, description, key),
@@ -108,9 +108,9 @@ func TestAccShippingZone_createAndAddLocation(t *testing.T) {
 	resourceName := "commercetools_shipping_zone.standard"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckShippingZoneDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckShippingZoneDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccShippingZoneConfig(name, description, name),
@@ -165,9 +165,9 @@ func TestAccShippingZone_createAndRemoveLocation(t *testing.T) {
 	resourceName := "commercetools_shipping_zone.standard"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckShippingZoneDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckShippingZoneDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccShippingZoneConfig(name, description, name),

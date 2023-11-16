@@ -130,7 +130,7 @@ func resourceTypeResourceV0() *schema.Resource {
 	}
 }
 
-func migrateTypeStateV0toV1(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+func migrateTypeStateV0toV1(_ context.Context, rawState map[string]any, _ any) (map[string]any, error) {
 	field, ok := rawState["field"].([]any)
 	if !ok {
 		return rawState, nil
@@ -179,7 +179,7 @@ func migrateTypeAttributeV0toV1(attr map[string]any) {
 			return
 		}
 
-		// "values" and "value" cannot co exist, so this needs an upgrade
+		// "values" and "value" cannot co-exist, so this needs an upgrade
 		value := make([]map[string]string, len(elementTypeValues))
 		i := 0
 		for k, v := range elementTypeValues {
@@ -200,7 +200,7 @@ func migrateTypeAttributeV0toV1(attr map[string]any) {
 			return
 		}
 
-		// "values" and "value" cannot co exist, so this needs an upgrade
+		// "values" and "value" cannot co-exist, so this needs an upgrade
 		value := make([]map[string]string, len(itemTypeValues))
 		i := 0
 		for k, v := range itemTypeValues {

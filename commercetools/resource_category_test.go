@@ -13,9 +13,9 @@ func TestAccCategoryCreate_basic(t *testing.T) {
 	resourceName := "commercetools_category.accessories"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCategoryDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCategoryDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCategoryConfig(),
@@ -81,9 +81,9 @@ func TestAccCategoryRecreateAfterDelete(t *testing.T) {
 	resourceName := "commercetools_category.accessories"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCategoryDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCategoryDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCategoryConfig(),

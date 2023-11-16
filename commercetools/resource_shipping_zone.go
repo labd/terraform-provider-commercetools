@@ -2,10 +2,10 @@ package commercetools
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -79,7 +79,7 @@ func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	var shippingZone *platform.Zone
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var err error
 		shippingZone, err = client.Zones().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -90,7 +90,7 @@ func resourceShippingZoneCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	d.SetId(shippingZone.ID)
-	d.Set("version", shippingZone.Version)
+	_ = d.Set("version", shippingZone.Version)
 
 	return resourceShippingZoneRead(ctx, d, m)
 }
@@ -108,11 +108,11 @@ func resourceShippingZoneRead(ctx context.Context, d *schema.ResourceData, m any
 		return diag.FromErr(err)
 	}
 
-	d.Set("version", shippingZone.Version)
-	d.Set("key", shippingZone.Key)
-	d.Set("name", shippingZone.Name)
-	d.Set("description", shippingZone.Description)
-	d.Set("location", flattenShippingZoneLocations(shippingZone.Locations))
+	_ = d.Set("version", shippingZone.Version)
+	_ = d.Set("key", shippingZone.Key)
+	_ = d.Set("name", shippingZone.Name)
+	_ = d.Set("description", shippingZone.Description)
+	_ = d.Set("location", flattenShippingZoneLocations(shippingZone.Locations))
 	return nil
 }
 
@@ -148,10 +148,10 @@ func resourceShippingZoneUpdate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	if d.HasChange("location") {
-		old, new := d.GetChange("location")
+		o, n := d.GetChange("location")
 
-		oldLocations := expandShippingZoneLocations(old.(*schema.Set))
-		newLocations := expandShippingZoneLocations(new.(*schema.Set))
+		oldLocations := expandShippingZoneLocations(o.(*schema.Set))
+		newLocations := expandShippingZoneLocations(n.(*schema.Set))
 
 		for i, location := range oldLocations {
 			if !_locationInSlice(location, newLocations) {
@@ -188,7 +188,7 @@ func resourceShippingZoneDelete(ctx context.Context, d *schema.ResourceData, m a
 	defer ctMutexKV.Unlock(d.Id())
 
 	version := d.Get("version").(int)
-	err := resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		_, err := client.Zones().WithId(d.Id()).Delete().Version(version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})

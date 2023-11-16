@@ -20,9 +20,9 @@ func TestAccTaxCategory_createAndUpdateWithID(t *testing.T) {
 	newDescription := "new test category description"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTaxCategoryDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckTaxCategoryDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTaxCategoryConfig(name, key, description),

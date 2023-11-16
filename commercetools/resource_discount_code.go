@@ -2,11 +2,11 @@ package commercetools
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 
@@ -151,7 +151,7 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	var discountCode *platform.DiscountCode
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
 		var err error
 		discountCode, err = client.DiscountCodes().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -162,7 +162,7 @@ func resourceDiscountCodeCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	d.SetId(discountCode.ID)
-	d.Set("version", discountCode.Version)
+	_ = d.Set("version", discountCode.Version)
 
 	return resourceDiscountCodeRead(ctx, d, m)
 }
@@ -178,19 +178,19 @@ func resourceDiscountCodeRead(ctx context.Context, d *schema.ResourceData, m any
 		return diag.FromErr(err)
 	}
 
-	d.Set("version", discountCode.Version)
-	d.Set("code", discountCode.Code)
-	d.Set("name", discountCode.Name)
-	d.Set("description", discountCode.Description)
-	d.Set("predicate", discountCode.CartPredicate)
-	d.Set("cart_discounts", flattenDiscountCodeCartDiscounts(discountCode.CartDiscounts))
-	d.Set("groups", discountCode.Groups)
-	d.Set("is_active", discountCode.IsActive)
-	d.Set("valid_from", flattenTime(discountCode.ValidFrom))
-	d.Set("valid_until", flattenTime(discountCode.ValidUntil))
-	d.Set("max_applications_per_customer", discountCode.MaxApplicationsPerCustomer)
-	d.Set("max_applications", discountCode.MaxApplications)
-	d.Set("custom", flattenCustomFields(discountCode.Custom))
+	_ = d.Set("version", discountCode.Version)
+	_ = d.Set("code", discountCode.Code)
+	_ = d.Set("name", discountCode.Name)
+	_ = d.Set("description", discountCode.Description)
+	_ = d.Set("predicate", discountCode.CartPredicate)
+	_ = d.Set("cart_discounts", flattenDiscountCodeCartDiscounts(discountCode.CartDiscounts))
+	_ = d.Set("groups", discountCode.Groups)
+	_ = d.Set("is_active", discountCode.IsActive)
+	_ = d.Set("valid_from", flattenTime(discountCode.ValidFrom))
+	_ = d.Set("valid_until", flattenTime(discountCode.ValidUntil))
+	_ = d.Set("max_applications_per_customer", discountCode.MaxApplicationsPerCustomer)
+	_ = d.Set("max_applications", discountCode.MaxApplications)
+	_ = d.Set("custom", flattenCustomFields(discountCode.Custom))
 	return nil
 }
 
@@ -308,7 +308,7 @@ func resourceDiscountCodeUpdate(ctx context.Context, d *schema.ResourceData, m a
 		}
 	}
 
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.DiscountCodes().WithId(d.Id()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -326,7 +326,7 @@ func resourceDiscountCodeDelete(ctx context.Context, d *schema.ResourceData, m a
 	client := getClient(m)
 	version := d.Get("version").(int)
 
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.DiscountCodes().WithId(d.Id()).Delete().Version(version).DataErasure(true).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
@@ -351,7 +351,7 @@ func expandDiscountCodeCartDiscounts(d *schema.ResourceData) []platform.CartDisc
 func flattenDiscountCodeCartDiscounts(values []platform.CartDiscountReference) []string {
 	result := make([]string, len(values))
 	for i := range values {
-		result[i] = string(values[i].ID)
+		result[i] = values[i].ID
 	}
 	return result
 }

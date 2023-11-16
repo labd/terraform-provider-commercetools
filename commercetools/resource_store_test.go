@@ -19,9 +19,9 @@ func TestAccStore_createAndUpdateWithID(t *testing.T) {
 	languages := []string{"en-US"}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckStoreDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckStoreDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccStoreConfig("test", name, key),
@@ -113,9 +113,9 @@ func TestAccStore_createAndUpdateDistributionLanguages(t *testing.T) {
 	languages := []string{"en-US"}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckStoreDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckStoreDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccStoreConfigWithChannels("test", name, key, languages),
@@ -147,9 +147,9 @@ func TestAccStore_CustomField(t *testing.T) {
 	key := "standard"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckStoreDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckStoreDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccStoreConfigWithCustomField("test", name, key, []string{}),
@@ -518,7 +518,7 @@ func testAccCheckStoreDestroy(s *terraform.State) error {
 func testGetStore(s *terraform.State, identifier string) (*platform.Store, error) {
 	rs, ok := s.RootModule().Resources[identifier]
 	if !ok {
-		return nil, fmt.Errorf("Store not found")
+		return nil, fmt.Errorf("store not found")
 	}
 
 	client := getClient(testAccProvider.Meta())

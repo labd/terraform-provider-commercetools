@@ -2,17 +2,15 @@ package commercetools
 
 import (
 	"fmt"
-	"reflect"
-	"regexp"
-	"strings"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"reflect"
+	"regexp"
 )
 
 // TypeLocalizedString defined merely for documentation,
-// it basically is just a normal TypeMap but clearifies in the code that
+// it basically is just a normal TypeMap but clarifies in the code that
 // it should be used to store a LocalizedString
 const TypeLocalizedString = schema.TypeMap
 
@@ -31,13 +29,6 @@ func stringRef(value any) *string {
 	}
 	result := value.(string)
 	return &result
-}
-
-func stringUnref(value *string) string {
-	if value == nil {
-		return ""
-	}
-	return *value
 }
 
 func intRef(value any) *int {
@@ -335,36 +326,6 @@ var validateLocalizedStringKey = validation.MapKeyMatch(
 	"Locale keys must match pattern ^[a-z]{2}(-[A-Z]{2})?$",
 )
 
-func upperStringSlice(items []string) []string {
-	s := make([]string, len(items))
-	for i, v := range items {
-		s[i] = strings.ToUpper(v)
-	}
-	return s
-}
-
-// languageCode converts an IETF language tag with mixed casing into the case-sensitive format.
-// The original item is returned if the given input is not valid.
-func languageCode(s string) string {
-	if len(s) == 2 {
-		return strings.ToLower(s)
-	}
-	parts := strings.Split(s, "-")
-	if len(parts) == 2 {
-		return strings.Join([]string{strings.ToLower(parts[0]), strings.ToUpper(parts[1])}, "-")
-	}
-	// fallback to the original
-	return s
-}
-
-func languageCodeSlice(items []string) []string {
-	codes := make([]string, len(items))
-	for i, code := range items {
-		codes[i] = languageCode(code)
-	}
-	return codes
-}
-
 func compareDateString(a, b string) bool {
 	if a == b {
 		return true
@@ -380,7 +341,7 @@ func compareDateString(a, b string) bool {
 	return da.Unix() == db.Unix()
 }
 
-func diffSuppressDateString(k, old, new string, d *schema.ResourceData) bool {
+func diffSuppressDateString(_, old, new string, _ *schema.ResourceData) bool {
 	return compareDateString(old, new)
 }
 

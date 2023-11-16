@@ -18,9 +18,9 @@ func TestAccTaxCategoryRate_createAndUpdateWithID(t *testing.T) {
 	country := "DE"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTaxCategoryRateDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckTaxCategoryRateDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTaxCategoryRateConfig(name, amount, true, country),
@@ -87,9 +87,9 @@ func TestAccTaxCategoryRate_createAndUpdateSubRates(t *testing.T) {
 	country := "DE"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTaxCategoryRateDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckTaxCategoryRateDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTaxCategoryRateSubRatesConfig(name, subRateAmount, true, country, true),
@@ -119,7 +119,7 @@ func TestAccTaxCategoryRate_createAndUpdateSubRates(t *testing.T) {
 	})
 }
 
-func testAccTaxCategoryRateSubRatesConfig(name string, amount float64, includedInPrice bool, country string, addSubrates bool) string {
+func testAccTaxCategoryRateSubRatesConfig(name string, amount float64, includedInPrice bool, country string, addSubRates bool) string {
 	return hclTemplate(`
 		resource "commercetools_tax_category" "standard" {
 			name        = "test-rate-category"
@@ -134,7 +134,7 @@ func testAccTaxCategoryRateSubRatesConfig(name string, amount float64, includedI
 			included_in_price = {{ .includedInPrice }}
 			country           = "{{ .country }}"
 
-			{{ if .addSubrates }}
+			{{ if .addSubRates }}
 			sub_rate {
 				name = "foo"
 				amount = 0.2
@@ -150,7 +150,7 @@ func testAccTaxCategoryRateSubRatesConfig(name string, amount float64, includedI
 		"amount":          amount,
 		"includedInPrice": includedInPrice,
 		"country":         country,
-		"addSubrates":     addSubrates,
+		"addSubRates":     addSubRates,
 	})
 }
 
@@ -162,9 +162,9 @@ func TestAccTaxCategoryRate_createAndUpdateBothRateAndTaxCategory(t *testing.T) 
 	country := "DE"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTaxCategoryRateDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckTaxCategoryRateDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTaxCategoryRateDualUpdateConfig("foo", name, amount, true, country),

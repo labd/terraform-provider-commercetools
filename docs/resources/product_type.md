@@ -153,7 +153,7 @@ resource "commercetools_product_type" "my-product-type" {
 
 ### Optional
 
-- `attribute` (Block List) [Product attribute fefinition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition) (see [below for nested schema](#nestedblock--attribute))
+- `attribute` (Block List) [Product attribute definition](https://docs.commercetools.com/api/projects/productTypes#attributedefinition) (see [below for nested schema](#nestedblock--attribute))
 - `description` (String)
 - `key` (String) User-specific unique identifier for the product type (max. 256 characters)
 

@@ -3,10 +3,10 @@ package commercetools
 import (
 	"context"
 	"encoding/json"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -60,7 +60,7 @@ func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m a
 		Value:     value,
 	}
 	var customObject *platform.CustomObject
-	err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		var err error
 		customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -70,7 +70,7 @@ func resourceCustomObjectCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	d.SetId(customObject.ID)
-	d.Set("version", customObject.Version)
+	_ = d.Set("version", customObject.Version)
 
 	return nil
 }
@@ -88,10 +88,10 @@ func resourceCustomObjectRead(ctx context.Context, d *schema.ResourceData, m any
 		return diag.FromErr(err)
 	}
 
-	d.Set("container", customObject.Container)
-	d.Set("key", customObject.Key)
-	d.Set("value", flattenCustomObjectValue(customObject))
-	d.Set("version", customObject.Version)
+	_ = d.Set("container", customObject.Container)
+	_ = d.Set("key", customObject.Key)
+	_ = d.Set("value", flattenCustomObjectValue(customObject))
+	_ = d.Set("version", customObject.Version)
 	return nil
 }
 
@@ -104,7 +104,7 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m a
 
 	if d.HasChange("container") || d.HasChange("key") {
 		// If the container or key has changed we need to delete the old object
-		// and create the new object. We first want to create the new vlaue and
+		// and create the new object. We first want to create the new value and
 		// then the old one
 		draft := platform.CustomObjectDraft{
 			Container: newContainer.(string),
@@ -112,7 +112,7 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m a
 			Value:     value,
 		}
 		var customObject *platform.CustomObject
-		err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 			var err error
 			customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
 			return utils.ProcessRemoteError(err)
@@ -124,9 +124,9 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m a
 			return diag.FromErr(err)
 		}
 		d.SetId(customObject.ID)
-		d.Set("version", customObject.Version)
+		_ = d.Set("version", customObject.Version)
 
-		err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 			_, err := client.
 				CustomObjects().
 				WithContainerAndKey(originalContainer.(string), originalKey.(string)).
@@ -153,7 +153,7 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m a
 			Version:   intRef(d.Get("version")),
 		}
 		var customObject *platform.CustomObject
-		err := resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+		err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 			var err error
 			customObject, err = client.CustomObjects().Post(draft).Execute(ctx)
 			return utils.ProcessRemoteError(err)
@@ -166,7 +166,7 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m a
 		}
 
 		d.SetId(customObject.ID)
-		d.Set("version", customObject.Version)
+		_ = d.Set("version", customObject.Version)
 
 	}
 	return nil
@@ -194,7 +194,7 @@ func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m a
 		return diags
 	}
 
-	err = resource.RetryContext(ctx, 20*time.Second, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		_, err := client.
 			CustomObjects().
 			WithContainerAndKey(container, key).
@@ -215,7 +215,7 @@ func resourceCustomObjectDelete(ctx context.Context, d *schema.ResourceData, m a
 
 func _decodeCustomObjectValue(value string) any {
 	var data any
-	json.Unmarshal([]byte(value), &data)
+	_ = json.Unmarshal([]byte(value), &data)
 	return data
 }
 

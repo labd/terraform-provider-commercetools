@@ -17,9 +17,9 @@ func TestAccCartDiscountRelative(t *testing.T) {
 	resourceName := "commercetools_cart_discount.relative"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCartDiscountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckCartDiscountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCartDiscountRelativeConfig(identifier, "relative"),
@@ -101,9 +101,9 @@ func TestAccCartDiscountRelative_CustomField(t *testing.T) {
 	resourceName := "commercetools_cart_discount." + identifier
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCartDiscountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckCartDiscountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCartDiscountRelativeConfigWithCustomField(identifier, "relative_new_with_custom_field"),
@@ -584,7 +584,7 @@ func testAccCartDiscountRelativeRemoveCustomField(identifier, key string) string
 func testGetCartDiscount(s *terraform.State, identifier string) (*platform.CartDiscount, error) {
 	rs, ok := s.RootModule().Resources[identifier]
 	if !ok {
-		return nil, fmt.Errorf("Cart Discount %s not found", identifier)
+		return nil, fmt.Errorf("cart Discount %s not found", identifier)
 	}
 
 	client := getClient(testAccProvider.Meta())

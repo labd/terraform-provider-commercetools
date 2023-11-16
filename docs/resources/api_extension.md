@@ -3,13 +3,13 @@
 page_title: "commercetools_api_extension Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  Create a new API extension to extend the bevahiour of an API with business logic. Note that API extensions affect the performance of the API it is extending. If it fails, the whole API call fails
+  Create a new API extension to extend the behaviour of an API with business logic. Note that API extensions affect the performance of the API it is extending. If it fails, the whole API call fails
   Also see the API Extension API Documentation https://docs.commercetools.com/api/projects/api-extensions
 ---
 
 # commercetools_api_extension (Resource)
 
-Create a new API extension to extend the bevahiour of an API with business logic. Note that API extensions affect the performance of the API it is extending. If it fails, the whole API call fails 
+Create a new API extension to extend the behaviour of an API with business logic. Note that API extensions affect the performance of the API it is extending. If it fails, the whole API call fails 
 
 Also see the [API Extension API Documentation](https://docs.commercetools.com/api/projects/api-extensions)
 
