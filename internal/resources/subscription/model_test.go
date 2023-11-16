@@ -234,6 +234,50 @@ func TestUpdateActions(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "remove messages",
+			state: Subscription{
+				Version: types.Int64Value(10),
+				Messages: []Message{
+					{
+						ResourceTypeID: types.StringValue("product"),
+					},
+				},
+			},
+			plan: Subscription{
+				Messages: nil,
+			},
+			expected: platform.SubscriptionUpdate{
+				Version: 10,
+				Actions: []platform.SubscriptionUpdateAction{
+					platform.SubscriptionSetMessagesAction{
+						Messages: []platform.MessageSubscription{},
+					},
+				},
+			},
+		},
+		{
+			name: "remove changes",
+			state: Subscription{
+				Version: types.Int64Value(10),
+				Changes: []Changes{
+					{
+						ResourceTypeIds: []types.String{types.StringValue("product")},
+					},
+				},
+			},
+			plan: Subscription{
+				Changes: nil,
+			},
+			expected: platform.SubscriptionUpdate{
+				Version: 10,
+				Actions: []platform.SubscriptionUpdateAction{
+					platform.SubscriptionSetChangesAction{
+						Changes: []platform.ChangeSubscription{},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
