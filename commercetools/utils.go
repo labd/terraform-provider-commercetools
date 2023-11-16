@@ -402,3 +402,16 @@ func coerceTypedMoney(val platform.TypedMoney) platform.Money {
 
 	return platform.Money{}
 }
+
+// intNilIfEmpty returns a nil value if the integer is nil or empty (0) otherwise
+// it returns the value
+func intNilIfEmpty(val *int) *int {
+	if val == nil {
+		return nil
+	}
+
+	if *val == 0 {
+		return nil
+	}
+	return val
+}
