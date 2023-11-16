@@ -1,3 +1,0 @@
-kind: Fixed
-body: ensure an empty slice is set if subscription messages or changes are removed
-time: 2023-11-15T11:32:50.093744942+01:00
