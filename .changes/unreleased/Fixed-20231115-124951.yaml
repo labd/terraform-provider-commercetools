@@ -1,4 +1,0 @@
-kind: Fixed
-body: fixed check on project ExternalOAuth setting when processing state and plan
-  differences
-time: 2023-11-15T12:49:51.714555603+01:00
