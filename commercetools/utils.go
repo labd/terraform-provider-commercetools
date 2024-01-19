@@ -2,11 +2,12 @@ package commercetools
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"golang.org/x/text/language"
 	"reflect"
-	"regexp"
 )
 
 // TypeLocalizedString defined merely for documentation,
@@ -321,10 +322,35 @@ func nilIfEmpty(val *string) *string {
 	return val
 }
 
-var validateLocalizedStringKey = validation.MapKeyMatch(
-	regexp.MustCompile("^[a-z]{2}(-[A-Z]{2})?$"),
-	"Locale keys must match pattern ^[a-z]{2}(-[A-Z]{2})?$",
-)
+var validateLocalizedStringKey schema.SchemaValidateDiagFunc = func(v interface{}, path cty.Path) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	m, ok := v.(map[string]interface{})
+	if !ok {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       "Input is not a map of language tags",
+			Detail:        "The input provided is not a map of language tags",
+			AttributePath: path,
+		})
+		return diags
+	}
+
+	for key := range m {
+		_, err := language.Parse(key)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Bad language tag",
+				Detail:        fmt.Sprintf("Language tag %s is not valid: %s", key, err.Error()),
+				AttributePath: append(path, cty.IndexStep{Key: cty.StringVal(key)}),
+			})
+			continue
+		}
+	}
+
+	return diags
+}
 
 func compareDateString(a, b string) bool {
 	if a == b {

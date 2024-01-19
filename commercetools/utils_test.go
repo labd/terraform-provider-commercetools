@@ -53,7 +53,7 @@ func TestCompareDateString(t *testing.T) {
 	for _, tt := range testCases {
 		res = compareDateString(tt.a, tt.b)
 		if res != tt.expected {
-			t.Errorf("expected %v, got %v", tt.expected, res)
+			t.Errorf("failures %v, got %v", tt.expected, res)
 		}
 	}
 
@@ -90,5 +90,27 @@ func TestIntNilIfEmpty(t *testing.T) {
 	for _, tt := range testCases {
 		v := intNilIfEmpty(tt.input)
 		assert.Equal(t, tt.expected, v)
+	}
+}
+
+func TestValidateLocalizedStringKey(t *testing.T) {
+	testCases := []struct {
+		input    interface{}
+		failures int
+	}{
+		{map[string]any{"en": "English"}, 0},
+		{map[string]any{"en-US": "English (United States)"}, 0},
+		{map[string]any{"es-419": "Spanish (Latin America)"}, 0},
+		{map[string]any{"rm-sursilv": "Romansh Sursilvan"}, 0},
+		{map[string]any{"sr-Cyrl": "Serbian in Cyrillic"}, 0},
+		{map[string]any{"foobar": "Fail"}, 1},
+		{"foobar", 1},
+		{1, 1},
+		{map[string]any{"es-409": "Spanish (Latin America)"}, 1},
+	}
+
+	for _, tt := range testCases {
+		diag := validateLocalizedStringKey(tt.input, nil)
+		assert.Equal(t, tt.failures, len(diag), fmt.Sprintf("%+v", diag))
 	}
 }
