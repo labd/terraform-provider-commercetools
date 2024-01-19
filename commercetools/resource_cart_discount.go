@@ -128,33 +128,39 @@ func resourceCartDiscount() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Description:  "Supports lineItems/customLineItems/multiBuyLineItems/multiBuyCustomLineItems/shipping",
+							Description:  "Supports lineItems, customLineItems, multiBuyLineItems, multiBuyCustomLineItems, shipping or totalPrice",
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateTargetType,
 						},
 						"predicate": {
-							Description: "LineItems/CustomLineItems/MultiBuyLineItems/MultiBuyCustomLineItems target specific fields",
-							Type:        schema.TypeString,
-							Optional:    true,
+							Description: "LineItems, CustomLineItems, MultiBuyLineItems or MultiBuyCustomLineItems target specific fields. " +
+								"If set for another target the value will be ignored",
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 						"trigger_quantity": {
-							Description: "MultiBuyLineItems/MultiBuyCustomLineItems target specific fields",
-							Type:        schema.TypeInt,
-							Optional:    true,
+							Description: "MultiBuyLineItems or MultiBuyCustomLineItems target specific fields. " +
+								"If set for another target the value will be ignored",
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 						"discounted_quantity": {
-							Description: "MultiBuyLineItems/MultiBuyCustomLineItems target specific fields",
-							Type:        schema.TypeInt,
-							Optional:    true,
+							Description: "MultiBuyLineItems or MultiBuyCustomLineItems target specific fields. " +
+								"If set for another target the value will be ignored",
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 						"max_occurrence": {
-							Description: "MultiBuyLineItems/MultiBuyCustomLineItems target specific fields",
-							Type:        schema.TypeInt,
-							Optional:    true,
+							Description: "MultiBuyLineItems or MultiBuyCustomLineItems target specific fields. " +
+								"If set for another target the value will be ignored",
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 						"selection_mode": {
-							Description:  "MultiBuyLineItems/MultiBuyCustomLineItems target specific fields",
+							Description: "MultiBuyLineItems or MultiBuyCustomLineItems target specific fields. " +
+								"Can be either Cheapest or MostExpensive. " +
+								"If set for another target the value will be ignored",
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validateSelectionMode,
@@ -193,7 +199,8 @@ func resourceCartDiscount() *schema.Resource {
 				Default:  false,
 			},
 			"stacking_mode": {
-				Description:  "Specifies whether the application of this discount causes the following discounts to be ignored",
+				Description: "Specifies whether the application of this discount causes the following discounts to be ignored. " +
+					"Can be either Stacking or StopAfterThisDiscount",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateStackingMode,
@@ -227,9 +234,10 @@ func validateTargetType(val any, key string) (warns []string, errs []error) {
 	case
 		"lineItems",
 		"customLineItems",
+		"shipping",
+		"totalPrice",
 		"multiBuyLineItems",
-		"multiBuyCustomLineItems",
-		"shipping":
+		"multiBuyCustomLineItems":
 		return
 	default:
 		errs = append(errs, fmt.Errorf("%q not a valid value for %q", val, key))
@@ -662,6 +670,10 @@ func flattenCartDiscountTarget(val platform.CartDiscountTarget) []map[string]any
 		return []map[string]any{{
 			"type": "shipping",
 		}}
+	case platform.CartDiscountTotalPriceTarget:
+		return []map[string]any{{
+			"type": "totalPrice",
+		}}
 	}
 
 	panic("Unable to flatten cart discount target")
@@ -721,6 +733,8 @@ func expandCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscountTarg
 
 	case "shipping":
 		return platform.CartDiscountShippingCostTarget{}, nil
+	case "totalPrice":
+		return platform.CartDiscountTotalPriceTarget{}, nil
 	default:
 		return nil, fmt.Errorf("target type %s not implemented", input["type"])
 	}

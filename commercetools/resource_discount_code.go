@@ -76,7 +76,7 @@ func resourceDiscountCode() *schema.Resource {
 				Optional:     true,
 			},
 			"max_applications": {
-				Description: "The discount code can only be applied the specified times overall" +
+				Description: "The discount code can only be applied the specified times overall. " +
 					"Note that due to an engine constraint 0 cannot be set for this field, " +
 					"so possible values are either larger than 0 or not set",
 				Type:         schema.TypeInt,
