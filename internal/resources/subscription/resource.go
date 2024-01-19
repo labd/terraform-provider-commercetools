@@ -3,6 +3,7 @@ package subscription
 import (
 	"context"
 	"errors"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"regexp"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	sdk_resource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/labd/commercetools-go-sdk/platform"
 
 	"github.com/labd/terraform-provider-commercetools/internal/customvalidator"
@@ -83,7 +83,8 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"type": schema.StringAttribute{
-							Required: true,
+							Description: "The type of the destination. See [Destination](https://docs.commercetools.com/api/projects/subscriptions#destination) for more information",
+							Required:    true,
 							Validators: []validator.String{
 								stringvalidator.OneOf(
 									SQS,
@@ -92,6 +93,7 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 									EventGrid,
 									AzureServiceBus,
 									GoogleCloudPubSub,
+									ConfluentCloud,
 								),
 								customvalidator.DependencyValidator(
 									SQS,
@@ -121,56 +123,71 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 									path.MatchRelative().AtParent().AtName("project_id"),
 									path.MatchRelative().AtParent().AtName("topic"),
 								),
+								customvalidator.DependencyValidator(
+									ConfluentCloud,
+									path.MatchRelative().AtParent().AtName("bootstrap_server"),
+									path.MatchRelative().AtParent().AtName("api_key"),
+									path.MatchRelative().AtParent().AtName("api_secret"),
+									path.MatchRelative().AtParent().AtName("acks"),
+								),
 							},
 						},
 						"topic_arn": schema.StringAttribute{
-							Optional: true,
+							Description: "The ARN of the SNS topic",
+							Optional:    true,
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
 						},
 						"queue_url": schema.StringAttribute{
-							Optional: true,
+							Description: "The URL of the SQS queue",
+							Optional:    true,
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
 						},
 						"region": schema.StringAttribute{
-							Optional: true,
+							Description: "The region of the SQS queue, SNS topic or EventBridge topic",
+							Optional:    true,
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
 						},
 						"account_id": schema.StringAttribute{
-							Optional: true,
+							Description: "The AWS account ID of the SNS topic or EventBridge topic",
+							Optional:    true,
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
 						},
 						"access_key": schema.StringAttribute{
-							Optional:   true,
-							Validators: []validator.String{
+							Description: "The access key of the SQS queue, SNS topic or EventBridge topic",
+							Optional:    true,
+							Validators:  []validator.String{
 								// TODO Require value if access_secret is set and
 								// type is SNS, SQS
 							},
 							Sensitive: true,
 						},
 						"access_secret": schema.StringAttribute{
-							Optional:   true,
-							Validators: []validator.String{
+							Description: "The access secret of the SQS queue, SNS topic or EventBridge topic",
+							Optional:    true,
+							Validators:  []validator.String{
 								// TODO Require value if access_key is set and
 								// type is SNS, SQS
 							},
 							Sensitive: true,
 						},
 						"uri": schema.StringAttribute{
-							Optional: true,
+							Description: "The URI of the EventGrid topic",
+							Optional:    true,
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
 						},
 						"connection_string": schema.StringAttribute{
-							Optional: true,
+							Description: "The connection string of the Azure Service Bus",
+							Optional:    true,
 							Validators: []validator.String{
 								stringvalidator.RegexMatches(
 									regexp.MustCompilePOSIX("^Endpoint=sb://"),
@@ -179,13 +196,50 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 							},
 						},
 						"project_id": schema.StringAttribute{
-							Optional: true,
+							Description: "The project ID of the Google Cloud Pub/Sub",
+							Optional:    true,
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
 						},
 						"topic": schema.StringAttribute{
-							Optional: true,
+							Description: "The topic of the Google Cloud Pub/Sub or Confluent Cloud topic",
+							Optional:    true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
+						},
+						"bootstrap_server": schema.StringAttribute{
+							Description: "The bootstrap server of the Confluent Cloud topic",
+							Optional:    true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
+						},
+						"api_key": schema.StringAttribute{
+							Description: "The API key of the Confluent Cloud topic",
+							Optional:    true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
+						},
+						"api_secret": schema.StringAttribute{
+							Description: "The API secret of the Confluent Cloud topic",
+							Optional:    true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
+						},
+						"acks": schema.StringAttribute{
+							Description: "The acks value of the Confluent Cloud topic",
+							Optional:    true,
+							Validators: []validator.String{
+								stringvalidator.LengthAtLeast(1),
+							},
+						},
+						"key": schema.StringAttribute{
+							Description: "The key of the Confluent Cloud topic",
+							Optional:    true,
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
@@ -285,7 +339,7 @@ func (r *subscriptionResource) Create(ctx context.Context, req resource.CreateRe
 
 	draft := plan.draft()
 	var subscription *platform.Subscription
-	err := sdk_resource.RetryContext(ctx, 20*time.Second, func() *sdk_resource.RetryError {
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		var err error
 		subscription, err = r.client.Subscriptions().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -365,7 +419,7 @@ func (r *subscriptionResource) Update(ctx context.Context, req resource.UpdateRe
 
 	input := state.updateActions(plan)
 	var subscription *platform.Subscription
-	err := sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
+	err := retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
 		var err error
 		subscription, err = r.client.Subscriptions().WithId(state.ID.ValueString()).Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -402,7 +456,7 @@ func (r *subscriptionResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	err := sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
+	err := retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
 		_, err := r.client.Subscriptions().WithId(state.ID.ValueString()).Delete().Version(int(state.Version.ValueInt64())).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
