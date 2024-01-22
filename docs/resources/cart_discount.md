@@ -169,7 +169,7 @@ resource "commercetools_cart_discount" "my-cart-discount" {
 - `is_active` (Boolean) Only active discount can be applied to the cart
 - `key` (String) User-specific unique identifier for a cart discount. Must be unique across a project
 - `requires_discount_code` (Boolean) States whether the discount can only be used in a connection with a [DiscountCode](https://docs.commercetools.com/api/projects/discountCodes#discountcode)
-- `stacking_mode` (String) Specifies whether the application of this discount causes the following discounts to be ignored
+- `stacking_mode` (String) Specifies whether the application of this discount causes the following discounts to be ignored. Can be either Stacking or StopAfterThisDiscount
 - `target` (Block List, Max: 1) Empty when the value has type giftLineItem, otherwise a [CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget) (see [below for nested schema](#nestedblock--target))
 - `valid_from` (String)
 - `valid_until` (String)
@@ -222,12 +222,12 @@ Optional:
 
 Required:
 
-- `type` (String) Supports lineItems/customLineItems/multiBuyLineItems/multiBuyCustomLineItems/shipping
+- `type` (String) Supports lineItems, customLineItems, multiBuyLineItems, multiBuyCustomLineItems, shipping or totalPrice
 
 Optional:
 
-- `discounted_quantity` (Number) MultiBuyLineItems/MultiBuyCustomLineItems target specific fields
-- `max_occurrence` (Number) MultiBuyLineItems/MultiBuyCustomLineItems target specific fields
-- `predicate` (String) LineItems/CustomLineItems/MultiBuyLineItems/MultiBuyCustomLineItems target specific fields
-- `selection_mode` (String) MultiBuyLineItems/MultiBuyCustomLineItems target specific fields
-- `trigger_quantity` (Number) MultiBuyLineItems/MultiBuyCustomLineItems target specific fields
+- `discounted_quantity` (Number) MultiBuyLineItems or MultiBuyCustomLineItems target specific fields. If set for another target the value will be ignored
+- `max_occurrence` (Number) MultiBuyLineItems or MultiBuyCustomLineItems target specific fields. If set for another target the value will be ignored
+- `predicate` (String) LineItems, CustomLineItems, MultiBuyLineItems or MultiBuyCustomLineItems target specific fields. If set for another target the value will be ignored
+- `selection_mode` (String) MultiBuyLineItems or MultiBuyCustomLineItems target specific fields. Can be either Cheapest or MostExpensive. If set for another target the value will be ignored
+- `trigger_quantity` (Number) MultiBuyLineItems or MultiBuyCustomLineItems target specific fields. If set for another target the value will be ignored

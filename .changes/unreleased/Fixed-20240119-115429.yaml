@@ -1,0 +1,3 @@
+kind: Fixed
+body: Added support for totalPrice target on cart_discount resource
+time: 2024-01-19T11:54:29.492858858+01:00

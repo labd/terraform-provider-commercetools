@@ -54,8 +54,8 @@ resource "commercetools_discount_code" "my_discount_code" {
 - `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `groups` (List of String) The groups to which this discount code belong
 - `is_active` (Boolean)
-- `max_applications` (Number) The discount code can only be applied maxApplications times
-- `max_applications_per_customer` (Number) The discount code can only be applied maxApplicationsPerCustomer times per customer
+- `max_applications` (Number) The discount code can only be applied the specified times overall. Note that due to an engine constraint 0 cannot be set for this field, so possible values are either larger than 0 or not set
+- `max_applications_per_customer` (Number) The discount code can only be applied the specified times per customer. Note that due to an engine constraint 0 cannot be set for this field, so possible values are either larger than 0 or not set
 - `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `predicate` (String) [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)
 - `valid_from` (String) The time from which the discount can be applied on a cart. Before that time the code is invalid
