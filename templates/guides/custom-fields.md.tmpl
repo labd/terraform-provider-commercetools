@@ -3,73 +3,127 @@ subcategory: ""
 page_title: "Custom Fields"
 ---
 
-## Types example
+## Creating a custom type
+
+To extend the commercetools platform with custom fields, you can create custom
+types that can be attached to resources. The following example shows how to
+create a custom type that can be attached to categories.
+
+For more information see
+the [commercetools documentation](https://docs.commercetools.com/api/projects/types).
 
 ```hcl
-resource "commercetools_type" "ctype1" {
-  key = "contact_info"
+resource "commercetools_type" "my-category" {
+  key = "my-category"
 
-  resource_type_ids = ["customer"]
+  resource_type_ids = ["category"]
 
   name = {
-    en = "Contact info"
-    nl = "Contact informatie"
+    en = "myCategory"
   }
 
   description = {
-    en = "All things related communication"
-    nl = "Alle communicatie-gerelateerde zaken"
-  }
-
-
-  field {
-    name = "skype_name"
-    label = {
-      en = "Skype name"
-      nl = "Skype naam"
-    }
-    type {
-      name = "String"
-    }
+    en = "My Category"
   }
 
   field {
-    name = "contact_time"
+    name  = "myBoolean"
     label = {
-      en = "Contact time"
-      nl = "Contact tijd"
+      en = "myBoolean"
     }
+    required = false
     type {
-      name = "Enum"
-      values {
-        day = "Daytime"
-        evening = "Evening"
+      name = "Boolean"
+    }
+    input_hint = "SingleLine"
+  }
+
+  field {
+    name  = "myNumber"
+    label = {
+      en = "myNumber"
+    }
+    required = false
+    type {
+      name = "Number"
+    }
+    input_hint = "SingleLine"
+  }
+
+  field {
+    name = "mySet"
+
+    label = {
+      en = "mySet"
+    }
+
+    type {
+      name = "Set"
+      element_type {
+        name = "String"
       }
     }
   }
 
   field {
-    name = "contact_preference"
+    name  = "myLocalizedString"
     label = {
-      en = "Contact preference"
-      nl = "Contact voorkeur"
+      en = "myLocalizedString"
     }
+    required = false
     type {
-      name = "LocalizedEnum"
-      localized_value {
-        key = "phone"
-        label {
-          en = "Phone"
-          nl = "Telefoon"
-        }
+      name = "LocalizedString"
+    }
+    input_hint = "SingleLine"
+  }
+
+  field {
+    name  = "mySetOfLocalizedStrings"
+    label = {
+      en = "mySetOfLocalizedStrings"
+    }
+    required = false
+    type {
+      name = "Set"
+      element_type {
+        name = "LocalizedString"
       }
-      localized_value {
-        key = "skype"
-        label {
-          en = "Skype"
-          nl = "Skype"
-        }
-      }
+    }
+    input_hint = "SingleLine"
+  }
+}
+```
+
+## Setting custom fields
+
+Due to constrains within the old terraform provider framework, the custom fields
+are set in terraform state as a map of strings. This means that the actual
+values need to be serialized to JSON before they can be set. The following
+example shows how to set the custom fields for a category with the custom type
+given above.
+
+```hcl
+resource "commercetools_category" "my-category" {
+  name = {
+    en = "My category"
+  }
+  slug = {
+    en = "my-category"
+  }
+
+  custom {
+    type_id = commercetools_type.my-category.id
+    fields  = {
+      myBoolean         = jsonencode(true)
+      myNumber          = jsonencode(123)
+      mySet             = jsonencode(["a", "b", "c"])
+      myLocalizedString = jsonencode({
+        en = "English"
+      })
+      mySetOfLocalizedStrings = jsonencode([
+        { en = "English 1" },
+        { en = "English 2" }
+      ])
     }
   }
 }

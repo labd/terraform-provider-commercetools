@@ -96,7 +96,7 @@ Required:
 
 Optional:
 
-- `fields` (Map of String)
+- `fields` (Map of String) Custom fields for this resource. Note that the values need to be provided as JSON encoded strings: `my-value = jsonencode({"key": "value"})`
 
 
 <a id="nestedblock--geolocation"></a>
