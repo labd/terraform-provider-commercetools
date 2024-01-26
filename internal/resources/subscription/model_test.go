@@ -182,8 +182,8 @@ func TestImport(t *testing.T) {
 			wantDest: Destination{
 				Type:            types.StringValue(ConfluentCloud),
 				BootstrapServer: types.StringValue("test-bootstrap-server"),
-				ApiKey:          types.StringValue("test-api-key"),
-				ApiSecret:       types.StringValue("test-api-secret"),
+				ApiKey:          types.StringUnknown(),
+				ApiSecret:       types.StringUnknown(),
 				Acks:            types.StringValue("test-acks"),
 				Topic:           types.StringValue("test-topic"),
 			},

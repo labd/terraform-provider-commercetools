@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_upgradeStateV0(t *testing.T) {
+func Test_UpgradeStateV0(t *testing.T) {
 	oldState := []byte(`
 	  {
 		"changes": [

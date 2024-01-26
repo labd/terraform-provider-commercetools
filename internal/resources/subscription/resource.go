@@ -322,7 +322,7 @@ func (r *subscriptionResource) UpgradeState(_ context.Context) map[int64]resourc
 			StateUpgrader: upgradeStateV0,
 		},
 		1: {
-			StateUpgrader: upgradeStateV2,
+			StateUpgrader: downgradeStateV2,
 		},
 	}
 }

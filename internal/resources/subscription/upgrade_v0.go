@@ -9,7 +9,7 @@ import (
 )
 
 // Upgrade from V0 to V1
-func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+func upgradeStateV0(_ context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
 	rawStateValue, err := req.RawState.Unmarshal(SubscriptionResourceV2)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -35,8 +35,8 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 			"key":         rawState["key"],
 			"version":     rawState["version"],
 			"changes":     rawState["changes"],
-			"destination": valueToList(rawState, "destination"),
-			"format":      valueToList(rawState, "format"),
+			"destination": valueDestinationV1(rawState, "destination"),
+			"format":      valueToFormatV1(rawState, "format"),
 			"message":     rawState["message"],
 		}),
 	)
