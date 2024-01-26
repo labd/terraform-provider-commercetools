@@ -26,7 +26,10 @@ func CustomFieldSchema() *schema.Schema {
 					Required: true,
 				},
 				"fields": {
-					Type:     schema.TypeMap,
+					Type: schema.TypeMap,
+					Description: "Custom fields for this resource. Note that " +
+						"the values need to be provided as JSON encoded " +
+						"strings: `my-value = jsonencode({\"key\": \"value\"})`",
 					Optional: true,
 				},
 			},
