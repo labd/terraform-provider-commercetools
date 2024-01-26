@@ -169,6 +169,25 @@ func TestImport(t *testing.T) {
 				AccessSecret: types.StringValue("secret"),
 			},
 		},
+		{
+			name: "ConfluentCloudDestination",
+			n: platform.ConfluentCloudDestination{
+				BootstrapServer: "test-bootstrap-server",
+				ApiKey:          "test-api-key",
+				ApiSecret:       "test-api-secret",
+				Acks:            "test-acks",
+				Topic:           "test-topic",
+			},
+			state: nil,
+			wantDest: Destination{
+				Type:            types.StringValue(ConfluentCloud),
+				BootstrapServer: types.StringValue("test-bootstrap-server"),
+				ApiKey:          types.StringUnknown(),
+				ApiSecret:       types.StringUnknown(),
+				Acks:            types.StringValue("test-acks"),
+				Topic:           types.StringValue("test-topic"),
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

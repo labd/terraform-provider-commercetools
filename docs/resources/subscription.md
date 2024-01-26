@@ -66,20 +66,25 @@ Required:
 
 Required:
 
-- `type` (String)
+- `type` (String) The type of the destination. See [Destination](https://docs.commercetools.com/api/projects/subscriptions#destination) for more information
 
 Optional:
 
-- `access_key` (String, Sensitive)
-- `access_secret` (String, Sensitive)
-- `account_id` (String)
-- `connection_string` (String)
-- `project_id` (String)
-- `queue_url` (String)
-- `region` (String)
-- `topic` (String)
-- `topic_arn` (String)
-- `uri` (String)
+- `access_key` (String, Sensitive) The access key of the SQS queue, SNS topic or EventBridge topic
+- `access_secret` (String, Sensitive) The access secret of the SQS queue, SNS topic or EventBridge topic
+- `account_id` (String) The AWS account ID of the SNS topic or EventBridge topic
+- `acks` (String) The acks value of the Confluent Cloud topic
+- `api_key` (String) The API key of the Confluent Cloud topic
+- `api_secret` (String) The API secret of the Confluent Cloud topic
+- `bootstrap_server` (String) The bootstrap server of the Confluent Cloud topic
+- `connection_string` (String) The connection string of the Azure Service Bus
+- `key` (String) The key of the Confluent Cloud topic
+- `project_id` (String) The project ID of the Google Cloud Pub/Sub
+- `queue_url` (String) The URL of the SQS queue
+- `region` (String) The region of the SQS queue, SNS topic or EventBridge topic
+- `topic` (String) The topic of the Google Cloud Pub/Sub or Confluent Cloud topic
+- `topic_arn` (String) The ARN of the SNS topic
+- `uri` (String) The URI of the EventGrid topic
 
 
 <a id="nestedblock--format"></a>

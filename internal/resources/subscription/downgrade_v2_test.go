@@ -2,14 +2,14 @@ package subscription
 
 import (
 	"context"
-	"testing"
-
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 func Test_DowngradeStateV2(t *testing.T) {
@@ -102,7 +102,7 @@ func Test_DowngradeStateV2(t *testing.T) {
 		},
 	}
 	resp := resource.UpgradeStateResponse{}
-	upgradeStateV2(ctx, req, &resp)
+	downgradeStateV2(ctx, req, &resp)
 	require.False(t, resp.Diagnostics.HasError(), resp.Diagnostics.Errors())
 	require.NotNil(t, resp.DynamicValue)
 

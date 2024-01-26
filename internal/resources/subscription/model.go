@@ -18,6 +18,7 @@ const (
 	GoogleCloudPubSub = "GoogleCloudPubSub"
 	SNS               = "SNS"
 	SQS               = "SQS"
+	ConfluentCloud    = "ConfluentCloud"
 )
 
 // Subscription is the main resource schema data
@@ -157,22 +158,19 @@ func (s *Subscription) updateActions(plan Subscription) platform.SubscriptionUpd
 }
 
 type Destination struct {
-	Type     types.String `tfsdk:"type"`
+	Type types.String `tfsdk:"type"`
+
+	// SNS, SQS, EventGrid
+	AccessKey    types.String `tfsdk:"access_key"`
+	AccessSecret types.String `tfsdk:"access_secret"`
+	Region       types.String `tfsdk:"region"`
+
+	// SNS
 	TopicARN types.String `tfsdk:"topic_arn"`
 
-	// SNS, SQS, EventGrid
-	AccessKey types.String `tfsdk:"access_key"`
-
-	// SNS, SQS, EventGrid
-	AccessSecret types.String `tfsdk:"access_secret"`
-
 	// SQS
-	QueueURL types.String `tfsdk:"queue_url"`
-
+	QueueURL  types.String `tfsdk:"queue_url"`
 	AccountID types.String `tfsdk:"account_id"`
-
-	// SQS, SNS
-	Region types.String `tfsdk:"region"`
 
 	// EventGrid
 	URI types.String `tfsdk:"uri"`
@@ -180,9 +178,18 @@ type Destination struct {
 	// AzureServiceBus
 	ConnectionString types.String `tfsdk:"connection_string"`
 
-	// For GooglePubSub
+	// GooglePubSub
 	ProjectID types.String `tfsdk:"project_id"`
-	Topic     types.String `tfsdk:"topic"`
+
+	// GooglePubSub, ConfluentCloud
+	Topic types.String `tfsdk:"topic"`
+
+	// For ConfluentCloud
+	BootstrapServer types.String `tfsdk:"bootstrap_server"`
+	ApiKey          types.String `tfsdk:"api_key"`
+	ApiSecret       types.String `tfsdk:"api_secret"`
+	Acks            types.String `tfsdk:"acks"`
+	Key             types.String `tfsdk:"key"`
 }
 
 func (d *Destination) setSecretValues(state *Destination) {
@@ -208,6 +215,13 @@ func (d *Destination) setSecretValues(state *Destination) {
 	case SNS, SQS:
 		if d.AccessSecret.IsNull() {
 			d.AccessSecret = state.AccessSecret
+		}
+	case ConfluentCloud:
+		if d.ApiKey.IsUnknown() {
+			d.ApiKey = state.ApiKey
+		}
+		if d.ApiSecret.IsUnknown() {
+			d.ApiSecret = state.ApiSecret
 		}
 	}
 }
@@ -241,6 +255,14 @@ func NewDestinationFromNative(n platform.Destination) *Destination {
 		d.Region = types.StringValue(v.Region)
 		d.AccessKey = utils.FromOptionalString(v.AccessKey)
 		d.AccessSecret = types.StringNull()
+	case platform.ConfluentCloudDestination:
+		d.Type = types.StringValue(ConfluentCloud)
+		d.BootstrapServer = types.StringValue(v.BootstrapServer)
+		d.ApiKey = types.StringUnknown()
+		d.ApiSecret = types.StringUnknown()
+		d.Acks = types.StringValue(v.Acks)
+		d.Topic = types.StringValue(v.Topic)
+		d.Key = utils.FromOptionalString(v.Key)
 	}
 	return d
 }
@@ -289,6 +311,16 @@ func (d *Destination) ToNative() platform.Destination {
 		if result.AccessKey == nil {
 			authMode := platform.AwsAuthenticationModeIAM
 			result.AuthenticationMode = &authMode
+		}
+		return result
+	case ConfluentCloud:
+		result := platform.ConfluentCloudDestination{
+			BootstrapServer: d.BootstrapServer.ValueString(),
+			ApiKey:          d.ApiKey.ValueString(),
+			ApiSecret:       d.ApiSecret.ValueString(),
+			Acks:            d.Acks.ValueString(),
+			Topic:           d.Topic.ValueString(),
+			Key:             utils.OptionalString(d.Key),
 		}
 		return result
 	}
