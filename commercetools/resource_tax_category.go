@@ -15,6 +15,9 @@ func resourceTaxCategory() *schema.Resource {
 	return &schema.Resource{
 		Description: "Tax Categories define how products are to be taxed in different countries.\n\n" +
 			"See also the [Tax Category API Documentation](https://docs.commercetools.com/api/projects/taxCategories)",
+
+		DeprecationMessage: "This resource is deprecated and will be removed in the next major release. " +
+			"Please use the commercetools_tax_category_v2 resource instead.",
 		CreateContext: resourceTaxCategoryCreate,
 		ReadContext:   resourceTaxCategoryRead,
 		UpdateContext: resourceTaxCategoryUpdate,

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/tax_category_v2"
 	"net/http"
 	"os"
 	"strings"
@@ -196,5 +197,6 @@ func (p *ctProvider) Resources(_ context.Context) []func() resource.Resource {
 		attribute_group.NewResource,
 		associate_role.NewResource,
 		product_selection.NewResource,
+		tax_category_v2.NewResource,
 	}
 }
