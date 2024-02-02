@@ -16,6 +16,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Has changes file
+      uses: ./.github/actions/has-change-file
+
     - uses: hashicorp/setup-terraform@v2
       with:
         terraform_version: 1.3.7
