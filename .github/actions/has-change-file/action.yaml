@@ -1,12 +1,6 @@
 name: Has Change File
 description: Check if a new change file is set
 
-inputs:
-  registry:
-    required: false
-    default: ""
-    description: "Regional or multi-regional location of the repository where the image is stored"
-
 runs:
   using: "composite"
   steps:
