@@ -2,20 +2,19 @@ package attribute_group
 
 import (
 	"context"
-	"errors"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/labd/terraform-provider-commercetools/internal/customtypes"
 	"regexp"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk_resource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/labd/commercetools-go-sdk/platform"
 
+	"github.com/labd/terraform-provider-commercetools/internal/customtypes"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
@@ -158,7 +157,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 
 	res, err := r.client.AttributeGroups().WithId(current.ID.ValueString()).Get().Execute(ctx)
 	if err != nil {
-		if errors.Is(err, platform.ErrNotFound) {
+		if utils.IsResourceNotFoundError(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
