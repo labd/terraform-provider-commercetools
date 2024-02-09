@@ -2,8 +2,6 @@ package subscription
 
 import (
 	"context"
-	"errors"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"regexp"
 	"time"
 
@@ -16,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/labd/commercetools-go-sdk/platform"
 
 	"github.com/labd/terraform-provider-commercetools/internal/customvalidator"
@@ -376,7 +375,7 @@ func (r *subscriptionResource) Read(ctx context.Context, req resource.ReadReques
 
 	subscription, err := r.client.Subscriptions().WithId(state.ID.ValueString()).Get().Execute(ctx)
 	if err != nil {
-		if errors.Is(err, platform.ErrNotFound) {
+		if utils.IsResourceNotFoundError(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -473,7 +472,7 @@ func (r *subscriptionResource) Delete(ctx context.Context, req resource.DeleteRe
 func (r *subscriptionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	subscription, err := r.client.Subscriptions().WithId(req.ID).Get().Execute(ctx)
 	if err != nil {
-		if errors.Is(err, platform.ErrNotFound) {
+		if utils.IsResourceNotFoundError(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}

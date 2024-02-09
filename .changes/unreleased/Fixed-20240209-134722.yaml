@@ -1,0 +1,5 @@
+kind: Fixed
+body: Properly handle resource not found errors for `subscription`, `state`,
+  `state_transitions`, `product_selection`, `attribute_group` and
+  `associate_role`.
+time: 2024-02-09T13:47:22.878305+01:00

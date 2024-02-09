@@ -2,7 +2,6 @@ package associate_role
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -14,8 +13,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-
 	"github.com/labd/commercetools-go-sdk/platform"
+
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
@@ -160,7 +159,7 @@ func (r *associateRoleResource) Read(ctx context.Context, req resource.ReadReque
 	// Read remote associate role and check for errors.
 	associateRole, err := r.client.AssociateRoles().WithId(state.ID.ValueString()).Get().Execute(ctx)
 	if err != nil {
-		if errors.Is(err, platform.ErrNotFound) {
+		if utils.IsResourceNotFoundError(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}

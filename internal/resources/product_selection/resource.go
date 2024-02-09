@@ -2,7 +2,6 @@ package product_selection
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -163,7 +162,7 @@ func (r *productSelectionResource) Read(ctx context.Context, req resource.ReadRe
 	// Read remote product selection and check for errors.
 	productSelection, err := r.client.ProductSelections().WithId(state.ID.ValueString()).Get().Execute(ctx)
 	if err != nil {
-		if errors.Is(err, platform.ErrNotFound) {
+		if utils.IsResourceNotFoundError(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
