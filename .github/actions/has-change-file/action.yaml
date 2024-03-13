@@ -1,0 +1,19 @@
+name: Has Change File
+description: Check if a new change file is set
+
+runs:
+  using: "composite"
+  steps:
+    - uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          changes:
+            - '.changes/unreleased/**'
+
+    - name: Check changes
+      if: steps.changes.outputs.changes == 'false'
+      shell: bash
+      run: |
+        echo "No new change file set in .changes/unreleased"
+        exit 1

@@ -24,6 +24,8 @@ func resourceTaxCategoryRate() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceTaxCategoryRateImportState,
 		},
+		DeprecationMessage: "This resource is deprecated and will be removed in the next major release. " +
+			"Please use the tax_rate attributes on commercetools_tax_category resource instead.",
 		Schema: map[string]*schema.Schema{
 			"tax_category_id": {
 				Type:     schema.TypeString,
