@@ -9,6 +9,8 @@ description: |-
 
 # commercetools_tax_category (Resource)
 
+> **DEPRECATED**: The resource has been deprecated. Please use [commercetools_tax_category_v2](./tax_category_v2.md) instead.
+
 Tax Categories define how products are to be taxed in different countries.
 
 See also the [Tax Category API Documentation](https://docs.commercetools.com/api/projects/taxCategories)

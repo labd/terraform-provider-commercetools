@@ -9,6 +9,8 @@ description: |-
 
 # commercetools_tax_category_rate (Resource)
 
+> **DEPRECATED**: The resource has been deprecated. Please use [commercetools_tax_category_v2](./tax_category_v2.md) instead.
+
 Tax rate for Tax Category. 
 
 See also [Tax Rate API Documentation](https://docs.commercetools.com/api/projects/taxCategories#taxrate)
