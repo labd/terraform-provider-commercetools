@@ -1,0 +1,24 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## Example Usage
+
+{{ tffile (printf "examples/resources/%s/resource.tf" .Name)}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import commercetools_shipping_zone_rate.my-shipping-zone-rate {my-shipping-method-id}@{my-shipping-zone-id}@{currency}
+```
