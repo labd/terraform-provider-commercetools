@@ -7,18 +7,20 @@ versionFormat: '## {{.Version}} - {{.Time.Format "2006-01-02"}}'
 kindFormat: '### {{.Kind}}'
 changeFormat: '* {{.Body}}'
 kinds:
-- label: Added
-  auto: minor
-- label: Changed
-  auto: major
-- label: Deprecated
-  auto: minor
-- label: Removed
-  auto: major
-- label: Fixed
-  auto: patch
-- label: Security
-  auto: patch
+  - label: Added
+    auto: minor
+  - label: Changed
+    auto: major
+  - label: Deprecated
+    auto: minor
+  - label: Removed
+    auto: major
+  - label: Fixed
+    auto: patch
+  - label: Security
+    auto: patch
+  - label: Dependency
+    auto: patch
 newlines:
   afterChangelogHeader: 1
   beforeChangelogVersion: 1
