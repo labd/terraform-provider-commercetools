@@ -62,7 +62,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare release
-        uses: labd/changie-release-action@main
+        uses: labd/changie-release-action@0.3.2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           release-workflow: 'release.yaml'
