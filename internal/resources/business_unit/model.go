@@ -6,6 +6,7 @@ import (
 	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 const (
@@ -43,22 +44,20 @@ type Company struct {
 	ID                       types.String        `tfsdk:"id"`
 	Version                  types.Int64         `tfsdk:"version"`
 	Key                      types.String        `tfsdk:"key"`
-	Status                   types.String        `tfsdk:"status"`
-	Stores                   []StoreKeyReference `tfsdk:"store"`
 	Name                     types.String        `tfsdk:"name"`
+	Status                   types.String        `tfsdk:"status"`
 	ContactEmail             types.String        `tfsdk:"contact_email"`
+	Stores                   []StoreKeyReference `tfsdk:"store"`
 	Addresses                []Address           `tfsdk:"address"`
 	ShippingAddressIDs       []types.String      `tfsdk:"shipping_address_ids"`
 	DefaultShippingAddressID types.String        `tfsdk:"default_shipping_address_id"`
 	BillingAddressIDs        []types.String      `tfsdk:"billing_address_ids"`
 	DefaultBillingAddressID  types.String        `tfsdk:"default_billing_address_id"`
-	AssociateMode            types.String        `tfsdk:"associate_mode"`
 	Associates               []Associate         `tfsdk:"associate"`
 }
 
 func (c Company) draft() platform.CompanyDraft {
 	status := platform.BusinessUnitStatus(c.Status.ValueString())
-	associateMode := platform.BusinessUnitAssociateMode(c.AssociateMode.ValueString())
 	dsa := pie.Int(c.DefaultShippingAddressID.ValueString())
 	dba := pie.Int(c.DefaultBillingAddressID.ValueString())
 
@@ -71,9 +70,8 @@ func (c Company) draft() platform.CompanyDraft {
 				ID:  s.Key.ValueStringPointer(),
 			}
 		}),
-		Name:          c.Name.ValueString(),
-		ContactEmail:  c.ContactEmail.ValueStringPointer(),
-		AssociateMode: &associateMode,
+		Name:         c.Name.ValueString(),
+		ContactEmail: c.ContactEmail.ValueStringPointer(),
 		Associates: pie.Map(c.Associates, func(a Associate) platform.AssociateDraft {
 			return a.draft()
 		}),
@@ -124,12 +122,6 @@ func (c Company) updateActions(plan Company) platform.BusinessUnitUpdate {
 	if c.DefaultBillingAddressID.ValueString() != plan.DefaultBillingAddressID.ValueString() {
 		result.Actions = append(result.Actions, platform.BusinessUnitSetDefaultBillingAddressAction{
 			AddressId: plan.DefaultBillingAddressID.ValueStringPointer(),
-		})
-	}
-
-	if c.AssociateMode.ValueString() != plan.AssociateMode.ValueString() {
-		result.Actions = append(result.Actions, platform.BusinessUnitChangeAssociateModeAction{
-			AssociateMode: platform.BusinessUnitAssociateMode(plan.AssociateMode.ValueString()),
 		})
 	}
 
@@ -227,6 +219,50 @@ func (c Company) updateActions(plan Company) platform.BusinessUnitUpdate {
 	}
 
 	return result
+}
+
+// NewCompanyFromNative creates a new Company from a platform.Company.
+func NewCompanyFromNative(cc platform.BusinessUnit) Company {
+	c, ok := cc.(Company)
+	if !ok {
+		return Company{}
+	}
+
+	company := Company{
+		ID:                       types.StringPointerValue(utils.StringRef(c.ID)),
+		Version:                  types.Int64PointerValue(c.Version.ValueInt64Pointer()),
+		Key:                      types.StringPointerValue(utils.StringRef(c.Key)),
+		Name:                     types.StringPointerValue(utils.StringRef(c.Name)),
+		Status:                   types.StringPointerValue(utils.StringRef(c.Status)),
+		ContactEmail:             types.StringPointerValue(c.ContactEmail.ValueStringPointer()),
+		DefaultShippingAddressID: types.StringPointerValue(c.DefaultShippingAddressID.ValueStringPointer()),
+		DefaultBillingAddressID:  types.StringPointerValue(c.DefaultBillingAddressID.ValueStringPointer()),
+		Stores:                   make([]StoreKeyReference, len(c.Stores)),
+		Addresses:                make([]Address, len(c.Addresses)),
+		ShippingAddressIDs:       make([]types.String, len(c.ShippingAddressIDs)),
+		BillingAddressIDs:        make([]types.String, len(c.BillingAddressIDs)),
+		Associates:               make([]Associate, len(c.Associates)),
+	}
+
+	for i, store := range c.Stores {
+		company.Stores[i] = StoreKeyReference{
+			Key: types.StringValue(store.Key.ValueString()),
+		}
+	}
+
+	copy(company.Addresses, c.Addresses)
+
+	for i, id := range c.ShippingAddressIDs {
+		company.ShippingAddressIDs[i] = types.StringValue(id.ValueString())
+	}
+
+	for i, id := range c.BillingAddressIDs {
+		company.BillingAddressIDs[i] = types.StringValue(id.ValueString())
+	}
+
+	copy(company.Associates, c.Associates)
+
+	return company
 }
 
 type Division struct {
@@ -432,6 +468,61 @@ func (d Division) updateActions(plan Division) platform.BusinessUnitUpdate {
 	}
 
 	return result
+}
+
+// NewDivisionFromNative creates a new Division from a platform.Company.
+func NewDivisionFromNative(cc platform.BusinessUnit) Division {
+	c, ok := cc.(Division)
+	if !ok {
+		return Division{}
+	}
+
+	parent := BusinessUnitResourceIdentifier{
+		ID:  types.StringValue(c.ParentUnit.ID.ValueString()),
+		Key: types.StringValue(c.ParentUnit.Key.ValueString()),
+	}
+
+	company := Division{
+		ID:                       types.StringPointerValue(utils.StringRef(c.ID)),
+		Version:                  types.Int64PointerValue(c.Version.ValueInt64Pointer()),
+		Key:                      types.StringPointerValue(utils.StringRef(c.Key)),
+		Status:                   types.StringPointerValue(utils.StringRef(c.Status)),
+		ParentUnit:               parent,
+		StoreMode:                types.StringValue(c.StoreMode.ValueString()),
+		Name:                     types.StringPointerValue(utils.StringRef(c.Name)),
+		ContactEmail:             types.StringPointerValue(c.ContactEmail.ValueStringPointer()),
+		DefaultShippingAddressID: types.StringPointerValue(c.DefaultShippingAddressID.ValueStringPointer()),
+		DefaultBillingAddressID:  types.StringPointerValue(c.DefaultBillingAddressID.ValueStringPointer()),
+		AssociateMode:            types.StringPointerValue(utils.StringRef(c.AssociateMode)),
+		Stores:                   make([]StoreKeyReference, len(c.Stores)),
+		BillingAddressIDs:        make([]types.String, len(c.BillingAddressIDs)),
+		Addresses:                make([]Address, len(c.Addresses)),
+		ShippingAddressIDs:       make([]types.String, len(c.ShippingAddressIDs)),
+		Associates:               make([]Associate, len(c.Associates)),
+		InheritedAssociates:      make([]InheritedAssociate, len(c.InheritedAssociates)),
+	}
+
+	for i, store := range c.Stores {
+		company.Stores[i] = StoreKeyReference{
+			Key: types.StringValue(store.Key.ValueString()),
+		}
+	}
+
+	copy(company.Addresses, c.Addresses)
+
+	for i, id := range c.ShippingAddressIDs {
+		company.ShippingAddressIDs[i] = types.StringValue(id.ValueString())
+	}
+
+	for i, id := range c.BillingAddressIDs {
+		company.BillingAddressIDs[i] = types.StringValue(id.ValueString())
+	}
+
+	copy(company.Associates, c.Associates)
+
+	copy(company.InheritedAssociates, c.InheritedAssociates)
+
+	return company
 }
 
 /*

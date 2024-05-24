@@ -97,22 +97,6 @@ func TestBusinessUnit_Company_UpdateActions(t *testing.T) {
 			},
 		},
 		{
-			"business unit update associate mode",
-			Company{
-				AssociateMode: types.StringValue("Explicit"),
-			},
-			Company{
-				AssociateMode: types.StringValue("ExplicitAndFromParent"),
-			},
-			platform.BusinessUnitUpdate{
-				Actions: []platform.BusinessUnitUpdateAction{
-					platform.BusinessUnitChangeAssociateModeAction{
-						AssociateMode: "ExplicitAndFromParent",
-					},
-				},
-			},
-		},
-		{
 			"business unit update stores",
 			Company{
 				Stores: []StoreKeyReference{
