@@ -1,0 +1,13 @@
+{{ define "commercetools_tax_category" }}
+resource "commercetools_tax_category" "external_shipping_tax" {
+    key         = "external-shipping-tax"
+    name        = "External Shipping Tax"
+    description = "External Shipping Tax Description"
+}
+
+resource "commercetools_tax_category" "vat_tax" {
+    key         = "vat-tax"
+    name        = "VAT Tax"
+    description = "VAT Tax Description"
+}
+{{ end }}
