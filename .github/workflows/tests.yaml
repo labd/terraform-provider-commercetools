@@ -26,6 +26,11 @@ jobs:
       with:
         go-version-file: go.mod
 
+    - name: Set up Task
+      uses: arduino/setup-task@v2
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: golangci-lint
       continue-on-error: true
       uses: golangci/golangci-lint-action@v6
@@ -48,6 +53,13 @@ jobs:
       with:
         verbose: true
 
+    - name: build binary
+      uses: goreleaser/goreleaser-action@v6
+      with:
+        args: build --snapshot --clean --single-target
+      env:
+        GOPATH: ${{ env.GOPATH }}
+
   changie:
     runs-on: ubuntu-latest
     needs: test
@@ -62,7 +74,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare release
-        uses: labd/changie-release-action@v0.3.2
+        uses: labd/changie-release-action@v0.4.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           release-workflow: 'release.yaml'
