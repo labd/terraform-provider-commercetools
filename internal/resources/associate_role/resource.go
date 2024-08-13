@@ -2,6 +2,9 @@ package associate_role
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"regexp"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -36,37 +39,91 @@ func NewResource() resource.Resource {
 // Schema implements resource.Resource.
 func (*associateRoleResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Associate Roles provide a way to group granular Permissions and assign " +
+		MarkdownDescription: "Associate Roles provide a way to group granular Permissions and assign " +
 			"them to Associates within a Business Unit.\n\n" +
 			"See also the [Associate Role API Documentation](https://docs.commercetools.com/api/projects/associate-roles)",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Unique identifier of the AssociateRole.",
-				Computed:    true,
+				MarkdownDescription: "Unique identifier of the associate role.",
+				Computed:            true,
 			},
 			"version": schema.Int64Attribute{
-				Description: "Current version of the AssociateRole.",
-				Computed:    true,
+				MarkdownDescription: "Current version of the associate role.",
+				Computed:            true,
 			},
 			"key": schema.StringAttribute{
-				Description: "User-defined unique identifier of the AssociateRole.",
-				Required:    true,
-			},
-			"buyer_assignable": schema.BoolAttribute{
-				Description: "Whether the AssociateRole can be assigned to an Associate by a buyer. If false, " +
-					"the AssociateRole can only be assigned using the general endpoint.",
-				Optional: true,
+				MarkdownDescription: "User-defined unique identifier of the associate role.",
+				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(2, 256),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile("^[A-Za-z0-9_-]+$"),
+						"Key must match pattern ^[A-Za-z0-9_-]+$",
+					),
+				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the AssociateRole.",
-				Optional:    true,
+				MarkdownDescription: "Name of the associate role.",
+				Optional:            true,
+			},
+			"buyer_assignable": schema.BoolAttribute{
+				MarkdownDescription: "Whether the associate role can be assigned to an associate by a buyer. If false, " +
+					"the associate role can only be assigned using the general endpoint. Defaults to true.",
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(true),
 			},
 			"permissions": schema.ListAttribute{
 				Required:    true,
 				ElementType: types.StringType,
-				Description: "List of Permissions for the AssociateRole.",
+				MarkdownDescription: "List of permissions for the associate role. See the [Associate Role API " +
+					"Documentation](https://docs.commercetools.com/api/projects/associate-roles#ctp:api:type:Permission) " +
+					"for more information.",
 				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
+					listvalidator.UniqueValues(),
+					listvalidator.ValueStringsAre(
+						stringvalidator.OneOf(
+							string(platform.PermissionAddChildUnits),
+							string(platform.PermissionUpdateAssociates),
+							string(platform.PermissionUpdateBusinessUnitDetails),
+							string(platform.PermissionUpdateParentUnit),
+							string(platform.PermissionViewMyCarts),
+							string(platform.PermissionViewOthersCarts),
+							string(platform.PermissionUpdateMyCarts),
+							string(platform.PermissionUpdateOthersCarts),
+							string(platform.PermissionCreateMyCarts),
+							string(platform.PermissionCreateOthersCarts),
+							string(platform.PermissionDeleteMyCarts),
+							string(platform.PermissionDeleteOthersCarts),
+							string(platform.PermissionViewMyOrders),
+							string(platform.PermissionViewOthersOrders),
+							string(platform.PermissionUpdateMyOrders),
+							string(platform.PermissionUpdateOthersOrders),
+							string(platform.PermissionCreateMyOrdersFromMyCarts),
+							string(platform.PermissionCreateMyOrdersFromMyQuotes),
+							string(platform.PermissionCreateOrdersFromOthersCarts),
+							string(platform.PermissionCreateOrdersFromOthersQuotes),
+							string(platform.PermissionViewMyQuotes),
+							string(platform.PermissionViewOthersQuotes),
+							string(platform.PermissionAcceptMyQuotes),
+							string(platform.PermissionAcceptOthersQuotes),
+							string(platform.PermissionDeclineMyQuotes),
+							string(platform.PermissionDeclineOthersQuotes),
+							string(platform.PermissionRenegotiateMyQuotes),
+							string(platform.PermissionRenegotiateOthersQuotes),
+							string(platform.PermissionReassignMyQuotes),
+							string(platform.PermissionReassignOthersQuotes),
+							string(platform.PermissionViewMyQuoteRequests),
+							string(platform.PermissionViewOthersQuoteRequests),
+							string(platform.PermissionUpdateMyQuoteRequests),
+							string(platform.PermissionUpdateOthersQuoteRequests),
+							string(platform.PermissionCreateMyQuoteRequestsFromMyCarts),
+							string(platform.PermissionCreateQuoteRequestsFromOthersCarts),
+							string(platform.PermissionCreateApprovalRules),
+							string(platform.PermissionUpdateApprovalRules),
+							string(platform.PermissionUpdateApprovalFlows),
+						),
+					),
 				},
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),

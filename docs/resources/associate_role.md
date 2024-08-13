@@ -22,12 +22,44 @@ resource "commercetools_associate_role" "regional_manager" {
   name             = "Regional Manager - Europe"
   permissions = [
     "AddChildUnits",
-    "UpdateBusinessUnitDetails",
     "UpdateAssociates",
-    "CreateMyCarts",
-    "DeleteMyCarts",
-    "UpdateMyCarts",
+    "UpdateBusinessUnitDetails",
+    "UpdateParentUnit",
     "ViewMyCarts",
+    "ViewOthersCarts",
+    "UpdateMyCarts",
+    "UpdateOthersCarts",
+    "CreateMyCarts",
+    "CreateOthersCarts",
+    "DeleteMyCarts",
+    "DeleteOthersCarts",
+    "ViewMyOrders",
+    "ViewOthersOrders",
+    "UpdateMyOrders",
+    "UpdateOthersOrders",
+    "CreateMyOrdersFromMyCarts",
+    "CreateMyOrdersFromMyQuotes",
+    "CreateOrdersFromOthersCarts",
+    "CreateOrdersFromOthersQuotes",
+    "ViewMyQuotes",
+    "ViewOthersQuotes",
+    "AcceptMyQuotes",
+    "AcceptOthersQuotes",
+    "DeclineMyQuotes",
+    "DeclineOthersQuotes",
+    "RenegotiateMyQuotes",
+    "RenegotiateOthersQuotes",
+    "ReassignMyQuotes",
+    "ReassignOthersQuotes",
+    "ViewMyQuoteRequests",
+    "ViewOthersQuoteRequests",
+    "UpdateMyQuoteRequests",
+    "UpdateOthersQuoteRequests",
+    "CreateMyQuoteRequestsFromMyCarts",
+    "CreateQuoteRequestsFromOthersCarts",
+    "CreateApprovalRules",
+    "UpdateApprovalRules",
+    "UpdateApprovalFlows",
   ]
 }
 ```
@@ -37,15 +69,15 @@ resource "commercetools_associate_role" "regional_manager" {
 
 ### Required
 
-- `key` (String) User-defined unique identifier of the AssociateRole.
-- `permissions` (List of String) List of Permissions for the AssociateRole.
+- `key` (String) User-defined unique identifier of the associate role.
+- `permissions` (List of String) List of permissions for the associate role. See the [Associate Role API Documentation](https://docs.commercetools.com/api/projects/associate-roles#ctp:api:type:Permission) for more information.
 
 ### Optional
 
-- `buyer_assignable` (Boolean) Whether the AssociateRole can be assigned to an Associate by a buyer. If false, the AssociateRole can only be assigned using the general endpoint.
-- `name` (String) Name of the AssociateRole.
+- `buyer_assignable` (Boolean) Whether the associate role can be assigned to an associate by a buyer. If false, the associate role can only be assigned using the general endpoint. Defaults to true.
+- `name` (String) Name of the associate role.
 
 ### Read-Only
 
-- `id` (String) Unique identifier of the AssociateRole.
-- `version` (Number) Current version of the AssociateRole.
+- `id` (String) Unique identifier of the associate role.
+- `version` (Number) Current version of the associate role.

@@ -1,37 +1,18 @@
-package business_unit_test
+package business_unit_division_test
 
 import (
 	"context"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/business_unit_division"
 	"testing"
 
 	fwresource "github.com/hashicorp/terraform-plugin-framework/resource"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
 	"github.com/labd/terraform-provider-commercetools/internal/acctest"
-	"github.com/labd/terraform-provider-commercetools/internal/resources/business_unit"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
-
-func TestCompanySchemaImplementation(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	schemaRequest := fwresource.SchemaRequest{}
-	schemaResponse := &fwresource.SchemaResponse{}
-
-	business_unit.NewCompanyResource().Schema(ctx, schemaRequest, schemaResponse)
-
-	if schemaResponse.Diagnostics.HasError() {
-		t.Fatalf("Schema method diagnostics: %+v", schemaResponse.Diagnostics)
-	}
-
-	// schema validation
-	diagnostics := schemaResponse.Schema.ValidateImplementation(ctx)
-
-	if diagnostics.HasError() {
-		t.Fatalf("Schema validation diagnostics: %+v", diagnostics)
-	}
-}
 
 func TestDivisionSchemaImplementation(t *testing.T) {
 	t.Parallel()
@@ -40,7 +21,7 @@ func TestDivisionSchemaImplementation(t *testing.T) {
 	schemaRequest := fwresource.SchemaRequest{}
 	schemaResponse := &fwresource.SchemaResponse{}
 
-	business_unit.NewDivisionResource().Schema(ctx, schemaRequest, schemaResponse)
+	business_unit_division.NewDivisionResource().Schema(ctx, schemaRequest, schemaResponse)
 
 	if schemaResponse.Diagnostics.HasError() {
 		t.Fatalf("Schema method diagnostics: %+v", schemaResponse.Diagnostics)
@@ -54,8 +35,8 @@ func TestDivisionSchemaImplementation(t *testing.T) {
 	}
 }
 
-func TestBusinessUnitResource_Company(t *testing.T) {
-	r := "commercetools_business_unit_company.acme_company"
+func TestBusinessUnitResource_Division(t *testing.T) {
+	r := "commercetools_business_unit_division.acme_division"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acctest.TestAccPreCheck(t) },
@@ -65,7 +46,7 @@ func TestBusinessUnitResource_Company(t *testing.T) {
 			{
 				Config: businessUnitTFResourceDef("", "", ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(r, "key", "acme-company"),
+					resource.TestCheckResourceAttr(r, "key", "acme-division"),
 					resource.TestCheckResourceAttr(r, "name", "Acme Company Business Unit"),
 					resource.TestCheckResourceAttr(r, "status", "Active"),
 					resource.TestCheckResourceAttr(r, "stores.#", "2"),
@@ -77,7 +58,7 @@ func TestBusinessUnitResource_Company(t *testing.T) {
 			{
 				Config: businessUnitTFResourceDef("Acme Business Unit - Updated", "Inactive", ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(r, "key", "acme-company"),
+					resource.TestCheckResourceAttr(r, "key", "acme-division"),
 					resource.TestCheckResourceAttr(r, "status", "Inactive"),
 					resource.TestCheckResourceAttr(r, "stores.#", "2"),
 					resource.TestCheckResourceAttr(r, "stores.0.key", "acme-usa"),
@@ -106,20 +87,18 @@ func businessUnitTFResourceDef(name, status, email string) string {
 		name = "Acme Company Business Unit"
 	}
 
-	return utils.HCLTemplate(`resource "commercetools_business_unit_company" "acme_company" {
-    key              = "acme-company"
+	return utils.HCLTemplate(`resource "commercetools_business_unit_division" "acme_division" {
+    key              = "acme-division"
     name             = {{ .name }}
     status           = {{ .status }}
     contact_email    = {{ .email}}
 
     store {
         key = "acme-usa"
-        type_id = "store"
     }
 
     store {
         key = "acme-germany"
-        type_id = "store"
     }
 
     address {

@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -27,28 +28,28 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource                = &ProjectResource{}
-	_ resource.ResourceWithConfigure   = &ProjectResource{}
-	_ resource.ResourceWithImportState = &ProjectResource{}
+	_ resource.Resource                = &projectResource{}
+	_ resource.ResourceWithConfigure   = &projectResource{}
+	_ resource.ResourceWithImportState = &projectResource{}
 )
 
-// NewOrderResource is a helper function to simplify the provider implementation.
+// NewResource is a helper function to simplify the provider implementation.
 func NewResource() resource.Resource {
-	return &ProjectResource{}
+	return &projectResource{}
 }
 
-// orderResource is the resource implementation.
-type ProjectResource struct {
+// projectResource is the resource implementation.
+type projectResource struct {
 	client *platform.ByProjectKeyRequestBuilder
 }
 
 // Metadata returns the data source type name.
-func (r *ProjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *projectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_project_settings"
 }
 
 // Schema defines the schema for the data source.
-func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "The project endpoint provides a limited set of information about settings and configuration of " +
 			"the project. Updating the settings is eventually consistent, it may take up to a minute before " +
@@ -58,32 +59,32 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 		Attributes: map[string]schema.Attribute{
 			// The ID is only here to make testing framework happy.
 			"id": schema.StringAttribute{
-				Description: "The unique key of the project",
-				Computed:    true,
+				MarkdownDescription: "The unique key of the project",
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"key": schema.StringAttribute{
-				Description: "The unique key of the project",
-				Computed:    true,
+				MarkdownDescription: "The unique key of the project",
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "The name of the project",
-				Optional:    true,
-				Computed:    true,
+				MarkdownDescription: "The name of the project",
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"currencies": schema.ListAttribute{
-				ElementType: types.StringType,
-				Description: "A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
-				Optional:    true,
-				Computed:    true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)",
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
 				},
@@ -92,10 +93,10 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"countries": schema.ListAttribute{
-				ElementType: types.StringType,
-				Description: "A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
-				Optional:    true,
-				Computed:    true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)",
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
 				},
@@ -113,23 +114,23 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"enable_search_index_products": schema.BoolAttribute{
-				Description: "Enable the Search Indexing of products",
-				Optional:    true,
-				Computed:    true,
+				MarkdownDescription: "Enable the Search Indexing of products",
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"enable_search_index_orders": schema.BoolAttribute{
-				Description: "Enable the Search Indexing of orders",
-				Optional:    true,
-				Computed:    true,
+				MarkdownDescription: "Enable the Search Indexing of orders",
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"shipping_rate_input_type": schema.StringAttribute{
-				Description: "Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses " +
+				MarkdownDescription: "Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses " +
 					"the sum of all line item prices, whereas CartClassification and CartScore use the " +
 					"shippingRateInput field on the cart to select a tier",
 				Optional: true,
@@ -155,13 +156,13 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"country_tax_rate_fallback_enabled": schema.BoolAttribute{
-							Description: "Indicates if country - no state tax rate fallback should be used when a " +
+							MarkdownDescription: "Indicates if country - no state tax rate fallback should be used when a " +
 								"shipping address state is not explicitly covered in the rates lists of all tax " +
 								"categories of a cart line items",
 							Optional: true,
 						},
 						"delete_days_after_last_modification": schema.Int64Attribute{
-							Description: "Number - Optional The default value for the " +
+							MarkdownDescription: "Number - Optional The default value for the " +
 								"deleteDaysAfterLastModification parameter of the CartDraft. Initially set to 90 for " +
 								"projects created after December 2019.",
 							Optional: true,
@@ -173,19 +174,19 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"messages": schema.ListNestedBlock{
-				Description: "The change notifications subscribed to",
+				MarkdownDescription: "The change notifications subscribed to",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"enabled": schema.BoolAttribute{
-							Description: "When true the creation of messages on the Messages Query HTTP API is enabled",
-							Optional:    true,
+							MarkdownDescription: "When true the creation of messages on the Messages Query HTTP API is enabled",
+							Optional:            true,
 							PlanModifiers: []planmodifier.Bool{
 								boolplanmodifier.UseStateForUnknown(),
 							},
 						},
 						"delete_days_after_creation": schema.Int64Attribute{
-							Description: "Specifies the number of days each Message should be available via the Messages Query API",
-							Optional:    true,
+							MarkdownDescription: "Specifies the number of days each Message should be available via the Messages Query API",
+							Optional:            true,
 							PlanModifiers: []planmodifier.Int64{
 								int64planmodifier.UseStateForUnknown(),
 							},
@@ -213,8 +214,8 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							},
 						},
 						"authorization_header": schema.StringAttribute{
-							Description: "Partially hidden on retrieval",
-							Optional:    true,
+							MarkdownDescription: "Partially hidden on retrieval",
+							Optional:            true,
 							Validators: []validator.String{
 								stringvalidator.AlsoRequires(
 									path.MatchRelative().AtParent().AtName("url"),
@@ -228,11 +229,12 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"shipping_rate_cart_classification_value": schema.ListNestedBlock{
-				Description: "If shipping_rate_input_type is set to CartClassification these values are used to create " +
+				MarkdownDescription: "If shipping_rate_input_type is set to CartClassification these values are used to create " +
 					"tiers\n. Only a key defined inside the values array can be used to create a tier, or to set a value " +
 					"for the shippingRateInput on the cart. The keys are checked for uniqueness and the request is " +
 					"rejected if keys are not unique",
 				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
 					customvalidator.RequireValueValidator(
 						"CartClassification",
 						path.MatchRoot("shipping_rate_input_type"),
@@ -250,12 +252,40 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 				},
 			},
+			"business_units": schema.ListNestedBlock{
+				MarkdownDescription: "Holds configuration specific to [Business Units](https://docs.commercetools.com/api/projects/business-units#ctp:api:type:BusinessUnit).",
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"my_business_unit_status_on_creation": schema.StringAttribute{
+							MarkdownDescription: "Status of Business Units created using the My Business Unit endpoint.",
+							Computed:            true,
+							Optional:            true,
+							Default:             stringdefault.StaticString(string(platform.BusinessUnitConfigurationStatusInactive)),
+							Validators: []validator.String{
+								stringvalidator.OneOf(
+									string(platform.BusinessUnitConfigurationStatusActive),
+									string(platform.BusinessUnitConfigurationStatusInactive),
+								),
+							},
+						},
+						"my_business_unit_associate_role_key_on_creation": schema.StringAttribute{
+							MarkdownDescription: "Default Associate Role assigned to the Associate creating a " +
+								"Business Unit using the My Business Unit endpoint. Note that this field cannot be " +
+								"unset once assigned!",
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
 
 // Configure adds the provider configured client to the data source.
-func (r *ProjectResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (r *projectResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -263,7 +293,7 @@ func (r *ProjectResource) Configure(_ context.Context, req resource.ConfigureReq
 	r.client = data.Client
 }
 
-func (p *ProjectResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+func (r *projectResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
 	return map[int64]resource.StateUpgrader{
 		0: {
 			StateUpgrader: upgradeStateV0,
@@ -272,7 +302,7 @@ func (p *ProjectResource) UpgradeState(ctx context.Context) map[int64]resource.S
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan Project
 	diags := req.Plan.Get(ctx, &plan)
@@ -291,7 +321,12 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	current := NewProjectFromNative(project)
 
-	input := current.updateActions(plan)
+	input, err := current.updateActions(plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error updating project", err.Error())
+		return
+	}
+
 	var res *platform.Project
 	err = sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
 		var err error
@@ -315,7 +350,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state Project
 	diags := req.State.Get(ctx, &state)
@@ -344,7 +379,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan Project
 	diags := req.Plan.Get(ctx, &plan)
@@ -361,10 +396,14 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	input := state.updateActions(plan)
+	input, err := state.updateActions(plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error updating project", err.Error())
+		return
+	}
 
 	var res *platform.Project
-	err := sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
+	err = sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
 		var err error
 		res, err = r.client.Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -384,7 +423,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
 	var state Project
 	diags := req.State.Get(ctx, &state)
@@ -395,7 +434,7 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 }
 
-func (r *ProjectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *projectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// Retrieve import ID and save to id attribute
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

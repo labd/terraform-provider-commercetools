@@ -49,6 +49,7 @@ resource "commercetools_project_settings" "my-project" {
 
 ### Optional
 
+- `business_units` (Block List) Holds configuration specific to [Business Units](https://docs.commercetools.com/api/projects/business-units#ctp:api:type:BusinessUnit). (see [below for nested schema](#nestedblock--business_units))
 - `carts` (Block List) [Carts Configuration](https://docs.commercetools.com/api/projects/project#carts-configuration) (see [below for nested schema](#nestedblock--carts))
 - `countries` (List of String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 - `currencies` (List of String) A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
@@ -67,6 +68,15 @@ resource "commercetools_project_settings" "my-project" {
 - `id` (String) The unique key of the project
 - `key` (String) The unique key of the project
 - `version` (Number)
+
+<a id="nestedblock--business_units"></a>
+### Nested Schema for `business_units`
+
+Optional:
+
+- `my_business_unit_associate_role_key_on_creation` (String) Default Associate Role assigned to the Associate creating a Business Unit using the My Business Unit endpoint. Note that this field cannot be unset once assigned!
+- `my_business_unit_status_on_creation` (String) Status of Business Units created using the My Business Unit endpoint.
+
 
 <a id="nestedblock--carts"></a>
 ### Nested Schema for `carts`
