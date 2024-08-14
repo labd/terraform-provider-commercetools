@@ -1,0 +1,41 @@
+{{ define "commercetools_product_type" }}
+resource "commercetools_product_type" "default_product_type" {
+    key         = "default-product-type"
+    name        = "Default Product Type"
+    description = "Default Product Type Description"
+
+    attribute {
+        constraint = "None"
+        input_hint = "SingleLine"
+        input_tip = {
+            en-GB = "SKU name"
+        }
+        label = {
+            en-GB = "Name"
+        }
+        name       = "name"
+        required   = false
+        searchable = false
+        type {
+            name = "ltext"
+        }
+    }
+
+    attribute {
+        constraint = "None"
+        input_hint = "SingleLine"
+        input_tip = {
+            en-GB = "SKU Description"
+        }
+        label = {
+            en-GB = "Description"
+        }
+        name       = "description"
+        required   = false
+        searchable = false
+        type {
+            name = "ltext"
+        }
+    }
+}
+{{ end }}
