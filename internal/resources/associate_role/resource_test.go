@@ -27,7 +27,7 @@ func TestAssociateRoleResource_Create(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(rn, "name", name),
 					resource.TestCheckResourceAttr(rn, "key", key),
-					resource.TestCheckResourceAttr(rn, "permissions.#", "7"),
+					resource.TestCheckResourceAttr(rn, "permissions.#", "6"),
 				),
 			},
 			{
@@ -35,8 +35,8 @@ func TestAssociateRoleResource_Create(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(rn, "name", "Sales Manager - DACH"),
 					resource.TestCheckResourceAttr(rn, "key", key),
-					resource.TestCheckResourceAttr(rn, "permissions.#", "8"),
-					resource.TestCheckResourceAttr(rn, "permissions.7", "AddChildUnits"),
+					resource.TestCheckResourceAttr(rn, "permissions.#", "7"),
+					resource.TestCheckResourceAttr(rn, "permissions.6", "AddChildUnits"),
 					resource.TestCheckResourceAttr(rn, "buyer_assignable", "true"),
 				),
 			},
@@ -55,7 +55,6 @@ func testAssociateRoleConfig(identifier, name, key string) string {
 			buyer_assignable = false
 			name = "{{ .name }}"
 			permissions = [
-				"AddChildUnits",
 				"UpdateBusinessUnitDetails",
 				"UpdateAssociates",
 				"CreateMyCarts",
@@ -78,7 +77,6 @@ func testAssociateRoleConfigUpdate(identifier, name, key string, buyerAssign boo
 			buyer_assignable = {{ .buyer_assignable }}
 			name = "{{ .name }}"
 			permissions = [
-				"AddChildUnits",
 				"UpdateBusinessUnitDetails",
 				"UpdateAssociates",
 				"CreateMyCarts",

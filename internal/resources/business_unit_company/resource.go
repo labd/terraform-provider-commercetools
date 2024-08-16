@@ -36,20 +36,21 @@ func NewCompanyResource() resource.Resource {
 // Schema implements resource.Resource.
 func (b *companyResource) Schema(_ context.Context, req resource.SchemaRequest, res *resource.SchemaResponse) {
 	res.Schema = schema.Schema{
-		MarkdownDescription: "Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a Company from the generic BusinessUnit.\n\n" +
+		MarkdownDescription: "Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a company from the generic business unit.\n\n" +
 			"See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Unique identifier of the Company.",
+				MarkdownDescription: "Unique identifier of the company.",
 				Computed:            true,
 			},
 			"version": schema.Int64Attribute{
-				MarkdownDescription: "The current version of the Company.",
+				MarkdownDescription: "The current version of the company.",
 				Computed:            true,
 			},
 			"key": schema.StringAttribute{
-				MarkdownDescription: "User-defined unique identifier for the Company.",
-				Required:            true,
+				MarkdownDescription: "User-defined unique key for the company. Must be unique within the project. " +
+					"Updating this value is not supported.",
+				Required: true,
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(2, 256),
 					stringvalidator.RegexMatches(
@@ -59,7 +60,7 @@ func (b *companyResource) Schema(_ context.Context, req resource.SchemaRequest, 
 				},
 			},
 			"status": schema.StringAttribute{
-				MarkdownDescription: "The status of the Company.",
+				MarkdownDescription: "The status of the company.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(string(platform.BusinessUnitStatusActive)),
@@ -71,11 +72,11 @@ func (b *companyResource) Schema(_ context.Context, req resource.SchemaRequest, 
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the Company.",
+				MarkdownDescription: "The name of the company.",
 				Required:            true,
 			},
 			"contact_email": schema.StringAttribute{
-				MarkdownDescription: "The email address of the Company.",
+				MarkdownDescription: "The email address of the company.",
 				Optional:            true,
 			},
 			"shipping_address_keys": schema.SetAttribute{

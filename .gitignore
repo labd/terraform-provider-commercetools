@@ -4,17 +4,18 @@ terraform-provider-commercetools_*
 /dist/*
 coverage.txt
 
-// Terraform files
+# Terraform files
 .terraform/
 terraform.*
 crash.log
 
 
-// Local files
+# Local files
 /local/*
 !/local/*.example
 
-// Go modules
+# Go modules
 vendor/
 
 /.idea
+/.env

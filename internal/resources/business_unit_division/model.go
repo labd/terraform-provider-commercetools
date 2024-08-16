@@ -129,6 +129,10 @@ func (d *Division) updateActions(plan Division) (platform.BusinessUnitUpdate, er
 		Actions: []platform.BusinessUnitUpdateAction{},
 	}
 
+	if !d.Key.Equal(plan.Key) {
+		return result, fmt.Errorf("key is immutable. Delete this resource instead if a change is intended")
+	}
+
 	if !d.Name.Equal(plan.Name) {
 		result.Actions = append(result.Actions, platform.BusinessUnitChangeNameAction{
 			Name: plan.Name.ValueString(),

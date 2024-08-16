@@ -3,6 +3,7 @@ package business_unit_division
 import (
 	"context"
 	"errors"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 	"regexp"
@@ -39,20 +40,21 @@ func NewDivisionResource() resource.Resource {
 // Schema implements resource.Resource.
 func (b *divisionResource) Schema(_ context.Context, req resource.SchemaRequest, res *resource.SchemaResponse) {
 	res.Schema = schema.Schema{
-		MarkdownDescription: "Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a Division from the generic BusinessUnit.\n\n" +
-			"See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units",
+		MarkdownDescription: "business unit type to represent the top level of a business. Contains specific fields and values that differentiate a Division from the generic BusinessUnit.\n\n" +
+			"See also the [business unit API Documentation](https://docs.commercetools.com/api/projects/business-units",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "Unique identifier of the Division.",
+				MarkdownDescription: "Unique identifier of the division.",
 				Computed:            true,
 			},
 			"version": schema.Int64Attribute{
-				MarkdownDescription: "The current version of the Division.",
+				MarkdownDescription: "The current version of the division.",
 				Computed:            true,
 			},
 			"key": schema.StringAttribute{
-				MarkdownDescription: "User-defined unique identifier for the Division.",
-				Required:            true,
+				MarkdownDescription: "User-defined unique key for the division. Must be unique within the project. " +
+					"Updating this value is not supported.",
+				Required: true,
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(2, 256),
 					stringvalidator.RegexMatches(
@@ -62,7 +64,7 @@ func (b *divisionResource) Schema(_ context.Context, req resource.SchemaRequest,
 				},
 			},
 			"status": schema.StringAttribute{
-				MarkdownDescription: "Indicates whether the Business Unit can be edited and used in [Orders](https://docs.commercetools.com/api/projects/orders). Defaults to `Active`.",
+				MarkdownDescription: "Indicates whether the business unit can be edited and used in [Orders](https://docs.commercetools.com/api/projects/orders). Defaults to `Active`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(string(platform.BusinessUnitStatusActive)),
@@ -74,7 +76,7 @@ func (b *divisionResource) Schema(_ context.Context, req resource.SchemaRequest,
 				},
 			},
 			"store_mode": schema.StringAttribute{
-				MarkdownDescription: "Defines whether the Stores of the Business Unit are set directly on the Business Unit or are inherited from a parent. Defaults to `FromParent`",
+				MarkdownDescription: "Defines whether the Stores of the business unit are set directly on the business unit or are inherited from a parent. Defaults to `FromParent`",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(string(platform.BusinessUnitStoreModeFromParent)),
@@ -86,15 +88,15 @@ func (b *divisionResource) Schema(_ context.Context, req resource.SchemaRequest,
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the Division.",
+				MarkdownDescription: "The name of the division.",
 				Required:            true,
 			},
 			"contact_email": schema.StringAttribute{
-				MarkdownDescription: "The email address of the Division.",
+				MarkdownDescription: "The email address of the division.",
 				Optional:            true,
 			},
 			"associate_mode": schema.StringAttribute{
-				MarkdownDescription: "Determines whether the Business Unit can inherit Associates from a parent. Defaults to `ExplicitAndFromParent`.",
+				MarkdownDescription: "Determines whether the business unit can inherit Associates from a parent. Defaults to `ExplicitAndFromParent`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(string(platform.BusinessUnitAssociateModeExplicitAndFromParent)),
@@ -106,7 +108,7 @@ func (b *divisionResource) Schema(_ context.Context, req resource.SchemaRequest,
 				},
 			},
 			"approval_rule_mode": schema.StringAttribute{
-				MarkdownDescription: "Determines whether the Business Unit can inherit Approval Rules from a parent. Defaults to `ExplicitAndFromParent`.",
+				MarkdownDescription: "Determines whether the business unit can inherit Approval Rules from a parent. Defaults to `ExplicitAndFromParent`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(string(platform.BusinessUnitApprovalRuleModeExplicitAndFromParent)),
@@ -118,7 +120,7 @@ func (b *divisionResource) Schema(_ context.Context, req resource.SchemaRequest,
 				},
 			},
 			"shipping_address_keys": schema.ListAttribute{
-				MarkdownDescription: "List of the shipping addresses used by the Division.",
+				MarkdownDescription: "List of the shipping addresses used by the division.",
 				Optional:            true,
 				ElementType:         types.StringType,
 				PlanModifiers: []planmodifier.List{
@@ -130,7 +132,7 @@ func (b *divisionResource) Schema(_ context.Context, req resource.SchemaRequest,
 				Optional:            true,
 			},
 			"billing_address_keys": schema.ListAttribute{
-				MarkdownDescription: "List of the billing addresses used by the Division.",
+				MarkdownDescription: "List of the billing addresses used by the division.",
 				Optional:            true,
 				ElementType:         types.StringType,
 				PlanModifiers: []planmodifier.List{
@@ -146,14 +148,20 @@ func (b *divisionResource) Schema(_ context.Context, req resource.SchemaRequest,
 			"store":   sharedtypes.StoreKeyReferenceBlockSchema,
 			"address": sharedtypes.AddressBlockSchema,
 			"parent_unit": schema.SingleNestedBlock{
-				MarkdownDescription: "Reference to a parent Business Unit by its key.",
+				MarkdownDescription: "Reference to a parent business unit by its key or id. One of either is required.",
+				Validators: []validator.Object{
+					objectvalidator.AtLeastOneOf(
+						path.MatchRelative().AtName("key"),
+						path.MatchRelative().AtName("id"),
+					),
+				},
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
-						MarkdownDescription: "User-defined unique identifier of the Business Unit",
+						MarkdownDescription: "User-defined unique identifier of the business unit",
 						Optional:            true,
 					},
 					"key": schema.StringAttribute{
-						MarkdownDescription: "User-defined unique key of the Business Unit",
+						MarkdownDescription: "User-defined unique key of the business unit",
 						Optional:            true,
 					},
 				},

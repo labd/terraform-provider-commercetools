@@ -101,6 +101,14 @@ var ProjectResourceDataV1 = tftypes.Object{
 				},
 			},
 		},
+		"business_units": tftypes.List{
+			ElementType: tftypes.Object{
+				AttributeTypes: map[string]tftypes.Type{
+					"my_business_unit_status_on_creation":             tftypes.String,
+					"my_business_unit_associate_role_key_on_creation": tftypes.String,
+				},
+			},
+		},
 	},
 }
 
@@ -148,6 +156,7 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 			// Values that didn't exist yet
 			"enable_search_index_products": tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
 			"enable_search_index_orders":   tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
+			"business_units":               valueToList(nil, "business_units"),
 		}),
 	)
 	if err != nil {
