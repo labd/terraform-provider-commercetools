@@ -3,13 +3,13 @@
 page_title: "commercetools_business_unit_company Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a Company from the generic BusinessUnit.
+  Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a company from the generic business unit.
   See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units
 ---
 
 # commercetools_business_unit_company (Resource)
 
-Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a Company from the generic BusinessUnit.
+Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a company from the generic business unit.
 
 See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units
 
@@ -68,18 +68,18 @@ resource "commercetools_business_unit_company" "my-company" {
 
 ### Required
 
-- `key` (String) User-defined unique identifier for the Company.
-- `name` (String) The name of the Company.
+- `key` (String) User-defined unique key for the company. Must be unique within the project. Updating this value is not supported.
+- `name` (String) The name of the company.
 
 ### Optional
 
 - `address` (Block List) Addresses used by the Business Unit. (see [below for nested schema](#nestedblock--address))
 - `billing_address_keys` (Set of String) Indexes of entries in addresses to set as billing addresses. The billingAddressIds of the [Customer](https://docs.commercetools.com/api/projects/customers) will be replaced by these addresses.
-- `contact_email` (String) The email address of the Company.
+- `contact_email` (String) The email address of the company.
 - `default_billing_address_key` (String) Index of the entry in addresses to set as the default billing address.
 - `default_shipping_address_key` (String) Index of the entry in addresses to set as the default shipping address.
 - `shipping_address_keys` (Set of String) Indexes of entries in addresses to set as shipping addresses. The shippingAddressIds of the [Customer](https://docs.commercetools.com/api/projects/customers) will be replaced by these addresses.
-- `status` (String) The status of the Company.
+- `status` (String) The status of the company.
 - `store` (Block List) Sets the Stores the Business Unit is associated with. 
 
 If the Business Unit has Stores defined, then all of its Carts, Orders, Quotes, or Quote Requests must belong to one of the Business Unit's Stores.
@@ -88,8 +88,8 @@ If the Business Unit has no Stores, then all of its Carts, Orders, Quotes, or Qu
 
 ### Read-Only
 
-- `id` (String) Unique identifier of the Company.
-- `version` (Number) The current version of the Company.
+- `id` (String) Unique identifier of the company.
+- `version` (Number) The current version of the company.
 
 <a id="nestedblock--address"></a>
 ### Nested Schema for `address`

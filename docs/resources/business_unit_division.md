@@ -3,15 +3,15 @@
 page_title: "commercetools_business_unit_division Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a Division from the generic BusinessUnit.
-  See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units
+  business unit type to represent the top level of a business. Contains specific fields and values that differentiate a Division from the generic BusinessUnit.
+  See also the [business unit API Documentation](https://docs.commercetools.com/api/projects/business-units
 ---
 
 # commercetools_business_unit_division (Resource)
 
-Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a Division from the generic BusinessUnit.
+business unit type to represent the top level of a business. Contains specific fields and values that differentiate a Division from the generic BusinessUnit.
 
-See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units
+See also the [business unit API Documentation](https://docs.commercetools.com/api/projects/business-units
 
 ## Example Usage
 
@@ -80,32 +80,32 @@ resource "commercetools_business_unit_division" "my-division" {
 
 ### Required
 
-- `key` (String) User-defined unique identifier for the Division.
-- `name` (String) The name of the Division.
+- `key` (String) User-defined unique key for the division. Must be unique within the project. Updating this value is not supported.
+- `name` (String) The name of the division.
 
 ### Optional
 
 - `address` (Block List) Addresses used by the Business Unit. (see [below for nested schema](#nestedblock--address))
-- `approval_rule_mode` (String) Determines whether the Business Unit can inherit Approval Rules from a parent. Defaults to `ExplicitAndFromParent`.
-- `associate_mode` (String) Determines whether the Business Unit can inherit Associates from a parent. Defaults to `ExplicitAndFromParent`.
-- `billing_address_keys` (List of String) List of the billing addresses used by the Division.
-- `contact_email` (String) The email address of the Division.
+- `approval_rule_mode` (String) Determines whether the business unit can inherit Approval Rules from a parent. Defaults to `ExplicitAndFromParent`.
+- `associate_mode` (String) Determines whether the business unit can inherit Associates from a parent. Defaults to `ExplicitAndFromParent`.
+- `billing_address_keys` (List of String) List of the billing addresses used by the division.
+- `contact_email` (String) The email address of the division.
 - `default_billing_address_key` (String) Key of the default billing Address.
 - `default_shipping_address_key` (String) Key of the default shipping Address.
-- `parent_unit` (Block, Optional) Reference to a parent Business Unit by its key. (see [below for nested schema](#nestedblock--parent_unit))
-- `shipping_address_keys` (List of String) List of the shipping addresses used by the Division.
-- `status` (String) Indicates whether the Business Unit can be edited and used in [Orders](https://docs.commercetools.com/api/projects/orders). Defaults to `Active`.
+- `parent_unit` (Block, Optional) Reference to a parent business unit by its key or id. One of either is required. (see [below for nested schema](#nestedblock--parent_unit))
+- `shipping_address_keys` (List of String) List of the shipping addresses used by the division.
+- `status` (String) Indicates whether the business unit can be edited and used in [Orders](https://docs.commercetools.com/api/projects/orders). Defaults to `Active`.
 - `store` (Block List) Sets the Stores the Business Unit is associated with. 
 
 If the Business Unit has Stores defined, then all of its Carts, Orders, Quotes, or Quote Requests must belong to one of the Business Unit's Stores.
 
 If the Business Unit has no Stores, then all of its Carts, Orders, Quotes, or Quote Requests must not belong to any Store. (see [below for nested schema](#nestedblock--store))
-- `store_mode` (String) Defines whether the Stores of the Business Unit are set directly on the Business Unit or are inherited from a parent. Defaults to `FromParent`
+- `store_mode` (String) Defines whether the Stores of the business unit are set directly on the business unit or are inherited from a parent. Defaults to `FromParent`
 
 ### Read-Only
 
-- `id` (String) Unique identifier of the Division.
-- `version` (Number) The current version of the Division.
+- `id` (String) Unique identifier of the division.
+- `version` (Number) The current version of the division.
 
 <a id="nestedblock--address"></a>
 ### Nested Schema for `address`
@@ -150,8 +150,8 @@ Read-Only:
 
 Optional:
 
-- `id` (String) User-defined unique identifier of the Business Unit
-- `key` (String) User-defined unique key of the Business Unit
+- `id` (String) User-defined unique identifier of the business unit
+- `key` (String) User-defined unique key of the business unit
 
 
 <a id="nestedblock--store"></a>
