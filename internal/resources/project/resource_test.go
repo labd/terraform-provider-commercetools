@@ -74,7 +74,7 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						assert.EqualValues(t, result.Languages, []string{"nl", "de", "en", "en-US"})
 						assert.EqualValues(t, result.Currencies, []string{"EUR", "USD"})
 						assert.Equal(t, *result.Carts.DeleteDaysAfterLastModification, 7)
-						assert.Equal(t, result.ShippingRateInputType, platform.CartValueType(platform.CartValueType{}))
+						assert.Equal(t, result.ShippingRateInputType, platform.CartValueType{})
 						return nil
 					},
 				),
@@ -142,27 +142,43 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						resourceName, "carts.0.delete_days_after_last_modification"),
 				),
 			},
-			// Running this step again so project settings match what later shipping_zone_rate_test will need
-			/*
-				{
-					Config: testAccProjectConfig("acctest_project_settings"),
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr(resourceName, "name", "Test this thing"),
-						resource.TestCheckResourceAttr(resourceName, "countries.#", "3"),
-						resource.TestCheckResourceAttr(resourceName, "currencies.#", "2"),
-						resource.TestCheckResourceAttr(resourceName, "languages.#", "4"),
-						resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "true"),
-						resource.TestCheckResourceAttr(
-							resourceName, "external_oauth.0.url", "https://example.com/oauth/token"),
-						resource.TestCheckResourceAttr(
-							resourceName, "external_oauth.0.authorization_header", "Bearer secret"),
-						resource.TestCheckResourceAttr(
-							resourceName, "shipping_rate_input_type", "CartValue"),
-						resource.TestCheckResourceAttr(
-							resourceName, "carts.0.country_tax_rate_fallback_enabled", "true"),
+			{
+				Config: testAccProjectConfigSetMyBusinessUnitStatusOnCreation("acctest_project_settings"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "business_units.#", "1"),
+					resource.TestCheckResourceAttr(
+						resourceName,
+						"business_units.0.my_business_unit_status_on_creation",
+						string(platform.BusinessUnitStatusActive),
 					),
-				},
-			*/
+				),
+			},
+			{
+				Config: testAccProjectConfigSetMyBusinessUnitStatusOnCreation("acctest_project_settings"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "business_units.#", "1"),
+					resource.TestCheckResourceAttr(
+						resourceName,
+						"business_units.0.my_business_unit_status_on_creation",
+						string(platform.BusinessUnitStatusActive),
+					),
+				),
+			},
+			{
+				Config: testAccProjectConfigSetMyBusinessUnitAssociateRoleOnKeyCreation("acctest_project_settings"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "business_units.#", "1"),
+					resource.TestCheckResourceAttr(
+						resourceName,
+						"business_units.0.my_business_unit_status_on_creation",
+						string(platform.BusinessUnitStatusInactive),
+					),
+					resource.TestCheckResourceAttrSet(
+						resourceName,
+						"business_units.0.my_business_unit_associate_role_key_on_creation",
+					),
+				),
+			},
 		},
 	})
 }
@@ -264,6 +280,71 @@ func testAccProjectConfigDeleteOAuthAndCarts(identifier string) string {
 					"nl" = "Klein"
 				}
 			}
+		}`, map[string]any{
+		"identifier": identifier,
+	})
+}
+
+func testAccProjectConfigSetMyBusinessUnitStatusOnCreation(identifier string) string {
+	return utils.HCLTemplate(`
+		resource "commercetools_project_settings" "{{ .identifier }}" {
+			name       = "Test this thing new"
+			countries  = ["NL", "DE", "US", "GB"]
+			currencies = ["EUR", "USD", "GBP"]
+			languages  = ["nl", "de", "en", "en-US", "fr"]
+			messages {
+				enabled = false
+			}
+
+			shipping_rate_input_type = "CartClassification"
+			shipping_rate_cart_classification_value {
+				key = "Small"
+				label = {
+					"en" = "Small"
+					"nl" = "Klein"
+				}
+			}
+	
+			business_units {
+			  my_business_unit_status_on_creation             = "Active"
+		    }
+		}`, map[string]any{
+		"identifier": identifier,
+	})
+}
+
+func testAccProjectConfigSetMyBusinessUnitAssociateRoleOnKeyCreation(identifier string) string {
+	return utils.HCLTemplate(`
+		resource commercetools_associate_role "my-role" {
+		  key = "my-role"
+		  name = "My role"
+		  permissions = [
+			"UpdateAssociates"
+		  ]
+		}
+	
+		resource "commercetools_project_settings" "{{ .identifier }}" {
+			name       = "Test this thing new"
+			countries  = ["NL", "DE", "US", "GB"]
+			currencies = ["EUR", "USD", "GBP"]
+			languages  = ["nl", "de", "en", "en-US", "fr"]
+			messages {
+				enabled = false
+			}
+
+			shipping_rate_input_type = "CartClassification"
+			shipping_rate_cart_classification_value {
+				key = "Small"
+				label = {
+					"en" = "Small"
+					"nl" = "Klein"
+				}
+			}
+	
+			business_units {
+			  my_business_unit_status_on_creation             = "Inactive"
+              my_business_unit_associate_role_key_on_creation = commercetools_associate_role.my-role.key
+		    }
 		}`, map[string]any{
 		"identifier": identifier,
 	})

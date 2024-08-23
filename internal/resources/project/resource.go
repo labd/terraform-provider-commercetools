@@ -234,7 +234,6 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"for the shippingRateInput on the cart. The keys are checked for uniqueness and the request is " +
 					"rejected if keys are not unique",
 				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
 					customvalidator.RequireValueValidator(
 						"CartClassification",
 						path.MatchRoot("shipping_rate_input_type"),

@@ -342,7 +342,7 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 				},
 			)
 			//TODO: should set associate role to nil, but that is not currently supported in the SDK
-		} else {
+		} else if len(p.BusinessUnits) != 0 && len(plan.BusinessUnits) != 0 {
 			if !p.BusinessUnits[0].MyBusinessUnitStatusOnCreation.Equal(plan.BusinessUnits[0].MyBusinessUnitStatusOnCreation) {
 				result.Actions = append(result.Actions,
 					platform.ProjectChangeBusinessUnitStatusOnCreationAction{
