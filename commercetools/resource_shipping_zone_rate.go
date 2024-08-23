@@ -410,7 +410,7 @@ func findShippingZoneRate(shippingMethod *platform.ShippingMethod, shippingZoneI
 	for _, zoneRate := range shippingMethod.ZoneRates {
 		if zoneRate.Zone.ID == shippingZoneID {
 			for _, shippingRate := range zoneRate.ShippingRates {
-				if shippingRate.Price.(platform.CentPrecisionMoney).CurrencyCode == currencyCode {
+				if shippingRate.Price.CurrencyCode == currencyCode {
 					return &shippingRate, nil
 				}
 			}
@@ -435,36 +435,22 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 	tiers := flattenShippingZoneRateTiers(shippingRate)
 	_ = d.Set("shipping_rate_price_tier", tiers)
 
-	if typedPrice, ok := shippingRate.Price.(platform.CentPrecisionMoney); ok {
-		price := map[string]any{
-			"currency_code": typedPrice.CurrencyCode,
-			"cent_amount":   typedPrice.CentAmount,
-		}
-		err = d.Set("price", []any{price})
-		if err != nil {
-			return err
-		}
-	} else {
-		_ = d.Set("price", nil)
-		if err != nil {
-			return err
-		}
+	price := map[string]any{
+		"currency_code": shippingRate.Price.CurrencyCode,
+		"cent_amount":   shippingRate.Price.CentAmount,
+	}
+	err = d.Set("price", []any{price})
+	if err != nil {
+		return err
 	}
 
-	if typedFreeAbove, ok := (shippingRate.FreeAbove).(platform.CentPrecisionMoney); ok {
-		freeAbove := map[string]any{
-			"currency_code": typedFreeAbove.CurrencyCode,
-			"cent_amount":   typedFreeAbove.CentAmount,
-		}
-		err = d.Set("free_above", []any{freeAbove})
-		if err != nil {
-			return err
-		}
-	} else {
-		_ = d.Set("free_above", nil)
-		if err != nil {
-			return err
-		}
+	freeAbove := map[string]any{
+		"currency_code": shippingRate.FreeAbove.CurrencyCode,
+		"cent_amount":   shippingRate.FreeAbove.CentAmount,
+	}
+	err = d.Set("free_above", []any{freeAbove})
+	if err != nil {
+		return err
 	}
 	return nil
 }

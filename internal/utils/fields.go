@@ -81,3 +81,7 @@ func BoolRef(value any) *bool {
 	result := value.(bool)
 	return &result
 }
+
+func Ref[T comparable](value T) *T {
+	return &value
+}

@@ -65,6 +65,7 @@ func Test_upgradeStateV0(t *testing.T) {
 
 		EnableSearchIndexProducts: types.BoolUnknown(),
 		EnableSearchIndexOrders:   types.BoolUnknown(),
+		BusinessUnits:             []BusinessUnits{},
 
 		ExternalOAuth: []ExternalOAuth{},
 		Carts: []Carts{

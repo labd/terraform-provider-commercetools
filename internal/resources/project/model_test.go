@@ -49,6 +49,7 @@ func TestNewProjectFromNative(t *testing.T) {
 					},
 				},
 				ShippingRateCartClassificationValue: []models.CustomFieldLocalizedEnumValue{},
+				BusinessUnits:                       []BusinessUnits{},
 			},
 		},
 	}
@@ -175,10 +176,40 @@ func TestUpdateActions(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Create with business unit settings",
+			state: Project{
+				Version:       types.Int64Value(1),
+				BusinessUnits: []BusinessUnits{},
+			},
+			plan: Project{
+				Version: types.Int64Value(1),
+				BusinessUnits: []BusinessUnits{
+					{
+						MyBusinessUnitStatusOnCreation:           types.StringValue(string(platform.BusinessUnitConfigurationStatusActive)),
+						MyBusinessUnitAssociateRoleKeyOnCreation: types.StringValue("my-associate-role"),
+					},
+				},
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{
+					platform.ProjectChangeBusinessUnitStatusOnCreationAction{
+						Status: platform.BusinessUnitConfigurationStatusActive,
+					},
+					platform.ProjectSetBusinessUnitAssociateRoleOnCreationAction{
+						AssociateRole: platform.AssociateRoleResourceIdentifier{
+							Key: utils.StringRef("my-associate-role"),
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.state.updateActions(tt.plan)
+			result, err := tt.state.updateActions(tt.plan)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.action, result)
 		})
 	}
@@ -245,6 +276,25 @@ func TestSetStateData(t *testing.T) {
 					{AuthorizationHeader: types.StringValue("some-other-value")},
 				},
 				Carts: nil,
+			},
+		}, {
+			name: "business unit in plan",
+			state: Project{
+				BusinessUnits: []BusinessUnits{
+					{
+						MyBusinessUnitStatusOnCreation: types.StringValue(string(platform.BusinessUnitConfigurationStatusInactive)),
+					},
+				},
+				Carts: []Carts{
+					{},
+				},
+			},
+			plan: Project{
+				BusinessUnits: []BusinessUnits{},
+			},
+			expected: Project{
+				BusinessUnits: nil,
+				Carts:         nil,
 			},
 		},
 	}

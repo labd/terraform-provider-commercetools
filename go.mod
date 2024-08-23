@@ -2,6 +2,8 @@ module github.com/labd/terraform-provider-commercetools
 
 go 1.21
 
+//replace github.com/labd/commercetools-go-sdk v1.5.1 => ../commercetools-go-sdk
+
 require (
 	github.com/elliotchance/orderedmap/v2 v2.2.0
 	github.com/elliotchance/pie/v2 v2.8.1
@@ -12,7 +14,8 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.23.0
 	github.com/hashicorp/terraform-plugin-mux v0.16.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.34.0
-	github.com/labd/commercetools-go-sdk v1.5.2
+	github.com/labd/commercetools-go-sdk v1.6.0
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/oauth2 v0.21.0
 	golang.org/x/text v0.16.0
@@ -62,7 +65,6 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

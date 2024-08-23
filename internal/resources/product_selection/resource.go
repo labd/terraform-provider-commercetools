@@ -2,6 +2,7 @@ package product_selection
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -51,6 +52,13 @@ func (*productSelectionResource) Schema(_ context.Context, req resource.SchemaRe
 			"key": schema.StringAttribute{
 				Description: "User-defined unique identifier of the ProductSelection.",
 				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(2, 256),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile("^[A-Za-z0-9_-]+$"),
+						"Key must match pattern ^[A-Za-z0-9_-]+$",
+					),
+				},
 			},
 			"mode": schema.StringAttribute{
 				Description: "Specifies in which way the Products are assigned to the ProductSelection." +

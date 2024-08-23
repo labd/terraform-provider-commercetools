@@ -12,7 +12,7 @@ import (
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
-func TestProductSelctionResource_Create(t *testing.T) {
+func TestProductSelectionResource_Create(t *testing.T) {
 	rn := "commercetools_product_selection.test_product_selection"
 
 	id := "test_product_selection"

@@ -159,5 +159,5 @@ Required:
 Import is supported using the following syntax:
 
 ```shell
-terraform import commercetools_shipping_zone_rate.my-shipping-zone-rate {shipping-method-id}@{shipping-zone-id}@{currency}
+terraform import commercetools_shipping_zone_rate.my-shipping-zone-rate {my-shipping-method-id}@{my-shipping-zone-id}@{currency}
 ```

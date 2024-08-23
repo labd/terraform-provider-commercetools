@@ -50,7 +50,7 @@ func (ar AssociateRole) updateActions(plan AssociateRole) platform.AssociateRole
 	}
 
 	// setName
-	if ar.Name != plan.Name {
+	if !ar.Name.Equal(plan.Name) {
 		var newName *string
 		if !plan.Name.IsNull() && !plan.Name.IsUnknown() {
 			newName = utils.StringRef(plan.Name.ValueString())
@@ -63,7 +63,7 @@ func (ar AssociateRole) updateActions(plan AssociateRole) platform.AssociateRole
 	}
 
 	// setBuyerAssignable value
-	if ar.BuyerAssignable != plan.BuyerAssignable {
+	if !ar.BuyerAssignable.Equal(plan.BuyerAssignable) {
 		result.Actions = append(
 			result.Actions,
 			platform.AssociateRoleChangeBuyerAssignableAction{

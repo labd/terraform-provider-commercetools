@@ -1,6 +1,7 @@
 package project
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/elliotchance/pie/v2"
@@ -37,6 +38,8 @@ type Project struct {
 
 	ShippingRateInputType               types.String                           `tfsdk:"shipping_rate_input_type"`
 	ShippingRateCartClassificationValue []models.CustomFieldLocalizedEnumValue `tfsdk:"shipping_rate_cart_classification_value"`
+
+	BusinessUnits []BusinessUnits `tfsdk:"business_units"`
 }
 
 func NewProjectFromNative(n *platform.Project) Project {
@@ -66,6 +69,7 @@ func NewProjectFromNative(n *platform.Project) Project {
 			},
 		},
 		ExternalOAuth: []ExternalOAuth{},
+		BusinessUnits: []BusinessUnits{},
 	}
 
 	// always set it to an empty list to avoid the wrong comparison in the update actions part
@@ -112,6 +116,18 @@ func NewProjectFromNative(n *platform.Project) Project {
 		}
 	}
 
+	if n.BusinessUnits != nil {
+		var businessUnits = BusinessUnits{
+			MyBusinessUnitStatusOnCreation: types.StringValue(string(n.BusinessUnits.MyBusinessUnitStatusOnCreation)),
+		}
+
+		if n.BusinessUnits.MyBusinessUnitAssociateRoleOnCreation != nil {
+			businessUnits.MyBusinessUnitAssociateRoleKeyOnCreation = types.StringValue(n.BusinessUnits.MyBusinessUnitAssociateRoleOnCreation.Key)
+		}
+
+		res.BusinessUnits = []BusinessUnits{businessUnits}
+	}
+
 	return res
 }
 
@@ -132,21 +148,21 @@ func (p *Project) setStateData(o Project) {
 			p.Messages[0].DeleteDaysAfterCreation = o.Messages[0].DeleteDaysAfterCreation
 		}
 	}
-	// If the state has no data for messages (0 items) and the configuration is
-	// the default we match the state
+	// If the state has no data for messages (0 items) and the configuration is the default we match the state
 	if len(p.Messages) > 0 && p.Messages[0].isDefault() && (len(o.Messages) == 0 || o.Messages[0].isDefault()) {
 		p.Messages = o.Messages
 	}
+
+	if len(o.BusinessUnits) == 0 {
+		p.BusinessUnits = nil
+	}
 }
 
-func (p *Project) updateActions(plan Project) platform.ProjectUpdate {
+func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 	result := platform.ProjectUpdate{
 		Version: int(p.Version.ValueInt64()),
 		Actions: []platform.ProjectUpdateAction{},
 	}
-
-	// changeMyBusinessUnitStatusOnCreation
-	// TODO
 
 	// changeCartsConfiguration
 	if !reflect.DeepEqual(p.Carts, plan.Carts) {
@@ -259,9 +275,6 @@ func (p *Project) updateActions(plan Project) platform.ProjectUpdate {
 		)
 	}
 
-	// changeShoppingListsConfiguration
-	// TODO
-
 	// setExternalOAuth
 	if !reflect.DeepEqual(p.ExternalOAuth, plan.ExternalOAuth) {
 		var value *platform.ExternalOAuth
@@ -301,7 +314,60 @@ func (p *Project) updateActions(plan Project) platform.ProjectUpdate {
 		)
 	}
 
-	return result
+	// changeBusinessUnitConfiguration
+	if !reflect.DeepEqual(p.BusinessUnits, plan.BusinessUnits) {
+		// If the existing business unit configuration is nil, but the plan has a configuration we apply the configuration
+		if len(p.BusinessUnits) == 0 && len(plan.BusinessUnits) != 0 {
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeBusinessUnitStatusOnCreationAction{
+					Status: platform.BusinessUnitConfigurationStatus(plan.BusinessUnits[0].MyBusinessUnitStatusOnCreation.ValueString()),
+				},
+			)
+
+			//TODO: should set associate role to nil, but that is not currently supported in the SDK
+			if plan.BusinessUnits[0].MyBusinessUnitAssociateRoleKeyOnCreation.ValueStringPointer() != nil {
+				result.Actions = append(result.Actions,
+					platform.ProjectSetBusinessUnitAssociateRoleOnCreationAction{
+						AssociateRole: platform.AssociateRoleResourceIdentifier{
+							Key: plan.BusinessUnits[0].MyBusinessUnitAssociateRoleKeyOnCreation.ValueStringPointer(),
+						},
+					},
+				)
+			}
+		} else if len(p.BusinessUnits) != 0 && len(plan.BusinessUnits) == 0 {
+			// If the existing business unit configuration is not nil, but the plan has no configuration we remove the configuration
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeBusinessUnitStatusOnCreationAction{
+					Status: platform.BusinessUnitConfigurationStatusInactive,
+				},
+			)
+			//TODO: should set associate role to nil, but that is not currently supported in the SDK
+		} else if len(p.BusinessUnits) != 0 && len(plan.BusinessUnits) != 0 {
+			if !p.BusinessUnits[0].MyBusinessUnitStatusOnCreation.Equal(plan.BusinessUnits[0].MyBusinessUnitStatusOnCreation) {
+				result.Actions = append(result.Actions,
+					platform.ProjectChangeBusinessUnitStatusOnCreationAction{
+						Status: platform.BusinessUnitConfigurationStatus(plan.BusinessUnits[0].MyBusinessUnitStatusOnCreation.ValueString()),
+					},
+				)
+			}
+			if !p.BusinessUnits[0].MyBusinessUnitAssociateRoleKeyOnCreation.Equal(plan.BusinessUnits[0].MyBusinessUnitAssociateRoleKeyOnCreation) {
+				if plan.BusinessUnits[0].MyBusinessUnitAssociateRoleKeyOnCreation.IsNull() {
+					return result, fmt.Errorf("AssociateRoleKeyReference cannot be set to nil after it has been assigned")
+				}
+
+				result.Actions = append(result.Actions,
+					platform.ProjectSetBusinessUnitAssociateRoleOnCreationAction{
+						AssociateRole: platform.AssociateRoleResourceIdentifier{
+							Key: plan.BusinessUnits[0].MyBusinessUnitAssociateRoleKeyOnCreation.ValueStringPointer(),
+						},
+					},
+				)
+			}
+		}
+
+	}
+
+	return result, nil
 }
 
 type Messages struct {
@@ -351,5 +417,39 @@ func (c Carts) toNative() platform.CartsConfiguration {
 	return platform.CartsConfiguration{
 		DeleteDaysAfterLastModification: utils.OptionalInt(c.DeleteDaysAfterLastModification),
 		CountryTaxRateFallbackEnabled:   utils.BoolRef(c.CountryTaxRateFallbackEnabled.ValueBool()),
+	}
+}
+
+type BusinessUnits struct {
+	MyBusinessUnitStatusOnCreation           types.String `tfsdk:"my_business_unit_status_on_creation"`
+	MyBusinessUnitAssociateRoleKeyOnCreation types.String `tfsdk:"my_business_unit_associate_role_key_on_creation"`
+}
+
+func (b BusinessUnits) toNative() platform.BusinessUnitDraft {
+	draft := platform.BusinessUnitConfiguration{
+		MyBusinessUnitStatusOnCreation: platform.BusinessUnitConfigurationStatus(b.MyBusinessUnitStatusOnCreation.ValueString()),
+	}
+
+	if !b.MyBusinessUnitAssociateRoleKeyOnCreation.IsNull() {
+		draft.MyBusinessUnitAssociateRoleOnCreation = &platform.AssociateRoleKeyReference{
+			Key: b.MyBusinessUnitAssociateRoleKeyOnCreation.ValueString(),
+		}
+	}
+
+	return draft
+}
+
+func (b BusinessUnits) isDefault() bool {
+	return b.MyBusinessUnitStatusOnCreation.ValueString() == string(platform.BusinessUnitStatusActive) &&
+		b.MyBusinessUnitAssociateRoleKeyOnCreation.IsNull()
+}
+
+type AssociateRoleKeyReference struct {
+	Key types.String `tfsdk:"key"`
+}
+
+func (r AssociateRoleKeyReference) toNative() *platform.AssociateRoleKeyReference {
+	return &platform.AssociateRoleKeyReference{
+		Key: r.Key.ValueString(),
 	}
 }
