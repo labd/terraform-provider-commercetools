@@ -381,7 +381,7 @@ func resourceShippingZoneRateDelete(ctx context.Context, d *schema.ResourceData,
 func createShippingRateDraft(rate *platform.ShippingRate) *platform.ShippingRateDraft {
 	var freeAbove *platform.Money
 	if rate.FreeAbove != nil {
-		m := coerceTypedMoney(rate.FreeAbove)
+		m := coerceTypedMoney(*rate.FreeAbove)
 		freeAbove = &m
 	}
 
@@ -444,13 +444,20 @@ func setShippingZoneRateState(d *schema.ResourceData, shippingMethod *platform.S
 		return err
 	}
 
-	freeAbove := map[string]any{
-		"currency_code": shippingRate.FreeAbove.CurrencyCode,
-		"cent_amount":   shippingRate.FreeAbove.CentAmount,
-	}
-	err = d.Set("free_above", []any{freeAbove})
-	if err != nil {
-		return err
+	if shippingRate.FreeAbove != nil {
+		freeAbove := map[string]any{
+			"currency_code": shippingRate.FreeAbove.CurrencyCode,
+			"cent_amount":   shippingRate.FreeAbove.CentAmount,
+		}
+		err = d.Set("free_above", []any{freeAbove})
+		if err != nil {
+			return err
+		}
+	} else {
+		err = d.Set("free_above", nil)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

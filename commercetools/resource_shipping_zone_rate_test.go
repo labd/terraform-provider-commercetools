@@ -22,12 +22,10 @@ func TestAccShippingZoneRate_createAndUpdate(t *testing.T) {
 		CheckDestroy:      testAccCheckShippingZoneRateDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingZoneRateConfig(taxCategoryName, shippingMethodName, "EUR"),
+				Config: testAccShippingZoneRateCreate(taxCategoryName, shippingMethodName, "EUR"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "price.0.cent_amount", "5000"),
 					resource.TestCheckResourceAttr(resourceName, "price.0.currency_code", "EUR"),
-					resource.TestCheckResourceAttr(resourceName, "free_above.0.cent_amount", "50000"),
-					resource.TestCheckResourceAttr(resourceName, "free_above.0.currency_code", "EUR"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.0.type", "CartValue"),
 					resource.TestCheckResourceAttr(resourceName, "shipping_rate_price_tier.0.minimum_cent_amount", "5000"),
@@ -60,7 +58,7 @@ func TestAccShippingZoneRate_createAndUpdate(t *testing.T) {
 	})
 }
 
-func testAccShippingZoneRateConfig(taxCategoryName string, shippingMethodName string, currencyCode string) string {
+func testAccShippingZoneRateCreate(taxCategoryName string, shippingMethodName string, currencyCode string) string {
 	return hclTemplate(`
 		resource "commercetools_tax_category" "standard" {
 			name        = "{{ .taxCategoryName }}"
@@ -90,11 +88,6 @@ func testAccShippingZoneRateConfig(taxCategoryName string, shippingMethodName st
 
 			price {
 				cent_amount   = 5000
-				currency_code    = "{{ .currencyCode }}"
-			}
-
-			free_above {
-				cent_amount   = 50000
 				currency_code    = "{{ .currencyCode }}"
 			}
 
