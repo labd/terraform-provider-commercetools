@@ -1,0 +1,3 @@
+kind: Fixed
+body: Fixed shipping_zone_rate freeAbove handling when empty
+time: 2024-09-03T09:19:18.036808639+02:00
