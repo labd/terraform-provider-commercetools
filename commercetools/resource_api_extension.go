@@ -495,6 +495,8 @@ func expandExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger
 			typeId = platform.ExtensionResourceTypeIdQuote
 		case "business-unit":
 			typeId = platform.ExtensionResourceTypeIdBusinessUnit
+		case "shopping-list":
+			typeId = platform.ExtensionResourceTypeIdShoppingList
 		}
 
 		rawActions := i["actions"].([]any)
