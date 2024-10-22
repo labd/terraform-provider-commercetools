@@ -1,7 +1,8 @@
 module github.com/labd/terraform-provider-commercetools
 
-go 1.21
-toolchain go1.22.5
+go 1.22.0
+
+toolchain go1.22.8
 
 //replace github.com/labd/commercetools-go-sdk v1.5.1 => ../commercetools-go-sdk
 
@@ -15,7 +16,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.24.0
 	github.com/hashicorp/terraform-plugin-mux v0.16.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.34.0
-	github.com/labd/commercetools-go-sdk v1.6.0
+	github.com/labd/commercetools-go-sdk v1.7.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/oauth2 v0.23.0
