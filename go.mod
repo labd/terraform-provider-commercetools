@@ -1,7 +1,8 @@
 module github.com/labd/terraform-provider-commercetools
 
-go 1.21
-toolchain go1.22.5
+go 1.22.0
+
+toolchain go1.22.8
 
 require (
 	github.com/elliotchance/orderedmap/v2 v2.4.0
