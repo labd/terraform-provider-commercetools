@@ -170,6 +170,7 @@ resource "commercetools_cart_discount" "my-cart-discount" {
 - `key` (String) User-specific unique identifier for a cart discount. Must be unique across a project
 - `requires_discount_code` (Boolean) States whether the discount can only be used in a connection with a [DiscountCode](https://docs.commercetools.com/api/projects/discountCodes#discountcode)
 - `stacking_mode` (String) Specifies whether the application of this discount causes the following discounts to be ignored. Can be either Stacking or StopAfterThisDiscount
+- `stores` (Set of String) If a value exists, the Cart Discount applies on Carts having a Store matching any Store defined for this field. If empty, the Cart Discount applies on all Carts, irrespective of a Store. Use store keys as references
 - `target` (Block List, Max: 1) Empty when the value has type giftLineItem, otherwise a [CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget) (see [below for nested schema](#nestedblock--target))
 - `valid_from` (String)
 - `valid_until` (String)
