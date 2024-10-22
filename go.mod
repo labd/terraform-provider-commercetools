@@ -15,7 +15,7 @@ require (
 	github.com/labd/commercetools-go-sdk v1.7.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/oauth2 v0.22.0
+	golang.org/x/oauth2 v0.23.0
 	golang.org/x/text v0.17.0
 )
 
