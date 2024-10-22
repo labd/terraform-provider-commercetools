@@ -26,8 +26,10 @@ type Project struct {
 	Countries  []types.String `tfsdk:"countries"`
 	Languages  []types.String `tfsdk:"languages"`
 
-	EnableSearchIndexProducts types.Bool `tfsdk:"enable_search_index_products"`
-	EnableSearchIndexOrders   types.Bool `tfsdk:"enable_search_index_orders"`
+	EnableSearchIndexProducts      types.Bool `tfsdk:"enable_search_index_products"`
+	EnableSearchIndexProductSearch types.Bool `tfsdk:"enable_search_index_product_search"`
+	EnableSearchIndexOrders        types.Bool `tfsdk:"enable_search_index_orders"`
+	EnableSearchIndexCustomers     types.Bool `tfsdk:"enable_search_index_customers"`
 
 	// These items all have maximal one item. We don't use SingleNestedBlock
 	// here since it isn't quite robust currently.
@@ -53,8 +55,10 @@ func NewProjectFromNative(n *platform.Project) Project {
 		Countries:  pie.Map(n.Countries, types.StringValue),
 		Languages:  pie.Map(n.Languages, types.StringValue),
 
-		EnableSearchIndexProducts: types.BoolValue(false),
-		EnableSearchIndexOrders:   types.BoolValue(false),
+		EnableSearchIndexProducts:      types.BoolValue(false),
+		EnableSearchIndexProductSearch: types.BoolValue(false),
+		EnableSearchIndexOrders:        types.BoolValue(false),
+		EnableSearchIndexCustomers:     types.BoolValue(false),
 
 		Carts: []Carts{
 			{
@@ -101,10 +105,22 @@ func NewProjectFromNative(n *platform.Project) Project {
 		res.EnableSearchIndexProducts = types.BoolValue(enabled)
 	}
 
+	if n.SearchIndexing != nil && n.SearchIndexing.ProductsSearch != nil && n.SearchIndexing.ProductsSearch.Status != nil {
+		status := *n.SearchIndexing.ProductsSearch.Status
+		enabled := status != platform.SearchIndexingConfigurationStatusDeactivated
+		res.EnableSearchIndexProductSearch = types.BoolValue(enabled)
+	}
+
 	if n.SearchIndexing != nil && n.SearchIndexing.Orders != nil && n.SearchIndexing.Orders.Status != nil {
 		status := *n.SearchIndexing.Orders.Status
 		enabled := status != platform.SearchIndexingConfigurationStatusDeactivated
 		res.EnableSearchIndexOrders = types.BoolValue(enabled)
+	}
+
+	if n.SearchIndexing != nil && n.SearchIndexing.Customers != nil && n.SearchIndexing.Customers.Status != nil {
+		status := *n.SearchIndexing.Customers.Status
+		enabled := status != platform.SearchIndexingConfigurationStatusDeactivated
+		res.EnableSearchIndexCustomers = types.BoolValue(enabled)
 	}
 
 	if n.ExternalOAuth != nil {
@@ -266,11 +282,37 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 		)
 	}
 
-	// changeProductSearchIndexingEnabled
-	if !(p.EnableSearchIndexProducts.ValueBool() == plan.EnableSearchIndexProducts.ValueBool()) {
+	// changeProductSearchIndexingEnabled (ProductProjectionsSearch)
+	if !p.EnableSearchIndexProducts.Equal(plan.EnableSearchIndexProducts) {
+		var mode = platform.ProductSearchIndexingModeProductProjectionsSearch
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeProductSearchIndexingEnabledAction{
 				Enabled: plan.EnableSearchIndexProducts.ValueBool(),
+				Mode:    &mode,
+			},
+		)
+	}
+
+	// changeProductSearchIndexingEnabled (ProductsSearch)
+	if !p.EnableSearchIndexProductSearch.Equal(plan.EnableSearchIndexProductSearch) {
+		var mode = platform.ProductSearchIndexingModeProductsSearch
+		result.Actions = append(result.Actions,
+			platform.ProjectChangeProductSearchIndexingEnabledAction{
+				Enabled: plan.EnableSearchIndexProductSearch.ValueBool(),
+				Mode:    &mode,
+			},
+		)
+	}
+
+	// changeCustomerSearchStatus
+	if !p.EnableSearchIndexCustomers.Equal(plan.EnableSearchIndexCustomers) {
+		status := platform.CustomerSearchStatusDeactivated
+		if plan.EnableSearchIndexCustomers.ValueBool() {
+			status = platform.CustomerSearchStatusActivated
+		}
+		result.Actions = append(result.Actions,
+			platform.ProjectChangeCustomerSearchStatusAction{
+				Status: status,
 			},
 		)
 	}

@@ -32,6 +32,10 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "messages.#", "1"),
 					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "true"),
 					resource.TestCheckResourceAttr(resourceName, "external_oauth.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "enable_search_index_orders", "false"),
+					resource.TestCheckResourceAttr(resourceName, "enable_search_index_customers", "false"),
+					resource.TestCheckResourceAttr(resourceName, "enable_search_index_products", "false"),
+					resource.TestCheckResourceAttr(resourceName, "enable_search_index_product_search", "false"),
 					resource.TestCheckResourceAttr(
 						resourceName, "external_oauth.0.authorization_header", "Bearer secret"),
 					resource.TestCheckResourceAttr(
@@ -88,6 +92,10 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "languages.#", "5"),
 					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "false"),
 					resource.TestCheckResourceAttr(resourceName, "messages.0.delete_days_after_creation", "15"),
+					resource.TestCheckResourceAttr(resourceName, "enable_search_index_orders", "true"),
+					resource.TestCheckResourceAttr(resourceName, "enable_search_index_customers", "true"),
+					resource.TestCheckResourceAttr(resourceName, "enable_search_index_products", "true"),
+					resource.TestCheckResourceAttr(resourceName, "enable_search_index_product_search", "true"),
 					resource.TestCheckResourceAttr(
 						resourceName, "external_oauth.0.url", "https://new-example.com/oauth/token"),
 					resource.TestCheckResourceAttr(
@@ -237,8 +245,10 @@ func testAccProjectConfigUpdate(identifier string) string {
 				delete_days_after_last_modification = 21
 			}
 
-			enable_search_index_products = true
-			enable_search_index_orders = true
+		   	enable_search_index_orders         = true
+	       	enable_search_index_customers      = true
+   			enable_search_index_products       = true
+   			enable_search_index_product_search = true
 
 			shipping_rate_input_type = "CartClassification"
 			shipping_rate_cart_classification_value {
