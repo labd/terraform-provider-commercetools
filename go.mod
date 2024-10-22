@@ -1,7 +1,8 @@
 module github.com/labd/terraform-provider-commercetools
 
-go 1.21
-toolchain go1.22.5
+go 1.22.0
+
+toolchain go1.22.8
 
 //replace github.com/labd/commercetools-go-sdk v1.5.1 => ../commercetools-go-sdk
 
