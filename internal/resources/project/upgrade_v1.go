@@ -63,8 +63,10 @@ var ProjectResourceDataV1 = tftypes.Object{
 		"countries":  tftypes.List{ElementType: tftypes.String},
 		"languages":  tftypes.List{ElementType: tftypes.String},
 
-		"enable_search_index_products": tftypes.Bool,
-		"enable_search_index_orders":   tftypes.Bool,
+		"enable_search_index_products":       tftypes.Bool,
+		"enable_search_index_product_search": tftypes.Bool,
+		"enable_search_index_orders":         tftypes.Bool,
+		"enable_search_index_customers":      tftypes.Bool,
 
 		"carts": tftypes.List{
 			ElementType: tftypes.Object{
@@ -154,9 +156,11 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 			"shipping_rate_cart_classification_value": rawState["shipping_rate_cart_classification_value"],
 
 			// Values that didn't exist yet
-			"enable_search_index_products": tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
-			"enable_search_index_orders":   tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
-			"business_units":               valueToList(nil, "business_units"),
+			"enable_search_index_products":       tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
+			"enable_search_index_product_search": tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
+			"enable_search_index_orders":         tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
+			"enable_search_index_customers":      tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
+			"business_units":                     valueToList(nil, "business_units"),
 		}),
 	)
 	if err != nil {

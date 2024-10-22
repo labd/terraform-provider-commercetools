@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	sdk_resource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	sdkresource "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/labd/commercetools-go-sdk/platform"
 
 	"github.com/labd/terraform-provider-commercetools/internal/customtypes"
@@ -114,20 +115,28 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"enable_search_index_products": schema.BoolAttribute{
+				MarkdownDescription: "Enable the Search Indexing of product projections",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"enable_search_index_product_search": schema.BoolAttribute{
 				MarkdownDescription: "Enable the Search Indexing of products",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
+				Default:             booldefault.StaticBool(false),
 			},
 			"enable_search_index_orders": schema.BoolAttribute{
 				MarkdownDescription: "Enable the Search Indexing of orders",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
+				Default:             booldefault.StaticBool(false),
+			},
+			"enable_search_index_customers": schema.BoolAttribute{
+				MarkdownDescription: "Enable the Search Indexing of customers",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 			"shipping_rate_input_type": schema.StringAttribute{
 				MarkdownDescription: "Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses " +
@@ -327,7 +336,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	var res *platform.Project
-	err = sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
+	err = sdkresource.RetryContext(ctx, 5*time.Second, func() *sdkresource.RetryError {
 		var err error
 		res, err = r.client.Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -402,7 +411,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	var res *platform.Project
-	err = sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
+	err = sdkresource.RetryContext(ctx, 5*time.Second, func() *sdkresource.RetryError {
 		var err error
 		res, err = r.client.Post(input).Execute(ctx)
 		return utils.ProcessRemoteError(err)

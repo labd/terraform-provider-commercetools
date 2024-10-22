@@ -32,8 +32,10 @@ func TestNewProjectFromNative(t *testing.T) {
 				Key:     types.StringValue("my-project"),
 				Name:    types.StringValue("my project"),
 
-				EnableSearchIndexProducts: types.BoolValue(false),
-				EnableSearchIndexOrders:   types.BoolValue(false),
+				EnableSearchIndexProducts:      types.BoolValue(false),
+				EnableSearchIndexOrders:        types.BoolValue(false),
+				EnableSearchIndexCustomers:     types.BoolValue(false),
+				EnableSearchIndexProductSearch: types.BoolValue(false),
 
 				ExternalOAuth: []ExternalOAuth{},
 				Carts: []Carts{
@@ -157,22 +159,181 @@ func TestUpdateActions(t *testing.T) {
 			},
 		},
 		{
-			name: "Create with bool unknown",
+			name: "Update with search index orders activated",
 			state: Project{
-				Version:                   types.Int64Value(1),
-				EnableSearchIndexOrders:   types.BoolValue(false),
-				EnableSearchIndexProducts: types.BoolValue(false),
+				Version:                 types.Int64Value(1),
+				EnableSearchIndexOrders: types.BoolValue(false),
 			},
 			plan: Project{
 				Version: types.Int64Value(1),
 
-				EnableSearchIndexOrders:   types.BoolValue(true),
-				EnableSearchIndexProducts: types.BoolUnknown(),
+				EnableSearchIndexOrders: types.BoolValue(true),
 			},
 			action: platform.ProjectUpdate{
 				Version: 1,
 				Actions: []platform.ProjectUpdateAction{
 					platform.ProjectChangeOrderSearchStatusAction{Status: platform.OrderSearchStatusActivated},
+				},
+			},
+		},
+		{
+			name: "Update with search index orders deactivated",
+			state: Project{
+				Version:                 types.Int64Value(1),
+				EnableSearchIndexOrders: types.BoolValue(true),
+			},
+			plan: Project{
+				Version:                 types.Int64Value(1),
+				EnableSearchIndexOrders: types.BoolValue(false),
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{
+					platform.ProjectChangeOrderSearchStatusAction{Status: platform.OrderSearchStatusDeactivated},
+				},
+			},
+		},
+		{
+			name: "Update with search index orders no changes",
+			state: Project{
+				Version:                 types.Int64Value(1),
+				EnableSearchIndexOrders: types.BoolValue(false),
+			},
+			plan: Project{
+				Version:                 types.Int64Value(1),
+				EnableSearchIndexOrders: types.BoolValue(false),
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{},
+			},
+		},
+		{
+			name: "Update with search index customers activated",
+			state: Project{
+				Version:                    types.Int64Value(1),
+				EnableSearchIndexCustomers: types.BoolValue(false),
+			},
+			plan: Project{
+				Version:                    types.Int64Value(1),
+				EnableSearchIndexCustomers: types.BoolValue(true),
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{
+					platform.ProjectChangeCustomerSearchStatusAction{Status: platform.CustomerSearchStatusActivated},
+				},
+			},
+		},
+		{
+			name: "Update with search index customers deactivated",
+			state: Project{
+				Version:                    types.Int64Value(1),
+				EnableSearchIndexCustomers: types.BoolValue(true),
+			},
+			plan: Project{
+				Version:                    types.Int64Value(1),
+				EnableSearchIndexCustomers: types.BoolValue(false),
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{
+					platform.ProjectChangeCustomerSearchStatusAction{Status: platform.CustomerSearchStatusDeactivated},
+				},
+			},
+		},
+		{
+			name: "Update with search index customers no changes",
+			state: Project{
+				Version:                    types.Int64Value(1),
+				EnableSearchIndexCustomers: types.BoolValue(false),
+			},
+			plan: Project{
+				Version:                    types.Int64Value(1),
+				EnableSearchIndexCustomers: types.BoolValue(false),
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{},
+			},
+		},
+		{
+			name: "Update with search index products activated",
+			state: Project{
+				Version:                   types.Int64Value(1),
+				EnableSearchIndexProducts: types.BoolValue(false),
+			},
+			plan: Project{
+				Version:                   types.Int64Value(1),
+				EnableSearchIndexProducts: types.BoolValue(true),
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{
+					platform.ProjectChangeProductSearchIndexingEnabledAction{
+						Enabled: true,
+						Mode:    utils.GetRef(platform.ProductSearchIndexingModeProductProjectionsSearch),
+					},
+				},
+			},
+		},
+		{
+			name: "Update with search index products deactivated",
+			state: Project{
+				Version:                   types.Int64Value(1),
+				EnableSearchIndexProducts: types.BoolValue(true),
+			},
+			plan: Project{
+				Version:                   types.Int64Value(1),
+				EnableSearchIndexProducts: types.BoolValue(false),
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{
+					platform.ProjectChangeProductSearchIndexingEnabledAction{
+						Enabled: false,
+						Mode:    utils.GetRef(platform.ProductSearchIndexingModeProductProjectionsSearch),
+					},
+				},
+			},
+		},
+		{
+			name: "Update with search index product search activated",
+			state: Project{
+				Version:                        types.Int64Value(1),
+				EnableSearchIndexProductSearch: types.BoolValue(false),
+			},
+			plan: Project{
+				Version:                        types.Int64Value(1),
+				EnableSearchIndexProductSearch: types.BoolValue(true),
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{
+					platform.ProjectChangeProductSearchIndexingEnabledAction{
+						Enabled: true,
+						Mode:    utils.GetRef(platform.ProductSearchIndexingModeProductsSearch),
+					},
+				},
+			},
+		},
+		{
+			name: "Update with search index product search deactivated",
+			state: Project{
+				Version:                        types.Int64Value(1),
+				EnableSearchIndexProductSearch: types.BoolValue(true),
+			},
+			plan: Project{
+				Version:                        types.Int64Value(1),
+				EnableSearchIndexProductSearch: types.BoolValue(false),
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{
+					platform.ProjectChangeProductSearchIndexingEnabledAction{
+						Enabled: false,
+						Mode:    utils.GetRef(platform.ProductSearchIndexingModeProductsSearch),
+					},
 				},
 			},
 		},

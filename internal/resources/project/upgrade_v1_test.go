@@ -63,9 +63,11 @@ func Test_upgradeStateV0(t *testing.T) {
 		Countries:  []types.String{},
 		Languages:  []types.String{types.StringValue("nl")},
 
-		EnableSearchIndexProducts: types.BoolUnknown(),
-		EnableSearchIndexOrders:   types.BoolUnknown(),
-		BusinessUnits:             []BusinessUnits{},
+		EnableSearchIndexProducts:      types.BoolUnknown(),
+		EnableSearchIndexProductSearch: types.BoolUnknown(),
+		EnableSearchIndexOrders:        types.BoolUnknown(),
+		EnableSearchIndexCustomers:     types.BoolUnknown(),
+		BusinessUnits:                  []BusinessUnits{},
 
 		ExternalOAuth: []ExternalOAuth{},
 		Carts: []Carts{
