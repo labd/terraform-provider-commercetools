@@ -168,6 +168,16 @@ func resourceCartDiscount() *schema.Resource {
 					},
 				},
 			},
+			"stores": {
+				Description: "If a value exists, the Cart Discount applies on Carts having a Store matching any " +
+					"Store defined for this field. If empty, the Cart Discount applies on all Carts, irrespective of " +
+					"a Store. Use store keys as references",
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional: true,
+			},
 			"sort_order": {
 				Description: "The string must contain a number between 0 and 1. All matching cart discounts are " +
 					"applied to a cart in the order defined by this field. A discount with greater sort order is " +
@@ -301,6 +311,7 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m a
 		SortOrder:            d.Get("sort_order").(string),
 		IsActive:             boolRef(d.Get("is_active")),
 		RequiresDiscountCode: ctutils.BoolRef(d.Get("requires_discount_code").(bool)),
+		Stores:               expandStores(d.Get("stores").(*schema.Set)),
 		Custom:               custom,
 		StackingMode:         &stackingMode,
 	}
@@ -377,6 +388,7 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m any
 	_ = d.Set("requires_discount_code", cartDiscount.RequiresDiscountCode)
 	_ = d.Set("stacking_mode", cartDiscount.StackingMode)
 	_ = d.Set("custom", flattenCustomFields(cartDiscount.Custom))
+	_ = d.Set("stores", flattenStores(cartDiscount.Stores))
 	return nil
 }
 
@@ -512,6 +524,13 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m a
 		for i := range actions {
 			input.Actions = append(input.Actions, actions[i].(platform.CartDiscountUpdateAction))
 		}
+	}
+
+	if d.HasChange("stores") {
+		stores := expandStores(d.Get("stores").(*schema.Set))
+		input.Actions = append(
+			input.Actions,
+			&platform.CartDiscountSetStoresAction{Stores: stores})
 	}
 
 	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
@@ -761,4 +780,22 @@ func expandSelectionMode(selectionMode string) (platform.SelectionMode, error) {
 	default:
 		return "", fmt.Errorf("selection mode %s not implemented", selectionMode)
 	}
+}
+
+func flattenStores(storeKeyReferences []platform.StoreKeyReference) []string {
+	var storeKeys []string
+	for _, store := range storeKeyReferences {
+		storeKeys = append(storeKeys, store.Key)
+	}
+
+	return storeKeys
+}
+
+func expandStores(storeKeys *schema.Set) []platform.StoreResourceIdentifier {
+	storeResourceIdentifiers := make([]platform.StoreResourceIdentifier, 0, storeKeys.Len())
+	for _, key := range storeKeys.List() {
+		var keyVal = key.(string)
+		storeResourceIdentifiers = append(storeResourceIdentifiers, platform.StoreResourceIdentifier{Key: &keyVal})
+	}
+	return storeResourceIdentifiers
 }
