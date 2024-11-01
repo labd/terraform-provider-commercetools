@@ -4,6 +4,8 @@ go 1.22.0
 
 toolchain go1.22.8
 
+//replace github.com/labd/commercetools-go-sdk v1.5.1 => ../commercetools-go-sdk
+
 require (
 	github.com/elliotchance/orderedmap/v2 v2.4.0
 	github.com/elliotchance/pie/v2 v2.9.0
