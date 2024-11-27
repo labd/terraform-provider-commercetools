@@ -19,7 +19,7 @@ func resourceAPIClient() *schema.Resource {
 		Description: "Create a new API client. Note that Commercetools might return slightly different scopes, " +
 			"resulting in a new API client being created everytime Terraform is run. In this case, " +
 			"fix your scopes accordingly to match what is returned by Commercetools.\n\n" +
-			"Also see the [API client HTTP API documentation](https://docs.commercetools.com//http-api-projects-api-clients).",
+			"Also see the [API client HTTP API documentation](https://docs.commercetools.com/api/projects/api-clients).",
 		CreateContext: resourceAPIClientCreate,
 		ReadContext:   resourceAPIClientRead,
 		DeleteContext: resourceAPIClientDelete,
@@ -34,10 +34,24 @@ func resourceAPIClient() *schema.Resource {
 				ForceNew:    true,
 			},
 			"scope": {
-				Description: "A list of the [OAuth scopes](https://docs.commercetools.com/http-api-authorization.html#scopes)",
+				Description: "A list of the [OAuth scopes](https://docs.commercetools.com/api/scopes)",
 				Type:        schema.TypeSet,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Required:    true,
+				ForceNew:    true,
+			},
+			"accessTokenValiditySeconds": {
+				Description: "Expiration time in seconds for each access token obtained by the APIClient. Only present when set with the APIClientDraft. If not present the default value applies.",
+				Type:        schema.TypeSet,
+				Elem:        &schema.Schema{Type: schema.TypeInt},
+				Required:    false,
+				ForceNew:    true,
+			},
+			"refreshTokenValiditySeconds": {
+				Description: "Inactivity expiration time in seconds for each refresh token obtained by the APIClient. Only present when set with the APIClientDraft. If not present the default value applies.",
+				Type:        schema.TypeSet,
+				Elem:        &schema.Schema{Type: schema.TypeInt},
+				Required:    false,
 				ForceNew:    true,
 			},
 			"secret": {
@@ -50,7 +64,6 @@ func resourceAPIClient() *schema.Resource {
 }
 
 func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	name := d.Get("name").(string)
 	scopes := d.Get("scope").(*schema.Set).List()
 
 	scopeParts := make([]string, 0)
@@ -59,8 +72,14 @@ func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m any)
 	}
 
 	draft := platform.ApiClientDraft{
-		Name:  name,
+		Name:  d.Get("name").(string),
 		Scope: strings.Join(scopeParts, " "),
+	}
+	if val := d.Get("accessTokenValiditySeconds").(*int); val != nil && *val > 0 {
+		draft.AccessTokenValiditySeconds = val
+	}
+	if val := d.Get("refreshTokenValiditySeconds").(*int); val != nil && *val > 0 {
+		draft.RefreshTokenValiditySeconds = val
 	}
 
 	client := getClient(m)
@@ -100,6 +119,8 @@ func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m any) d
 	scopes := strings.Split(apiClient.Scope, " ")
 	sort.Strings(scopes)
 	_ = d.Set("scope", scopes)
+	_ = d.Set("accessTokenValiditySeconds", apiClient.AccessTokenValiditySeconds)
+	_ = d.Set("refreshTokenValiditySeconds", apiClient.RefreshTokenValiditySeconds)
 	return nil
 }
 
