@@ -2,8 +2,9 @@ package commercetools
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -48,6 +49,11 @@ func resourceShippingMethod() *schema.Resource {
 				Type:             TypeLocalizedString,
 				ValidateDiagFunc: validateLocalizedStringKey,
 				Optional:         true,
+			},
+			"active": {
+				Description: "Activate or deactivate a shippinh method. Default is active.",
+				Type:        schema.TypeBool,
+				Optional:    true,
 			},
 			"is_default": {
 				Description: "One shipping method in a project can be default",
@@ -96,6 +102,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		Description:          stringRef(d.Get("description")),
 		LocalizedDescription: &localizedDescription,
 		LocalizedName:        &localizedName,
+		Active:               boolRef(d.Get("active")),
 		IsDefault:            d.Get("is_default").(bool),
 		TaxCategory:          taxCategory,
 		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
@@ -144,6 +151,7 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m a
 		_ = d.Set("description", shippingMethod.Description)
 		_ = d.Set("localized_description", shippingMethod.LocalizedDescription)
 		_ = d.Set("localized_name", shippingMethod.LocalizedName)
+		_ = d.Set("active", shippingMethod.Active)
 		_ = d.Set("is_default", shippingMethod.IsDefault)
 		_ = d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
 		_ = d.Set("predicate", shippingMethod.Predicate)
@@ -204,6 +212,13 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 		input.Actions = append(
 			input.Actions,
 			&platform.ShippingMethodSetLocalizedNameAction{LocalizedName: &newLocalizedName})
+	}
+
+	if d.HasChange("active") {
+		newActive := d.Get("active").(bool)
+		input.Actions = append(
+			input.Actions,
+			&platform.ShippingMethodChangeActiveAction{Active: newActive})
 	}
 
 	if d.HasChange("is_default") {

@@ -1,0 +1,3 @@
+kind: Added
+body: Added the attribute ShippingMethod.active to the resource shipping_method.
+time: 2024-12-02T21:43:22.74309+01:00
