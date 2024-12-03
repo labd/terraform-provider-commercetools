@@ -1,0 +1,5 @@
+services:
+  commercetools:
+    image: labdigital/commercetools-mock-server
+    ports:
+      - 8989:8989

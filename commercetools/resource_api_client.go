@@ -40,18 +40,16 @@ func resourceAPIClient() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 			},
-			"accessTokenValiditySeconds": {
+			"access_token_validity_seconds": {
 				Description: "Expiration time in seconds for each access token obtained by the APIClient. Only present when set with the APIClientDraft. If not present the default value applies.",
-				Type:        schema.TypeSet,
-				Elem:        &schema.Schema{Type: schema.TypeInt},
-				Required:    false,
+				Type:        schema.TypeInt,
+				Optional:    true,
 				ForceNew:    true,
 			},
-			"refreshTokenValiditySeconds": {
+			"refresh_token_validity_seconds": {
 				Description: "Inactivity expiration time in seconds for each refresh token obtained by the APIClient. Only present when set with the APIClientDraft. If not present the default value applies.",
-				Type:        schema.TypeSet,
-				Elem:        &schema.Schema{Type: schema.TypeInt},
-				Required:    false,
+				Type:        schema.TypeInt,
+				Optional:    true,
 				ForceNew:    true,
 			},
 			"secret": {
@@ -75,11 +73,11 @@ func resourceAPIClientCreate(ctx context.Context, d *schema.ResourceData, m any)
 		Name:  d.Get("name").(string),
 		Scope: strings.Join(scopeParts, " "),
 	}
-	if val := d.Get("accessTokenValiditySeconds").(*int); val != nil && *val > 0 {
-		draft.AccessTokenValiditySeconds = val
+	if val := d.Get("access_token_validity_seconds").(int); val != 0 {
+		draft.AccessTokenValiditySeconds = &val
 	}
-	if val := d.Get("refreshTokenValiditySeconds").(*int); val != nil && *val > 0 {
-		draft.RefreshTokenValiditySeconds = val
+	if val := d.Get("refresh_token_validity_seconds").(int); val != 0 {
+		draft.RefreshTokenValiditySeconds = &val
 	}
 
 	client := getClient(m)
@@ -119,8 +117,8 @@ func resourceAPIClientRead(ctx context.Context, d *schema.ResourceData, m any) d
 	scopes := strings.Split(apiClient.Scope, " ")
 	sort.Strings(scopes)
 	_ = d.Set("scope", scopes)
-	_ = d.Set("accessTokenValiditySeconds", apiClient.AccessTokenValiditySeconds)
-	_ = d.Set("refreshTokenValiditySeconds", apiClient.RefreshTokenValiditySeconds)
+	_ = d.Set("access_token_validity_seconds", apiClient.AccessTokenValiditySeconds)
+	_ = d.Set("refresh_token_validity_seconds", apiClient.RefreshTokenValiditySeconds)
 	return nil
 }
 

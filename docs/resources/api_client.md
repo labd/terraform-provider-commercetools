@@ -11,7 +11,7 @@ description: |-
 
 Create a new API client. Note that Commercetools might return slightly different scopes, resulting in a new API client being created everytime Terraform is run. In this case, fix your scopes accordingly to match what is returned by Commercetools.
 
-Also see the [API client HTTP API documentation](https://docs.commercetools.com//http-api-projects-api-clients).
+Also see the [API client HTTP API documentation](https://docs.commercetools.com/api/projects/api-clients).
 
 ## Example Usage
 
@@ -19,8 +19,6 @@ Also see the [API client HTTP API documentation](https://docs.commercetools.com/
 resource "commercetools_api_client" "my-api-client" {
   name  = "My API Client"
   scope = ["manage_orders:my-ct-project-key", "manage_payments:my-ct-project-key"]
-  accessTokenValiditySeconds = 3600
-  refreshTokenValiditySeconds = 60
 }
 ```
 
@@ -29,14 +27,13 @@ resource "commercetools_api_client" "my-api-client" {
 
 ### Required
 
-- `name` (String) Name of the API client.
-- `scope` (Set of String) A list of the [OAuth scopes](https://docs.commercetools.com/api/scopes).
-
+- `name` (String) Name of the API client
+- `scope` (Set of String) A list of the [OAuth scopes](https://docs.commercetools.com/api/scopes)
 
 ### Optional
 
-- `accessTokenValiditySeconds` (Int) Expiration time in seconds for each access token obtained by the APIClient. See the latest CommerceTools documentation for [API Clients](https://docs.commercetools.com/api/projects/api-clients) for valid number ranges.
-- `refreshTokenValiditySeconds` (Int) Inactivity expiration time in seconds for each refresh token obtained by the APIClient. See the latest CommerceTools documentation for [API Clients](https://docs.commercetools.com/api/projects/api-clients) for valid number ranges.
+- `access_token_validity_seconds` (Number) Expiration time in seconds for each access token obtained by the APIClient. Only present when set with the APIClientDraft. If not present the default value applies.
+- `refresh_token_validity_seconds` (Number) Inactivity expiration time in seconds for each refresh token obtained by the APIClient. Only present when set with the APIClientDraft. If not present the default value applies.
 
 ### Read-Only
 
