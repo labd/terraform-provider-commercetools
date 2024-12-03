@@ -1,3 +1,3 @@
-kind: Changed
+kind: Added
 body: '`resource_api_client` add support for setting and managing token validity via Terraform.'
 time: 2024-11-27T14:35:27.885461+01:00
