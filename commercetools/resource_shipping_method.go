@@ -51,9 +51,10 @@ func resourceShippingMethod() *schema.Resource {
 				Optional:         true,
 			},
 			"active": {
-				Description: "Activate or deactivate a shippinh method. Default is active.",
+				Description: "Activate or deactivate a shipping method. Default is active.",
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Default:     true,
 			},
 			"is_default": {
 				Description: "One shipping method in a project can be default",
