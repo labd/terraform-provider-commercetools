@@ -161,7 +161,7 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 		},
 		Blocks: map[string]schema.Block{
 			"carts": schema.ListNestedBlock{
-				MarkdownDescription: "[Carts Configuration](https://docs.commercetools.com/api/projects/project#carts-configuration)",
+				MarkdownDescription: "[Carts Configuration](https://docs.commercetools.com/api/projects/project#cartsconfiguration)",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"country_tax_rate_fallback_enabled": schema.BoolAttribute{
@@ -251,8 +251,7 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"key": schema.StringAttribute{
-							MarkdownDescription: "[Resource Type ID](https://docs.commercetools.com/api/projects/Projects#changeProject)",
-							Required:            true,
+							Required: true,
 						},
 						"label": customtypes.LocalizedString(customtypes.LocalizedStringOpts{
 							Optional: true,

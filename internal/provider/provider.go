@@ -66,12 +66,12 @@ func (p *ctProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *p
 		Attributes: map[string]schema.Attribute{
 			"client_id": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "The OAuth Client ID for a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
+				MarkdownDescription: "The OAuth Client ID for a commercetools platform project. https://docs.commercetools.com/api/authorization",
 				Sensitive:           true,
 			},
 			"client_secret": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "The OAuth Client Secret for a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
+				MarkdownDescription: "The OAuth Client Secret for a commercetools platform project. https://docs.commercetools.com/api/authorization",
 				Sensitive:           true,
 			},
 			"project_key": schema.StringAttribute{
@@ -81,15 +81,15 @@ func (p *ctProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *p
 			},
 			"scopes": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "A list as string of OAuth scopes assigned to a project key, to access resources in a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
+				MarkdownDescription: "A list as string of OAuth scopes assigned to a project key, to access resources in a commercetools platform project. https://docs.commercetools.com/api/authorization",
 			},
 			"api_url": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "The API URL of the commercetools platform. https://docs.commercetools.com/http-api",
+				MarkdownDescription: "The API URL of the commercetools platform. https://docs.commercetools.com/api/general-concepts#hosts",
 			},
 			"token_url": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "The authentication URL of the commercetools platform. https://docs.commercetools.com/http-api-authorization",
+				MarkdownDescription: "The authentication URL of the commercetools platform. https://docs.commercetools.com/api/authorization",
 			},
 		},
 	}

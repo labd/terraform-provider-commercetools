@@ -31,13 +31,13 @@ func New(version string) func() *schema.Provider {
 				"client_id": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "The OAuth Client ID for a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
+					Description: "The OAuth Client ID for a commercetools platform project. https://docs.commercetools.com/api/authorization",
 					Sensitive:   true,
 				},
 				"client_secret": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "The OAuth Client Secret for a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
+					Description: "The OAuth Client Secret for a commercetools platform project. https://docs.commercetools.com/api/authorization",
 					Sensitive:   true,
 				},
 				"project_key": {
@@ -49,17 +49,17 @@ func New(version string) func() *schema.Provider {
 				"scopes": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "A list as string of OAuth scopes assigned to a project key, to access resources in a commercetools platform project. https://docs.commercetools.com/http-api-authorization",
+					Description: "A list as string of OAuth scopes assigned to a project key, to access resources in a commercetools platform project. https://docs.commercetools.com/api/authorization",
 				},
 				"api_url": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "The API URL of the commercetools platform. https://docs.commercetools.com/http-api",
+					Description: "The API URL of the commercetools platform. https://docs.commercetools.com/api/general-concepts#hosts",
 				},
 				"token_url": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "The authentication URL of the commercetools platform. https://docs.commercetools.com/http-api-authorization",
+					Description: "The authentication URL of the commercetools platform. https://docs.commercetools.com/api/authorization",
 				},
 			},
 			ResourcesMap: map[string]*schema.Resource{
