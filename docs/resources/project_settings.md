@@ -50,7 +50,7 @@ resource "commercetools_project_settings" "my-project" {
 ### Optional
 
 - `business_units` (Block List) Holds configuration specific to [Business Units](https://docs.commercetools.com/api/projects/business-units#ctp:api:type:BusinessUnit). (see [below for nested schema](#nestedblock--business_units))
-- `carts` (Block List) [Carts Configuration](https://docs.commercetools.com/api/projects/project#carts-configuration) (see [below for nested schema](#nestedblock--carts))
+- `carts` (Block List) [Carts Configuration](https://docs.commercetools.com/api/projects/project#cartsconfiguration) (see [below for nested schema](#nestedblock--carts))
 - `countries` (List of String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 - `currencies` (List of String) A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
 - `enable_search_index_customers` (Boolean) Enable the Search Indexing of customers
@@ -112,7 +112,7 @@ Optional:
 
 Required:
 
-- `key` (String) [Resource Type ID](https://docs.commercetools.com/api/projects/Projects#changeProject)
+- `key` (String)
 
 Optional:
 

@@ -42,6 +42,7 @@ resource "commercetools_shipping_method" "standard" {
 
 ### Optional
 
+- `active` (Boolean) Activate or deactivate a shipping method. Default is active.
 - `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `description` (String)
 - `is_default` (Boolean) One shipping method in a project can be default
