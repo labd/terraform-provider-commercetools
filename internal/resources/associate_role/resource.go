@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"regexp"
+	"sort"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -138,6 +139,35 @@ func (*associateRoleResource) Metadata(_ context.Context, req resource.MetadataR
 	resp.TypeName = req.ProviderTypeName + "_associate_role"
 }
 
+func resortPermissions(permissions, plan []platform.Permission) []platform.Permission {
+
+	// Build a map which maps the planned permissions to its index from the array
+	indexMap := make(map[platform.Permission]int)
+	for idx, p := range plan {
+		indexMap[p] = idx
+	}
+
+	// Build a map of the current permissions to the planned index
+	targetMap := make(map[platform.Permission]int)
+	for _, p := range permissions {
+		idx, ok := indexMap[p]
+		if ok {
+			targetMap[p] = idx
+		}
+	}
+
+	// Sort the target permission list by the index from the map
+	targetList := make([]platform.Permission, 0, len(targetMap))
+	for key := range targetMap {
+        targetList = append(targetList, key)
+    }
+    sort.SliceStable(targetList, func(i, j int) bool{
+        return targetMap[targetList[i]] < targetMap[targetList[j]]
+    })
+
+	return targetList
+}
+
 // Create implements resource.Resource.
 func (r *associateRoleResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan AssociateRole
@@ -162,6 +192,8 @@ func (r *associateRoleResource) Create(ctx context.Context, req resource.CreateR
 		)
 		return
 	}
+
+	associateRole.Permissions = resortPermissions(associateRole.Permissions, draft.Permissions);
 
 	current := NewAssociateRoleFromNative(associateRole)
 
@@ -228,6 +260,8 @@ func (r *associateRoleResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
+	associateRole.Permissions = resortPermissions(associateRole.Permissions, state.draft().Permissions);
+
 	// Transform the remote platform associate role to the
 	// tf schema matching representation.
 	current := NewAssociateRoleFromNative(associateRole)
@@ -274,6 +308,8 @@ func (r *associateRoleResource) Update(ctx context.Context, req resource.UpdateR
 		)
 		return
 	}
+
+	associateRole.Permissions = resortPermissions(associateRole.Permissions, plan.draft().Permissions)
 
 	current := NewAssociateRoleFromNative(associateRole)
 
