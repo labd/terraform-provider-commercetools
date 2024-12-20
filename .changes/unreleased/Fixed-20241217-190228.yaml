@@ -1,3 +1,0 @@
-kind: Fixed
-body: This adds a sorting of the permissions we get from the commercetools API response, so that it's identical to the one from the plan.
-time: 2024-12-17T19:02:28.854328+01:00
