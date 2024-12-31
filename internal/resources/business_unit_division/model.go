@@ -30,9 +30,16 @@ type Division struct {
 	ParentUnit                BusinessUnitResourceIdentifier  `tfsdk:"parent_unit"`
 	Stores                    []sharedtypes.StoreKeyReference `tfsdk:"store"`
 	Addresses                 []sharedtypes.Address           `tfsdk:"address"`
+	Custom                    *sharedtypes.Custom             `tfsdk:"custom"`
 }
 
-func (d *Division) draft() (platform.DivisionDraft, error) {
+// BusinessUnitResourceIdentifier is a resource identifier for a business unit.
+type BusinessUnitResourceIdentifier struct {
+	ID  types.String `tfsdk:"id"`
+	Key types.String `tfsdk:"key"`
+}
+
+func (d *Division) draft(t *platform.Type) (platform.DivisionDraft, error) {
 	mode := platform.BusinessUnitStoreMode(d.StoreMode.ValueString())
 	associateMode := platform.BusinessUnitAssociateMode(d.AssociateMode.ValueString())
 	status := platform.BusinessUnitStatus(d.Status.ValueString())
@@ -102,6 +109,11 @@ func (d *Division) draft() (platform.DivisionDraft, error) {
 		defaultShippingAddressIndex = &i
 	}
 
+	custom, err := d.Custom.Draft(t)
+	if err != nil {
+		return platform.DivisionDraft{}, err
+	}
+
 	return platform.DivisionDraft{
 		Key:              d.Key.ValueString(),
 		Status:           &status,
@@ -120,10 +132,11 @@ func (d *Division) draft() (platform.DivisionDraft, error) {
 		BillingAddresses:       billingAddressIndexes,
 		DefaultShippingAddress: defaultShippingAddressIndex,
 		DefaultBillingAddress:  defaultBillingAddressIndex,
+		Custom:                 custom,
 	}, nil
 }
 
-func (d *Division) updateActions(plan Division) (platform.BusinessUnitUpdate, error) {
+func (d *Division) updateActions(t *platform.Type, plan Division) (platform.BusinessUnitUpdate, error) {
 	result := platform.BusinessUnitUpdate{
 		Version: int(d.Version.ValueInt64()),
 		Actions: []platform.BusinessUnitUpdateAction{},
@@ -268,6 +281,21 @@ func (d *Division) updateActions(plan Division) (platform.BusinessUnitUpdate, er
 		}
 	}
 
+	// setCustomFields
+	if !reflect.DeepEqual(d.Custom, plan.Custom) {
+		actions, err := sharedtypes.CustomFieldUpdateActions[
+			platform.BusinessUnitSetCustomTypeAction,
+			platform.BusinessUnitSetCustomFieldAction,
+		](t, d.Custom, plan.Custom)
+		if err != nil {
+			return platform.BusinessUnitUpdate{}, err
+		}
+
+		for i := range actions {
+			result.Actions = append(result.Actions, actions[i].(platform.BusinessUnitUpdateAction))
+		}
+	}
+
 	return result, nil
 }
 
@@ -325,6 +353,11 @@ func NewDivisionFromNative(bu *platform.BusinessUnit) (Division, error) {
 		addresses = append(addresses, sharedtypes.NewAddressFromNative(&a))
 	}
 
+	custom, err := sharedtypes.NewCustomFromNative(d.Custom)
+	if err != nil {
+		return Division{}, err
+	}
+
 	division := Division{
 		ID:                        types.StringValue(d.ID),
 		Version:                   types.Int64Value(int64(d.Version)),
@@ -342,6 +375,7 @@ func NewDivisionFromNative(bu *platform.BusinessUnit) (Division, error) {
 		Addresses:                 addresses,
 		ShippingAddressKeys:       shippingAddressKeys,
 		BillingAddressKeys:        billingAddressKeys,
+		Custom:                    custom,
 	}
 
 	sort.Slice(division.Addresses, func(i, j int) bool {
@@ -357,10 +391,4 @@ func NewDivisionFromNative(bu *platform.BusinessUnit) (Division, error) {
 	})
 
 	return division, nil
-}
-
-// BusinessUnitResourceIdentifier is a resource identifier for a business unit.
-type BusinessUnitResourceIdentifier struct {
-	ID  types.String `tfsdk:"id"`
-	Key types.String `tfsdk:"key"`
 }

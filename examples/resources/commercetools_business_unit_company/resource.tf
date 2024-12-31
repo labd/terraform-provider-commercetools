@@ -7,6 +7,27 @@ resource "commercetools_store" "my-store" {
   languages = ["en-GB"]
 }
 
+resource "commercetools_type" "my-type" {
+  key = "my-type"
+  name = {
+    en = "My type"
+    nl = "Mijn type"
+  }
+
+  resource_type_ids = ["business-unit"]
+
+  field {
+    name = "my-field"
+    label = {
+      en = "My field"
+      nl = "Mijn veld"
+    }
+    type {
+      name = "String"
+    }
+  }
+}
+
 resource "commercetools_business_unit_company" "my-company" {
   key           = "my-company"
   name          = "My company"
@@ -42,4 +63,11 @@ resource "commercetools_business_unit_company" "my-company" {
   shipping_address_keys        = ["my-company-address-1", "my-company-address-2"]
   default_billing_address_key  = "my-company-address-1"
   default_shipping_address_key = "my-company-address-1"
+
+  custom {
+    type_id = commercetools_type.my-type.id
+    fields = {
+      my_field = "My value"
+    }
+  }
 }

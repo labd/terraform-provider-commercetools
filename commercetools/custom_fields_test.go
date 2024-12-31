@@ -64,7 +64,7 @@ var customFieldEncodeValueTests = []struct {
 func TestCustomFieldEncodeValue(t *testing.T) {
 	for _, tt := range customFieldEncodeValueTests {
 		t.Run("TestCustomFieldEncodeValue", func(t *testing.T) {
-			encodedValue, err := customFieldEncodeValue(tt.typ, "some_field", tt.value)
+			encodedValue, err := CustomFieldEncodeValue(tt.typ, "some_field", tt.value)
 			if tt.hasError {
 				assert.Error(t, err)
 			} else {

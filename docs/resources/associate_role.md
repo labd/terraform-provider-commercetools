@@ -16,10 +16,31 @@ See also the [Associate Role API Documentation](https://docs.commercetools.com/a
 ## Example Usage
 
 ```terraform
-resource "commercetools_associate_role" "regional_manager" {
-  key              = "regional-manager-europe"
+resource "commercetools_type" "my-type" {
+  key = "my-type"
+  name = {
+    en = "My type"
+    nl = "Mijn type"
+  }
+
+  resource_type_ids = ["associate-role"]
+
+  field {
+    name = "my-field"
+    label = {
+      en = "My field"
+      nl = "Mijn veld"
+    }
+    type {
+      name = "String"
+    }
+  }
+}
+
+resource "commercetools_associate_role" "my-role" {
+  key              = "my-role"
   buyer_assignable = false
-  name             = "Regional Manager - Europe"
+  name             = "My Role"
   permissions = [
     "AddChildUnits",
     "UpdateAssociates",
@@ -61,6 +82,13 @@ resource "commercetools_associate_role" "regional_manager" {
     "UpdateApprovalRules",
     "UpdateApprovalFlows",
   ]
+
+  custom {
+    type_id = commercetools_type.my-type.id
+    fields = {
+      my_field = "My value"
+    }
+  }
 }
 ```
 
@@ -75,9 +103,18 @@ resource "commercetools_associate_role" "regional_manager" {
 ### Optional
 
 - `buyer_assignable` (Boolean) Whether the associate role can be assigned to an associate by a buyer. If false, the associate role can only be assigned using the general endpoint. Defaults to true.
+- `custom` (Block, Optional) Custom fields for this resource. (see [below for nested schema](#nestedblock--custom))
 - `name` (String) Name of the associate role.
 
 ### Read-Only
 
 - `id` (String) Unique identifier of the associate role.
 - `version` (Number) Current version of the associate role.
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Optional:
+
+- `fields` (Map of String) CustomValue fields for this resource. Note that the values need to be provided as JSON encoded strings: `my-value = jsonencode({"key": "value"})`
+- `type_id` (String) The ID of the custom type to use for this resource.

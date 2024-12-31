@@ -380,9 +380,9 @@ func removeValueFromSlice(items []string, value string) []string {
 	return items
 }
 
-// diffSlices does a diff on two slices and returns the changes. If a field is
+// DiffSlices does a diff on two slices and returns the changes. If a field is
 // no longer available then nil is returned.
-func diffSlices(old, new map[string]any) map[string]any {
+func DiffSlices(old, new map[string]any) map[string]any {
 	result := map[string]any{}
 	seen := map[string]bool{}
 

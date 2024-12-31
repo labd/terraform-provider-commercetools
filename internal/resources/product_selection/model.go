@@ -1,6 +1,7 @@
 package product_selection
 
 import (
+	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -16,27 +17,40 @@ type ProductSelection struct {
 	Version types.Int64                      `tfsdk:"version"`
 	Name    customtypes.LocalizedStringValue `tfsdk:"name"`
 	Mode    types.String                     `tfsdk:"mode"`
+	Custom  *sharedtypes.Custom              `tfsdk:"custom"`
 }
 
-func NewProductSelectionFromNative(ps *platform.ProductSelection) ProductSelection {
+func NewProductSelectionFromNative(ps *platform.ProductSelection) (ProductSelection, error) {
+	custom, err := sharedtypes.NewCustomFromNative(ps.Custom)
+	if err != nil {
+		return ProductSelection{}, err
+	}
+
 	return ProductSelection{
 		ID:      types.StringValue(ps.ID),
 		Version: types.Int64Value(int64(ps.Version)),
 		Name:    utils.FromLocalizedString(ps.Name),
 		Key:     utils.FromOptionalString(ps.Key),
 		Mode:    types.StringValue(string(ps.Mode)),
-	}
+		Custom:  custom,
+	}, err
 }
 
-func (ps ProductSelection) draft() platform.ProductSelectionDraft {
+func (ps ProductSelection) draft(t *platform.Type) (platform.ProductSelectionDraft, error) {
+	custom, err := ps.Custom.Draft(t)
+	if err != nil {
+		return platform.ProductSelectionDraft{}, err
+	}
+
 	return platform.ProductSelectionDraft{
-		Key:  ps.Key.ValueStringPointer(),
-		Name: ps.Name.ValueLocalizedString(),
-		Mode: (*platform.ProductSelectionMode)(ps.Mode.ValueStringPointer()),
-	}
+		Key:    ps.Key.ValueStringPointer(),
+		Name:   ps.Name.ValueLocalizedString(),
+		Mode:   (*platform.ProductSelectionMode)(ps.Mode.ValueStringPointer()),
+		Custom: custom,
+	}, nil
 }
 
-func (ps ProductSelection) updateActions(plan ProductSelection) platform.ProductSelectionUpdate {
+func (ps ProductSelection) updateActions(t *platform.Type, plan ProductSelection) (platform.ProductSelectionUpdate, error) {
 	result := platform.ProductSelectionUpdate{
 		Version: int(ps.Version.ValueInt64()),
 		Actions: []platform.ProductSelectionUpdateAction{},
@@ -58,5 +72,20 @@ func (ps ProductSelection) updateActions(plan ProductSelection) platform.Product
 			platform.ProductSelectionSetKeyAction{Key: plan.Key.ValueStringPointer()})
 	}
 
-	return result
+	// setCustomFields
+	if !reflect.DeepEqual(ps.Custom, plan.Custom) {
+		actions, err := sharedtypes.CustomFieldUpdateActions[
+			platform.ProductSelectionSetCustomTypeAction,
+			platform.ProductSelectionSetCustomFieldAction,
+		](t, ps.Custom, plan.Custom)
+		if err != nil {
+			return platform.ProductSelectionUpdate{}, err
+		}
+
+		for i := range actions {
+			result.Actions = append(result.Actions, actions[i].(platform.AssociateRoleUpdateAction))
+		}
+	}
+
+	return result, nil
 }

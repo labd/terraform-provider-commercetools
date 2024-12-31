@@ -31,13 +31,15 @@ func TestAssociateRoleResource_Create(t *testing.T) {
 				),
 			},
 			{
-				Config: testAssociateRoleConfigUpdate(id, "Sales Manager - DACH", key, true, `"AddChildUnits"`),
+				Config: testAssociateRoleConfigUpdate(id, "Sales Manager - DACH", key, true, "AddChildUnits", "my-value"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(rn, "name", "Sales Manager - DACH"),
 					resource.TestCheckResourceAttr(rn, "key", key),
 					resource.TestCheckResourceAttr(rn, "permissions.#", "7"),
 					resource.TestCheckResourceAttr(rn, "permissions.6", "AddChildUnits"),
 					resource.TestCheckResourceAttr(rn, "buyer_assignable", "true"),
+					resource.TestCheckResourceAttrWith(rn, "custom.type_id", acctest.IsValidUUID),
+					resource.TestCheckResourceAttr(rn, "custom.fields.my-field", "my-value"),
 				),
 			},
 		},
@@ -70,8 +72,29 @@ func testAssociateRoleConfig(identifier, name, key string) string {
 	})
 }
 
-func testAssociateRoleConfigUpdate(identifier, name, key string, buyerAssign bool, permission string) string {
+func testAssociateRoleConfigUpdate(identifier, name, key string, buyerAssign bool, permission string, customValue string) string {
 	return utils.HCLTemplate(`
+		resource "commercetools_type" "my-type-{{ .identifier }}" {
+		  key = "my-type"
+		  name = {
+			en = "My type"
+			nl = "Mijn type"
+		  }
+		
+		  resource_type_ids = ["associate-role"]
+		
+		  field {
+			name = "my-field"
+			label = {
+			  en = "My field"
+			  nl = "Mijn veld"
+			}
+			type {
+			  name = "String"
+			}
+		  }
+		}
+	
 		resource "commercetools_associate_role" "{{ .identifier }}" {
 			key = "{{ .key }}"
 			buyer_assignable = {{ .buyer_assignable }}
@@ -83,14 +106,22 @@ func testAssociateRoleConfigUpdate(identifier, name, key string, buyerAssign boo
 				"DeleteMyCarts",
 				"UpdateMyCarts",
 				"ViewMyCarts",
-				{{ .permissions }},
+				"{{ .permission }}",
 			]
+	
+		   custom {
+			 type_id = commercetools_type.my-type-{{ .identifier }}.id
+			 fields = {
+			   my-field = "{{ .custom_value }}"
+			 } 
+		   }
 		}
 	`, map[string]any{
 		"identifier":       identifier,
 		"name":             name,
 		"key":              key,
 		"buyer_assignable": buyerAssign,
-		"permissions":      permission,
+		"permission":       permission,
+		"custom_value":     customValue,
 	})
 }

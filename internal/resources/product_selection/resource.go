@@ -2,6 +2,8 @@ package product_selection
 
 import (
 	"context"
+	"github.com/labd/terraform-provider-commercetools/commercetools"
+	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 	"regexp"
 	"time"
 
@@ -84,6 +86,9 @@ func (*productSelectionResource) Schema(_ context.Context, req resource.SchemaRe
 				Required:            true,
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"custom": sharedtypes.CustomSchema,
+		},
 	}
 }
 
@@ -101,10 +106,30 @@ func (r *productSelectionResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	draft := plan.draft()
+	var customType *platform.Type
+	var err error
+	if plan.Custom.IsSet() {
+		customType, err = commercetools.GetTypeResource(ctx, r.client, *plan.Custom.TypeID)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error getting custom type",
+				"Could not get custom type, unexpected error: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	draft, err := plan.draft(customType)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating product selection draft",
+			"Could not create product selection draft, unexpected error: "+err.Error(),
+		)
+		return
+	}
 
 	var productSelection *platform.ProductSelection
-	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		var err error
 		productSelection, err = r.client.ProductSelections().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -117,7 +142,14 @@ func (r *productSelectionResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	current := NewProductSelectionFromNative(productSelection)
+	current, err := NewProductSelectionFromNative(productSelection)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating product selection",
+			"Could not create product selection, unexpected error: "+err.Error(),
+		)
+		return
+	}
 
 	diags = resp.State.Set(ctx, current)
 	resp.Diagnostics.Append(diags...)
@@ -184,7 +216,14 @@ func (r *productSelectionResource) Read(ctx context.Context, req resource.ReadRe
 
 	// Transform the remote platform product selection to the
 	// tf schema matching representation.
-	current := NewProductSelectionFromNative(productSelection)
+	current, err := NewProductSelectionFromNative(productSelection)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading product selection",
+			"Could not create product selection, unexpected error: "+err.Error(),
+		)
+		return
+	}
 
 	// Set current data as state.
 	diags = resp.State.Set(ctx, &current)
@@ -210,9 +249,30 @@ func (r *productSelectionResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	input := state.updateActions(plan)
+	var customType *platform.Type
+	var err error
+	if plan.Custom.IsSet() {
+		customType, err = commercetools.GetTypeResource(ctx, r.client, *plan.Custom.TypeID)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error getting custom type",
+				"Could not get custom type, unexpected error: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	input, err := state.updateActions(customType, plan)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error updating product selection",
+			"Could not create product selection update actions, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
 	var productSelection *platform.ProductSelection
-	err := retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
 		var err error
 		productSelection, err = r.client.ProductSelections().
 			WithId(state.ID.ValueString()).
@@ -229,7 +289,14 @@ func (r *productSelectionResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
-	current := NewProductSelectionFromNative(productSelection)
+	current, err := NewProductSelectionFromNative(productSelection)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error updating product selection",
+			"Could not create product selection, unexpected error: "+err.Error(),
+		)
+		return
+	}
 
 	diags = resp.State.Set(ctx, current)
 	resp.Diagnostics.Append(diags...)
