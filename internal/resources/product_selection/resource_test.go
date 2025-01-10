@@ -34,10 +34,12 @@ func TestProductSelectionResource_Create(t *testing.T) {
 				),
 			},
 			{
-				Config: testProductSelectionConfigUpdate(id, "the selection updated", key, mode),
+				Config: testProductSelectionConfigUpdate(id, "the selection updated", key, mode, "my-value"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(rn, "name.en", "the selection updated"),
 					resource.TestCheckResourceAttr(rn, "key", key),
+					resource.TestCheckResourceAttrWith(rn, "custom.type_id", acctest.IsValidUUID),
+					resource.TestCheckResourceAttr(rn, "custom.fields.my-field", "my-value"),
 				),
 			},
 		},
@@ -85,19 +87,48 @@ func testProductSelectionConfig(identifier, name, key string, mode string) strin
 	})
 }
 
-func testProductSelectionConfigUpdate(identifier, name, key string, mode string) string {
+func testProductSelectionConfigUpdate(identifier, name, key, mode, customValue string) string {
 	return utils.HCLTemplate(`
+		resource "commercetools_type" "my-type-{{ .identifier }}" {
+		  key = "my-type"
+		  name = {
+			en = "My type"
+			nl = "Mijn type"
+		  }
+		
+		  resource_type_ids = ["product-selection"]
+		
+		  field {
+			name = "my-field"
+			label = {
+			  en = "My field"
+			  nl = "Mijn veld"
+			}
+			type {
+			  name = "String"
+			}
+		  }
+		}
+	
 		resource "commercetools_product_selection" "{{ .identifier }}" {
 			key = "{{ .key }}"
 			name       	= {
 				"en" 	= "{{ .name }}"
 			}
 			mode = "{{ .mode }}"
+	
+		   custom {
+			 type_id = commercetools_type.my-type-{{ .identifier }}.id
+			 fields = {
+			   my-field = "{{ .custom_value }}"
+			 } 
+		   }
 		}
 	`, map[string]any{
-		"identifier": identifier,
-		"name":       name,
-		"key":        key,
-		"mode":       mode,
+		"identifier":   identifier,
+		"name":         name,
+		"key":          key,
+		"mode":         mode,
+		"custom_value": customValue,
 	})
 }

@@ -46,7 +46,7 @@ func TestBusinessUnitResource(t *testing.T) {
 		CheckDestroy:             testBusinessUnitDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: businessUnitTFResourceDef(),
+				Config: businessUnitCompanyTFResourceDef(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(r, "key", "acme-company"),
 					resource.TestCheckResourceAttr(r, "name", "Acme Company Business Unit"),
@@ -56,25 +56,32 @@ func TestBusinessUnitResource(t *testing.T) {
 				),
 			},
 			{
-				Config:      businessUnitTFResourceDef(withBusinessUnitCompanyKey("acme-company-updated")),
+				Config:      businessUnitCompanyTFResourceDef(withBusinessUnitCompanyKey("acme-company-updated")),
 				ExpectError: regexp.MustCompile(`key is immutable`),
 			},
 			{
-				Config: businessUnitTFResourceDef(withBusinessUnitCompanyName("Acme Business Unit - Updated")),
+				Config: businessUnitCompanyTFResourceDef(withBusinessUnitCompanyName("Acme Business Unit - Updated")),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(r, "name", "Acme Business Unit - Updated"),
 				),
 			},
 			{
-				Config: businessUnitTFResourceDef(withBusinessUnitCompanyStatus(platform.BusinessUnitConfigurationStatusInactive)),
+				Config: businessUnitCompanyTFResourceDef(withBusinessUnitCompanyStatus(platform.BusinessUnitConfigurationStatusInactive)),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(r, "status", string(platform.BusinessUnitConfigurationStatusInactive)),
 				),
 			},
 			{
-				Config: businessUnitTFResourceDef(withBusinessUnitCompanyContactEmail("acme-updated@example.com")),
+				Config: businessUnitCompanyTFResourceDef(withBusinessUnitCompanyContactEmail("acme-updated@example.com")),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(r, "contact_email", "acme-updated@example.com"),
+				),
+			},
+			{
+				Config: businessUnitCompanyTFResourceDef(withBusinessUnitCompanyCustomValue("my-value")),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrWith(r, "custom.type_id", acctest.IsValidUUID),
+					resource.TestCheckResourceAttr(r, "custom.fields.my-field", "my-value"),
 				),
 			},
 		},
@@ -111,19 +118,49 @@ func withBusinessUnitCompanyContactEmail(email string) option {
 	}
 }
 
-func businessUnitTFResourceDef(options ...option) string {
+func withBusinessUnitCompanyCustomValue(value string) option {
+	return func(data map[string]interface{}) {
+		data["custom_value"] = value
+	}
+}
+
+func businessUnitCompanyTFResourceDef(options ...option) string {
 	data := map[string]interface{}{
 		"key":           "acme-company",
 		"status":        platform.BusinessUnitConfigurationStatusActive,
 		"contact_email": "acme@example.com",
 		"name":          "Acme Company Business Unit",
+		"custom_value":  "",
 	}
 
 	for _, option := range options {
 		option(data)
 	}
 
-	return utils.HCLTemplate(`	
+	tpl := utils.HCLTemplate(`	
+	 {{ if .custom_value }}
+		resource "commercetools_type" "my-type-acme_company" {
+		  key = "my-type"
+		  name = {
+			en = "My type"
+			nl = "Mijn type"
+		  }
+		
+		  resource_type_ids = ["business-unit"]
+		
+		  field {
+			name = "my-field"
+			label = {
+			  en = "My field"
+			  nl = "Mijn veld"
+			}
+			type {
+			  name = "String"
+			}
+		  }
+		}
+	{{ end }}
+	
 	resource "commercetools_business_unit_company" "acme_company" {
 		key              = "{{ .key }}"
 		name             = "{{ .name }}"
@@ -155,6 +192,17 @@ func businessUnitTFResourceDef(options ...option) string {
 		billing_address_keys = ["acme-business-unit-address"]
 		default_shipping_address_key     = "acme-business-unit-address"
 		default_billing_address_key      = "acme-business-unit-address"
+	
+	    {{ if .custom_value }}
+		custom {
+			 type_id = commercetools_type.my-type-acme_company.id
+			 fields = {
+			   my-field = "{{ .custom_value }}"
+			 } 
+		   }
+		{{ end }}
 	}
 	`, data)
+
+	return tpl
 }

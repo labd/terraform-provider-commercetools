@@ -78,7 +78,7 @@ func TestBusinessUnit_Company_Draft(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			result, err := c.company.draft()
+			result, err := c.company.draft(nil)
 			assert.NoError(t, err)
 			assert.Equal(t, c.expected, result)
 		})
@@ -390,7 +390,7 @@ func TestBusinessUnit_Company_UpdateActions(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			result, err := c.state.updateActions(c.plan)
+			result, err := c.state.updateActions(nil, c.plan)
 			assert.NoError(t, err)
 			assert.EqualValues(t, c.expected, result)
 		})

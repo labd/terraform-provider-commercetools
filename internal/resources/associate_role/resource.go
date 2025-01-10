@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/labd/terraform-provider-commercetools/commercetools"
+	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 	"regexp"
 	"sort"
 	"time"
@@ -131,6 +133,9 @@ func (*associateRoleResource) Schema(_ context.Context, req resource.SchemaReque
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"custom": sharedtypes.CustomSchema,
+		},
 	}
 }
 
@@ -159,11 +164,11 @@ func resortPermissions(permissions, plan []platform.Permission) []platform.Permi
 	// Sort the target permission list by the index from the map
 	targetList := make([]platform.Permission, 0, len(targetMap))
 	for key := range targetMap {
-        targetList = append(targetList, key)
-    }
-    sort.SliceStable(targetList, func(i, j int) bool{
-        return targetMap[targetList[i]] < targetMap[targetList[j]]
-    })
+		targetList = append(targetList, key)
+	}
+	sort.SliceStable(targetList, func(i, j int) bool {
+		return targetMap[targetList[i]] < targetMap[targetList[j]]
+	})
 
 	return targetList
 }
@@ -177,10 +182,30 @@ func (r *associateRoleResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	draft := plan.draft()
+	var customType *platform.Type
+	var err error
+	if plan.Custom.IsSet() {
+		customType, err = commercetools.GetTypeResource(ctx, r.client, *plan.Custom.TypeID)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error getting custom type",
+				"Could not get custom type, unexpected error: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	draft, err := plan.draft(customType)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating associate role",
+			"Could not create associate role, unexpected error: "+err.Error(),
+		)
+		return
+	}
 
 	var associateRole *platform.AssociateRole
-	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		var err error
 		associateRole, err = r.client.AssociateRoles().Post(draft).Execute(ctx)
 		return utils.ProcessRemoteError(err)
@@ -193,9 +218,16 @@ func (r *associateRoleResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	associateRole.Permissions = resortPermissions(associateRole.Permissions, draft.Permissions);
+	associateRole.Permissions = resortPermissions(associateRole.Permissions, draft.Permissions)
 
-	current := NewAssociateRoleFromNative(associateRole)
+	current, err := NewAssociateRoleFromNative(associateRole)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating associate role",
+			"Could not create associate role, unexpected error: "+err.Error(),
+		)
+		return
+	}
 
 	diags = resp.State.Set(ctx, current)
 	resp.Diagnostics.Append(diags...)
@@ -260,14 +292,41 @@ func (r *associateRoleResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	associateRole.Permissions = resortPermissions(associateRole.Permissions, state.draft().Permissions);
+	var customType *platform.Type
+	if state.Custom.IsSet() {
+		customType, err = commercetools.GetTypeResource(ctx, r.client, *state.Custom.TypeID)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error getting custom type",
+				"Could not get custom type, unexpected error: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	sDraft, err := state.draft(customType)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading associate role",
+			"Could not retrieve the associate role, unexpected error: "+err.Error(),
+		)
+		return
+	}
+	associateRole.Permissions = resortPermissions(associateRole.Permissions, sDraft.Permissions)
 
 	// Transform the remote platform associate role to the
 	// tf schema matching representation.
-	current := NewAssociateRoleFromNative(associateRole)
+	current, err := NewAssociateRoleFromNative(associateRole)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading associate role",
+			"Could not retrieve the associate role, unexpected error: "+err.Error(),
+		)
+		return
+	}
 
 	// Set current data as state.
-	diags = resp.State.Set(ctx, &current)
+	diags = resp.State.Set(ctx, current)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -276,6 +335,7 @@ func (r *associateRoleResource) Read(ctx context.Context, req resource.ReadReque
 
 // Update implements resource.Resource.
 func (r *associateRoleResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var err error
 	var plan AssociateRole
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -290,9 +350,29 @@ func (r *associateRoleResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	input := state.updateActions(plan)
+	var customType *platform.Type
+	if plan.Custom.IsSet() {
+		customType, err = commercetools.GetTypeResource(ctx, r.client, *plan.Custom.TypeID)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error getting custom type",
+				"Could not get custom type, unexpected error: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	input, err := state.updateActions(customType, plan)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error updating associate role",
+			"Could not update associate role, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
 	var associateRole *platform.AssociateRole
-	err := retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
+	err = retry.RetryContext(ctx, 5*time.Second, func() *retry.RetryError {
 		var err error
 		associateRole, err = r.client.AssociateRoles().
 			WithId(state.ID.ValueString()).
@@ -309,9 +389,24 @@ func (r *associateRoleResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	associateRole.Permissions = resortPermissions(associateRole.Permissions, plan.draft().Permissions)
+	sDraft, err := plan.draft(customType)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading associate role",
+			"Could not retrieve the associate role, unexpected error: "+err.Error(),
+		)
+		return
+	}
+	associateRole.Permissions = resortPermissions(associateRole.Permissions, sDraft.Permissions)
 
-	current := NewAssociateRoleFromNative(associateRole)
+	current, err := NewAssociateRoleFromNative(associateRole)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error updating associate role",
+			"Could not update associate role, unexpected error: "+err.Error(),
+		)
+		return
+	}
 
 	diags = resp.State.Set(ctx, current)
 	resp.Diagnostics.Append(diags...)

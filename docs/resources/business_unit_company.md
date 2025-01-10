@@ -25,6 +25,27 @@ resource "commercetools_store" "my-store" {
   languages = ["en-GB"]
 }
 
+resource "commercetools_type" "my-type" {
+  key = "my-type"
+  name = {
+    en = "My type"
+    nl = "Mijn type"
+  }
+
+  resource_type_ids = ["business-unit"]
+
+  field {
+    name = "my-field"
+    label = {
+      en = "My field"
+      nl = "Mijn veld"
+    }
+    type {
+      name = "String"
+    }
+  }
+}
+
 resource "commercetools_business_unit_company" "my-company" {
   key           = "my-company"
   name          = "My company"
@@ -60,6 +81,13 @@ resource "commercetools_business_unit_company" "my-company" {
   shipping_address_keys        = ["my-company-address-1", "my-company-address-2"]
   default_billing_address_key  = "my-company-address-1"
   default_shipping_address_key = "my-company-address-1"
+
+  custom {
+    type_id = commercetools_type.my-type.id
+    fields = {
+      my_field = "My value"
+    }
+  }
 }
 ```
 
@@ -76,6 +104,7 @@ resource "commercetools_business_unit_company" "my-company" {
 - `address` (Block List) Addresses used by the Business Unit. (see [below for nested schema](#nestedblock--address))
 - `billing_address_keys` (Set of String) Indexes of entries in addresses to set as billing addresses. The billingAddressIds of the [Customer](https://docs.commercetools.com/api/projects/customers) will be replaced by these addresses.
 - `contact_email` (String) The email address of the company.
+- `custom` (Block, Optional) Custom fields for this resource. (see [below for nested schema](#nestedblock--custom))
 - `default_billing_address_key` (String) Index of the entry in addresses to set as the default billing address.
 - `default_shipping_address_key` (String) Index of the entry in addresses to set as the default shipping address.
 - `shipping_address_keys` (Set of String) Indexes of entries in addresses to set as shipping addresses. The shippingAddressIds of the [Customer](https://docs.commercetools.com/api/projects/customers) will be replaced by these addresses.
@@ -127,6 +156,15 @@ Optional:
 Read-Only:
 
 - `id` (String) Unique identifier of the Address
+
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Optional:
+
+- `fields` (Map of String) CustomValue fields for this resource. Note that the values need to be provided as JSON encoded strings: `my-value = jsonencode({"key": "value"})`
+- `type_id` (String) The ID of the custom type to use for this resource.
 
 
 <a id="nestedblock--store"></a>

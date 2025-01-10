@@ -95,6 +95,13 @@ func TestBusinessUnitResource_Division(t *testing.T) {
 					resource.TestCheckResourceAttr(r, "approval_rule_mode", string(platform.BusinessUnitApprovalRuleModeExplicit)),
 				),
 			},
+			{
+				Config: businessUnitDivisionTFResourceDef(withBusinessUnitDivisionCustomValue("my-value")),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrWith(r, "custom.type_id", acctest.IsValidUUID),
+					resource.TestCheckResourceAttr(r, "custom.fields.my-field", "my-value"),
+				),
+			},
 		},
 	})
 }
@@ -147,6 +154,12 @@ func withBusinessUnitDivisionApprovalRuleMode(approvalRuleMode platform.Business
 	}
 }
 
+func withBusinessUnitDivisionCustomValue(value string) option {
+	return func(data map[string]interface{}) {
+		data["custom_value"] = value
+	}
+}
+
 func businessUnitDivisionTFResourceDef(options ...option) string {
 	data := map[string]interface{}{
 		"key":                "acme-division",
@@ -156,6 +169,7 @@ func businessUnitDivisionTFResourceDef(options ...option) string {
 		"store_mode":         platform.BusinessUnitStoreModeFromParent,
 		"associate_mode":     platform.BusinessUnitAssociateModeExplicitAndFromParent,
 		"approval_rule_mode": platform.BusinessUnitApprovalRuleModeExplicitAndFromParent,
+		"custom_value":       "",
 	}
 
 	for _, option := range options {
@@ -163,6 +177,29 @@ func businessUnitDivisionTFResourceDef(options ...option) string {
 	}
 
 	return utils.HCLTemplate(`
+	 {{ if .custom_value }}
+		resource "commercetools_type" "my-type-acme_company" {
+		  key = "my-type"
+		  name = {
+			en = "My type"
+			nl = "Mijn type"
+		  }
+		
+		  resource_type_ids = ["business-unit"]
+		
+		  field {
+			name = "my-field"
+			label = {
+			  en = "My field"
+			  nl = "Mijn veld"
+			}
+			type {
+			  name = "String"
+			}
+		  }
+		}
+	{{ end }}
+	
 	resource "commercetools_business_unit_company" "acme_company" {
 		key              = "acme-company"
 		name             = "Acme Company"
@@ -207,6 +244,15 @@ func businessUnitDivisionTFResourceDef(options ...option) string {
 		billing_address_keys = ["acme-business-unit-address"]
 		default_shipping_address_key     = "acme-business-unit-address"
 		default_billing_address_key      = "acme-business-unit-address"
+	
+	    {{ if .custom_value }}
+		custom {
+			 type_id = commercetools_type.my-type-acme_company.id
+			 fields = {
+			   my-field = "{{ .custom_value }}"
+			 } 
+		   }
+		{{ end }}
 	}
 	`, data)
 }

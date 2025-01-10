@@ -26,9 +26,10 @@ type Company struct {
 	DefaultBillingAddressKey  types.String                    `tfsdk:"default_billing_address_key"`
 	Stores                    []sharedtypes.StoreKeyReference `tfsdk:"store"`
 	Addresses                 []sharedtypes.Address           `tfsdk:"address"`
+	Custom                    *sharedtypes.Custom             `tfsdk:"custom"`
 }
 
-func (c *Company) draft() (platform.CompanyDraft, error) {
+func (c *Company) draft(t *platform.Type) (platform.CompanyDraft, error) {
 	status := platform.BusinessUnitStatus(c.Status.ValueString())
 	storeMode := platform.BusinessUnitStoreModeExplicit
 	associateMode := platform.BusinessUnitAssociateModeExplicit
@@ -98,6 +99,11 @@ func (c *Company) draft() (platform.CompanyDraft, error) {
 		defaultShippingAddressIndex = &i
 	}
 
+	custom, err := c.Custom.Draft(t)
+	if err != nil {
+		return platform.CompanyDraft{}, err
+	}
+
 	return platform.CompanyDraft{
 		Key:                    c.Key.ValueString(),
 		Status:                 &status,
@@ -112,10 +118,11 @@ func (c *Company) draft() (platform.CompanyDraft, error) {
 		BillingAddresses:       billingAddressIndexes,
 		DefaultShippingAddress: defaultShippingAddressIndex,
 		DefaultBillingAddress:  defaultBillingAddressIndex,
+		Custom:                 custom,
 	}, nil
 }
 
-func (c *Company) updateActions(plan Company) (platform.BusinessUnitUpdate, error) {
+func (c *Company) updateActions(t *platform.Type, plan Company) (platform.BusinessUnitUpdate, error) {
 	result := platform.BusinessUnitUpdate{
 		Version: int(c.Version.ValueInt64()),
 		Actions: []platform.BusinessUnitUpdateAction{},
@@ -233,6 +240,21 @@ func (c *Company) updateActions(plan Company) (platform.BusinessUnitUpdate, erro
 		}
 	}
 
+	// setCustomFields
+	if !reflect.DeepEqual(c.Custom, plan.Custom) {
+		actions, err := sharedtypes.CustomFieldUpdateActions[
+			platform.BusinessUnitSetCustomTypeAction,
+			platform.BusinessUnitSetCustomFieldAction,
+		](t, c.Custom, plan.Custom)
+		if err != nil {
+			return platform.BusinessUnitUpdate{}, err
+		}
+
+		for i := range actions {
+			result.Actions = append(result.Actions, actions[i].(platform.AssociateRoleUpdateAction))
+		}
+	}
+
 	return result, nil
 }
 
@@ -289,6 +311,11 @@ func NewCompanyFromNative(bu *platform.BusinessUnit) (Company, error) {
 		addresses = append(addresses, sharedtypes.NewAddressFromNative(&a))
 	}
 
+	custom, err := sharedtypes.NewCustomFromNative(c.Custom)
+	if err != nil {
+		return Company{}, err
+	}
+
 	company := Company{
 		ID:                        types.StringValue(c.ID),
 		Version:                   types.Int64Value(int64(c.Version)),
@@ -302,6 +329,7 @@ func NewCompanyFromNative(bu *platform.BusinessUnit) (Company, error) {
 		Addresses:                 addresses,
 		ShippingAddressKeys:       shippingAddressKeys,
 		BillingAddressKeys:        billingAddressKeys,
+		Custom:                    custom,
 	}
 
 	sort.Slice(company.Addresses, func(i, j int) bool {

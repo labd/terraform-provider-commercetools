@@ -89,7 +89,8 @@ func TestAssociateRole_UpdateActions(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			result := c.state.updateActions(c.plan)
+			result, err := c.state.updateActions(nil, c.plan)
+			assert.Nil(t, err)
 			assert.EqualValues(t, c.expected, result)
 		})
 	}
@@ -140,7 +141,8 @@ func TestNewAssociateRoleFromNative(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := NewAssociateRoleFromNative(c.res)
+			got, err := NewAssociateRoleFromNative(c.res)
+			assert.Nil(t, err)
 			assert.EqualValues(t, got, c.expect)
 		})
 	}

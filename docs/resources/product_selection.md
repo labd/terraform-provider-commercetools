@@ -13,12 +13,40 @@ Product Selections can be used to manage individual assortments for different sa
 ## Example Usage
 
 ```terraform
+resource "commercetools_type" "my-type" {
+  key = "my-type"
+  name = {
+    en = "My type"
+    nl = "Mijn type"
+  }
+
+  resource_type_ids = ["product-selection"]
+
+  field {
+    name = "my-field"
+    label = {
+      en = "My field"
+      nl = "Mijn veld"
+    }
+    type {
+      name = "String"
+    }
+  }
+}
+
 resource "commercetools_product_selection" "product-selection-us" {
   key = "product-selection-us"
   name = {
     en = "US Product Selection"
   }
   mode = "Individual"
+
+  custom {
+    type_id = commercetools_type.my-type.id
+    fields = {
+      my-field = "my-value"
+    }
+  }
 }
 ```
 
@@ -31,6 +59,7 @@ resource "commercetools_product_selection" "product-selection-us" {
 
 ### Optional
 
+- `custom` (Block, Optional) Custom fields for this resource. (see [below for nested schema](#nestedblock--custom))
 - `key` (String) User-defined unique identifier of the ProductSelection.
 - `mode` (String) Specifies in which way the Products are assigned to the ProductSelection.Currently, the only way of doing this is to specify each Product individually, either by including or excluding them explicitly.Default: Individual
 
@@ -38,3 +67,11 @@ resource "commercetools_product_selection" "product-selection-us" {
 
 - `id` (String) Unique identifier of the ProductSelection.
 - `version` (Number) Current version of the ProductSelection.
+
+<a id="nestedblock--custom"></a>
+### Nested Schema for `custom`
+
+Optional:
+
+- `fields` (Map of String) CustomValue fields for this resource. Note that the values need to be provided as JSON encoded strings: `my-value = jsonencode({"key": "value"})`
+- `type_id` (String) The ID of the custom type to use for this resource.

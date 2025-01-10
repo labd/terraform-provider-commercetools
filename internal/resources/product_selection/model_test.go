@@ -42,7 +42,8 @@ func TestProductSelection_UpdateActions(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			result := c.state.updateActions(c.plan)
+			result, err := c.state.updateActions(nil, c.plan)
+			assert.NoError(t, err)
 			assert.EqualValues(t, c.expected, result)
 		})
 	}
@@ -77,7 +78,8 @@ func TestNewProductSelectionFromNative(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := NewProductSelectionFromNative(c.res)
+			got, err := NewProductSelectionFromNative(c.res)
+			assert.NoError(t, err)
 			assert.EqualValues(t, got, c.expect)
 		})
 	}

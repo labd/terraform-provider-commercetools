@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/labd/terraform-provider-commercetools/commercetools"
 	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 	"regexp"
 	"time"
@@ -166,6 +167,7 @@ func (b *divisionResource) Schema(_ context.Context, req resource.SchemaRequest,
 					},
 				},
 			},
+			"custom": sharedtypes.CustomSchema,
 		},
 	}
 }
@@ -203,7 +205,20 @@ func (b *divisionResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	draft, err := plan.draft()
+	var customType *platform.Type
+	var err error
+	if plan.Custom.IsSet() {
+		customType, err = commercetools.GetTypeResource(ctx, b.client, *plan.Custom.TypeID)
+		if err != nil {
+			res.Diagnostics.AddError(
+				"Error getting custom type",
+				"Could not get custom type, unexpected error: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	draft, err := plan.draft(customType)
 	if err != nil {
 		res.Diagnostics.AddError(
 			"Error creating business unit",
@@ -332,7 +347,20 @@ func (b *divisionResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	input, err := state.updateActions(plan)
+	var customType *platform.Type
+	var err error
+	if plan.Custom.IsSet() {
+		customType, err = commercetools.GetTypeResource(ctx, b.client, *plan.Custom.TypeID)
+		if err != nil {
+			res.Diagnostics.AddError(
+				"Error getting custom type",
+				"Could not get custom type, unexpected error: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	input, err := state.updateActions(customType, plan)
 	if err != nil {
 		res.Diagnostics.AddError(
 			"Error updating business unit",

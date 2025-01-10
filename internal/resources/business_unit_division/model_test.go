@@ -87,7 +87,7 @@ func TestBusinessUnit_Division_Draft(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			result, err := c.division.draft()
+			result, err := c.division.draft(nil)
 			assert.NoError(t, err)
 			assert.Equal(t, c.expected, result)
 		})
@@ -344,7 +344,7 @@ func TestBusinessUnit_Division_UpdateActions(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			result, err := c.state.updateActions(c.plan)
+			result, err := c.state.updateActions(nil, c.plan)
 			assert.NoError(t, err)
 			assert.EqualValues(t, c.expected, result)
 		})

@@ -43,7 +43,7 @@ func CreateCustomFieldDraft(ctx context.Context, client *platform.ByProjectKeyRe
 		return nil, err
 	}
 
-	t, err := getTypeResource(ctx, client, d)
+	t, err := getTypeResourceFromResourceData(ctx, client, d)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,10 @@ type SetCustomTypeAction interface {
 		platform.ShippingMethodSetCustomTypeAction |
 		platform.CustomerGroupSetCustomTypeAction |
 		platform.DiscountCodeSetCustomTypeAction |
-		platform.CartDiscountSetCustomTypeAction
+		platform.CartDiscountSetCustomTypeAction |
+		platform.AssociateRoleSetCustomTypeAction |
+		platform.ProductSelectionSetCustomTypeAction |
+		platform.BusinessUnitSetCustomTypeAction
 }
 
 type SetCustomFieldAction interface {
@@ -68,10 +71,13 @@ type SetCustomFieldAction interface {
 		platform.ShippingMethodSetCustomFieldAction |
 		platform.CustomerGroupSetCustomFieldAction |
 		platform.DiscountCodeSetCustomFieldAction |
-		platform.CartDiscountSetCustomFieldAction
+		platform.CartDiscountSetCustomFieldAction |
+		platform.AssociateRoleSetCustomFieldAction |
+		platform.ProductSelectionSetCustomFieldAction |
+		platform.BusinessUnitSetCustomFieldAction
 }
 
-func customFieldEncodeType(t *platform.Type, name string, value any) (any, error) {
+func CustomFieldEncodeType(t *platform.Type, name string, value any) (any, error) {
 	// Suboptimal to do this everytime, however performance is not that important here and impact is negligible
 	fieldTypes := map[string]platform.FieldType{}
 	for _, field := range t.FieldDefinitions {
@@ -82,10 +88,10 @@ func customFieldEncodeType(t *platform.Type, name string, value any) (any, error
 	if !ok {
 		return nil, fmt.Errorf("no field '%s' defined in type %s (%s)", name, t.Key, t.ID)
 	}
-	return customFieldEncodeValue(fieldType, name, value)
+	return CustomFieldEncodeValue(fieldType, name, value)
 }
 
-func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, error) {
+func CustomFieldEncodeValue(t platform.FieldType, name string, value any) (any, error) {
 	switch v := t.(type) {
 	case platform.CustomFieldLocalizedStringType:
 		result := platform.LocalizedString{}
@@ -129,7 +135,7 @@ func customFieldEncodeValue(t platform.FieldType, name string, value any) (any, 
 				}
 				element = string(marshalledValue)
 			}
-			itemValue, err := customFieldEncodeValue(v.ElementType, name, element)
+			itemValue, err := CustomFieldEncodeValue(v.ElementType, name, element)
 			if err != nil {
 				return nil, err
 			}
@@ -198,7 +204,7 @@ func CreateCustomFieldDraftRaw(data map[string]any, t *platform.Type) (*platform
 	if raw, ok := data["fields"].(map[string]any); ok {
 		container := platform.FieldContainer{}
 		for key, value := range raw {
-			enc, err := customFieldEncodeType(t, key, value)
+			enc, err := CustomFieldEncodeType(t, key, value)
 			if err != nil {
 				return nil, err
 			}
@@ -234,10 +240,7 @@ func flattenCustomFields(c *platform.CustomFields) []map[string]any {
 	return []map[string]any{result}
 }
 
-// getTypeResource returns the platform.Type for the type_id in the custom
-// field. The type_id is cached to minimize API calls when multiple resource
-// use the same type
-func getTypeResource(ctx context.Context, client *platform.ByProjectKeyRequestBuilder, d *schema.ResourceData) (*platform.Type, error) {
+func getTypeResourceFromResourceData(ctx context.Context, client *platform.ByProjectKeyRequestBuilder, d *schema.ResourceData) (*platform.Type, error) {
 	custom := d.Get("custom")
 	data := firstElementFromSlice(custom.([]any))
 	if data == nil {
@@ -245,25 +248,32 @@ func getTypeResource(ctx context.Context, client *platform.ByProjectKeyRequestBu
 	}
 
 	if typeId, ok := data["type_id"].(string); ok {
-		if cacheTypes == nil {
-			cacheTypes = make(map[string]*platform.Type)
-		}
-		if t, exists := cacheTypes[typeId]; exists {
-			if t == nil {
-				return nil, fmt.Errorf("type %s not in cache due to previous error", typeId)
-			}
-			return t, nil
-		}
-
-		t, err := client.Types().WithId(typeId).Get().Execute(ctx)
-		cacheTypes[typeId] = t
-		return t, err
+		return GetTypeResource(ctx, client, typeId)
 	}
 	return nil, fmt.Errorf("missing type_id for custom fields")
 }
 
+// GetTypeResource returns the platform.Type for the type_id in the custom
+// field. The type_id is cached to minimize API calls when multiple resource
+// use the same type
+func GetTypeResource(ctx context.Context, client *platform.ByProjectKeyRequestBuilder, typeId string) (*platform.Type, error) {
+	if cacheTypes == nil {
+		cacheTypes = make(map[string]*platform.Type)
+	}
+	if t, exists := cacheTypes[typeId]; exists {
+		if t == nil {
+			return nil, fmt.Errorf("type %s not in cache due to previous error", typeId)
+		}
+		return t, nil
+	}
+
+	t, err := client.Types().WithId(typeId).Get().Execute(ctx)
+	cacheTypes[typeId] = t
+	return t, err
+}
+
 func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](ctx context.Context, client *platform.ByProjectKeyRequestBuilder, d *schema.ResourceData) ([]any, error) {
-	t, err := getTypeResource(ctx, client, d)
+	t, err := getTypeResourceFromResourceData(ctx, client, d)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +304,7 @@ func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](ctx
 		return []any{action}, nil
 	}
 
-	changes := diffSlices(
+	changes := DiffSlices(
 		oldData["fields"].(map[string]any),
 		newData["fields"].(map[string]any))
 
@@ -306,7 +316,7 @@ func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](ctx
 				Value: nil,
 			})
 		} else {
-			val, err := customFieldEncodeType(t, key, changes[key])
+			val, err := CustomFieldEncodeType(t, key, changes[key])
 			if err != nil {
 				return nil, err
 			}

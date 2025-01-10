@@ -1,7 +1,28 @@
-resource "commercetools_associate_role" "regional_manager" {
-  key              = "regional-manager-europe"
+resource "commercetools_type" "my-type" {
+  key = "my-type"
+  name = {
+    en = "My type"
+    nl = "Mijn type"
+  }
+
+  resource_type_ids = ["associate-role"]
+
+  field {
+    name = "my-field"
+    label = {
+      en = "My field"
+      nl = "Mijn veld"
+    }
+    type {
+      name = "String"
+    }
+  }
+}
+
+resource "commercetools_associate_role" "my-role" {
+  key              = "my-role"
   buyer_assignable = false
-  name             = "Regional Manager - Europe"
+  name             = "My Role"
   permissions = [
     "AddChildUnits",
     "UpdateAssociates",
@@ -43,4 +64,11 @@ resource "commercetools_associate_role" "regional_manager" {
     "UpdateApprovalRules",
     "UpdateApprovalFlows",
   ]
+
+  custom {
+    type_id = commercetools_type.my-type.id
+    fields = {
+      my_field = "My value"
+    }
+  }
 }
