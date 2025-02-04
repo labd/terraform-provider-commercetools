@@ -16,20 +16,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.3.7
-        terraform_wrapper: false
-
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
-
-    - name: Set up Task
-      uses: arduino/setup-task@v2
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: golangci-lint
       continue-on-error: true
