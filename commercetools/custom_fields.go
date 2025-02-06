@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -13,6 +14,7 @@ import (
 )
 
 var cacheTypes map[string]*platform.Type
+var cacheTypesLock sync.Mutex
 
 func CustomFieldSchema() *schema.Schema {
 	return &schema.Schema{
@@ -257,6 +259,7 @@ func getTypeResourceFromResourceData(ctx context.Context, client *platform.ByPro
 // field. The type_id is cached to minimize API calls when multiple resource
 // use the same type
 func GetTypeResource(ctx context.Context, client *platform.ByProjectKeyRequestBuilder, typeId string) (*platform.Type, error) {
+	cacheTypesLock.Lock()
 	if cacheTypes == nil {
 		cacheTypes = make(map[string]*platform.Type)
 	}
@@ -266,9 +269,14 @@ func GetTypeResource(ctx context.Context, client *platform.ByProjectKeyRequestBu
 		}
 		return t, nil
 	}
+	cacheTypesLock.Unlock()
 
 	t, err := client.Types().WithId(typeId).Get().Execute(ctx)
+
+	cacheTypesLock.Lock()
 	cacheTypes[typeId] = t
+	cacheTypesLock.Unlock()
+
 	return t, err
 }
 
