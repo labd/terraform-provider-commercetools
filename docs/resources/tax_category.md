@@ -33,7 +33,7 @@ resource "commercetools_tax_category" "my-tax-category" {
 ### Optional
 
 - `description` (String)
-- `key` (String) User-specific unique identifier for the category
+- `key` (String) User-specific unique identifier for the tax category
 
 ### Read-Only
 

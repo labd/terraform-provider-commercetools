@@ -23,37 +23,40 @@ func TestAccTaxCategoryRate_createAndUpdateWithID(t *testing.T) {
 		CheckDestroy:      testAccCheckTaxCategoryRateDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTaxCategoryRateConfig(name, amount, true, country),
+				Config: testAccTaxCategoryRateConfig(name, amount, true, country, ""),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", name),
 					resource.TestCheckResourceAttr(resourceName, "amount", "0.2"),
 					resource.TestCheckResourceAttr(resourceName, "included_in_price", "true"),
 					resource.TestCheckResourceAttr(resourceName, "country", country),
+					resource.TestCheckResourceAttr(resourceName, "key", ""),
 				),
 			},
 			{
-				Config: testAccTaxCategoryRateConfig(name, amount, false, country),
+				Config: testAccTaxCategoryRateConfig(name, amount, false, country, "some-key"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", name),
 					resource.TestCheckResourceAttr(resourceName, "amount", "0.2"),
 					resource.TestCheckResourceAttr(resourceName, "included_in_price", "false"),
 					resource.TestCheckResourceAttr(resourceName, "country", country),
+					resource.TestCheckResourceAttr(resourceName, "key", "some-key"),
 				),
 			},
 			{
-				Config: testAccTaxCategoryRateConfig(name, 0.0, true, country),
+				Config: testAccTaxCategoryRateConfig(name, 0.0, true, country, ""),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", name),
 					resource.TestCheckResourceAttr(resourceName, "amount", "0"),
 					resource.TestCheckResourceAttr(resourceName, "included_in_price", "true"),
 					resource.TestCheckResourceAttr(resourceName, "country", country),
+					resource.TestCheckResourceAttr(resourceName, "key", ""),
 				),
 			},
 		},
 	})
 }
 
-func testAccTaxCategoryRateConfig(name string, amount float64, includedInPrice bool, country string) string {
+func testAccTaxCategoryRateConfig(name string, amount float64, includedInPrice bool, country, key string) string {
 	return hclTemplate(`
 		resource "commercetools_tax_category" "standard" {
 			key = "test-rate-category"
@@ -63,6 +66,10 @@ func testAccTaxCategoryRateConfig(name string, amount float64, includedInPrice b
 
 		resource "commercetools_tax_category_rate" "test_rate" {
 			tax_category_id = commercetools_tax_category.standard.id
+
+			{{if .key }}
+			key = "{{ .key }}"
+			{{end}}
 
 			name = "{{ .name }}"
 			amount = {{ .amount }}
@@ -75,6 +82,7 @@ func testAccTaxCategoryRateConfig(name string, amount float64, includedInPrice b
 			"amount":          amount,
 			"includedInPrice": includedInPrice,
 			"country":         country,
+			"key":             key,
 		})
 }
 

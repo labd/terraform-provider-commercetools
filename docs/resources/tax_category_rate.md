@@ -17,11 +17,13 @@ See also [Tax Rate API Documentation](https://docs.commercetools.com/api/project
 
 ```terraform
 resource "commercetools_tax_category" "my-tax-category" {
+  key         = "my-tax-category"
   name        = "Standard tax category"
   description = "Example category"
 }
 
 resource "commercetools_tax_category_rate" "standard-tax-category-DE" {
+  key               = "standard-tax-category-DE"
   tax_category_id   = commercetools_tax_category.my-tax-category.id
   name              = "19% MwSt"
   amount            = 0.19
@@ -34,6 +36,7 @@ resource "commercetools_tax_category_rate" "standard-tax-category-DE" {
 }
 
 resource "commercetools_tax_category_rate" "standard-tax-category-NL" {
+  key               = "standard-tax-category-NL"
   tax_category_id   = commercetools_tax_category.my-tax-category.id
   name              = "21% BTW"
   amount            = 0.21
@@ -55,6 +58,7 @@ resource "commercetools_tax_category_rate" "standard-tax-category-NL" {
 ### Optional
 
 - `amount` (Number) Number Percentage in the range of [0..1]. The sum of the amounts of all subRates, if there are any
+- `key` (String) User-specific unique identifier for the tax category rate
 - `state` (String) The state in the country
 - `sub_rate` (Block List) For countries (for example the US) where the total tax is a combination of multiple taxes (for example state and local taxes) (see [below for nested schema](#nestedblock--sub_rate))
 
