@@ -24,7 +24,7 @@ func resourceTaxCategory() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Description: "User-specific unique identifier for the category",
+				Description: "User-specific unique identifier for the tax category",
 				Type:        schema.TypeString,
 				Optional:    true,
 			},

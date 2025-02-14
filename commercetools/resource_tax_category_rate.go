@@ -29,6 +29,11 @@ func resourceTaxCategoryRate() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"key": {
+				Description: "User-specific unique identifier for the tax category rate",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -185,6 +190,7 @@ func resourceTaxCategoryRateRead(ctx context.Context, d *schema.ResourceData, m 
 }
 
 func setTaxRateState(d *schema.ResourceData, taxRate *platform.TaxRate) {
+	_ = d.Set("key", taxRate.Key)
 	_ = d.Set("name", taxRate.Name)
 	_ = d.Set("amount", taxRate.Amount)
 	_ = d.Set("included_in_price", taxRate.IncludedInPrice)
@@ -223,7 +229,7 @@ func resourceTaxCategoryRateUpdate(ctx context.Context, d *schema.ResourceData, 
 		Actions: []platform.TaxCategoryUpdateAction{},
 	}
 
-	if d.HasChange("name") || d.HasChange("amount") || d.HasChange("included_in_price") || d.HasChange("country") || d.HasChange("state") || d.HasChange("sub_rate") {
+	if d.HasChange("key") || d.HasChange("name") || d.HasChange("amount") || d.HasChange("included_in_price") || d.HasChange("country") || d.HasChange("state") || d.HasChange("sub_rate") {
 		taxRateDraft, err := createTaxRateDraft(d)
 		if err != nil {
 			// Workaround invalid state to be written, see
@@ -282,6 +288,11 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 		}
 	}
 
+	var key *string
+	if value, ok := d.Get("key").(string); ok && value != "" {
+		key = &value
+	}
+
 	var countryCode string
 	if value, ok := d.Get("country").(string); ok {
 		countryCode = value
@@ -290,6 +301,7 @@ func createTaxRateDraft(d *schema.ResourceData) (*platform.TaxRateDraft, error) 
 	amountRaw := d.Get("amount").(float64)
 
 	taxRateDraft := platform.TaxRateDraft{
+		Key:             key,
 		Name:            d.Get("name").(string),
 		Amount:          &amountRaw,
 		IncludedInPrice: d.Get("included_in_price").(bool),
