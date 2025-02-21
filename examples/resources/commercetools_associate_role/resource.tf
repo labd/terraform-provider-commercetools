@@ -68,7 +68,7 @@ resource "commercetools_associate_role" "my-role" {
   custom {
     type_id = commercetools_type.my-type.id
     fields = {
-      my_field = "My value"
+      my-field = "My value"
     }
   }
 }
