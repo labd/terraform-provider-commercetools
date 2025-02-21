@@ -185,7 +185,7 @@ func (r *associateRoleResource) Create(ctx context.Context, req resource.CreateR
 	var customType *platform.Type
 	var err error
 	if plan.Custom.IsSet() {
-		customType, err = commercetools.GetTypeResource(ctx, r.client, *plan.Custom.TypeID)
+		customType, err = commercetools.GetTypeResource(ctx, commercetools.CreateTypeFetcher(r.client), *plan.Custom.TypeID)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error getting custom type",
@@ -294,7 +294,7 @@ func (r *associateRoleResource) Read(ctx context.Context, req resource.ReadReque
 
 	var customType *platform.Type
 	if state.Custom.IsSet() {
-		customType, err = commercetools.GetTypeResource(ctx, r.client, *state.Custom.TypeID)
+		customType, err = commercetools.GetTypeResource(ctx, commercetools.CreateTypeFetcher(r.client), *state.Custom.TypeID)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error getting custom type",
@@ -352,7 +352,7 @@ func (r *associateRoleResource) Update(ctx context.Context, req resource.UpdateR
 
 	var customType *platform.Type
 	if plan.Custom.IsSet() {
-		customType, err = commercetools.GetTypeResource(ctx, r.client, *plan.Custom.TypeID)
+		customType, err = commercetools.GetTypeResource(ctx, commercetools.CreateTypeFetcher(r.client), *plan.Custom.TypeID)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error getting custom type",

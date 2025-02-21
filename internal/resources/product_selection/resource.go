@@ -109,7 +109,7 @@ func (r *productSelectionResource) Create(ctx context.Context, req resource.Crea
 	var customType *platform.Type
 	var err error
 	if plan.Custom.IsSet() {
-		customType, err = commercetools.GetTypeResource(ctx, r.client, *plan.Custom.TypeID)
+		customType, err = commercetools.GetTypeResource(ctx, commercetools.CreateTypeFetcher(r.client), *plan.Custom.TypeID)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error getting custom type",
@@ -252,7 +252,7 @@ func (r *productSelectionResource) Update(ctx context.Context, req resource.Upda
 	var customType *platform.Type
 	var err error
 	if plan.Custom.IsSet() {
-		customType, err = commercetools.GetTypeResource(ctx, r.client, *plan.Custom.TypeID)
+		customType, err = commercetools.GetTypeResource(ctx, commercetools.CreateTypeFetcher(r.client), *plan.Custom.TypeID)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error getting custom type",

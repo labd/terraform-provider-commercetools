@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/rand"
+	"sync"
 	"testing"
 	"text/template"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -85,7 +88,6 @@ var customFieldTypes = []string{"String", "Boolean", "Number", "LocalizedString"
 
 func TestAccCustomField_SetAndRemove(t *testing.T) {
 	for _, customFieldResourceType := range customFieldResourceTypes {
-		fmt.Println("Testing custom fields for:", customFieldResourceType)
 		resourceShortName := "ct" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 		resourceFullName := customFieldResourceType + "." + resourceShortName
 		resourceKey := "key" + resourceShortName
@@ -248,4 +250,22 @@ func testGetShippingMethod(s *terraform.State, identifier string) (*platform.Shi
 		return nil, err
 	}
 	return result, nil
+}
+
+func TestGetTypeResourceConcurrent(t *testing.T) {
+	var ids = []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
+
+	wg := &sync.WaitGroup{}
+	for pid := 0; pid < 1000; pid++ {
+		wg.Add(1)
+		go func(pid int) {
+			defer wg.Done()
+			_, err := GetTypeResource(context.Background(), func(_ context.Context, id string) (*platform.Type, error) {
+				time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
+				return &platform.Type{ID: id}, nil
+			}, ids[pid%len(ids)])
+			assert.NoError(t, err)
+		}(pid)
+	}
+	wg.Wait()
 }

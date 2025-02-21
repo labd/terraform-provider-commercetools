@@ -208,7 +208,7 @@ func (b *divisionResource) Create(ctx context.Context, req resource.CreateReques
 	var customType *platform.Type
 	var err error
 	if plan.Custom.IsSet() {
-		customType, err = commercetools.GetTypeResource(ctx, b.client, *plan.Custom.TypeID)
+		customType, err = commercetools.GetTypeResource(ctx, commercetools.CreateTypeFetcher(b.client), *plan.Custom.TypeID)
 		if err != nil {
 			res.Diagnostics.AddError(
 				"Error getting custom type",
@@ -350,7 +350,7 @@ func (b *divisionResource) Update(ctx context.Context, req resource.UpdateReques
 	var customType *platform.Type
 	var err error
 	if plan.Custom.IsSet() {
-		customType, err = commercetools.GetTypeResource(ctx, b.client, *plan.Custom.TypeID)
+		customType, err = commercetools.GetTypeResource(ctx, commercetools.CreateTypeFetcher(b.client), *plan.Custom.TypeID)
 		if err != nil {
 			res.Diagnostics.AddError(
 				"Error getting custom type",

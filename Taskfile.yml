@@ -42,21 +42,15 @@ tasks:
       - go tool cover -func=coverage.txt
 
   testacc:
-    cmds:
-      - TF_ACC=1 go test -v ./...
-
-  testacct:
-    cmds:
-      - TF_ACC=1 go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... -v ./...
-
-  mockacc:
-    cmds:
-      - go test -count=1 -v ./...
     env:
-      TF_ACC: 1
-      CTP_CLIENT_ID: unittest
-      CTP_CLIENT_SECRET: x
-      CTP_PROJECT_KEY: unittest
-      CTP_SCOPES: manage_project:projectkey
+      TF_ACC: true
+      CTP_CLIENT_ID: client-id
+      CTP_CLIENT_SECRET: client-secret
+      CTP_PROJECT_KEY: project-key
+      CTP_SCOPES: "manage_project:project-key"
       CTP_API_URL: http://localhost:8989
       CTP_AUTH_URL: http://localhost:8989
+    cmds:
+      - docker-compose up -d
+      - go test -v ./...
+      - docker-compose down

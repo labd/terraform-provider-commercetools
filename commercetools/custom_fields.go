@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -13,6 +14,7 @@ import (
 )
 
 var cacheTypes map[string]*platform.Type
+var cacheTypesLock sync.Mutex
 
 func CustomFieldSchema() *schema.Schema {
 	return &schema.Schema{
@@ -248,15 +250,23 @@ func getTypeResourceFromResourceData(ctx context.Context, client *platform.ByPro
 	}
 
 	if typeId, ok := data["type_id"].(string); ok {
-		return GetTypeResource(ctx, client, typeId)
+		return GetTypeResource(ctx, CreateTypeFetcher(client), typeId)
 	}
 	return nil, fmt.Errorf("missing type_id for custom fields")
+}
+
+func CreateTypeFetcher(client *platform.ByProjectKeyRequestBuilder) func(ctx context.Context, id string) (*platform.Type, error) {
+	return func(ctx context.Context, id string) (*platform.Type, error) {
+		return client.Types().WithId(id).Get().Execute(ctx)
+	}
 }
 
 // GetTypeResource returns the platform.Type for the type_id in the custom
 // field. The type_id is cached to minimize API calls when multiple resource
 // use the same type
-func GetTypeResource(ctx context.Context, client *platform.ByProjectKeyRequestBuilder, typeId string) (*platform.Type, error) {
+func GetTypeResource(ctx context.Context, getTypeByIdFunc func(ctx context.Context, id string) (*platform.Type, error), typeId string) (*platform.Type, error) {
+	cacheTypesLock.Lock()
+	defer cacheTypesLock.Unlock()
 	if cacheTypes == nil {
 		cacheTypes = make(map[string]*platform.Type)
 	}
@@ -267,9 +277,15 @@ func GetTypeResource(ctx context.Context, client *platform.ByProjectKeyRequestBu
 		return t, nil
 	}
 
-	t, err := client.Types().WithId(typeId).Get().Execute(ctx)
+	t, err := getTypeByIdFunc(ctx, typeId)
+	if err != nil {
+		cacheTypes[typeId] = nil
+		return nil, err
+	}
+
 	cacheTypes[typeId] = t
-	return t, err
+
+	return t, nil
 }
 
 func CustomFieldUpdateActions[T SetCustomTypeAction, F SetCustomFieldAction](ctx context.Context, client *platform.ByProjectKeyRequestBuilder, d *schema.ResourceData) ([]any, error) {
