@@ -194,6 +194,63 @@ func TestResourceTypeValidateFieldSet(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestUpdateCustomFieldEnumTypeAdd(t *testing.T) {
+	oldType := platform.CustomFieldEnumType{
+		Values: []platform.CustomFieldEnumValue{
+			{Key: "value1", Label: "Value 1"},
+		},
+	}
+
+	newType := platform.CustomFieldEnumType{
+		Values: []platform.CustomFieldEnumValue{
+			{Key: "value1", Label: "Value 1"},
+			{Key: "value2", Label: "Value 2"},
+		},
+	}
+
+	actions, err := updateCustomFieldEnumType("test", oldType, newType)
+	assert.NoError(t, err)
+	assert.Len(t, actions, 1)
+}
+
+func TestUpdateCustomFieldEnumTypeDelete(t *testing.T) {
+	oldType := platform.CustomFieldEnumType{
+		Values: []platform.CustomFieldEnumValue{
+			{Key: "value1", Label: "Value 1"},
+			{Key: "value2", Label: "Value 2"},
+		},
+	}
+
+	newType := platform.CustomFieldEnumType{
+		Values: []platform.CustomFieldEnumValue{
+			{Key: "value1", Label: "Value 1"},
+		},
+	}
+
+	_, err := updateCustomFieldEnumType("test", oldType, newType)
+	assert.ErrorContains(t, err, "trying to delete enum value value2. Deleting enum values is not supported")
+}
+
+func TestUpdateCustomFieldEnumTypeAddAndDelete(t *testing.T) {
+	oldType := platform.CustomFieldEnumType{
+		Values: []platform.CustomFieldEnumValue{
+			{Key: "value1", Label: "Value 1"},
+			{Key: "value2", Label: "Value 2"},
+		},
+	}
+
+	newType := platform.CustomFieldEnumType{
+		Values: []platform.CustomFieldEnumValue{
+			{Key: "value1", Label: "Value 1"},
+			{Key: "value3", Label: "Value 3"},
+			{Key: "value4", Label: "Value 4"},
+		},
+	}
+
+	_, err := updateCustomFieldEnumType("test", oldType, newType)
+	assert.ErrorContains(t, err, "trying to delete enum value value2. Deleting enum values is not supported")
+}
+
 func TestAccTypes_basic(t *testing.T) {
 	key := "acctest-type"
 	identifier := "acctest_type"
