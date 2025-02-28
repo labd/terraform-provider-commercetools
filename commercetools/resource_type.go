@@ -785,6 +785,12 @@ func updateCustomFieldEnumType(fieldName string, old, new platform.CustomFieldEn
 		newValues.Set(new.Values[i].Key, new.Values[i])
 	}
 
+	for _, oldValue := range oldValues.Keys() {
+		if !newValues.Has(oldValue) {
+			return nil, fmt.Errorf("trying to delete enum value %s. Deleting enum values is not supported", oldValue)
+		}
+	}
+
 	var valueOrder []string
 	valueOrder = append(valueOrder, oldValues.Keys()...)
 
