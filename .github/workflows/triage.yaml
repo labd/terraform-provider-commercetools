@@ -1,6 +1,9 @@
 name: Triage
 
 on:
+  pull_request:
+    types:
+      - opened
   issues:
     types:
       - opened
