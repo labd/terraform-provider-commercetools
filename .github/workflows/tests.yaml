@@ -23,7 +23,7 @@ jobs:
 
     - name: golangci-lint
       continue-on-error: true
-      uses: golangci/golangci-lint-action@v6
+      uses: golangci/golangci-lint-action@v7
       with:
         args: --issues-exit-code=0 --timeout=5m
 
@@ -64,7 +64,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare release
-        uses: labd/changie-release-action@v0.5.0
+        uses: labd/changie-release-action@v0.6.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           release-workflow: 'release.yaml'
