@@ -45,12 +45,12 @@ func (d *Division) draft(t *platform.Type) (platform.DivisionDraft, error) {
 	status := platform.BusinessUnitStatus(d.Status.ValueString())
 	approvalRuleMode := platform.BusinessUnitApprovalRuleMode(d.ApprovalRuleMode.ValueString())
 
-	var addresses []platform.BaseAddress
+	var addresses = make([]platform.BaseAddress, 0, len(d.Addresses))
 	for _, a := range d.Addresses {
 		addresses = append(addresses, a.Draft())
 	}
 
-	var stores []platform.StoreResourceIdentifier
+	var stores = make([]platform.StoreResourceIdentifier, 0, len(d.Stores))
 	for _, s := range d.Stores {
 		stores = append(stores, platform.StoreResourceIdentifier{
 			Key: s.Key.ValueStringPointer(),

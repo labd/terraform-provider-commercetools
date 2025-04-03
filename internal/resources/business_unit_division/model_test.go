@@ -83,6 +83,35 @@ func TestBusinessUnit_Division_Draft(t *testing.T) {
 				BillingAddresses:       []int{0, 1},
 			},
 		},
+		{
+			name: "Division without stores",
+			division: Division{
+				Key:              types.StringValue("division-key"),
+				Status:           types.StringValue("Active"),
+				Name:             types.StringValue("division Name"),
+				ContactEmail:     types.StringValue("contact@example.com"),
+				StoreMode:        types.StringValue(string(platform.BusinessUnitStoreModeExplicit)),
+				AssociateMode:    types.StringValue(string(platform.BusinessUnitAssociateModeExplicit)),
+				ApprovalRuleMode: types.StringValue(string(platform.BusinessUnitApprovalRuleModeExplicit)),
+				ParentUnit: BusinessUnitResourceIdentifier{
+					Key: types.StringValue("parent-key"),
+				},
+			},
+			expected: platform.DivisionDraft{
+				Key:              "division-key",
+				Status:           utils.Ref(platform.BusinessUnitStatusActive),
+				Name:             "division Name",
+				StoreMode:        utils.Ref(platform.BusinessUnitStoreModeExplicit),
+				AssociateMode:    utils.Ref(platform.BusinessUnitAssociateModeExplicit),
+				ApprovalRuleMode: utils.Ref(platform.BusinessUnitApprovalRuleModeExplicit),
+				ContactEmail:     utils.Ref("contact@example.com"),
+				ParentUnit: platform.BusinessUnitResourceIdentifier{
+					Key: utils.Ref("parent-key"),
+				},
+				Addresses: []platform.BaseAddress{},
+				Stores:    []platform.StoreResourceIdentifier{},
+			},
+		},
 	}
 
 	for _, c := range cases {

@@ -74,6 +74,26 @@ func TestBusinessUnit_Company_Draft(t *testing.T) {
 				BillingAddresses:       []int{0, 1},
 			},
 		},
+		{
+			name: "Company without stores",
+			company: Company{
+				Status:       types.StringValue("Active"),
+				Key:          types.StringValue("company-key"),
+				Name:         types.StringValue("Company Name"),
+				ContactEmail: types.StringValue("contact@example.com"),
+			},
+			expected: platform.CompanyDraft{
+				Key:              "company-key",
+				Status:           utils.Ref(platform.BusinessUnitStatusActive),
+				Name:             "Company Name",
+				StoreMode:        utils.Ref(platform.BusinessUnitStoreModeExplicit),
+				AssociateMode:    utils.Ref(platform.BusinessUnitAssociateModeExplicit),
+				ApprovalRuleMode: utils.Ref(platform.BusinessUnitApprovalRuleModeExplicit),
+				ContactEmail:     utils.Ref("contact@example.com"),
+				Addresses:        []platform.BaseAddress{},
+				Stores:           []platform.StoreResourceIdentifier{},
+			},
+		},
 	}
 
 	for _, c := range cases {
