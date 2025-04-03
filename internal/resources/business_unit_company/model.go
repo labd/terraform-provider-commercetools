@@ -35,12 +35,12 @@ func (c *Company) draft(t *platform.Type) (platform.CompanyDraft, error) {
 	associateMode := platform.BusinessUnitAssociateModeExplicit
 	approvalRuleMode := platform.BusinessUnitApprovalRuleModeExplicit
 
-	var addresses []platform.BaseAddress
+	var addresses = make([]platform.BaseAddress, 0, len(c.Addresses))
 	for _, a := range c.Addresses {
 		addresses = append(addresses, a.Draft())
 	}
 
-	var stores []platform.StoreResourceIdentifier
+	var stores = make([]platform.StoreResourceIdentifier, 0, len(c.Stores))
 	for _, s := range c.Stores {
 		stores = append(stores, platform.StoreResourceIdentifier{
 			Key: s.Key.ValueStringPointer(),
