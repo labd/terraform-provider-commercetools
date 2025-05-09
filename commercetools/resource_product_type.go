@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -367,29 +368,26 @@ func flattenProductTypeAttributeType(attrType platform.AttributeType, setsAllowe
 func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
 	client := getClient(m)
 
-	input := platform.ProductTypeUpdate{
-		Version: d.Get("version").(int),
-		Actions: []platform.ProductTypeUpdateAction{},
-	}
+	var actions []platform.ProductTypeUpdateAction
 
 	if d.HasChange("key") {
 		newKey := d.Get("key").(string)
-		input.Actions = append(
-			input.Actions,
+		actions = append(
+			actions,
 			&platform.ProductTypeSetKeyAction{Key: &newKey})
 	}
 
 	if d.HasChange("name") {
 		newName := d.Get("name").(string)
-		input.Actions = append(
-			input.Actions,
+		actions = append(
+			actions,
 			&platform.ProductTypeChangeNameAction{Name: newName})
 	}
 
 	if d.HasChange("description") {
 		newDescription := d.Get("description").(string)
-		input.Actions = append(
-			input.Actions,
+		actions = append(
+			actions,
 			&platform.ProductTypeChangeDescriptionAction{Description: newDescription})
 	}
 
@@ -400,13 +398,24 @@ func resourceProductTypeUpdate(ctx context.Context, d *schema.ResourceData, m an
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		input.Actions = append(input.Actions, attrChangeActions...)
+		actions = append(actions, attrChangeActions...)
 	}
 
 	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
-		_, err := client.ProductTypes().WithId(d.Id()).Post(input).Execute(ctx)
-		return utils.ProcessRemoteError(err)
+		var version = d.Get("version").(int)
+		for chunkedActions := range slices.Chunk(actions, 500) {
+			response, err := client.ProductTypes().WithId(d.Id()).Post(
+				platform.ProductTypeUpdate{Version: version, Actions: chunkedActions},
+			).Execute(ctx)
+			if err != nil {
+				return utils.ProcessRemoteError(err)
+			}
+			version = response.Version
+		}
+
+		return nil
 	})
+
 	if err != nil {
 		// Workaround invalid state to be written, see
 		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476

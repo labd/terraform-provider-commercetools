@@ -722,6 +722,50 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 	})
 }
 
+func TestAccProductTypes_sliced(t *testing.T) {
+	key := "acctest-producttype"
+	identifier := "acctest_producttype"
+	resourceName := "commercetools_product_type.acctest_producttype"
+
+	var attributes []TestProductTypeAttrData
+	for i := 0; i < 1000; i++ {
+		attributes = append(attributes, TestProductTypeAttrData{
+			Name: fmt.Sprintf("%d", i),
+			Type: "text",
+		})
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckProductTypesDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccConfigAttributes(key, identifier, []TestProductTypeAttrData{}),
+				Check: func(s *terraform.State) error {
+					r, err := testGetProductType(s, resourceName)
+					if err != nil {
+						return err
+					}
+					assert.EqualValues(t, *r.Key, key)
+					return nil
+				},
+			},
+			{
+				Config: testAccConfigAttributes(key, identifier, attributes),
+				Check: func(s *terraform.State) error {
+					r, err := testGetProductType(s, resourceName)
+					if err != nil {
+						return err
+					}
+					assert.EqualValues(t, *r.Key, key)
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func testAccProductTypeConfigLabelChange(identifier, key string) string {
 	return hclTemplate(`
 		resource "commercetools_product_type" "{{ .identifier }}" {
