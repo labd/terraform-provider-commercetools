@@ -102,6 +102,32 @@ func (s *Subscription) draft() platform.SubscriptionDraft {
 	return draft
 }
 
+// orderChangesAndMessagesActions orders the changes and messages actions. This ensures that if both are present but one
+// has an empty list of changes the action with an empty list will be processed last. This is important because
+// otherwise Commercetools will throw an error that a subscription with an empty list of changes and messages
+func orderChangesAndMessagesActions(
+	changesAction *platform.SubscriptionSetChangesAction,
+	messagesAction *platform.SubscriptionSetMessagesAction,
+) []platform.SubscriptionUpdateAction {
+	if changesAction == nil && messagesAction == nil {
+		return nil
+	}
+
+	if changesAction == nil {
+		return []platform.SubscriptionUpdateAction{*messagesAction}
+	}
+
+	if messagesAction == nil {
+		return []platform.SubscriptionUpdateAction{*changesAction}
+	}
+
+	if len(changesAction.Changes) >= len(messagesAction.Messages) {
+		return []platform.SubscriptionUpdateAction{*changesAction, *messagesAction}
+	}
+
+	return []platform.SubscriptionUpdateAction{*messagesAction, *changesAction}
+}
+
 func (s *Subscription) updateActions(plan Subscription) platform.SubscriptionUpdate {
 	result := platform.SubscriptionUpdate{
 		Version: int(s.Version.ValueInt64()),
@@ -129,30 +155,26 @@ func (s *Subscription) updateActions(plan Subscription) platform.SubscriptionUpd
 	}
 
 	// setChanges
+	var changesAction *platform.SubscriptionSetChangesAction
 	if !reflect.DeepEqual(s.Changes, plan.Changes) {
 		var changes = make([]platform.ChangeSubscription, 0, len(plan.Changes))
 		for _, c := range plan.Changes {
 			changes = append(changes, c.toNative()...)
 		}
-
-		result.Actions = append(
-			result.Actions,
-			platform.SubscriptionSetChangesAction{
-				Changes: changes,
-			})
+		changesAction = &platform.SubscriptionSetChangesAction{Changes: changes}
 	}
 
 	// setMessages
+	var messagesAction *platform.SubscriptionSetMessagesAction
 	if !reflect.DeepEqual(s.Messages, plan.Messages) {
 		var messages = make([]platform.MessageSubscription, 0, len(plan.Messages))
 		for _, m := range plan.Messages {
 			messages = append(messages, m.toNative())
 		}
-
-		result.Actions = append(
-			result.Actions,
-			platform.SubscriptionSetMessagesAction{Messages: messages})
+		messagesAction = &platform.SubscriptionSetMessagesAction{Messages: messages}
 	}
+
+	result.Actions = append(result.Actions, orderChangesAndMessagesActions(changesAction, messagesAction)...)
 
 	return result
 }
