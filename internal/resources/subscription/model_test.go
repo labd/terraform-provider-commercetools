@@ -306,3 +306,72 @@ func TestUpdateActions(t *testing.T) {
 		})
 	}
 }
+
+func TestOrderChangesAndMessagesActionsEmpty(t *testing.T) {
+	assert.Nil(t, orderChangesAndMessagesActions(nil, nil))
+}
+
+func TestOrderChangesAndMessagesActionsWithChanges(t *testing.T) {
+	actions := orderChangesAndMessagesActions(&platform.SubscriptionSetChangesAction{
+		Changes: []platform.ChangeSubscription{
+			{ResourceTypeId: "test"},
+		},
+	}, nil)
+	assert.Len(t, actions, 1)
+}
+
+func TestOrderChangesAndMessagesActionsWithMessages(t *testing.T) {
+	actions := orderChangesAndMessagesActions(nil, &platform.SubscriptionSetMessagesAction{
+		Messages: []platform.MessageSubscription{
+			{ResourceTypeId: "test"},
+		},
+	})
+	assert.Len(t, actions, 1)
+}
+
+func TestOrderChangesAndMessagesActionsWithEmptyChanges(t *testing.T) {
+	actions := orderChangesAndMessagesActions(
+		&platform.SubscriptionSetChangesAction{
+			Changes: []platform.ChangeSubscription{},
+		},
+		&platform.SubscriptionSetMessagesAction{
+			Messages: []platform.MessageSubscription{
+				{ResourceTypeId: "test"},
+			},
+		})
+	assert.Len(t, actions, 2)
+	assert.IsType(t, platform.SubscriptionSetMessagesAction{}, actions[0])
+	assert.IsType(t, platform.SubscriptionSetChangesAction{}, actions[1])
+}
+
+func TestOrderChangesAndMessagesActionsWithEmptyMessages(t *testing.T) {
+	actions := orderChangesAndMessagesActions(
+		&platform.SubscriptionSetChangesAction{
+			Changes: []platform.ChangeSubscription{
+				{ResourceTypeId: "test"},
+			},
+		},
+		&platform.SubscriptionSetMessagesAction{
+			Messages: []platform.MessageSubscription{},
+		})
+	assert.Len(t, actions, 2)
+	assert.IsType(t, platform.SubscriptionSetChangesAction{}, actions[0])
+	assert.IsType(t, platform.SubscriptionSetMessagesAction{}, actions[1])
+}
+
+func TestOrderChangesAndMessagesActionsWithBoth(t *testing.T) {
+	actions := orderChangesAndMessagesActions(
+		&platform.SubscriptionSetChangesAction{
+			Changes: []platform.ChangeSubscription{
+				{ResourceTypeId: "test"},
+			},
+		},
+		&platform.SubscriptionSetMessagesAction{
+			Messages: []platform.MessageSubscription{
+				{ResourceTypeId: "test"},
+			},
+		})
+	assert.Len(t, actions, 2)
+	assert.IsType(t, platform.SubscriptionSetChangesAction{}, actions[0])
+	assert.IsType(t, platform.SubscriptionSetMessagesAction{}, actions[1])
+}
