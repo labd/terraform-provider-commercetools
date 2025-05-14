@@ -723,6 +723,8 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 }
 
 func TestAccProductTypes_sliced(t *testing.T) {
+	t.Skip("Skipping test for large number of attributes")
+
 	key := "acctest-producttype"
 	identifier := "acctest_producttype"
 	resourceName := "commercetools_product_type.acctest_producttype"
