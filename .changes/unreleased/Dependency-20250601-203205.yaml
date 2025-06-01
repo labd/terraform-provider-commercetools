@@ -1,0 +1,3 @@
+kind: Dependency
+body: 'chore(deps): bump golangci/golangci-lint-action from 7 to 8 in the github-actions group'
+time: 2025-06-01T20:32:05.839390605Z
