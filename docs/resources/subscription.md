@@ -34,6 +34,11 @@ resource "commercetools_subscription" "my-sqs-subscription" {
     resource_type_id = "product"
     types            = ["ProductPublished", "ProductCreated"]
   }
+
+  event {
+    resource_type_id = "import-api"
+    types            = ["ImportContainerCreated"]
+  }
 }
 ```
 
@@ -44,6 +49,7 @@ resource "commercetools_subscription" "my-sqs-subscription" {
 
 - `changes` (Block Set) The change notifications subscribed to (see [below for nested schema](#nestedblock--changes))
 - `destination` (Block List) (see [below for nested schema](#nestedblock--destination))
+- `event` (Block Set) Events to be subscribed to (see [below for nested schema](#nestedblock--event))
 - `format` (Block List) The [format](https://docs.commercetools.com/api/projects/subscriptions#format) in which the payload is delivered (see [below for nested schema](#nestedblock--format))
 - `key` (String) Timestamp of the last Terraform update of the order.
 - `message` (Block Set) The messages subscribed to (see [below for nested schema](#nestedblock--message))
@@ -85,6 +91,15 @@ Optional:
 - `topic` (String) The topic of the Google Cloud Pub/Sub or Confluent Cloud topic
 - `topic_arn` (String) The ARN of the SNS topic
 - `uri` (String) The URI of the EventGrid topic
+
+
+<a id="nestedblock--event"></a>
+### Nested Schema for `event`
+
+Required:
+
+- `resource_type_id` (String) [Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#ctp:api:type:EventSubscriptionResourceTypeId)
+- `types` (List of String) Must contain valid event types for the resource. For example, for resource type import-api the event type ImportContainerCreated is valid. If no types are given, the Subscription will receive all events for the defined resource type.
 
 
 <a id="nestedblock--format"></a>

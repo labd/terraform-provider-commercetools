@@ -16,4 +16,9 @@ resource "commercetools_subscription" "my-sqs-subscription" {
     resource_type_id = "product"
     types            = ["ProductPublished", "ProductCreated"]
   }
+
+  event {
+    resource_type_id = "import-api"
+    types            = ["ImportContainerCreated"]
+  }
 }
