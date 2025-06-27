@@ -30,6 +30,7 @@ type Subscription struct {
 	Format      []Format      `tfsdk:"format"`
 	Messages    []Message     `tfsdk:"message"`
 	Changes     []Changes     `tfsdk:"changes"`
+	Events      []Event       `tfsdk:"event"`
 }
 
 func NewSubscriptionFromNative(n *platform.Subscription) Subscription {
@@ -41,6 +42,7 @@ func NewSubscriptionFromNative(n *platform.Subscription) Subscription {
 		Destination: []Destination{},
 		Messages:    make([]Message, len(n.Messages)),
 		Changes:     []Changes{},
+		Events:      make([]Event, len(n.Events)),
 	}
 
 	format := NewFormatFromNative(n.Format)
@@ -62,6 +64,15 @@ func NewSubscriptionFromNative(n *platform.Subscription) Subscription {
 		res.Messages[i] = Message{
 			ResourceTypeID: types.StringValue(string(message.ResourceTypeId)),
 			Types:          pie.Map(message.Types, types.StringValue),
+		}
+	}
+
+	for i, event := range n.Events {
+		res.Events[i] = Event{
+			ResourceTypeID: types.StringValue(string(event.ResourceTypeId)),
+			Types: pie.Map(event.Types, func(t platform.EventType) types.String {
+				return types.StringValue(string(t))
+			}),
 		}
 	}
 
@@ -92,6 +103,9 @@ func (s *Subscription) draft() platform.SubscriptionDraft {
 		Messages: pie.Map(s.Messages, func(m Message) platform.MessageSubscription {
 			return m.toNative()
 		}),
+		Events: pie.Map(s.Events, func(e Event) platform.EventSubscription {
+			return e.toNative()
+		}),
 		Changes: changes,
 	}
 
@@ -102,30 +116,42 @@ func (s *Subscription) draft() platform.SubscriptionDraft {
 	return draft
 }
 
-// orderChangesAndMessagesActions orders the changes and messages actions. This ensures that if both are present but one
+// OrderSubscriptionTypesActions orders the changes and messages actions. This ensures that if both are present but one
 // has an empty list of changes the action with an empty list will be processed last. This is important because
 // otherwise Commercetools will throw an error that a subscription with an empty list of changes and messages
-func orderChangesAndMessagesActions(
+func OrderSubscriptionTypesActions(
 	changesAction *platform.SubscriptionSetChangesAction,
 	messagesAction *platform.SubscriptionSetMessagesAction,
+	eventsAction *platform.SubscriptionSetEventsAction,
 ) []platform.SubscriptionUpdateAction {
-	if changesAction == nil && messagesAction == nil {
-		return nil
+	var actions []platform.SubscriptionUpdateAction
+
+	// Helper to check if action is non-nil and not empty
+	isEmptyChanges := changesAction == nil || len(changesAction.Changes) == 0
+	isEmptyMessages := messagesAction == nil || len(messagesAction.Messages) == 0
+	isEmptyEvents := eventsAction == nil || len(eventsAction.Events) == 0
+
+	// Add non-empty actions first, then empty ones
+	if messagesAction != nil && !isEmptyMessages {
+		actions = append(actions, *messagesAction)
+	}
+	if changesAction != nil && !isEmptyChanges {
+		actions = append(actions, *changesAction)
+	}
+	if eventsAction != nil && !isEmptyEvents {
+		actions = append(actions, *eventsAction)
+	}
+	if messagesAction != nil && isEmptyMessages {
+		actions = append(actions, *messagesAction)
+	}
+	if changesAction != nil && isEmptyChanges {
+		actions = append(actions, *changesAction)
+	}
+	if eventsAction != nil && isEmptyEvents {
+		actions = append(actions, *eventsAction)
 	}
 
-	if changesAction == nil {
-		return []platform.SubscriptionUpdateAction{*messagesAction}
-	}
-
-	if messagesAction == nil {
-		return []platform.SubscriptionUpdateAction{*changesAction}
-	}
-
-	if len(changesAction.Changes) >= len(messagesAction.Messages) {
-		return []platform.SubscriptionUpdateAction{*changesAction, *messagesAction}
-	}
-
-	return []platform.SubscriptionUpdateAction{*messagesAction, *changesAction}
+	return actions
 }
 
 func (s *Subscription) updateActions(plan Subscription) platform.SubscriptionUpdate {
@@ -174,7 +200,17 @@ func (s *Subscription) updateActions(plan Subscription) platform.SubscriptionUpd
 		messagesAction = &platform.SubscriptionSetMessagesAction{Messages: messages}
 	}
 
-	result.Actions = append(result.Actions, orderChangesAndMessagesActions(changesAction, messagesAction)...)
+	// setEvents
+	var eventsAction *platform.SubscriptionSetEventsAction
+	if !reflect.DeepEqual(s.Events, plan.Events) {
+		var events = make([]platform.EventSubscription, 0, len(plan.Events))
+		for _, e := range plan.Events {
+			events = append(events, e.toNative())
+		}
+		eventsAction = &platform.SubscriptionSetEventsAction{Events: events}
+	}
+
+	result.Actions = append(result.Actions, OrderSubscriptionTypesActions(changesAction, messagesAction, eventsAction)...)
 
 	return result
 }
@@ -416,6 +452,20 @@ func (m Message) toNative() platform.MessageSubscription {
 		ResourceTypeId: platform.MessageSubscriptionResourceTypeId(m.ResourceTypeID.ValueString()),
 		Types: pie.Map(m.Types, func(v types.String) string {
 			return v.ValueString()
+		}),
+	}
+}
+
+type Event struct {
+	ResourceTypeID types.String   `tfsdk:"resource_type_id"`
+	Types          []types.String `tfsdk:"types"`
+}
+
+func (e Event) toNative() platform.EventSubscription {
+	return platform.EventSubscription{
+		ResourceTypeId: platform.EventSubscriptionResourceTypeId(e.ResourceTypeID.ValueString()),
+		Types: pie.Map(e.Types, func(v types.String) platform.EventType {
+			return platform.EventType(v.ValueString())
 		}),
 	}
 }
