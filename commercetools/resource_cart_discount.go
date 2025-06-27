@@ -308,7 +308,7 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m a
 		Description:          &description,
 		Value:                &value,
 		CartPredicate:        d.Get("predicate").(string),
-		SortOrder:            d.Get("sort_order").(string),
+		SortOrder:            stringRef(d.Get("sort_order").(string)),
 		IsActive:             boolRef(d.Get("is_active")),
 		RequiresDiscountCode: ctutils.BoolRef(d.Get("requires_discount_code").(bool)),
 		Stores:               expandStores(d.Get("stores").(*schema.Set)),

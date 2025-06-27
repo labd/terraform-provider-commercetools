@@ -36,6 +36,16 @@ var SubscriptionResourceV1 = tftypes.Object{
 				},
 			},
 		},
+		"event": tftypes.Set{
+			ElementType: tftypes.Object{
+				AttributeTypes: map[string]tftypes.Type{
+					"resource_type_id": tftypes.String,
+					"types": tftypes.List{
+						ElementType: tftypes.String,
+					},
+				},
+			},
+		},
 	},
 }
 
