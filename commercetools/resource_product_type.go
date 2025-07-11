@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"reflect"
 	"slices"
 	"strings"
@@ -83,6 +84,16 @@ func resourceProductType() *schema.Resource {
 								"An exception to this are the values of an enum or lenum type and sets thereof",
 							Type:     schema.TypeString,
 							Required: true,
+						},
+						"level": {
+							Description: "Specifies whether the Attribute is defined at the Product or Variant level.",
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     platform.AttributeLevelEnumVariant,
+							ValidateFunc: validation.StringInSlice([]string{
+								string(platform.AttributeLevelEnumProduct),
+								string(platform.AttributeLevelEnumVariant),
+							}, false),
 						},
 						"label": {
 							Description:      "A human-readable label for the attribute",
@@ -274,6 +285,7 @@ func flattenProductTypeAttributes(t *platform.ProductType) ([]map[string]any, er
 		attrs[i] = map[string]any{
 			"type":       attrType,
 			"name":       attrDef.Name,
+			"level":      attrDef.Level,
 			"label":      attrDef.Label,
 			"required":   attrDef.IsRequired,
 			"input_hint": attrDef.InputHint,
@@ -533,6 +545,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 						Type:                newAttr.Type,
 						Name:                newAttr.Name,
 						Label:               newAttr.Label,
+						Level:               ref(newAttr.Level),
 						IsRequired:          newAttr.IsRequired,
 						AttributeConstraint: &newAttr.AttributeConstraint,
 						InputTip:            newAttr.InputTip,
@@ -602,6 +615,10 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 					AttributeName: name,
 					NewValue:      platform.AttributeConstraintEnumDraft(newAttr.AttributeConstraint),
 				})
+		}
+
+		if !reflect.DeepEqual(oldAttr.Level, newAttr.Level) {
+			return nil, fmt.Errorf("changing the level of an attribute is not supported in commercetools. Remove the attribute and re-add it with the new level")
 		}
 
 		// Specific updates for EnumType, LocalizedEnumType and a Set of these
@@ -886,11 +903,17 @@ func expandProductTypeAttributeDefinitionItem(input map[string]any, draft bool) 
 		constraint = platform.AttributeConstraintEnumNone
 	}
 
+	lString, ok := input["level"].(string)
+	if !ok {
+		lString = string(platform.AttributeLevelEnumVariant)
+	}
+
 	inputHint := platform.TextInputHint(input["input_hint"].(string))
 	if draft {
 		return platform.AttributeDefinitionDraft{
 			Type:                attrType,
 			Name:                input["name"].(string),
+			Level:               ref(platform.AttributeLevelEnum(lString)),
 			Label:               label,
 			AttributeConstraint: &constraint,
 			IsRequired:          input["required"].(bool),
@@ -902,6 +925,7 @@ func expandProductTypeAttributeDefinitionItem(input map[string]any, draft bool) 
 	return platform.AttributeDefinition{
 		Type:                attrType,
 		Name:                input["name"].(string),
+		Level:               platform.AttributeLevelEnum(lString),
 		Label:               label,
 		AttributeConstraint: constraint,
 		IsRequired:          input["required"].(bool),
