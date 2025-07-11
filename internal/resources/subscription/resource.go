@@ -302,6 +302,24 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 					},
 				},
 			},
+			"event": schema.SetNestedBlock{
+				Description: "Events to be subscribed to",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"resource_type_id": schema.StringAttribute{
+							MarkdownDescription: "[Resource Type ID](https://docs.commercetools.com/api/projects/subscriptions#ctp:api:type:EventSubscriptionResourceTypeId)",
+							Required:            true,
+						},
+						"types": schema.ListAttribute{
+							MarkdownDescription: "Must contain valid event types for the resource. For example, for " +
+								"resource type import-api the event type ImportContainerCreated is valid. If no types " +
+								"are given, the Subscription will receive all events for the defined resource type.",
+							ElementType: types.StringType,
+							Required:    true,
+						},
+					},
+				},
+			},
 		},
 	}
 }

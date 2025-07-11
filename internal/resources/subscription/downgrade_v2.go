@@ -2,6 +2,8 @@ package subscription
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -62,7 +64,7 @@ var SubscriptionResourceV2 = tftypes.Object{
 // Schema version 2 moves us to Single nested blocks, but it turned out to be
 // not working correctly in terraform for now. So we moved back to the v1
 // approach
-func downgradeStateV2(_ context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+func downgradeStateV2(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
 	rawStateValue, err := req.RawState.Unmarshal(SubscriptionResourceV2)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -81,6 +83,20 @@ func downgradeStateV2(_ context.Context, req resource.UpgradeStateRequest, resp 
 		return
 	}
 
+	eventVal, err := types.SetNull(types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"resource_type_id": types.StringType,
+			"types":            types.ListType{ElemType: types.StringType},
+		},
+	}).ToTerraformValue(ctx)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Convert Event Value",
+			err.Error(),
+		)
+		return
+	}
+
 	dynamicValue, err := tfprotov6.NewDynamicValue(
 		SubscriptionResourceV1,
 		tftypes.NewValue(SubscriptionResourceV1, map[string]tftypes.Value{
@@ -91,6 +107,7 @@ func downgradeStateV2(_ context.Context, req resource.UpgradeStateRequest, resp 
 			"destination": valueDestinationV1(rawState, "destination"),
 			"format":      valueToFormatV1(rawState, "format"),
 			"message":     rawState["message"],
+			"event":       eventVal,
 		}),
 	)
 	if err != nil {
