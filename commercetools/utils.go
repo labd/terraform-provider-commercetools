@@ -20,6 +20,11 @@ func getClient(m any) *platform.ByProjectKeyRequestBuilder {
 	return client
 }
 
+func ref[T any](value T) *T {
+	result := value
+	return &result
+}
+
 func stringRef(value any) *string {
 	if _, ok := value.(*string); ok {
 		return value.(*string)

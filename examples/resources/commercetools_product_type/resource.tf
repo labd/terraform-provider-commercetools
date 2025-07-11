@@ -124,3 +124,21 @@ resource "commercetools_product_type" "my-product-type" {
     }
   }
 }
+
+resource "commercetools_product_type" "product-type-with-product-level-attribute" {
+  key         = "some-key"
+  name        = "Some generic product properties"
+  description = "All the generic product properties"
+  attribute {
+    name  = "perishable"
+    level = "Product"
+    label = {
+      en = "Is perishable"
+      nl = "Is perishable"
+    }
+    required = true
+    type {
+      name = "boolean"
+    }
+  }
+}

@@ -1,6 +1,10 @@
 version: '3'
 
 tasks:
+  default:
+    silent: true
+    cmd: task --list-all
+
   build-local:
     cmds:
       - go build -o terraform-provider-{{ .NAME }}_{{ .VERSION }}
@@ -22,6 +26,7 @@ tasks:
   format:
     cmds:
       - go fmt ./...
+      - terraform fmt -diff -recursive ./examples/
 
   test:
     cmds:
