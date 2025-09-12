@@ -99,7 +99,7 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
 ### Optional
 
 - `key` (String) User-specific unique identifier for the extension
-- `timeout_in_ms` (Number) Extension timeout in milliseconds
+- `timeout_in_ms` (Number) Maximum time (in milliseconds) that the Extension can respond within. If no timeout is provided, the default value is used for all types of Extensions, including payment Extensions. The maximum value is 10000 ms (10 seconds) for payment Extensions and 2000 ms (2 seconds) for all other Extensions.
 
 ### Read-Only
 
