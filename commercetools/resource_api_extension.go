@@ -114,9 +114,13 @@ func resourceAPIExtension() *schema.Resource {
 				},
 			},
 			"timeout_in_ms": {
-				Description: "Extension timeout in milliseconds",
-				Type:        schema.TypeInt,
-				Optional:    true,
+				Description: "Maximum time (in milliseconds) that the Extension can respond within. If no timeout is " +
+					"provided, the default value is used for all types of Extensions, including payment Extensions. " +
+					"The maximum value is 10000 ms (10 seconds) for payment Extensions and 2000 ms (2 seconds) for " +
+					"all other Extensions.",
+				Type:     schema.TypeInt,
+				Default:  2000,
+				Optional: true,
 			},
 			"version": {
 				Type:     schema.TypeInt,
