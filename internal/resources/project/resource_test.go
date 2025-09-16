@@ -29,24 +29,15 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "countries.#", "3"),
 					resource.TestCheckResourceAttr(resourceName, "currencies.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "languages.#", "4"),
-					resource.TestCheckResourceAttr(resourceName, "messages.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "true"),
-					resource.TestCheckResourceAttr(resourceName, "external_oauth.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "messages.#", "0"),
+					resource.TestCheckResourceAttr(resourceName, "carts.#", "0"),
+					resource.TestCheckResourceAttr(resourceName, "shopping_lists.#", "0"),
+					resource.TestCheckResourceAttr(resourceName, "external_oauth.#", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enable_search_index_orders", "false"),
 					resource.TestCheckResourceAttr(resourceName, "enable_search_index_customers", "false"),
 					resource.TestCheckResourceAttr(resourceName, "enable_search_index_products", "false"),
 					resource.TestCheckResourceAttr(resourceName, "enable_search_index_product_search", "false"),
-					resource.TestCheckResourceAttr(
-						resourceName, "external_oauth.0.authorization_header", "Bearer secret"),
-					resource.TestCheckResourceAttr(
-						resourceName, "external_oauth.0.url", "https://example.com/oauth/token"),
-					resource.TestCheckResourceAttr(
-						resourceName, "shipping_rate_input_type", "CartValue"),
-					resource.TestCheckResourceAttr(resourceName, "carts.#", "1"),
-					resource.TestCheckResourceAttr(
-						resourceName, "carts.0.country_tax_rate_fallback_enabled", "true"),
-					resource.TestCheckResourceAttr(
-						resourceName, "carts.0.delete_days_after_last_modification", "7"),
+					resource.TestCheckResourceAttr(resourceName, "enable_search_index_business_units", "false"),
 					func(s *terraform.State) error {
 						rs, ok := s.RootModule().Resources[resourceName]
 						if !ok {
@@ -69,16 +60,17 @@ func TestAccProjectCreate_basic(t *testing.T) {
 							return fmt.Errorf("resource not found")
 						}
 
-						assert.True(t, *result.Carts.CountryTaxRateFallbackEnabled)
-						assert.EqualValues(t, result.Messages.Enabled, true)
-						assert.EqualValues(t, result.Messages.DeleteDaysAfterCreation, utils.IntRef(90))
-						assert.EqualValues(t, result.ExternalOAuth.Url, "https://example.com/oauth/token")
-						assert.EqualValues(t, result.ExternalOAuth.AuthorizationHeader, "****")
 						assert.EqualValues(t, result.Countries, []string{"NL", "DE", "US"})
 						assert.EqualValues(t, result.Languages, []string{"nl", "de", "en", "en-US"})
 						assert.EqualValues(t, result.Currencies, []string{"EUR", "USD"})
-						assert.Equal(t, *result.Carts.DeleteDaysAfterLastModification, 7)
-						assert.Equal(t, result.ShippingRateInputType, platform.CartValueType{})
+						assert.EqualValues(t, result.Messages.Enabled, false)
+						assert.EqualValues(t, result.Messages.DeleteDaysAfterCreation, utils.IntRef(15))
+						assert.Equal(t, *result.Carts.DeleteDaysAfterLastModification, 90)
+						assert.Equal(t, *result.Carts.CountryTaxRateFallbackEnabled, false)
+						assert.Equal(t, result.Carts.PriceRoundingMode, utils.Ref(platform.RoundingModeHalfEven))
+						assert.Equal(t, result.Carts.TaxRoundingMode, utils.Ref(platform.RoundingModeHalfEven))
+						assert.Equal(t, *result.ShoppingLists.DeleteDaysAfterLastModification, 360)
+						assert.Equal(t, result.ShippingRateInputType, nil)
 						return nil
 					},
 				),
@@ -90,12 +82,13 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "countries.#", "4"),
 					resource.TestCheckResourceAttr(resourceName, "currencies.#", "3"),
 					resource.TestCheckResourceAttr(resourceName, "languages.#", "5"),
-					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "false"),
+					resource.TestCheckResourceAttr(resourceName, "messages.0.enabled", "true"),
 					resource.TestCheckResourceAttr(resourceName, "messages.0.delete_days_after_creation", "15"),
 					resource.TestCheckResourceAttr(resourceName, "enable_search_index_orders", "true"),
 					resource.TestCheckResourceAttr(resourceName, "enable_search_index_customers", "true"),
 					resource.TestCheckResourceAttr(resourceName, "enable_search_index_products", "true"),
 					resource.TestCheckResourceAttr(resourceName, "enable_search_index_product_search", "true"),
+					resource.TestCheckResourceAttr(resourceName, "enable_search_index_business_units", "true"),
 					resource.TestCheckResourceAttr(
 						resourceName, "external_oauth.0.url", "https://new-example.com/oauth/token"),
 					resource.TestCheckResourceAttr(
@@ -117,9 +110,19 @@ func TestAccProjectCreate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						resourceName, "shipping_rate_cart_classification_value.1.label.nl", "Middel"),
 					resource.TestCheckResourceAttr(
-						resourceName, "carts.0.country_tax_rate_fallback_enabled", "false"),
+						resourceName, "carts.#", "1"),
+					resource.TestCheckResourceAttr(
+						resourceName, "carts.0.country_tax_rate_fallback_enabled", "true"),
 					resource.TestCheckResourceAttr(
 						resourceName, "carts.0.delete_days_after_last_modification", "21"),
+					resource.TestCheckResourceAttr(
+						resourceName, "carts.0.price_rounding_mode", "HalfUp"),
+					resource.TestCheckResourceAttr(
+						resourceName, "carts.0.tax_rounding_mode", "HalfUp"),
+					resource.TestCheckResourceAttr(
+						resourceName, "shopping_lists.#", "1"),
+					resource.TestCheckResourceAttr(
+						resourceName, "shopping_lists.0.delete_days_after_last_modification", "14"),
 				),
 			},
 			{
@@ -202,23 +205,6 @@ func testAccProjectConfig(identifier string) string {
 			countries  = ["NL", "DE", "US"]
 			currencies = ["EUR", "USD"]
 			languages  = ["nl", "de", "en", "en-US"]
-
-			external_oauth {
-				url = "https://example.com/oauth/token"
-				authorization_header = "Bearer secret"
-			}
-
-			messages {
-				enabled = true
-				delete_days_after_creation = 90
-			}
-
-			carts {
-				country_tax_rate_fallback_enabled = true
-				delete_days_after_last_modification = 7
-			}
-
-			shipping_rate_input_type = "CartValue"
 		}`, map[string]any{
 		"identifier": identifier,
 	})
@@ -236,19 +222,26 @@ func testAccProjectConfigUpdate(identifier string) string {
 				authorization_header = "Bearer new-secret"
 			}
 			messages {
-				enabled = false
+				enabled = true
 				delete_days_after_creation = 15
 			}
 
 			carts {
-				country_tax_rate_fallback_enabled = false
+				country_tax_rate_fallback_enabled = true
 				delete_days_after_last_modification = 21
+				price_rounding_mode = "HalfUp"
+				tax_rounding_mode = "HalfUp"
+			}
+	
+			shopping_lists {
+				delete_days_after_last_modification = 14
 			}
 
 		   	enable_search_index_orders         = true
 	       	enable_search_index_customers      = true
    			enable_search_index_products       = true
    			enable_search_index_product_search = true
+   			enable_search_index_business_units = true
 
 			shipping_rate_input_type = "CartClassification"
 			shipping_rate_cart_classification_value {
