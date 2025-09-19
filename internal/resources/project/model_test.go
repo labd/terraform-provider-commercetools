@@ -1,10 +1,11 @@
 package project
 
 import (
+	"testing"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/labd/terraform-provider-commercetools/internal/customtypes"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
-	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -36,14 +37,10 @@ func TestNewProjectFromNative(t *testing.T) {
 				EnableSearchIndexOrders:        types.BoolValue(false),
 				EnableSearchIndexCustomers:     types.BoolValue(false),
 				EnableSearchIndexProductSearch: types.BoolValue(false),
+				EnableSearchIndexBusinessUnits: types.BoolValue(false),
 
 				ExternalOAuth: []ExternalOAuth{},
-				Carts: []Carts{
-					{
-						CountryTaxRateFallbackEnabled:   types.BoolNull(),
-						DeleteDaysAfterLastModification: types.Int64Null(),
-					},
-				},
+				Carts:         nil,
 				Messages: []Messages{
 					{
 						Enabled:                 types.BoolValue(false),
@@ -133,6 +130,8 @@ func TestUpdateActions(t *testing.T) {
 					{
 						CountryTaxRateFallbackEnabled:   types.BoolValue(true),
 						DeleteDaysAfterLastModification: types.Int64Value(10),
+						PriceRoundingMode:               types.StringValue("HalfUp"),
+						TaxRoundingMode:                 types.StringValue("HalfUp"),
 					},
 				},
 			},
@@ -142,6 +141,8 @@ func TestUpdateActions(t *testing.T) {
 					{
 						CountryTaxRateFallbackEnabled:   types.BoolValue(false),
 						DeleteDaysAfterLastModification: types.Int64Value(90),
+						PriceRoundingMode:               types.StringValue("HalfEven"),
+						TaxRoundingMode:                 types.StringValue("HalfEven"),
 					},
 				},
 			},
@@ -150,11 +151,15 @@ func TestUpdateActions(t *testing.T) {
 				Actions: []platform.ProjectUpdateAction{
 					platform.ProjectChangeCartsConfigurationAction{
 						CartsConfiguration: platform.CartsConfiguration{
-							CountryTaxRateFallbackEnabled:   utils.BoolRef(false),
-							DeleteDaysAfterLastModification: utils.IntRef(90),
+							DeleteDaysAfterLastModification: utils.Ref(90),
+							CountryTaxRateFallbackEnabled:   utils.Ref(false),
+							PriceRoundingMode:               utils.Ref(platform.RoundingModeHalfEven),
+							TaxRoundingMode:                 utils.Ref(platform.RoundingModeHalfEven),
 						},
 					},
 					platform.ProjectChangeCountryTaxRateFallbackEnabledAction{CountryTaxRateFallbackEnabled: false},
+					platform.ProjectChangePriceRoundingModeAction{PriceRoundingMode: "HalfEven"},
+					platform.ProjectChangeTaxRoundingModeAction{TaxRoundingMode: "HalfEven"},
 				},
 			},
 		},
@@ -366,6 +371,25 @@ func TestUpdateActions(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Update with search index business unit search activated",
+			state: Project{
+				Version:                        types.Int64Value(1),
+				EnableSearchIndexBusinessUnits: types.BoolValue(false),
+			},
+			plan: Project{
+				Version:                        types.Int64Value(1),
+				EnableSearchIndexBusinessUnits: types.BoolValue(true),
+			},
+			action: platform.ProjectUpdate{
+				Version: 1,
+				Actions: []platform.ProjectUpdateAction{
+					platform.ProjectChangeBusinessUnitSearchStatusAction{
+						Status: platform.BusinessUnitSearchStatusActivated,
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -396,7 +420,14 @@ func TestSetStateData(t *testing.T) {
 			},
 			expected: Project{
 				ExternalOAuth: nil,
-				Carts:         nil,
+				Carts: []Carts{
+					{
+						CountryTaxRateFallbackEnabled:   types.BoolNull(),
+						DeleteDaysAfterLastModification: types.Int64Null(),
+						PriceRoundingMode:               types.StringNull(),
+						TaxRoundingMode:                 types.StringNull(),
+					},
+				},
 			},
 		}, {
 			name: "externalOAuth in state",
@@ -415,7 +446,14 @@ func TestSetStateData(t *testing.T) {
 				ExternalOAuth: []ExternalOAuth{
 					{AuthorizationHeader: types.StringValue("some-value")},
 				},
-				Carts: nil,
+				Carts: []Carts{
+					{
+						CountryTaxRateFallbackEnabled:   types.BoolNull(),
+						DeleteDaysAfterLastModification: types.Int64Null(),
+						PriceRoundingMode:               types.StringNull(),
+						TaxRoundingMode:                 types.StringNull(),
+					},
+				},
 			},
 		}, {
 			name: "externalOAuth in plan",
@@ -436,7 +474,14 @@ func TestSetStateData(t *testing.T) {
 				ExternalOAuth: []ExternalOAuth{
 					{AuthorizationHeader: types.StringValue("some-other-value")},
 				},
-				Carts: nil,
+				Carts: []Carts{
+					{
+						CountryTaxRateFallbackEnabled:   types.BoolNull(),
+						DeleteDaysAfterLastModification: types.Int64Null(),
+						PriceRoundingMode:               types.StringNull(),
+						TaxRoundingMode:                 types.StringNull(),
+					},
+				},
 			},
 		}, {
 			name: "business unit in plan",
@@ -455,7 +500,14 @@ func TestSetStateData(t *testing.T) {
 			},
 			expected: Project{
 				BusinessUnits: nil,
-				Carts:         nil,
+				Carts: []Carts{
+					{
+						CountryTaxRateFallbackEnabled:   types.BoolNull(),
+						DeleteDaysAfterLastModification: types.Int64Null(),
+						PriceRoundingMode:               types.StringNull(),
+						TaxRoundingMode:                 types.StringNull(),
+					},
+				},
 			},
 		},
 	}
@@ -465,4 +517,70 @@ func TestSetStateData(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.state)
 		})
 	}
+}
+
+func IsDefaultCartsConfiguration_DefaultValues(t *testing.T) {
+	c := platform.CartsConfiguration{
+		CountryTaxRateFallbackEnabled:   utils.BoolRef(false),
+		DeleteDaysAfterLastModification: utils.IntRef(DefaultDaysAfterLastModification),
+		PriceRoundingMode:               utils.GetRef(platform.RoundingModeHalfEven),
+		TaxRoundingMode:                 utils.GetRef(platform.RoundingModeHalfEven),
+	}
+	assert.True(t, IsDefaultCartsConfiguration(c))
+}
+
+func IsDefaultCartsConfiguration_NilFields(t *testing.T) {
+	c := platform.CartsConfiguration{}
+	assert.True(t, IsDefaultCartsConfiguration(c))
+}
+
+func IsDefaultCartsConfiguration_NonDefaultCountryTaxRateFallbackEnabled(t *testing.T) {
+	c := platform.CartsConfiguration{
+		CountryTaxRateFallbackEnabled: utils.BoolRef(true),
+	}
+	assert.False(t, IsDefaultCartsConfiguration(c))
+}
+
+func IsDefaultCartsConfiguration_NonDefaultDeleteDaysAfterLastModification(t *testing.T) {
+	c := platform.CartsConfiguration{
+		DeleteDaysAfterLastModification: utils.IntRef(30),
+	}
+	assert.False(t, IsDefaultCartsConfiguration(c))
+}
+
+func IsDefaultCartsConfiguration_NonDefaultPriceRoundingMode(t *testing.T) {
+	c := platform.CartsConfiguration{
+		PriceRoundingMode: utils.GetRef(platform.RoundingModeHalfUp),
+	}
+	assert.False(t, IsDefaultCartsConfiguration(c))
+}
+
+func IsDefaultCartsConfiguration_NonDefaultTaxRoundingMode(t *testing.T) {
+	c := platform.CartsConfiguration{
+		TaxRoundingMode: utils.GetRef(platform.RoundingModeHalfUp),
+	}
+	assert.False(t, IsDefaultCartsConfiguration(c))
+}
+
+func IsDefaultShoppingListsConfiguration_Nil(t *testing.T) {
+	assert.True(t, IsDefaultShoppingListsConfiguration(nil))
+}
+
+func IsDefaultShoppingListsConfiguration_DefaultValue(t *testing.T) {
+	c := &platform.ShoppingListsConfiguration{
+		DeleteDaysAfterLastModification: utils.IntRef(DefaultDaysAfterLastModification),
+	}
+	assert.True(t, IsDefaultShoppingListsConfiguration(c))
+}
+
+func IsDefaultShoppingListsConfiguration_NilDeleteDays(t *testing.T) {
+	c := &platform.ShoppingListsConfiguration{}
+	assert.True(t, IsDefaultShoppingListsConfiguration(c))
+}
+
+func IsDefaultShoppingListsConfiguration_NonDefaultDeleteDays(t *testing.T) {
+	c := &platform.ShoppingListsConfiguration{
+		DeleteDaysAfterLastModification: utils.IntRef(30),
+	}
+	assert.False(t, IsDefaultShoppingListsConfiguration(c))
 }

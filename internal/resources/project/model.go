@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	DefaultDeleteDaysAfterCreation = 15
+	DefaultDeleteDaysAfterCreation   = 15
+	DefaultDaysAfterLastModification = 90
 )
 
 type Project struct {
@@ -30,11 +31,13 @@ type Project struct {
 	EnableSearchIndexProductSearch types.Bool `tfsdk:"enable_search_index_product_search"`
 	EnableSearchIndexOrders        types.Bool `tfsdk:"enable_search_index_orders"`
 	EnableSearchIndexCustomers     types.Bool `tfsdk:"enable_search_index_customers"`
+	EnableSearchIndexBusinessUnits types.Bool `tfsdk:"enable_search_index_business_units"`
 
 	// These items all have maximal one item. We don't use SingleNestedBlock
 	// here since it isn't quite robust currently.
 	// See https://github.com/hashicorp/terraform-plugin-framework/issues/603
 	Carts         []Carts         `tfsdk:"carts"`
+	ShoppingLists []ShoppingList  `tfsdk:"shopping_lists"`
 	Messages      []Messages      `tfsdk:"messages"`
 	ExternalOAuth []ExternalOAuth `tfsdk:"external_oauth"`
 
@@ -42,6 +45,21 @@ type Project struct {
 	ShippingRateCartClassificationValue []models.CustomFieldLocalizedEnumValue `tfsdk:"shipping_rate_cart_classification_value"`
 
 	BusinessUnits []BusinessUnits `tfsdk:"business_units"`
+}
+
+func IsDefaultCartsConfiguration(c platform.CartsConfiguration) bool {
+	return (c.CountryTaxRateFallbackEnabled == nil || *c.CountryTaxRateFallbackEnabled == false) &&
+		(c.DeleteDaysAfterLastModification == nil || *c.DeleteDaysAfterLastModification == DefaultDaysAfterLastModification) &&
+		(c.PriceRoundingMode == nil || *c.PriceRoundingMode == platform.RoundingModeHalfEven) &&
+		(c.TaxRoundingMode == nil || *c.TaxRoundingMode == platform.RoundingModeHalfEven)
+}
+
+func IsDefaultShoppingListsConfiguration(c *platform.ShoppingListsConfiguration) bool {
+	if c == nil {
+		return true
+	}
+
+	return c.DeleteDaysAfterLastModification == nil || *c.DeleteDaysAfterLastModification == DefaultDaysAfterLastModification
 }
 
 func NewProjectFromNative(n *platform.Project) Project {
@@ -59,13 +77,7 @@ func NewProjectFromNative(n *platform.Project) Project {
 		EnableSearchIndexProductSearch: types.BoolValue(false),
 		EnableSearchIndexOrders:        types.BoolValue(false),
 		EnableSearchIndexCustomers:     types.BoolValue(false),
-
-		Carts: []Carts{
-			{
-				DeleteDaysAfterLastModification: utils.FromOptionalInt(n.Carts.DeleteDaysAfterLastModification),
-				CountryTaxRateFallbackEnabled:   utils.FromOptionalBool(n.Carts.CountryTaxRateFallbackEnabled),
-			},
-		},
+		EnableSearchIndexBusinessUnits: types.BoolValue(false),
 		Messages: []Messages{
 			{
 				DeleteDaysAfterCreation: utils.FromOptionalInt(n.Messages.DeleteDaysAfterCreation),
@@ -74,6 +86,25 @@ func NewProjectFromNative(n *platform.Project) Project {
 		},
 		ExternalOAuth: []ExternalOAuth{},
 		BusinessUnits: []BusinessUnits{},
+	}
+
+	if !IsDefaultCartsConfiguration(n.Carts) {
+		res.Carts = []Carts{
+			{
+				DeleteDaysAfterLastModification: utils.FromOptionalInt(n.Carts.DeleteDaysAfterLastModification),
+				CountryTaxRateFallbackEnabled:   utils.FromOptionalBool(n.Carts.CountryTaxRateFallbackEnabled),
+				PriceRoundingMode:               utils.FromOptionalString((*string)(n.Carts.PriceRoundingMode)),
+				TaxRoundingMode:                 utils.FromOptionalString((*string)(n.Carts.TaxRoundingMode)),
+			},
+		}
+	}
+
+	if !IsDefaultShoppingListsConfiguration(n.ShoppingLists) {
+		res.ShoppingLists = []ShoppingList{
+			{
+				DeleteDaysAfterLastModification: utils.FromOptionalInt(n.ShoppingLists.DeleteDaysAfterLastModification),
+			},
+		}
 	}
 
 	// always set it to an empty list to avoid the wrong comparison in the update actions part
@@ -123,6 +154,12 @@ func NewProjectFromNative(n *platform.Project) Project {
 		res.EnableSearchIndexCustomers = types.BoolValue(enabled)
 	}
 
+	if n.SearchIndexing != nil && n.SearchIndexing.BusinessUnits != nil && n.SearchIndexing.BusinessUnits.Status != nil {
+		status := *n.SearchIndexing.BusinessUnits.Status
+		enabled := status != platform.SearchIndexingConfigurationStatusDeactivated
+		res.EnableSearchIndexBusinessUnits = types.BoolValue(enabled)
+	}
+
 	if n.ExternalOAuth != nil {
 		res.ExternalOAuth = []ExternalOAuth{
 			{
@@ -154,7 +191,7 @@ func (p *Project) setStateData(o Project) {
 
 	// If the state has no data for carts (0 items) and the configuration is the
 	// default we match the state
-	if p.Carts[0].isDefault() && (len(o.Carts) == 0 || o.Carts[0].isDefault()) {
+	if p.Carts != nil && p.Carts[0].isDefault() && (len(o.Carts) == 0 || o.Carts[0].isDefault()) {
 		p.Carts = o.Carts
 	}
 
@@ -185,7 +222,18 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 		if len(plan.Carts) == 0 {
 			result.Actions = append(result.Actions,
 				platform.ProjectChangeCartsConfigurationAction{
-					CartsConfiguration: platform.CartsConfiguration{},
+					CartsConfiguration: platform.CartsConfiguration{
+						DeleteDaysAfterLastModification: utils.IntRef(DefaultDaysAfterLastModification),
+					},
+				},
+				platform.ProjectChangeCountryTaxRateFallbackEnabledAction{
+					CountryTaxRateFallbackEnabled: false,
+				},
+				platform.ProjectChangePriceRoundingModeAction{
+					PriceRoundingMode: platform.RoundingModeHalfEven,
+				},
+				platform.ProjectChangeTaxRoundingModeAction{
+					TaxRoundingMode: platform.RoundingModeHalfEven,
 				},
 			)
 		} else {
@@ -194,13 +242,34 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 				platform.ProjectChangeCartsConfigurationAction{
 					CartsConfiguration: val,
 				},
-			)
-
-			//ProjectChangeCartsConfigurationAction does not actually update CountryTaxRateFallbackEnabled,
-			// so added extra mutation in same flow to keep consistent with previous code
-			result.Actions = append(result.Actions,
 				platform.ProjectChangeCountryTaxRateFallbackEnabledAction{
 					CountryTaxRateFallbackEnabled: *val.CountryTaxRateFallbackEnabled,
+				},
+				platform.ProjectChangePriceRoundingModeAction{
+					PriceRoundingMode: *val.PriceRoundingMode,
+				},
+				platform.ProjectChangeTaxRoundingModeAction{
+					TaxRoundingMode: *val.TaxRoundingMode,
+				},
+			)
+		}
+	}
+
+	// changeShoppingLists
+	if !reflect.DeepEqual(p.ShoppingLists, plan.ShoppingLists) {
+		if len(plan.ShoppingLists) == 0 {
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeShoppingListsConfigurationAction{
+					ShoppingListsConfiguration: platform.ShoppingListsConfiguration{
+						DeleteDaysAfterLastModification: utils.IntRef(DefaultDaysAfterLastModification),
+					},
+				},
+			)
+		} else {
+			val := plan.ShoppingLists[0].toNative()
+			result.Actions = append(result.Actions,
+				platform.ProjectChangeShoppingListsConfigurationAction{
+					ShoppingListsConfiguration: val,
 				},
 			)
 		}
@@ -312,6 +381,19 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 		}
 		result.Actions = append(result.Actions,
 			platform.ProjectChangeCustomerSearchStatusAction{
+				Status: status,
+			},
+		)
+	}
+
+	// changeBusinessUnitSearchStatus
+	if !p.EnableSearchIndexBusinessUnits.Equal(plan.EnableSearchIndexBusinessUnits) {
+		status := platform.BusinessUnitSearchStatusDeactivated
+		if plan.EnableSearchIndexBusinessUnits.ValueBool() {
+			status = platform.BusinessUnitSearchStatusActivated
+		}
+		result.Actions = append(result.Actions,
+			platform.ProjectChangeBusinessUnitSearchStatusAction{
 				Status: status,
 			},
 		)
@@ -446,19 +528,42 @@ func (e ExternalOAuth) toNative() *platform.ExternalOAuth {
 }
 
 type Carts struct {
-	CountryTaxRateFallbackEnabled   types.Bool  `tfsdk:"country_tax_rate_fallback_enabled"`
-	DeleteDaysAfterLastModification types.Int64 `tfsdk:"delete_days_after_last_modification"`
+	CountryTaxRateFallbackEnabled   types.Bool   `tfsdk:"country_tax_rate_fallback_enabled"`
+	DeleteDaysAfterLastModification types.Int64  `tfsdk:"delete_days_after_last_modification"`
+	PriceRoundingMode               types.String `tfsdk:"price_rounding_mode"`
+	TaxRoundingMode                 types.String `tfsdk:"tax_rounding_mode"`
 }
 
 func (c Carts) isDefault() bool {
 	return !c.CountryTaxRateFallbackEnabled.ValueBool() &&
-		c.DeleteDaysAfterLastModification.IsNull()
+		c.DeleteDaysAfterLastModification.ValueInt64() == DefaultDaysAfterLastModification &&
+		(c.PriceRoundingMode.IsNull() || c.PriceRoundingMode.ValueString() == string(platform.RoundingModeHalfEven)) &&
+		(c.TaxRoundingMode.IsNull() || c.TaxRoundingMode.ValueString() == string(platform.RoundingModeHalfEven))
 }
 
 func (c Carts) toNative() platform.CartsConfiguration {
+	priceRoundingMode := platform.RoundingMode(c.PriceRoundingMode.ValueString())
+	taxRoundingMode := platform.RoundingMode(c.TaxRoundingMode.ValueString())
+
 	return platform.CartsConfiguration{
 		DeleteDaysAfterLastModification: utils.OptionalInt(c.DeleteDaysAfterLastModification),
 		CountryTaxRateFallbackEnabled:   utils.BoolRef(c.CountryTaxRateFallbackEnabled.ValueBool()),
+		PriceRoundingMode:               &priceRoundingMode,
+		TaxRoundingMode:                 &taxRoundingMode,
+	}
+}
+
+type ShoppingList struct {
+	DeleteDaysAfterLastModification types.Int64 `tfsdk:"delete_days_after_last_modification"`
+}
+
+func (c ShoppingList) isDefault() bool {
+	return c.DeleteDaysAfterLastModification.ValueInt64() == DefaultDaysAfterLastModification
+}
+
+func (c ShoppingList) toNative() platform.ShoppingListsConfiguration {
+	return platform.ShoppingListsConfiguration{
+		DeleteDaysAfterLastModification: utils.OptionalInt(c.DeleteDaysAfterLastModification),
 	}
 }
 

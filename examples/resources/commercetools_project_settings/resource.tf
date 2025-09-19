@@ -1,5 +1,4 @@
 resource "commercetools_project_settings" "my-project" {
-  key        = "my-project-key"
   name       = "My project"
   countries  = ["NL", "DE", "US", "CA"]
   currencies = ["EUR", "USD", "CAD"]
@@ -12,9 +11,22 @@ resource "commercetools_project_settings" "my-project" {
     enabled = true
   }
   carts {
-    country_tax_rate_fallback_enabled = true
+    country_tax_rate_fallback_enabled   = false
+    delete_days_after_last_modification = 10
+    price_rounding_mode                 = "HalfUp"
+    tax_rounding_mode                   = "HalfUp"
   }
+
+  shopping_lists {
+    delete_days_after_last_modification = 100
+  }
+
   shipping_rate_input_type = "CartClassification"
+
+  enable_search_index_products       = true
+  enable_search_index_orders         = true
+  enable_search_index_customers      = true
+  enable_search_index_business_units = true
 
   shipping_rate_cart_classification_value {
     key = "Small"

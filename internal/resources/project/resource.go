@@ -2,9 +2,11 @@ package project
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -138,6 +140,12 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
+			"enable_search_index_business_units": schema.BoolAttribute{
+				MarkdownDescription: "Enable the Search Indexing of business  units",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
 			"shipping_rate_input_type": schema.StringAttribute{
 				MarkdownDescription: "Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses " +
 					"the sum of all line item prices, whereas CartClassification and CartScore use the " +
@@ -160,28 +168,6 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"carts": schema.ListNestedBlock{
-				MarkdownDescription: "[Carts Configuration](https://docs.commercetools.com/api/projects/project#cartsconfiguration)",
-				NestedObject: schema.NestedBlockObject{
-					Attributes: map[string]schema.Attribute{
-						"country_tax_rate_fallback_enabled": schema.BoolAttribute{
-							MarkdownDescription: "Indicates if country - no state tax rate fallback should be used when a " +
-								"shipping address state is not explicitly covered in the rates lists of all tax " +
-								"categories of a cart line items",
-							Optional: true,
-						},
-						"delete_days_after_last_modification": schema.Int64Attribute{
-							MarkdownDescription: "Number - Optional The default value for the " +
-								"deleteDaysAfterLastModification parameter of the CartDraft. Initially set to 90 for " +
-								"projects created after December 2019.",
-							Optional: true,
-						},
-					},
-				},
-				Validators: []validator.List{
-					listvalidator.SizeAtMost(1),
-				},
-			},
 			"messages": schema.ListNestedBlock{
 				MarkdownDescription: "The change notifications subscribed to",
 				NestedObject: schema.NestedBlockObject{
@@ -209,26 +195,63 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					listvalidator.SizeAtMost(1),
 				},
 			},
-			"external_oauth": schema.ListNestedBlock{
-				MarkdownDescription: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
+			"carts": schema.ListNestedBlock{
+				MarkdownDescription: "[Carts Configuration](https://docs.commercetools.com/api/projects/project#cartsconfiguration)",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
-						"url": schema.StringAttribute{
-							Optional:  true,
-							Sensitive: true,
-							Validators: []validator.String{
-								stringvalidator.AlsoRequires(
-									path.MatchRelative().AtParent().AtName("authorization_header"),
-								),
+						"country_tax_rate_fallback_enabled": schema.BoolAttribute{
+							MarkdownDescription: "Indicates if country - no state tax rate fallback should be used when a " +
+								"shipping address state is not explicitly covered in the rates lists of all tax " +
+								"categories of a cart line items",
+							Optional: true,
+							Computed: true,
+							Default:  booldefault.StaticBool(false),
+						},
+						"delete_days_after_last_modification": schema.Int64Attribute{
+							MarkdownDescription: "Number - Optional The default value for the " +
+								"deleteDaysAfterLastModification parameter of the CartDraft. Initially set to 90 for " +
+								"projects created after December 2019.",
+							Optional: true,
+							Computed: true,
+							Default:  int64default.StaticInt64(90),
+							Validators: []validator.Int64{
+								int64validator.Between(1, 365250),
 							},
 						},
-						"authorization_header": schema.StringAttribute{
-							MarkdownDescription: "Partially hidden on retrieval",
-							Optional:            true,
-							Validators: []validator.String{
-								stringvalidator.AlsoRequires(
-									path.MatchRelative().AtParent().AtName("url"),
-								),
+						"price_rounding_mode": schema.StringAttribute{
+							MarkdownDescription: "Default value for the priceRoundingMode parameter of the CartDraft. " +
+								"Indicates how the total prices on LineItems and CustomLineItems are rounded when " +
+								"calculated.",
+							Optional: true,
+							Computed: true,
+							Default:  stringdefault.StaticString(string(platform.RoundingModeHalfEven)),
+						},
+						"tax_rounding_mode": schema.StringAttribute{
+							MarkdownDescription: "Default value for the taxRoundingMode parameter of the CartDraft. " +
+								"Indicates how monetary values are rounded when calculating taxes for taxedPrice.",
+							Optional: true,
+							Computed: true,
+							Default:  stringdefault.StaticString(string(platform.RoundingModeHalfEven)),
+						},
+					},
+				},
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
+			},
+			"shopping_lists": schema.ListNestedBlock{
+				MarkdownDescription: "[Shopping List Configuration](https://docs.commercetools.com/api/projects/project#ctp:api:type:ShoppingListsConfiguration)",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"delete_days_after_last_modification": schema.Int64Attribute{
+							MarkdownDescription: "Number - Optional The default value for the " +
+								"deleteDaysAfterLastModification parameter of the CartDraft. Initially set to 90 for " +
+								"projects created after December 2019.",
+							Optional: true,
+							Computed: true,
+							Default:  int64default.StaticInt64(360),
+							Validators: []validator.Int64{
+								int64validator.Between(1, 365250),
 							},
 						},
 					},
@@ -257,6 +280,34 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							Optional: true,
 						}),
 					},
+				},
+			},
+			"external_oauth": schema.ListNestedBlock{
+				MarkdownDescription: "[External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth)",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"url": schema.StringAttribute{
+							Optional:  true,
+							Sensitive: true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(
+									path.MatchRelative().AtParent().AtName("authorization_header"),
+								),
+							},
+						},
+						"authorization_header": schema.StringAttribute{
+							MarkdownDescription: "Partially hidden on retrieval",
+							Optional:            true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(
+									path.MatchRelative().AtParent().AtName("url"),
+								),
+							},
+						},
+					},
+				},
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
 				},
 			},
 			"business_units": schema.ListNestedBlock{

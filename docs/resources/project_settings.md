@@ -17,7 +17,6 @@ See also the [Project Settings API Documentation](https://docs.commercetools.com
 
 ```terraform
 resource "commercetools_project_settings" "my-project" {
-  key        = "my-project-key"
   name       = "My project"
   countries  = ["NL", "DE", "US", "CA"]
   currencies = ["EUR", "USD", "CAD"]
@@ -30,9 +29,22 @@ resource "commercetools_project_settings" "my-project" {
     enabled = true
   }
   carts {
-    country_tax_rate_fallback_enabled = true
+    country_tax_rate_fallback_enabled   = false
+    delete_days_after_last_modification = 10
+    price_rounding_mode                 = "HalfUp"
+    tax_rounding_mode                   = "HalfUp"
   }
+
+  shopping_lists {
+    delete_days_after_last_modification = 100
+  }
+
   shipping_rate_input_type = "CartClassification"
+
+  enable_search_index_products       = true
+  enable_search_index_orders         = true
+  enable_search_index_customers      = true
+  enable_search_index_business_units = true
 
   shipping_rate_cart_classification_value {
     key = "Small"
@@ -53,6 +65,7 @@ resource "commercetools_project_settings" "my-project" {
 - `carts` (Block List) [Carts Configuration](https://docs.commercetools.com/api/projects/project#cartsconfiguration) (see [below for nested schema](#nestedblock--carts))
 - `countries` (List of String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 - `currencies` (List of String) A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
+- `enable_search_index_business_units` (Boolean) Enable the Search Indexing of business  units
 - `enable_search_index_customers` (Boolean) Enable the Search Indexing of customers
 - `enable_search_index_orders` (Boolean) Enable the Search Indexing of orders
 - `enable_search_index_product_search` (Boolean) Enable the Search Indexing of products
@@ -64,6 +77,7 @@ resource "commercetools_project_settings" "my-project" {
 - `shipping_rate_cart_classification_value` (Block List) If shipping_rate_input_type is set to CartClassification these values are used to create tiers
 . Only a key defined inside the values array can be used to create a tier, or to set a value for the shippingRateInput on the cart. The keys are checked for uniqueness and the request is rejected if keys are not unique (see [below for nested schema](#nestedblock--shipping_rate_cart_classification_value))
 - `shipping_rate_input_type` (String) Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses the sum of all line item prices, whereas CartClassification and CartScore use the shippingRateInput field on the cart to select a tier
+- `shopping_lists` (Block List) [Shopping List Configuration](https://docs.commercetools.com/api/projects/project#ctp:api:type:ShoppingListsConfiguration) (see [below for nested schema](#nestedblock--shopping_lists))
 
 ### Read-Only
 
@@ -87,6 +101,8 @@ Optional:
 
 - `country_tax_rate_fallback_enabled` (Boolean) Indicates if country - no state tax rate fallback should be used when a shipping address state is not explicitly covered in the rates lists of all tax categories of a cart line items
 - `delete_days_after_last_modification` (Number) Number - Optional The default value for the deleteDaysAfterLastModification parameter of the CartDraft. Initially set to 90 for projects created after December 2019.
+- `price_rounding_mode` (String) Default value for the priceRoundingMode parameter of the CartDraft. Indicates how the total prices on LineItems and CustomLineItems are rounded when calculated.
+- `tax_rounding_mode` (String) Default value for the taxRoundingMode parameter of the CartDraft. Indicates how monetary values are rounded when calculating taxes for taxedPrice.
 
 
 <a id="nestedblock--external_oauth"></a>
@@ -117,3 +133,11 @@ Required:
 Optional:
 
 - `label` (Map of String)
+
+
+<a id="nestedblock--shopping_lists"></a>
+### Nested Schema for `shopping_lists`
+
+Optional:
+
+- `delete_days_after_last_modification` (Number) Number - Optional The default value for the deleteDaysAfterLastModification parameter of the CartDraft. Initially set to 90 for projects created after December 2019.
