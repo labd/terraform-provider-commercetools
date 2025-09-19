@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -53,6 +54,15 @@ var ProjectResourceDataV0 = tftypes.Object{
 	},
 }
 
+var ProjectsCartDataV1 = tftypes.Object{
+	AttributeTypes: map[string]tftypes.Type{
+		"country_tax_rate_fallback_enabled":   tftypes.Bool,
+		"delete_days_after_last_modification": tftypes.Number,
+		"price_rounding_mode":                 tftypes.String,
+		"tax_rounding_mode":                   tftypes.String,
+	},
+}
+
 var ProjectResourceDataV1 = tftypes.Object{
 	AttributeTypes: map[string]tftypes.Type{
 		"id":         tftypes.String,
@@ -67,11 +77,14 @@ var ProjectResourceDataV1 = tftypes.Object{
 		"enable_search_index_product_search": tftypes.Bool,
 		"enable_search_index_orders":         tftypes.Bool,
 		"enable_search_index_customers":      tftypes.Bool,
+		"enable_search_index_business_units": tftypes.Bool,
 
 		"carts": tftypes.List{
+			ElementType: ProjectsCartDataV1,
+		},
+		"shopping_lists": tftypes.List{
 			ElementType: tftypes.Object{
 				AttributeTypes: map[string]tftypes.Type{
-					"country_tax_rate_fallback_enabled":   tftypes.Bool,
 					"delete_days_after_last_modification": tftypes.Number,
 				},
 			},
@@ -148,7 +161,8 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 			"countries":  rawState["countries"],
 			"languages":  rawState["languages"],
 
-			"carts":          valueToList(rawState, "carts"),
+			"carts":          tftypes.NewValue(ProjectResourceDataV1.AttributeTypes["carts"], []tftypes.Value{transformCarts(rawState["carts"])}),
+			"shopping_lists": valueToList(rawState, "shopping_lists"),
 			"messages":       valueToList(rawState, "messages"),
 			"external_oauth": valueToList(rawState, "external_oauth"),
 
@@ -160,6 +174,7 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 			"enable_search_index_product_search": tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
 			"enable_search_index_orders":         tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
 			"enable_search_index_customers":      tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
+			"enable_search_index_business_units": tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
 			"business_units":                     valueToList(nil, "business_units"),
 		}),
 	)
@@ -172,6 +187,44 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 	}
 
 	resp.DynamicValue = &dynamicValue
+}
+
+func transformCarts(state tftypes.Value) tftypes.Value {
+	countryTaxRateFallbackEnabled, err := state.ApplyTerraform5AttributePathStep(tftypes.AttributeName("country_tax_rate_fallback_enabled"))
+	if err != nil {
+		panic(err)
+	}
+	deleteDaysAfterLastModification, err := state.ApplyTerraform5AttributePathStep(tftypes.AttributeName("delete_days_after_last_modification"))
+	if err != nil {
+		panic(err)
+	}
+
+	priceRoundingMode, err := state.ApplyTerraform5AttributePathStep(tftypes.AttributeName("price_rounding_mode"))
+	if err != nil {
+		if errors.Is(err, tftypes.ErrInvalidStep) {
+			priceRoundingMode = tftypes.NewValue(tftypes.String, tftypes.UnknownValue)
+		} else {
+			panic(err)
+		}
+	}
+
+	taxRoundingMode, err := state.ApplyTerraform5AttributePathStep(tftypes.AttributeName("tax_rounding_mode"))
+	if err != nil {
+		if errors.Is(err, tftypes.ErrInvalidStep) {
+			taxRoundingMode = tftypes.NewValue(tftypes.String, tftypes.UnknownValue)
+		} else {
+			panic(err)
+		}
+	}
+
+	nv := map[string]tftypes.Value{
+		"country_tax_rate_fallback_enabled":   countryTaxRateFallbackEnabled.(tftypes.Value),
+		"delete_days_after_last_modification": deleteDaysAfterLastModification.(tftypes.Value),
+		"price_rounding_mode":                 priceRoundingMode.(tftypes.Value),
+		"tax_rounding_mode":                   taxRoundingMode.(tftypes.Value),
+	}
+
+	return tftypes.NewValue(ProjectsCartDataV1, nv)
 }
 
 func valueToList(state map[string]tftypes.Value, key string) tftypes.Value {

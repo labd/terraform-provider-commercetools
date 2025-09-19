@@ -67,6 +67,7 @@ func Test_upgradeStateV0(t *testing.T) {
 		EnableSearchIndexProductSearch: types.BoolUnknown(),
 		EnableSearchIndexOrders:        types.BoolUnknown(),
 		EnableSearchIndexCustomers:     types.BoolUnknown(),
+		EnableSearchIndexBusinessUnits: types.BoolUnknown(),
 		BusinessUnits:                  []BusinessUnits{},
 
 		ExternalOAuth: []ExternalOAuth{},
@@ -74,8 +75,11 @@ func Test_upgradeStateV0(t *testing.T) {
 			{
 				CountryTaxRateFallbackEnabled:   types.BoolValue(false),
 				DeleteDaysAfterLastModification: types.Int64Value(10),
+				PriceRoundingMode:               types.StringUnknown(),
+				TaxRoundingMode:                 types.StringUnknown(),
 			},
 		},
+		ShoppingLists: []ShoppingList{},
 		Messages: []Messages{
 			{
 				Enabled:                 types.BoolValue(false),

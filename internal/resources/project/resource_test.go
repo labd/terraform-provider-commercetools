@@ -60,17 +60,18 @@ func TestAccProjectCreate_basic(t *testing.T) {
 							return fmt.Errorf("resource not found")
 						}
 
-						assert.EqualValues(t, result.Countries, []string{"NL", "DE", "US"})
-						assert.EqualValues(t, result.Languages, []string{"nl", "de", "en", "en-US"})
-						assert.EqualValues(t, result.Currencies, []string{"EUR", "USD"})
-						assert.EqualValues(t, result.Messages.Enabled, false)
-						assert.EqualValues(t, result.Messages.DeleteDaysAfterCreation, utils.IntRef(15))
-						assert.Equal(t, *result.Carts.DeleteDaysAfterLastModification, 90)
-						assert.Equal(t, *result.Carts.CountryTaxRateFallbackEnabled, false)
-						assert.Equal(t, result.Carts.PriceRoundingMode, utils.Ref(platform.RoundingModeHalfEven))
-						assert.Equal(t, result.Carts.TaxRoundingMode, utils.Ref(platform.RoundingModeHalfEven))
-						assert.Equal(t, *result.ShoppingLists.DeleteDaysAfterLastModification, 360)
-						assert.Equal(t, result.ShippingRateInputType, nil)
+						assert.EqualValues(t, []string{"NL", "DE", "US"}, result.Countries)
+						assert.EqualValues(t, []string{"nl", "de", "en", "en-US"}, result.Languages)
+						assert.EqualValues(t, []string{"EUR", "USD"}, result.Currencies)
+						assert.EqualValues(t, false, result.Messages.Enabled)
+						assert.EqualValues(t, utils.IntRef(15), result.Messages.DeleteDaysAfterCreation)
+						assert.Equal(t, 90, *result.Carts.DeleteDaysAfterLastModification)
+						assert.Equal(t, false, *result.Carts.CountryTaxRateFallbackEnabled)
+						assert.Equal(t, utils.Ref(platform.RoundingModeHalfEven), result.Carts.PriceRoundingMode)
+						assert.Equal(t, utils.Ref(platform.RoundingModeHalfEven), result.Carts.TaxRoundingMode)
+						assert.Equal(t, 90, *result.ShoppingLists.DeleteDaysAfterLastModification)
+						assert.Nil(t, result.ShippingRateInputType)
+						assert.Nil(t, result.BusinessUnits)
 						return nil
 					},
 				),
@@ -123,6 +124,9 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						resourceName, "shopping_lists.#", "1"),
 					resource.TestCheckResourceAttr(
 						resourceName, "shopping_lists.0.delete_days_after_last_modification", "14"),
+					resource.TestCheckResourceAttr(resourceName, "business_units.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "business_units.0.my_business_unit_status_on_creation", "Inactive"),
+					resource.TestCheckResourceAttr(resourceName, "business_units.0.my_business_unit_associate_role_key_on_creation", "my-role"),
 				),
 			},
 			{
@@ -153,43 +157,6 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						resourceName, "carts.0.delete_days_after_last_modification"),
 				),
 			},
-			{
-				Config: testAccProjectConfigSetMyBusinessUnitStatusOnCreation("acctest_project_settings"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "business_units.#", "1"),
-					resource.TestCheckResourceAttr(
-						resourceName,
-						"business_units.0.my_business_unit_status_on_creation",
-						string(platform.BusinessUnitStatusActive),
-					),
-				),
-			},
-			{
-				Config: testAccProjectConfigSetMyBusinessUnitStatusOnCreation("acctest_project_settings"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "business_units.#", "1"),
-					resource.TestCheckResourceAttr(
-						resourceName,
-						"business_units.0.my_business_unit_status_on_creation",
-						string(platform.BusinessUnitStatusActive),
-					),
-				),
-			},
-			{
-				Config: testAccProjectConfigSetMyBusinessUnitAssociateRoleOnKeyCreation("acctest_project_settings"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "business_units.#", "1"),
-					resource.TestCheckResourceAttr(
-						resourceName,
-						"business_units.0.my_business_unit_status_on_creation",
-						string(platform.BusinessUnitStatusInactive),
-					),
-					resource.TestCheckResourceAttrSet(
-						resourceName,
-						"business_units.0.my_business_unit_associate_role_key_on_creation",
-					),
-				),
-			},
 		},
 	})
 }
@@ -212,6 +179,14 @@ func testAccProjectConfig(identifier string) string {
 
 func testAccProjectConfigUpdate(identifier string) string {
 	return utils.HCLTemplate(`
+		resource commercetools_associate_role "my-role" {
+		  key = "my-role"
+		  name = "My role"
+		  permissions = [
+			"UpdateAssociates"
+		  ]
+		}
+	
 		resource "commercetools_project_settings" "{{ .identifier }}" {
 			name       = "Test this thing new"
 			countries  = ["nL", "De", "us", "gb"]
@@ -259,6 +234,11 @@ func testAccProjectConfigUpdate(identifier string) string {
 					"nl" = "Middel"
 				}
 			}
+	
+			business_units {
+			  my_business_unit_status_on_creation             = "Inactive"
+              my_business_unit_associate_role_key_on_creation = commercetools_associate_role.my-role.key
+		    }
 		}`, map[string]any{
 		"identifier": identifier,
 	})
@@ -283,71 +263,6 @@ func testAccProjectConfigDeleteOAuthAndCarts(identifier string) string {
 					"nl" = "Klein"
 				}
 			}
-		}`, map[string]any{
-		"identifier": identifier,
-	})
-}
-
-func testAccProjectConfigSetMyBusinessUnitStatusOnCreation(identifier string) string {
-	return utils.HCLTemplate(`
-		resource "commercetools_project_settings" "{{ .identifier }}" {
-			name       = "Test this thing new"
-			countries  = ["NL", "DE", "US", "GB"]
-			currencies = ["EUR", "USD", "GBP"]
-			languages  = ["nl", "de", "en", "en-US", "fr"]
-			messages {
-				enabled = false
-			}
-
-			shipping_rate_input_type = "CartClassification"
-			shipping_rate_cart_classification_value {
-				key = "Small"
-				label = {
-					"en" = "Small"
-					"nl" = "Klein"
-				}
-			}
-	
-			business_units {
-			  my_business_unit_status_on_creation             = "Active"
-		    }
-		}`, map[string]any{
-		"identifier": identifier,
-	})
-}
-
-func testAccProjectConfigSetMyBusinessUnitAssociateRoleOnKeyCreation(identifier string) string {
-	return utils.HCLTemplate(`
-		resource commercetools_associate_role "my-role" {
-		  key = "my-role"
-		  name = "My role"
-		  permissions = [
-			"UpdateAssociates"
-		  ]
-		}
-	
-		resource "commercetools_project_settings" "{{ .identifier }}" {
-			name       = "Test this thing new"
-			countries  = ["NL", "DE", "US", "GB"]
-			currencies = ["EUR", "USD", "GBP"]
-			languages  = ["nl", "de", "en", "en-US", "fr"]
-			messages {
-				enabled = false
-			}
-
-			shipping_rate_input_type = "CartClassification"
-			shipping_rate_cart_classification_value {
-				key = "Small"
-				label = {
-					"en" = "Small"
-					"nl" = "Klein"
-				}
-			}
-	
-			business_units {
-			  my_business_unit_status_on_creation             = "Inactive"
-              my_business_unit_associate_role_key_on_creation = commercetools_associate_role.my-role.key
-		    }
 		}`, map[string]any{
 		"identifier": identifier,
 	})
