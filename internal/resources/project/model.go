@@ -47,13 +47,6 @@ type Project struct {
 	BusinessUnits []BusinessUnits `tfsdk:"business_units"`
 }
 
-func IsDefaultCartsConfiguration(c platform.CartsConfiguration) bool {
-	return (c.CountryTaxRateFallbackEnabled == nil || *c.CountryTaxRateFallbackEnabled == false) &&
-		(c.DeleteDaysAfterLastModification == nil || *c.DeleteDaysAfterLastModification == DefaultDaysAfterLastModification) &&
-		(c.PriceRoundingMode == nil || *c.PriceRoundingMode == platform.RoundingModeHalfEven) &&
-		(c.TaxRoundingMode == nil || *c.TaxRoundingMode == platform.RoundingModeHalfEven)
-}
-
 func IsDefaultShoppingListsConfiguration(c *platform.ShoppingListsConfiguration) bool {
 	if c == nil {
 		return true
@@ -88,15 +81,13 @@ func NewProjectFromNative(n *platform.Project) Project {
 		BusinessUnits: []BusinessUnits{},
 	}
 
-	if !IsDefaultCartsConfiguration(n.Carts) {
-		res.Carts = []Carts{
-			{
-				DeleteDaysAfterLastModification: utils.FromOptionalInt(n.Carts.DeleteDaysAfterLastModification),
-				CountryTaxRateFallbackEnabled:   utils.FromOptionalBool(n.Carts.CountryTaxRateFallbackEnabled),
-				PriceRoundingMode:               utils.FromOptionalString((*string)(n.Carts.PriceRoundingMode)),
-				TaxRoundingMode:                 utils.FromOptionalString((*string)(n.Carts.TaxRoundingMode)),
-			},
-		}
+	res.Carts = []Carts{
+		{
+			DeleteDaysAfterLastModification: utils.FromOptionalInt(n.Carts.DeleteDaysAfterLastModification),
+			CountryTaxRateFallbackEnabled:   utils.FromOptionalBool(n.Carts.CountryTaxRateFallbackEnabled),
+			PriceRoundingMode:               utils.FromOptionalString((*string)(n.Carts.PriceRoundingMode)),
+			TaxRoundingMode:                 utils.FromOptionalString((*string)(n.Carts.TaxRoundingMode)),
+		},
 	}
 
 	if !IsDefaultShoppingListsConfiguration(n.ShoppingLists) {

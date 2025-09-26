@@ -40,7 +40,14 @@ func TestNewProjectFromNative(t *testing.T) {
 				EnableSearchIndexBusinessUnits: types.BoolValue(false),
 
 				ExternalOAuth: []ExternalOAuth{},
-				Carts:         nil,
+				Carts: []Carts{
+					{
+						CountryTaxRateFallbackEnabled:   types.BoolNull(),
+						DeleteDaysAfterLastModification: types.Int64Null(),
+						PriceRoundingMode:               types.StringNull(),
+						TaxRoundingMode:                 types.StringNull(),
+					},
+				},
 				Messages: []Messages{
 					{
 						Enabled:                 types.BoolValue(false),
@@ -517,49 +524,6 @@ func TestSetStateData(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.state)
 		})
 	}
-}
-
-func IsDefaultCartsConfiguration_DefaultValues(t *testing.T) {
-	c := platform.CartsConfiguration{
-		CountryTaxRateFallbackEnabled:   utils.BoolRef(false),
-		DeleteDaysAfterLastModification: utils.IntRef(DefaultDaysAfterLastModification),
-		PriceRoundingMode:               utils.GetRef(platform.RoundingModeHalfEven),
-		TaxRoundingMode:                 utils.GetRef(platform.RoundingModeHalfEven),
-	}
-	assert.True(t, IsDefaultCartsConfiguration(c))
-}
-
-func IsDefaultCartsConfiguration_NilFields(t *testing.T) {
-	c := platform.CartsConfiguration{}
-	assert.True(t, IsDefaultCartsConfiguration(c))
-}
-
-func IsDefaultCartsConfiguration_NonDefaultCountryTaxRateFallbackEnabled(t *testing.T) {
-	c := platform.CartsConfiguration{
-		CountryTaxRateFallbackEnabled: utils.BoolRef(true),
-	}
-	assert.False(t, IsDefaultCartsConfiguration(c))
-}
-
-func IsDefaultCartsConfiguration_NonDefaultDeleteDaysAfterLastModification(t *testing.T) {
-	c := platform.CartsConfiguration{
-		DeleteDaysAfterLastModification: utils.IntRef(30),
-	}
-	assert.False(t, IsDefaultCartsConfiguration(c))
-}
-
-func IsDefaultCartsConfiguration_NonDefaultPriceRoundingMode(t *testing.T) {
-	c := platform.CartsConfiguration{
-		PriceRoundingMode: utils.GetRef(platform.RoundingModeHalfUp),
-	}
-	assert.False(t, IsDefaultCartsConfiguration(c))
-}
-
-func IsDefaultCartsConfiguration_NonDefaultTaxRoundingMode(t *testing.T) {
-	c := platform.CartsConfiguration{
-		TaxRoundingMode: utils.GetRef(platform.RoundingModeHalfUp),
-	}
-	assert.False(t, IsDefaultCartsConfiguration(c))
 }
 
 func IsDefaultShoppingListsConfiguration_Nil(t *testing.T) {
