@@ -16,6 +16,7 @@ import (
 	"github.com/labd/commercetools-go-sdk/platform"
 	"golang.org/x/oauth2/clientcredentials"
 
+	datasourceproducttype "github.com/labd/terraform-provider-commercetools/internal/datasource/product_type"
 	datasourcestate "github.com/labd/terraform-provider-commercetools/internal/datasource/state"
 	datasourcetype "github.com/labd/terraform-provider-commercetools/internal/datasource/type"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/associate_role"
@@ -185,6 +186,7 @@ func (p *ctProvider) DataSources(_ context.Context) []func() datasource.DataSour
 	return []func() datasource.DataSource{
 		datasourcetype.NewDataSource,
 		datasourcestate.NewDataSource,
+		datasourceproducttype.NewDataSource,
 	}
 }
 
