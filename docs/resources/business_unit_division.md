@@ -4,14 +4,14 @@ page_title: "commercetools_business_unit_division Resource - terraform-provider-
 subcategory: ""
 description: |-
   business unit type to represent the top level of a business. Contains specific fields and values that differentiate a Division from the generic BusinessUnit.
-  See also the [business unit API Documentation](https://docs.commercetools.com/api/projects/business-units
+  See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units)
 ---
 
 # commercetools_business_unit_division (Resource)
 
 business unit type to represent the top level of a business. Contains specific fields and values that differentiate a Division from the generic BusinessUnit.
 
-See also the [business unit API Documentation](https://docs.commercetools.com/api/projects/business-units
+See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units)
 
 ## Example Usage
 
