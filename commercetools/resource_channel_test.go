@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -37,6 +39,7 @@ func TestAccChannel_AllFields(t *testing.T) {
 								"en": "Lab Digital Office",
 							},
 							Address: &platform.Address{
+								Key:        stringRef(nil),
 								Country:    "NL",
 								StreetName: stringRef("Reykjavikstraat"),
 								PostalCode: stringRef("3543 KH"),
@@ -50,7 +53,8 @@ func TestAccChannel_AllFields(t *testing.T) {
 						assert.NotNil(t, result.Address)
 						assert.EqualValues(t, expected.Name, result.Name)
 						assert.EqualValues(t, expected.Description, result.Description)
-						assert.EqualValues(t, expected.Address, result.Address)
+						diff := cmp.Diff(expected.Address, result.Address, cmpopts.IgnoreFields(platform.Address{}, "ID"))
+						assert.Empty(t, diff)
 						assert.EqualValues(t, expected.GeoLocation, result.GeoLocation)
 						return nil
 					},
@@ -93,6 +97,7 @@ func TestAccChannel_AllFields(t *testing.T) {
 								"en": "Lab Digital Office",
 							},
 							Address: &platform.Address{
+								Key:        stringRef(nil),
 								Country:    "NL",
 								StreetName: stringRef("Reykjavikstraat"),
 								PostalCode: stringRef("3543 KH"),
@@ -106,7 +111,8 @@ func TestAccChannel_AllFields(t *testing.T) {
 						assert.NotNil(t, result.Address)
 						assert.EqualValues(t, expected.Name, result.Name)
 						assert.EqualValues(t, expected.Description, result.Description)
-						assert.EqualValues(t, expected.Address, result.Address)
+						diff := cmp.Diff(expected.Address, result.Address, cmpopts.IgnoreFields(platform.Address{}, "ID"))
+						assert.Empty(t, diff)
 						assert.EqualValues(t, expected.GeoLocation, result.GeoLocation)
 						return nil
 					},
