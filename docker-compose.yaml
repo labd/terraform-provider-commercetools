@@ -1,5 +1,5 @@
 services:
   commercetools:
-    image: labdigital/commercetools-mock-server
+    image: labdigital/commercetools-mock-server:3.0.0-beta.1
     ports:
       - 8989:8989

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
@@ -20,8 +21,8 @@ var ProtoV5ProviderFactories map[string]func() (tfprotov5.ProviderServer, error)
 var Provider tfprotov5.ProviderServer
 
 func init() {
-	if os.Getenv("TF_ACC") != "1" {
-		log.Println("TF_ACC is not set, skipping acceptance tests")
+	if !acceptanceTestsEnabled() {
+		log.Println("TF_ACC is not enabled, skipping acceptance tests")
 		return
 	}
 
@@ -74,6 +75,11 @@ func init() {
 
 	Provider = muxServer
 
+}
+
+func acceptanceTestsEnabled() bool {
+	enabled, err := strconv.ParseBool(os.Getenv("TF_ACC"))
+	return err == nil && enabled
 }
 
 func protoV5ProviderFactoriesInit(providerNames ...string) map[string]func() (tfprotov5.ProviderServer, error) {
