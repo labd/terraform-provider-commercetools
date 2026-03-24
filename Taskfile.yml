@@ -57,5 +57,6 @@ tasks:
       CTP_AUTH_URL: http://localhost:8989
     cmds:
       - docker compose up -d
+      - defer: docker compose down -v
       - go test ./...
-      - docker compose down -v
+    

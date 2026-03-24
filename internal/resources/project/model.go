@@ -52,7 +52,7 @@ func IsDefaultShoppingListsConfiguration(c *platform.ShoppingListsConfiguration)
 		return true
 	}
 
-	return c.DeleteDaysAfterLastModification == nil || *c.DeleteDaysAfterLastModification == DefaultDaysAfterLastModification
+	return c.DeleteDaysAfterLastModification == DefaultDaysAfterLastModification
 }
 
 func NewProjectFromNative(n *platform.Project) Project {
@@ -83,7 +83,7 @@ func NewProjectFromNative(n *platform.Project) Project {
 
 	res.Carts = []Carts{
 		{
-			DeleteDaysAfterLastModification: utils.FromOptionalInt(n.Carts.DeleteDaysAfterLastModification),
+			DeleteDaysAfterLastModification: types.Int64Value(int64(n.Carts.DeleteDaysAfterLastModification)),
 			CountryTaxRateFallbackEnabled:   utils.FromOptionalBool(n.Carts.CountryTaxRateFallbackEnabled),
 			PriceRoundingMode:               utils.FromOptionalString((*string)(n.Carts.PriceRoundingMode)),
 			TaxRoundingMode:                 utils.FromOptionalString((*string)(n.Carts.TaxRoundingMode)),
@@ -93,7 +93,7 @@ func NewProjectFromNative(n *platform.Project) Project {
 	if !IsDefaultShoppingListsConfiguration(n.ShoppingLists) {
 		res.ShoppingLists = []ShoppingList{
 			{
-				DeleteDaysAfterLastModification: utils.FromOptionalInt(n.ShoppingLists.DeleteDaysAfterLastModification),
+				DeleteDaysAfterLastModification: types.Int64Value(int64(n.ShoppingLists.DeleteDaysAfterLastModification)),
 			},
 		}
 	}
@@ -214,7 +214,7 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 			result.Actions = append(result.Actions,
 				platform.ProjectChangeCartsConfigurationAction{
 					CartsConfiguration: platform.CartsConfiguration{
-						DeleteDaysAfterLastModification: utils.IntRef(DefaultDaysAfterLastModification),
+						DeleteDaysAfterLastModification: DefaultDaysAfterLastModification,
 					},
 				},
 				platform.ProjectChangeCountryTaxRateFallbackEnabledAction{
@@ -252,7 +252,7 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 			result.Actions = append(result.Actions,
 				platform.ProjectChangeShoppingListsConfigurationAction{
 					ShoppingListsConfiguration: platform.ShoppingListsConfiguration{
-						DeleteDaysAfterLastModification: utils.IntRef(DefaultDaysAfterLastModification),
+						DeleteDaysAfterLastModification: DefaultDaysAfterLastModification,
 					},
 				},
 			)
@@ -537,7 +537,7 @@ func (c Carts) toNative() platform.CartsConfiguration {
 	taxRoundingMode := platform.RoundingMode(c.TaxRoundingMode.ValueString())
 
 	return platform.CartsConfiguration{
-		DeleteDaysAfterLastModification: utils.OptionalInt(c.DeleteDaysAfterLastModification),
+		DeleteDaysAfterLastModification: int(c.DeleteDaysAfterLastModification.ValueInt64()),
 		CountryTaxRateFallbackEnabled:   utils.BoolRef(c.CountryTaxRateFallbackEnabled.ValueBool()),
 		PriceRoundingMode:               &priceRoundingMode,
 		TaxRoundingMode:                 &taxRoundingMode,
@@ -554,7 +554,7 @@ func (c ShoppingList) isDefault() bool {
 
 func (c ShoppingList) toNative() platform.ShoppingListsConfiguration {
 	return platform.ShoppingListsConfiguration{
-		DeleteDaysAfterLastModification: utils.OptionalInt(c.DeleteDaysAfterLastModification),
+		DeleteDaysAfterLastModification: int(c.DeleteDaysAfterLastModification.ValueInt64()),
 	}
 }
 
