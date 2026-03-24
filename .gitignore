@@ -20,3 +20,4 @@ vendor/
 /.idea
 /.env
 /go.work*
+/.vscode
