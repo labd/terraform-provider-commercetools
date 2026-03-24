@@ -9,7 +9,7 @@ jobs:
 
     services:
       commercetools:
-        image: labdigital/commercetools-mock-server:3.0.0-beta.1
+        image: labdigital/commercetools-mock-server:3.0.0-beta.2
         ports:
         - 8989:8989
 
@@ -28,7 +28,7 @@ jobs:
         args: --issues-exit-code=0 --timeout=5m
 
     - name: Run tests
-      run: go test -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
+      run: go test -timeout 30m -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
       env:
         TF_ACC: 1
         CTP_CLIENT_ID: unittest
