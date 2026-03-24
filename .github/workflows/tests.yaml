@@ -44,7 +44,7 @@ jobs:
         verbose: true
 
     - name: build binary
-      uses: goreleaser/goreleaser-action@v6
+      uses: goreleaser/goreleaser-action@v7
       with:
         args: build --snapshot --clean --single-target
       env:
