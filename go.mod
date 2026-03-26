@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.29.0
 	github.com/hashicorp/terraform-plugin-mux v0.21.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.1
-	github.com/labd/commercetools-go-sdk v1.8.0
+	github.com/labd/commercetools-go-sdk v1.9.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/oauth2 v0.34.0
