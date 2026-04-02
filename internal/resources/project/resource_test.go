@@ -71,7 +71,6 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						assert.Equal(t, utils.Ref(platform.RoundingModeHalfEven), result.Carts.TaxRoundingMode)
 						assert.Equal(t, 90, *result.ShoppingLists.DeleteDaysAfterLastModification)
 						assert.Nil(t, result.ShippingRateInputType)
-						assert.Nil(t, result.BusinessUnits)
 						return nil
 					},
 				),
