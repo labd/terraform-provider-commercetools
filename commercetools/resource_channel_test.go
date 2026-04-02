@@ -29,29 +29,21 @@ func TestAccChannel_AllFields(t *testing.T) {
 							return err
 						}
 
-						expected := &platform.Channel{
-							Name: &platform.LocalizedString{
-								"en": "Lab Digital",
-							},
-							Description: &platform.LocalizedString{
-								"en": "Lab Digital Office",
-							},
-							Address: &platform.Address{
-								Country:    "NL",
-								StreetName: stringRef("Reykjavikstraat"),
-								PostalCode: stringRef("3543 KH"),
-							},
-							GeoLocation: platform.GeoJsonPoint{
-								Coordinates: []float64{52.10014028522915, 5.064886641132926},
-							},
-						}
-
 						assert.NotNil(t, result)
+						assert.EqualValues(t, &platform.LocalizedString{
+							"en": "Lab Digital",
+						}, result.Name)
+						assert.EqualValues(t, &platform.LocalizedString{
+							"en": "Lab Digital Office",
+						}, result.Description)
 						assert.NotNil(t, result.Address)
-						assert.EqualValues(t, expected.Name, result.Name)
-						assert.EqualValues(t, expected.Description, result.Description)
-						assert.EqualValues(t, expected.Address, result.Address)
-						assert.EqualValues(t, expected.GeoLocation, result.GeoLocation)
+						assert.NotNil(t, result.Address.ID)
+						assert.EqualValues(t, "NL", result.Address.Country)
+						assert.EqualValues(t, stringRef("Reykjavikstraat"), result.Address.StreetName)
+						assert.EqualValues(t, stringRef("3543 KH"), result.Address.PostalCode)
+						assert.EqualValues(t, platform.GeoJsonPoint{
+							Coordinates: []float64{52.10014028522915, 5.064886641132926},
+						}, result.GeoLocation)
 						return nil
 					},
 				),
@@ -85,29 +77,21 @@ func TestAccChannel_AllFields(t *testing.T) {
 							return err
 						}
 
-						expected := &platform.Channel{
-							Name: &platform.LocalizedString{
-								"en": "Lab Digital",
-							},
-							Description: &platform.LocalizedString{
-								"en": "Lab Digital Office",
-							},
-							Address: &platform.Address{
-								Country:    "NL",
-								StreetName: stringRef("Reykjavikstraat"),
-								PostalCode: stringRef("3543 KH"),
-							},
-							GeoLocation: platform.GeoJsonPoint{
-								Coordinates: []float64{52.10014028522915, 5.064886641132926},
-							},
-						}
-
 						assert.NotNil(t, result)
 						assert.NotNil(t, result.Address)
-						assert.EqualValues(t, expected.Name, result.Name)
-						assert.EqualValues(t, expected.Description, result.Description)
-						assert.EqualValues(t, expected.Address, result.Address)
-						assert.EqualValues(t, expected.GeoLocation, result.GeoLocation)
+						assert.EqualValues(t, &platform.LocalizedString{
+							"en": "Lab Digital",
+						}, result.Name)
+						assert.EqualValues(t, &platform.LocalizedString{
+							"en": "Lab Digital Office",
+						}, result.Description)
+						assert.NotNil(t, result.Address.ID)
+						assert.EqualValues(t, "NL", result.Address.Country)
+						assert.EqualValues(t, stringRef("Reykjavikstraat"), result.Address.StreetName)
+						assert.EqualValues(t, stringRef("3543 KH"), result.Address.PostalCode)
+						assert.EqualValues(t, platform.GeoJsonPoint{
+							Coordinates: []float64{52.10014028522915, 5.064886641132926},
+						}, result.GeoLocation)
 						return nil
 					},
 				),

@@ -108,6 +108,9 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		TaxCategory:          taxCategory,
 		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
 		Custom:               custom,
+		// Set default to empty array, otherwise the API will return an error if no shipping rates are added to the shipping method.
+		// Actual shipping rates are added in the shipping zone resource, see resource_shipping_zone_rate.go
+		ZoneRates: []platform.ZoneRateDraft{},
 	}
 
 	key := stringRef(d.Get("key"))

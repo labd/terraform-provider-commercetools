@@ -30,7 +30,7 @@ tasks:
 
   test:
     cmds:
-      - go test -v ./...
+      - go test ./...
 
   docs:
     cmds:
@@ -56,6 +56,6 @@ tasks:
       CTP_API_URL: http://localhost:8989
       CTP_AUTH_URL: http://localhost:8989
     cmds:
-      - docker-compose up -d
-      - go test -v ./...
-      - docker-compose down
+      - docker compose up -d
+      - go test ./...
+      - docker compose down -v
