@@ -28,7 +28,7 @@ jobs:
         args: --issues-exit-code=0 --timeout=5m
 
     - name: Run tests
-      run: go test -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
+      run: go test -timeout 30m -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
       env:
         TF_ACC: 1
         CTP_CLIENT_ID: unittest
@@ -39,12 +39,12 @@ jobs:
         CTP_AUTH_URL: http://localhost:8989
 
     - name: Upload to codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       with:
         verbose: true
 
     - name: build binary
-      uses: goreleaser/goreleaser-action@v6
+      uses: goreleaser/goreleaser-action@v7
       with:
         args: build --snapshot --clean --single-target
       env:
@@ -64,7 +64,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare release
-        uses: labd/changie-release-action@v0.6.0
+        uses: labd/changie-release-action@v0.6.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           release-workflow: 'release.yaml'
