@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/project"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/labd/terraform-provider-commercetools/internal/acctest"
@@ -64,12 +65,12 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						assert.EqualValues(t, []string{"nl", "de", "en", "en-US"}, result.Languages)
 						assert.EqualValues(t, []string{"EUR", "USD"}, result.Currencies)
 						assert.EqualValues(t, false, result.Messages.Enabled)
-						assert.EqualValues(t, utils.IntRef(15), result.Messages.DeleteDaysAfterCreation)
-						assert.Equal(t, 90, *result.Carts.DeleteDaysAfterLastModification)
+						assert.EqualValues(t, project.DefaultMessagesDeleteDaysAfterCreation, *result.Messages.DeleteDaysAfterCreation)
+						assert.Equal(t, 90, result.Carts.DeleteDaysAfterLastModification)
 						assert.Equal(t, false, *result.Carts.CountryTaxRateFallbackEnabled)
 						assert.Equal(t, utils.Ref(platform.RoundingModeHalfEven), result.Carts.PriceRoundingMode)
 						assert.Equal(t, utils.Ref(platform.RoundingModeHalfEven), result.Carts.TaxRoundingMode)
-						assert.Equal(t, 90, *result.ShoppingLists.DeleteDaysAfterLastModification)
+						assert.Equal(t, 360, result.ShoppingLists.DeleteDaysAfterLastModification)
 						assert.Nil(t, result.ShippingRateInputType)
 						return nil
 					},

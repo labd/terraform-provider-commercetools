@@ -14,8 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -175,16 +173,14 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						"enabled": schema.BoolAttribute{
 							MarkdownDescription: "When true the creation of messages on the Messages Query HTTP API is enabled",
 							Optional:            true,
-							PlanModifiers: []planmodifier.Bool{
-								boolplanmodifier.UseStateForUnknown(),
-							},
+							Computed:            true,
+							Default:             booldefault.StaticBool(false),
 						},
 						"delete_days_after_creation": schema.Int64Attribute{
 							MarkdownDescription: "Specifies the number of days each Message should be available via the Messages Query API",
 							Optional:            true,
-							PlanModifiers: []planmodifier.Int64{
-								int64planmodifier.UseStateForUnknown(),
-							},
+							Computed:            true,
+							Default:             int64default.StaticInt64(15),
 							Validators: []validator.Int64{
 								int64validator.Between(1, 90),
 							},
