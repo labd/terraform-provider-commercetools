@@ -1,5 +1,7 @@
 services:
   commercetools:
-    image: labdigital/commercetools-mock-server:3.0.0-beta.1
+    image: labdigital/commercetools-mock-server:3.0.0-beta.3
+    environment:
+      EXPERIMENTAL_SQLITE_STORAGE: "false"
     ports:
       - 8989:8989

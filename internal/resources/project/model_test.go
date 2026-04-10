@@ -43,7 +43,7 @@ func TestNewProjectFromNative(t *testing.T) {
 				Carts: []Carts{
 					{
 						CountryTaxRateFallbackEnabled:   types.BoolNull(),
-						DeleteDaysAfterLastModification: types.Int64Null(),
+						DeleteDaysAfterLastModification: types.Int64Value(DefaultCartsDeleteDaysAfterLastModification),
 						PriceRoundingMode:               types.StringNull(),
 						TaxRoundingMode:                 types.StringNull(),
 					},
@@ -51,7 +51,7 @@ func TestNewProjectFromNative(t *testing.T) {
 				Messages: []Messages{
 					{
 						Enabled:                 types.BoolValue(false),
-						DeleteDaysAfterCreation: types.Int64Value(DefaultDeleteDaysAfterCreation),
+						DeleteDaysAfterCreation: types.Int64Value(DefaultMessagesDeleteDaysAfterCreation),
 					},
 				},
 				ShippingRateCartClassificationValue: []models.CustomFieldLocalizedEnumValue{},
@@ -158,7 +158,7 @@ func TestUpdateActions(t *testing.T) {
 				Actions: []platform.ProjectUpdateAction{
 					platform.ProjectChangeCartsConfigurationAction{
 						CartsConfiguration: platform.CartsConfiguration{
-							DeleteDaysAfterLastModification: utils.Ref(90),
+							DeleteDaysAfterLastModification: 90,
 							CountryTaxRateFallbackEnabled:   utils.Ref(false),
 							PriceRoundingMode:               utils.Ref(platform.RoundingModeHalfEven),
 							TaxRoundingMode:                 utils.Ref(platform.RoundingModeHalfEven),
@@ -532,7 +532,7 @@ func IsDefaultShoppingListsConfiguration_Nil(t *testing.T) {
 
 func IsDefaultShoppingListsConfiguration_DefaultValue(t *testing.T) {
 	c := &platform.ShoppingListsConfiguration{
-		DeleteDaysAfterLastModification: utils.IntRef(DefaultDaysAfterLastModification),
+		DeleteDaysAfterLastModification: DefaultCartsDeleteDaysAfterLastModification,
 	}
 	assert.True(t, IsDefaultShoppingListsConfiguration(c))
 }
@@ -544,7 +544,7 @@ func IsDefaultShoppingListsConfiguration_NilDeleteDays(t *testing.T) {
 
 func IsDefaultShoppingListsConfiguration_NonDefaultDeleteDays(t *testing.T) {
 	c := &platform.ShoppingListsConfiguration{
-		DeleteDaysAfterLastModification: utils.IntRef(30),
+		DeleteDaysAfterLastModification: 30,
 	}
 	assert.False(t, IsDefaultShoppingListsConfiguration(c))
 }
