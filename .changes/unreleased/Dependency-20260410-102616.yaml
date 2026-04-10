@@ -1,0 +1,3 @@
+kind: Dependency
+body: 'chore(deps): bump golang.org/x/text from 0.35.0 to 0.36.0 in the go group across 1 directory'
+time: 2026-04-10T10:26:16.16469517Z
