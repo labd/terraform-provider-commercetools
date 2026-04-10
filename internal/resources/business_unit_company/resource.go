@@ -3,11 +3,12 @@ package business_unit_company
 import (
 	"context"
 	"errors"
+	"regexp"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/labd/terraform-provider-commercetools/commercetools"
 	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
-	"regexp"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -38,7 +39,7 @@ func NewCompanyResource() resource.Resource {
 func (b *companyResource) Schema(_ context.Context, req resource.SchemaRequest, res *resource.SchemaResponse) {
 	res.Schema = schema.Schema{
 		MarkdownDescription: "Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a company from the generic business unit.\n\n" +
-			"See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units",
+			"See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units)",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				MarkdownDescription: "Unique identifier of the company.",
