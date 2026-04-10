@@ -68,8 +68,8 @@ func TestAccProjectCreate_basic(t *testing.T) {
 						assert.EqualValues(t, project.DefaultMessagesDeleteDaysAfterCreation, *result.Messages.DeleteDaysAfterCreation)
 						assert.Equal(t, 90, result.Carts.DeleteDaysAfterLastModification)
 						assert.Equal(t, false, *result.Carts.CountryTaxRateFallbackEnabled)
-						assert.Equal(t, new(platform.RoundingModeHalfEven), result.Carts.PriceRoundingMode)
-						assert.Equal(t, new(platform.RoundingModeHalfEven), result.Carts.TaxRoundingMode)
+						assert.Equal(t, utils.Ref(platform.RoundingModeHalfEven), result.Carts.PriceRoundingMode)
+						assert.Equal(t, utils.Ref(platform.RoundingModeHalfEven), result.Carts.TaxRoundingMode)
 						assert.Equal(t, 360, result.ShoppingLists.DeleteDaysAfterLastModification)
 						assert.Nil(t, result.ShippingRateInputType)
 						return nil

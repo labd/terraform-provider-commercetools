@@ -532,7 +532,7 @@ func IsDefaultShoppingListsConfiguration_Nil(t *testing.T) {
 
 func IsDefaultShoppingListsConfiguration_DefaultValue(t *testing.T) {
 	c := &platform.ShoppingListsConfiguration{
-		DeleteDaysAfterLastModification: DefaultCartsDeleteDaysAfterLastModification,
+		DeleteDaysAfterLastModification: DefaultShoppingListsDeleteDaysAfterLastModification,
 	}
 	assert.True(t, IsDefaultShoppingListsConfiguration(c))
 }

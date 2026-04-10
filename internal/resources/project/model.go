@@ -313,6 +313,17 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 					MessagesConfiguration: plan.Messages[0].toNative(),
 				},
 			)
+		} else if len(p.Messages) > 0 {
+			defaultMessagesConfiguration := platform.MessagesConfigurationDraft{
+				DeleteDaysAfterCreation: DefaultMessagesDeleteDaysAfterCreation,
+			}
+			if !reflect.DeepEqual(p.Messages[0].toNative(), defaultMessagesConfiguration) {
+				result.Actions = append(result.Actions,
+					platform.ProjectChangeMessagesConfigurationAction{
+						MessagesConfiguration: defaultMessagesConfiguration,
+					},
+				)
+			}
 		}
 	}
 
