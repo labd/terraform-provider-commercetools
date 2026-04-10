@@ -4,14 +4,14 @@ page_title: "commercetools_business_unit_company Resource - terraform-provider-c
 subcategory: ""
 description: |-
   Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a company from the generic business unit.
-  See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units
+  See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units)
 ---
 
 # commercetools_business_unit_company (Resource)
 
 Business Unit type to represent the top level of a business. Contains specific fields and values that differentiate a company from the generic business unit.
 
-See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units
+See also the [Business Unit API Documentation](https://docs.commercetools.com/api/projects/business-units)
 
 ## Example Usage
 
