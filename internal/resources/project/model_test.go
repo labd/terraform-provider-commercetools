@@ -43,7 +43,7 @@ func TestNewProjectFromNative(t *testing.T) {
 				Carts: []Carts{
 					{
 						CountryTaxRateFallbackEnabled:   types.BoolNull(),
-						DeleteDaysAfterLastModification: types.Int64Null(),
+						DeleteDaysAfterLastModification: types.Int64Value(DefaultCartsDeleteDaysAfterLastModification),
 						PriceRoundingMode:               types.StringNull(),
 						TaxRoundingMode:                 types.StringNull(),
 					},
@@ -51,7 +51,7 @@ func TestNewProjectFromNative(t *testing.T) {
 				Messages: []Messages{
 					{
 						Enabled:                 types.BoolValue(false),
-						DeleteDaysAfterCreation: types.Int64Value(DefaultDeleteDaysAfterCreation),
+						DeleteDaysAfterCreation: types.Int64Value(DefaultMessagesDeleteDaysAfterCreation),
 					},
 				},
 				ShippingRateCartClassificationValue: []models.CustomFieldLocalizedEnumValue{},
@@ -532,7 +532,7 @@ func IsDefaultShoppingListsConfiguration_Nil(t *testing.T) {
 
 func IsDefaultShoppingListsConfiguration_DefaultValue(t *testing.T) {
 	c := &platform.ShoppingListsConfiguration{
-		DeleteDaysAfterLastModification: DefaultDaysAfterLastModification,
+		DeleteDaysAfterLastModification: DefaultShoppingListsDeleteDaysAfterLastModification,
 	}
 	assert.True(t, IsDefaultShoppingListsConfiguration(c))
 }

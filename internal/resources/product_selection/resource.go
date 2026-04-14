@@ -2,10 +2,11 @@ package product_selection
 
 import (
 	"context"
-	"github.com/labd/terraform-provider-commercetools/commercetools"
-	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 	"regexp"
 	"time"
+
+	"github.com/labd/terraform-provider-commercetools/commercetools"
+	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -40,7 +41,7 @@ func NewResource() resource.Resource {
 // Schema implements resource.Resource.
 func (*productSelectionResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Product Selections can be used to manage individual assortments for different sales channels." +
+		Description: "Product Selections can be used to manage individual assortments for different sales channels.\n\n" +
 			"See also the [Product Selections API Documentation](https://docs.commercetools.com/api/projects/product-selections)",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

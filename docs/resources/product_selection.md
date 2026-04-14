@@ -3,12 +3,15 @@
 page_title: "commercetools_product_selection Resource - terraform-provider-commercetools"
 subcategory: ""
 description: |-
-  Product Selections can be used to manage individual assortments for different sales channels.See also the Product Selections API Documentation https://docs.commercetools.com/api/projects/product-selections
+  Product Selections can be used to manage individual assortments for different sales channels.
+  See also the Product Selections API Documentation https://docs.commercetools.com/api/projects/product-selections
 ---
 
 # commercetools_product_selection (Resource)
 
-Product Selections can be used to manage individual assortments for different sales channels.See also the [Product Selections API Documentation](https://docs.commercetools.com/api/projects/product-selections)
+Product Selections can be used to manage individual assortments for different sales channels.
+
+See also the [Product Selections API Documentation](https://docs.commercetools.com/api/projects/product-selections)
 
 ## Example Usage
 

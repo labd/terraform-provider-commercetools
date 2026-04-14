@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	DefaultDeleteDaysAfterCreation   = 15
-	DefaultDaysAfterLastModification = 90
+	DefaultMessagesDeleteDaysAfterCreation              = 15
+	DefaultCartsDeleteDaysAfterLastModification         = 90
+	DefaultShoppingListsDeleteDaysAfterLastModification = 360
 )
 
 type Project struct {
@@ -52,7 +53,7 @@ func IsDefaultShoppingListsConfiguration(c *platform.ShoppingListsConfiguration)
 		return true
 	}
 
-	return c.DeleteDaysAfterLastModification == DefaultDaysAfterLastModification
+	return c.DeleteDaysAfterLastModification == 0 || c.DeleteDaysAfterLastModification == DefaultShoppingListsDeleteDaysAfterLastModification
 }
 
 func NewProjectFromNative(n *platform.Project) Project {
@@ -81,9 +82,14 @@ func NewProjectFromNative(n *platform.Project) Project {
 		BusinessUnits: []BusinessUnits{},
 	}
 
+	var cartsDeleteDaysAfterLastModification = DefaultCartsDeleteDaysAfterLastModification
+	if n.Carts.DeleteDaysAfterLastModification != 0 {
+		cartsDeleteDaysAfterLastModification = n.Carts.DeleteDaysAfterLastModification
+	}
+
 	res.Carts = []Carts{
 		{
-			DeleteDaysAfterLastModification: types.Int64Value(int64(n.Carts.DeleteDaysAfterLastModification)),
+			DeleteDaysAfterLastModification: types.Int64Value(int64(cartsDeleteDaysAfterLastModification)),
 			CountryTaxRateFallbackEnabled:   utils.FromOptionalBool(n.Carts.CountryTaxRateFallbackEnabled),
 			PriceRoundingMode:               utils.FromOptionalString((*string)(n.Carts.PriceRoundingMode)),
 			TaxRoundingMode:                 utils.FromOptionalString((*string)(n.Carts.TaxRoundingMode)),
@@ -118,7 +124,7 @@ func NewProjectFromNative(n *platform.Project) Project {
 	// If delete_days_after_creation is nil (before version 1.6) then we set it
 	// to the commercetools default of 15
 	if res.Messages[0].DeleteDaysAfterCreation.IsNull() {
-		res.Messages[0].DeleteDaysAfterCreation = types.Int64Value(DefaultDeleteDaysAfterCreation)
+		res.Messages[0].DeleteDaysAfterCreation = types.Int64Value(DefaultMessagesDeleteDaysAfterCreation)
 	}
 
 	if n.SearchIndexing != nil && n.SearchIndexing.Products != nil && n.SearchIndexing.Products.Status != nil {
@@ -188,7 +194,7 @@ func (p *Project) setStateData(o Project) {
 
 	// The commercetools default for delete_days_after_creation is 15, so if the
 	if len(p.Messages) > 0 && len(o.Messages) > 0 {
-		if p.Messages[0].DeleteDaysAfterCreation.ValueInt64() == DefaultDeleteDaysAfterCreation && o.Messages[0].DeleteDaysAfterCreation.IsNull() {
+		if p.Messages[0].DeleteDaysAfterCreation.ValueInt64() == DefaultCartsDeleteDaysAfterLastModification && o.Messages[0].DeleteDaysAfterCreation.IsNull() {
 			p.Messages[0].DeleteDaysAfterCreation = o.Messages[0].DeleteDaysAfterCreation
 		}
 	}
@@ -214,7 +220,7 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 			result.Actions = append(result.Actions,
 				platform.ProjectChangeCartsConfigurationAction{
 					CartsConfiguration: platform.CartsConfiguration{
-						DeleteDaysAfterLastModification: DefaultDaysAfterLastModification,
+						DeleteDaysAfterLastModification: DefaultCartsDeleteDaysAfterLastModification,
 					},
 				},
 				platform.ProjectChangeCountryTaxRateFallbackEnabledAction{
@@ -252,7 +258,7 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 			result.Actions = append(result.Actions,
 				platform.ProjectChangeShoppingListsConfigurationAction{
 					ShoppingListsConfiguration: platform.ShoppingListsConfiguration{
-						DeleteDaysAfterLastModification: DefaultDaysAfterLastModification,
+						DeleteDaysAfterLastModification: DefaultShoppingListsDeleteDaysAfterLastModification,
 					},
 				},
 			)
@@ -307,16 +313,17 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 					MessagesConfiguration: plan.Messages[0].toNative(),
 				},
 			)
-		} else {
-			// Set message configuration to the default values
-			result.Actions = append(result.Actions,
-				platform.ProjectChangeMessagesConfigurationAction{
-					MessagesConfiguration: platform.MessagesConfigurationDraft{
-						Enabled:                 false,
-						DeleteDaysAfterCreation: DefaultDeleteDaysAfterCreation,
+		} else if len(p.Messages) > 0 {
+			defaultMessagesConfiguration := platform.MessagesConfigurationDraft{
+				DeleteDaysAfterCreation: DefaultMessagesDeleteDaysAfterCreation,
+			}
+			if !reflect.DeepEqual(p.Messages[0].toNative(), defaultMessagesConfiguration) {
+				result.Actions = append(result.Actions,
+					platform.ProjectChangeMessagesConfigurationAction{
+						MessagesConfiguration: defaultMessagesConfiguration,
 					},
-				},
-			)
+				)
+			}
 		}
 	}
 
@@ -491,7 +498,7 @@ type Messages struct {
 }
 
 func (m Messages) toNative() platform.MessagesConfigurationDraft {
-	days := DefaultDeleteDaysAfterCreation // Commercetools default
+	days := DefaultMessagesDeleteDaysAfterCreation // Commercetools default
 
 	if !m.DeleteDaysAfterCreation.IsNull() {
 		days = int(m.DeleteDaysAfterCreation.ValueInt64())
@@ -503,7 +510,7 @@ func (m Messages) toNative() platform.MessagesConfigurationDraft {
 	}
 }
 func (m Messages) isDefault() bool {
-	return !m.toNative().Enabled && m.DeleteDaysAfterCreation.ValueInt64() == DefaultDeleteDaysAfterCreation
+	return !m.toNative().Enabled && m.DeleteDaysAfterCreation.ValueInt64() == DefaultMessagesDeleteDaysAfterCreation
 }
 
 type ExternalOAuth struct {
@@ -527,7 +534,7 @@ type Carts struct {
 
 func (c Carts) isDefault() bool {
 	return !c.CountryTaxRateFallbackEnabled.ValueBool() &&
-		c.DeleteDaysAfterLastModification.ValueInt64() == DefaultDaysAfterLastModification &&
+		c.DeleteDaysAfterLastModification.ValueInt64() == DefaultCartsDeleteDaysAfterLastModification &&
 		(c.PriceRoundingMode.IsNull() || c.PriceRoundingMode.ValueString() == string(platform.RoundingModeHalfEven)) &&
 		(c.TaxRoundingMode.IsNull() || c.TaxRoundingMode.ValueString() == string(platform.RoundingModeHalfEven))
 }
@@ -549,7 +556,7 @@ type ShoppingList struct {
 }
 
 func (c ShoppingList) isDefault() bool {
-	return c.DeleteDaysAfterLastModification.ValueInt64() == DefaultDaysAfterLastModification
+	return c.DeleteDaysAfterLastModification.ValueInt64() == DefaultShoppingListsDeleteDaysAfterLastModification
 }
 
 func (c ShoppingList) toNative() platform.ShoppingListsConfiguration {
