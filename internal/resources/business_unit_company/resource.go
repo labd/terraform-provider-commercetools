@@ -33,33 +33,6 @@ type companyResource struct {
 	client *platform.ByProjectKeyRequestBuilder
 }
 
-type nullOrEmptyListSameModifier struct{}
-
-func nullOrEmptyListSame() planmodifier.List {
-	return nullOrEmptyListSameModifier{}
-}
-
-func (m nullOrEmptyListSameModifier) Description(_ context.Context) string {
-	return "Treats null and empty list as equivalent to suppress provider inconsistency errors."
-}
-
-func (m nullOrEmptyListSameModifier) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func (m nullOrEmptyListSameModifier) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
-	// If the API returns null but we planned [], treat them as the same
-	if req.StateValue.IsNull() && !req.PlanValue.IsNull() && len(req.PlanValue.Elements()) == 0 {
-		resp.PlanValue = req.StateValue // keep null in state
-		return
-	}
-	// If state is [] and plan is null, also suppress
-	if req.PlanValue.IsNull() && !req.StateValue.IsNull() && len(req.StateValue.Elements()) == 0 {
-		resp.PlanValue = req.StateValue
-		return
-	}
-}
-
 func NewCompanyResource() resource.Resource {
 	return &companyResource{}
 }
