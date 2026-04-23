@@ -27,12 +27,6 @@ jobs:
       with:
         args: --issues-exit-code=0 --timeout=5m
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: "1.14.0"
-        terraform_wrapper: false
-
     - name: Run tests
       run: go test -timeout 30m -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
       env:
