@@ -2,10 +2,11 @@ package business_unit_company_test
 
 import (
 	"context"
-	"github.com/labd/commercetools-go-sdk/platform"
-	"github.com/labd/terraform-provider-commercetools/internal/resources/business_unit_company"
 	"regexp"
 	"testing"
+
+	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/business_unit_company"
 
 	fwresource "github.com/hashicorp/terraform-plugin-framework/resource"
 
@@ -53,6 +54,8 @@ func TestBusinessUnitResource(t *testing.T) {
 					resource.TestCheckResourceAttr(r, "status", string(platform.BusinessUnitConfigurationStatusActive)),
 					resource.TestCheckResourceAttr(r, "contact_email", "acme@example.com"),
 					resource.TestCheckResourceAttr(r, "address.#", "1"),
+					resource.TestCheckResourceAttr(r, "customer_groups.#", "1"),
+					resource.TestCheckResourceAttr(r, "customer_groups.0", "group-1"),
 				),
 			},
 			{
@@ -201,6 +204,8 @@ func businessUnitCompanyTFResourceDef(options ...option) string {
 			 } 
 		   }
 		{{ end }}
+
+		customer_groups = ["group-1"]
 	}
 	`, data)
 

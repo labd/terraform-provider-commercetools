@@ -1,8 +1,9 @@
 package business_unit_division
 
 import (
-	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 	"testing"
+
+	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"
@@ -48,6 +49,7 @@ func TestBusinessUnit_Division_Draft(t *testing.T) {
 				BillingAddressKeys:        []types.String{types.StringValue("address-1"), types.StringValue("address-2")},
 				DefaultBillingAddressKey:  types.StringValue("address-2"),
 				DefaultShippingAddressKey: types.StringValue("address-2"),
+				CustomerGroups:            []types.String{types.StringValue("group-1"), types.StringValue("group-2")},
 			},
 			expected: platform.DivisionDraft{
 				Key:              "division-key",
@@ -81,6 +83,18 @@ func TestBusinessUnit_Division_Draft(t *testing.T) {
 				DefaultBillingAddress:  utils.Ref(1),
 				ShippingAddresses:      []int{0, 1},
 				BillingAddresses:       []int{0, 1},
+				CustomerGroupAssignments: []platform.CustomerGroupAssignmentDraft{
+					{
+						CustomerGroup: platform.CustomerGroupResourceIdentifier{
+							Key: utils.Ref("group-1"),
+						},
+					},
+					{
+						CustomerGroup: platform.CustomerGroupResourceIdentifier{
+							Key: utils.Ref("group-2"),
+						},
+					},
+				},
 			},
 		},
 		{
