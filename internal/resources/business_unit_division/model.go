@@ -2,11 +2,12 @@ package business_unit_division
 
 import (
 	"fmt"
-	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
-	"github.com/labd/terraform-provider-commercetools/internal/utils"
 	"reflect"
 	"slices"
 	"sort"
+
+	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 
 	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -31,6 +32,7 @@ type Division struct {
 	Stores                    []sharedtypes.StoreKeyReference `tfsdk:"store"`
 	Addresses                 []sharedtypes.Address           `tfsdk:"address"`
 	Custom                    *sharedtypes.Custom             `tfsdk:"custom"`
+	CustomerGroups            []types.String                  `tfsdk:"customer_groups"`
 }
 
 // BusinessUnitResourceIdentifier is a resource identifier for a business unit.
@@ -114,6 +116,16 @@ func (d *Division) draft(t *platform.Type) (platform.DivisionDraft, error) {
 		return platform.DivisionDraft{}, err
 	}
 
+	var customerGroupAssignments []platform.CustomerGroupAssignmentDraft
+
+	for _, customerGroup := range d.CustomerGroups {
+		customerGroupAssignments = append(customerGroupAssignments, platform.CustomerGroupAssignmentDraft{
+			CustomerGroup: platform.CustomerGroupResourceIdentifier{
+				Key: customerGroup.ValueStringPointer(),
+			},
+		})
+	}
+
 	return platform.DivisionDraft{
 		Key:              d.Key.ValueString(),
 		Status:           &status,
@@ -124,15 +136,16 @@ func (d *Division) draft(t *platform.Type) (platform.DivisionDraft, error) {
 			ID:  d.ParentUnit.ID.ValueStringPointer(),
 			Key: d.ParentUnit.Key.ValueStringPointer(),
 		},
-		Stores:                 stores,
-		Name:                   d.Name.ValueString(),
-		ContactEmail:           d.ContactEmail.ValueStringPointer(),
-		Addresses:              addresses,
-		ShippingAddresses:      shippingAddressIndexes,
-		BillingAddresses:       billingAddressIndexes,
-		DefaultShippingAddress: defaultShippingAddressIndex,
-		DefaultBillingAddress:  defaultBillingAddressIndex,
-		Custom:                 custom,
+		Stores:                   stores,
+		Name:                     d.Name.ValueString(),
+		ContactEmail:             d.ContactEmail.ValueStringPointer(),
+		Addresses:                addresses,
+		ShippingAddresses:        shippingAddressIndexes,
+		BillingAddresses:         billingAddressIndexes,
+		DefaultShippingAddress:   defaultShippingAddressIndex,
+		DefaultBillingAddress:    defaultBillingAddressIndex,
+		Custom:                   custom,
+		CustomerGroupAssignments: customerGroupAssignments,
 	}, nil
 }
 
@@ -296,6 +309,20 @@ func (d *Division) updateActions(t *platform.Type, plan Division) (platform.Busi
 		}
 	}
 
+	if !reflect.DeepEqual(d.CustomerGroups, plan.CustomerGroups) {
+		drafts := []platform.CustomerGroupAssignmentDraft{}
+		for _, group := range plan.CustomerGroups {
+			drafts = append(drafts, platform.CustomerGroupAssignmentDraft{
+				CustomerGroup: platform.CustomerGroupResourceIdentifier{
+					Key: group.ValueStringPointer(),
+				},
+			})
+		}
+		result.Actions = append(result.Actions, platform.BusinessUnitSetCustomerGroupAssignmentsAction{
+			CustomerGroupAssignments: drafts,
+		})
+	}
+
 	return result, nil
 }
 
@@ -358,6 +385,12 @@ func NewDivisionFromNative(bu *platform.BusinessUnit) (Division, error) {
 		return Division{}, err
 	}
 
+	var customerGroupAssignments []types.String
+
+	for _, customerGroup := range d.CustomerGroupAssignments {
+		customerGroupAssignments = append(customerGroupAssignments, types.StringPointerValue(customerGroup.CustomerGroup.Obj.Key))
+	}
+
 	division := Division{
 		ID:                        types.StringValue(d.ID),
 		Version:                   types.Int64Value(int64(d.Version)),
@@ -376,6 +409,7 @@ func NewDivisionFromNative(bu *platform.BusinessUnit) (Division, error) {
 		ShippingAddressKeys:       shippingAddressKeys,
 		BillingAddressKeys:        billingAddressKeys,
 		Custom:                    custom,
+		CustomerGroups:            customerGroupAssignments,
 	}
 
 	sort.Slice(division.Addresses, func(i, j int) bool {
@@ -390,5 +424,20 @@ func NewDivisionFromNative(bu *platform.BusinessUnit) (Division, error) {
 		return division.BillingAddressKeys[i].ValueString() < division.BillingAddressKeys[j].ValueString()
 	})
 
+	sort.Slice(division.CustomerGroups, func(i, j int) bool {
+		return division.CustomerGroups[i].ValueString() < division.CustomerGroups[j].ValueString()
+	})
+
 	return division, nil
+}
+
+// normalization is needed to allow empty list and nil
+func normalizeCustomerGroups(fromAPI []types.String, fromPlanOrState []types.String) []types.String {
+	// If API returned actual groups, use them
+	if len(fromAPI) > 0 {
+		return fromAPI
+	}
+	// API returned empty/nil - preserve whatever null/[] the user had
+	// nil = user omitted field (null), []types.String{} = user wrote []
+	return fromPlanOrState
 }

@@ -145,6 +145,14 @@ func (b *divisionResource) Schema(_ context.Context, req resource.SchemaRequest,
 				MarkdownDescription: "Key of the default billing Address.",
 				Optional:            true,
 			},
+			"customer_groups": schema.ListAttribute{
+				MarkdownDescription: "List of customerGroups assigned to this division.",
+				Optional:            true,
+				ElementType:         types.StringType,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"store":   sharedtypes.StoreKeyReferenceBlockSchema,
@@ -232,7 +240,7 @@ func (b *divisionResource) Create(ctx context.Context, req resource.CreateReques
 	var bu *platform.BusinessUnit
 	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
 		var err error
-		bu, err = b.client.BusinessUnits().Post(draft).Execute(ctx)
+		bu, err = b.client.BusinessUnits().Post(draft).Expand([]string{"customerGroupAssignments[*].customerGroup"}).Execute(ctx)
 
 		return utils.ProcessRemoteError(err)
 	})
@@ -252,6 +260,8 @@ func (b *divisionResource) Create(ctx context.Context, req resource.CreateReques
 		)
 		return
 	}
+
+	current.CustomerGroups = normalizeCustomerGroups(current.CustomerGroups, plan.CustomerGroups)
 
 	diags = res.State.Set(ctx, current)
 	res.Diagnostics.Append(diags...)
@@ -302,7 +312,7 @@ func (b *divisionResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	bu, err := b.client.BusinessUnits().WithId(state.ID.ValueString()).Get().Execute(ctx)
+	bu, err := b.client.BusinessUnits().WithId(state.ID.ValueString()).Get().Expand([]string{"customerGroupAssignments[*].customerGroup"}).Execute(ctx)
 	if err != nil {
 		if errors.Is(err, platform.ErrNotFound) {
 			res.State.RemoveResource(ctx)
@@ -324,6 +334,8 @@ func (b *divisionResource) Read(ctx context.Context, req resource.ReadRequest, r
 		)
 		return
 	}
+
+	current.CustomerGroups = normalizeCustomerGroups(current.CustomerGroups, state.CustomerGroups)
 
 	diags = res.State.Set(ctx, current)
 	res.Diagnostics.Append(diags...)
@@ -377,6 +389,7 @@ func (b *divisionResource) Update(ctx context.Context, req resource.UpdateReques
 		bu, err = b.client.BusinessUnits().
 			WithId(state.ID.ValueString()).
 			Post(input).
+			Expand([]string{"customerGroupAssignments[*].customerGroup"}).
 			Execute(ctx)
 
 		return utils.ProcessRemoteError(err)
@@ -397,6 +410,8 @@ func (b *divisionResource) Update(ctx context.Context, req resource.UpdateReques
 		)
 		return
 	}
+
+	current.CustomerGroups = normalizeCustomerGroups(current.CustomerGroups, plan.CustomerGroups)
 
 	diags = res.State.Set(ctx, &current)
 	res.Diagnostics.Append(diags...)

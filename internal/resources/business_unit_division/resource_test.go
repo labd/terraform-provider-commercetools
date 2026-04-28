@@ -2,10 +2,11 @@ package business_unit_division_test
 
 import (
 	"context"
-	"github.com/labd/commercetools-go-sdk/platform"
-	"github.com/labd/terraform-provider-commercetools/internal/resources/business_unit_division"
 	"regexp"
 	"testing"
+
+	"github.com/labd/commercetools-go-sdk/platform"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/business_unit_division"
 
 	fwresource "github.com/hashicorp/terraform-plugin-framework/resource"
 
@@ -53,6 +54,8 @@ func TestBusinessUnitResource_Division(t *testing.T) {
 					resource.TestCheckResourceAttr(r, "contact_email", "acme@example.com"),
 					resource.TestCheckResourceAttr(r, "status", "Active"),
 					resource.TestCheckResourceAttr(r, "address.#", "1"),
+					resource.TestCheckResourceAttr(r, "customer_groups.#", "1"),
+					resource.TestCheckResourceAttr(r, "customer_groups.0", "group-1"),
 				),
 			},
 			{
@@ -253,6 +256,8 @@ func businessUnitDivisionTFResourceDef(options ...option) string {
 			 } 
 		   }
 		{{ end }}
+
+		customer_groups = ["group-1"]
 	}
 	`, data)
 }

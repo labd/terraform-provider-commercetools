@@ -2,14 +2,15 @@ package business_unit_company
 
 import (
 	"fmt"
+	"reflect"
+	"slices"
+	"sort"
+
 	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
-	"reflect"
-	"slices"
-	"sort"
 )
 
 // Company is a type to model the fields that all types of Companies have in common.
@@ -27,6 +28,7 @@ type Company struct {
 	Stores                    []sharedtypes.StoreKeyReference `tfsdk:"store"`
 	Addresses                 []sharedtypes.Address           `tfsdk:"address"`
 	Custom                    *sharedtypes.Custom             `tfsdk:"custom"`
+	CustomerGroups            []types.String                  `tfsdk:"customer_groups"`
 }
 
 func (c *Company) draft(t *platform.Type) (platform.CompanyDraft, error) {
@@ -104,21 +106,32 @@ func (c *Company) draft(t *platform.Type) (platform.CompanyDraft, error) {
 		return platform.CompanyDraft{}, err
 	}
 
+	var customerGroupAssignments []platform.CustomerGroupAssignmentDraft
+
+	for _, customerGroup := range c.CustomerGroups {
+		customerGroupAssignments = append(customerGroupAssignments, platform.CustomerGroupAssignmentDraft{
+			CustomerGroup: platform.CustomerGroupResourceIdentifier{
+				Key: customerGroup.ValueStringPointer(),
+			},
+		})
+	}
+
 	return platform.CompanyDraft{
-		Key:                    c.Key.ValueString(),
-		Status:                 &status,
-		StoreMode:              &storeMode,
-		AssociateMode:          &associateMode,
-		ApprovalRuleMode:       &approvalRuleMode,
-		Stores:                 stores,
-		Name:                   c.Name.ValueString(),
-		ContactEmail:           c.ContactEmail.ValueStringPointer(),
-		Addresses:              addresses,
-		ShippingAddresses:      shippingAddressIndexes,
-		BillingAddresses:       billingAddressIndexes,
-		DefaultShippingAddress: defaultShippingAddressIndex,
-		DefaultBillingAddress:  defaultBillingAddressIndex,
-		Custom:                 custom,
+		Key:                      c.Key.ValueString(),
+		Status:                   &status,
+		StoreMode:                &storeMode,
+		AssociateMode:            &associateMode,
+		ApprovalRuleMode:         &approvalRuleMode,
+		Stores:                   stores,
+		Name:                     c.Name.ValueString(),
+		ContactEmail:             c.ContactEmail.ValueStringPointer(),
+		Addresses:                addresses,
+		ShippingAddresses:        shippingAddressIndexes,
+		BillingAddresses:         billingAddressIndexes,
+		DefaultShippingAddress:   defaultShippingAddressIndex,
+		DefaultBillingAddress:    defaultBillingAddressIndex,
+		Custom:                   custom,
+		CustomerGroupAssignments: customerGroupAssignments,
 	}, nil
 }
 
@@ -255,6 +268,20 @@ func (c *Company) updateActions(t *platform.Type, plan Company) (platform.Busine
 		}
 	}
 
+	if !reflect.DeepEqual(c.CustomerGroups, plan.CustomerGroups) {
+		drafts := []platform.CustomerGroupAssignmentDraft{}
+		for _, group := range plan.CustomerGroups {
+			drafts = append(drafts, platform.CustomerGroupAssignmentDraft{
+				CustomerGroup: platform.CustomerGroupResourceIdentifier{
+					Key: group.ValueStringPointer(),
+				},
+			})
+		}
+		result.Actions = append(result.Actions, platform.BusinessUnitSetCustomerGroupAssignmentsAction{
+			CustomerGroupAssignments: drafts,
+		})
+	}
+
 	return result, nil
 }
 
@@ -312,6 +339,13 @@ func NewCompanyFromNative(bu *platform.BusinessUnit) (Company, error) {
 	}
 
 	custom, err := sharedtypes.NewCustomFromNative(c.Custom)
+
+	var customerGroupAssignments []types.String
+
+	for _, customerGroup := range c.CustomerGroupAssignments {
+		customerGroupAssignments = append(customerGroupAssignments, types.StringPointerValue(customerGroup.CustomerGroup.Obj.Key))
+	}
+
 	if err != nil {
 		return Company{}, err
 	}
@@ -330,6 +364,7 @@ func NewCompanyFromNative(bu *platform.BusinessUnit) (Company, error) {
 		ShippingAddressKeys:       shippingAddressKeys,
 		BillingAddressKeys:        billingAddressKeys,
 		Custom:                    custom,
+		CustomerGroups:            customerGroupAssignments,
 	}
 
 	sort.Slice(company.Addresses, func(i, j int) bool {
@@ -344,5 +379,20 @@ func NewCompanyFromNative(bu *platform.BusinessUnit) (Company, error) {
 		return company.BillingAddressKeys[i].ValueString() < company.BillingAddressKeys[j].ValueString()
 	})
 
+	sort.Slice(company.CustomerGroups, func(i, j int) bool {
+		return company.CustomerGroups[i].ValueString() < company.CustomerGroups[j].ValueString()
+	})
+
 	return company, nil
+}
+
+// normalization is needed to allow empty list and nil
+func normalizeCustomerGroups(fromAPI []types.String, fromPlanOrState []types.String) []types.String {
+	// If API returned actual groups, use them
+	if len(fromAPI) > 0 {
+		return fromAPI
+	}
+	// API returned empty/nil - preserve whatever null/[] the user had
+	// nil = user omitted field (null), []types.String{} = user wrote []
+	return fromPlanOrState
 }
