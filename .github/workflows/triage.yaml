@@ -15,13 +15,13 @@ jobs:
     steps:
       - name: get app token
         id: get-app-token
-        uses: labd/action-gh-app-token@7ff980ba334a28226bad9c85412b4a84c23a3787 # main
+        uses: labd/action-gh-app-token@570381a08efe9c961806a3a3bc5882af5f50ef6a # main
         with:
           app-id: ${{ secrets.RD_APP_ID }}
           private-key: ${{ secrets.RD_APP_PRIVATE_KEY }}
           installation-id: ${{ secrets.RD_APP_INSTALLATION_ID }}
       - name: set to project board
-        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
+        uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2.0.0
         with:
           project-url: https://github.com/orgs/labd/projects/3
           github-token: ${{ steps.get-app-token.outputs.app-token }}
