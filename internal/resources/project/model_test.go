@@ -516,6 +516,27 @@ func TestSetStateData(t *testing.T) {
 					},
 				},
 			},
+		}, {
+			name: "business unit imported with empty prior state",
+			state: Project{
+				BusinessUnits: []BusinessUnits{
+					{
+						MyBusinessUnitStatusOnCreation:           types.StringValue(string(platform.BusinessUnitConfigurationStatusInactive)),
+						MyBusinessUnitAssociateRoleKeyOnCreation: types.StringValue("viewer"),
+					},
+				},
+			},
+			plan: Project{
+				BusinessUnits: []BusinessUnits{},
+			},
+			expected: Project{
+				BusinessUnits: []BusinessUnits{
+					{
+						MyBusinessUnitStatusOnCreation:           types.StringValue(string(platform.BusinessUnitConfigurationStatusInactive)),
+						MyBusinessUnitAssociateRoleKeyOnCreation: types.StringValue("viewer"),
+					},
+				},
+			},
 		},
 	}
 	for _, tt := range tests {

@@ -102,32 +102,30 @@ func (*associateRoleResource) Metadata(_ context.Context, req resource.MetadataR
 }
 
 func resortPermissions(permissions, plan []platform.Permission) []platform.Permission {
-
-	// Build a map which maps the planned permissions to its index from the array
+	// Map each planned permission to its position so we can restore that order.
 	indexMap := make(map[platform.Permission]int)
-	for idx, p := range plan {
-		indexMap[p] = idx
+	for index, permission := range plan {
+		indexMap[permission] = index
 	}
 
-	// Build a map of the current permissions to the planned index
-	targetMap := make(map[platform.Permission]int)
-	for _, p := range permissions {
-		idx, ok := indexMap[p]
-		if ok {
-			targetMap[p] = idx
+	// Permissions present in the plan keep the plan ordering; permissions not in the
+	// plan (e.g. during import, or drift introduced outside Terraform) are appended
+	// afterwards in their API order so they are never dropped from state.
+	ordered := make([]platform.Permission, 0, len(permissions))
+	extra := make([]platform.Permission, 0)
+	for _, permission := range permissions {
+		if _, found := indexMap[permission]; found {
+			ordered = append(ordered, permission)
+		} else {
+			extra = append(extra, permission)
 		}
 	}
 
-	// Sort the target permission list by the index from the map
-	targetList := make([]platform.Permission, 0, len(targetMap))
-	for key := range targetMap {
-		targetList = append(targetList, key)
-	}
-	sort.SliceStable(targetList, func(i, j int) bool {
-		return targetMap[targetList[i]] < targetMap[targetList[j]]
+	sort.SliceStable(ordered, func(first, second int) bool {
+		return indexMap[ordered[first]] < indexMap[ordered[second]]
 	})
 
-	return targetList
+	return append(ordered, extra...)
 }
 
 // Create implements resource.Resource.

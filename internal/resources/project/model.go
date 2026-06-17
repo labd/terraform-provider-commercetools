@@ -203,7 +203,12 @@ func (p *Project) setStateData(o Project) {
 		p.Messages = o.Messages
 	}
 
-	if len(o.BusinessUnits) == 0 {
+	if len(o.BusinessUnits) == 0 && len(p.BusinessUnits) == 0 {
+		p.BusinessUnits = nil
+	}
+
+	// if the only existing BusinessUnit is the default config, remove the stored BusinessUnits in the state
+	if len(o.BusinessUnits) == 0 && len(p.BusinessUnits) == 1 && p.BusinessUnits[0].isDefault() {
 		p.BusinessUnits = nil
 	}
 }
@@ -585,7 +590,7 @@ func (b BusinessUnits) toNative() platform.BusinessUnitDraft {
 }
 
 func (b BusinessUnits) isDefault() bool {
-	return b.MyBusinessUnitStatusOnCreation.ValueString() == string(platform.BusinessUnitStatusActive) &&
+	return b.MyBusinessUnitStatusOnCreation.ValueString() == string(platform.BusinessUnitConfigurationStatusInactive) &&
 		b.MyBusinessUnitAssociateRoleKeyOnCreation.IsNull()
 }
 
