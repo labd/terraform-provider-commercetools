@@ -108,6 +108,41 @@ func TestAccCategoryRecreateAfterDelete(t *testing.T) {
 	})
 }
 
+func TestAccCategoryImport(t *testing.T) {
+	resourceName := "commercetools_category.accessories"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCategoryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCategoryConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "slug.en", "accessories"),
+				),
+			},
+			{
+				ResourceName:     resourceName,
+				ImportState:      true,
+				ImportStateCheck: testAccCategorySlugImported,
+			},
+		},
+	})
+}
+
+func testAccCategorySlugImported(states []*terraform.InstanceState) error {
+	if len(states) != 1 {
+		return fmt.Errorf("expected exactly one imported state, got %d", len(states))
+	}
+
+	if slug := states[0].Attributes["slug.en"]; slug != "accessories" {
+		return fmt.Errorf("expected imported slug.en to be %q, got %q", "accessories", slug)
+	}
+
+	return nil
+}
+
 func testAccCategoryConfig() string {
 	return hclTemplate(`
 		resource "commercetools_category" "accessories_base" {

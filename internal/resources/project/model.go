@@ -181,7 +181,7 @@ func NewProjectFromNative(n *platform.Project) Project {
 	return res
 }
 
-func (p *Project) setStateData(o Project) {
+func (p *Project) setStateData(o Project, isImport bool) {
 	if len(p.ExternalOAuth) > 0 && len(o.ExternalOAuth) > 0 {
 		p.ExternalOAuth[0].AuthorizationHeader = o.ExternalOAuth[0].AuthorizationHeader
 	}
@@ -203,7 +203,14 @@ func (p *Project) setStateData(o Project) {
 		p.Messages = o.Messages
 	}
 
-	if len(o.BusinessUnits) == 0 {
+	// Import has no prior config, so keep the API's business units or import loses
+	// them. Otherwise mirror o: the associate role can't be unset via the SDK, so
+	// keeping the API value would cause endless drift after the block is removed.
+	if isImport {
+		if len(p.BusinessUnits) == 0 || (len(p.BusinessUnits) == 1 && p.BusinessUnits[0].isDefault()) {
+			p.BusinessUnits = nil
+		}
+	} else if len(o.BusinessUnits) == 0 {
 		p.BusinessUnits = nil
 	}
 }
@@ -585,7 +592,7 @@ func (b BusinessUnits) toNative() platform.BusinessUnitDraft {
 }
 
 func (b BusinessUnits) isDefault() bool {
-	return b.MyBusinessUnitStatusOnCreation.ValueString() == string(platform.BusinessUnitStatusActive) &&
+	return b.MyBusinessUnitStatusOnCreation.ValueString() == string(platform.BusinessUnitConfigurationStatusInactive) &&
 		b.MyBusinessUnitAssociateRoleKeyOnCreation.IsNull()
 }
 

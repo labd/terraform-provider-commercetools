@@ -1,0 +1,3 @@
+kind: Fixed
+body: Fixed commercetools_associate_role dropping all permissions on import, causing them to be recreated on the next plan
+time: 2026-06-17T15:55:45.460292+02:00

@@ -258,6 +258,7 @@ func resourceCategoryRead(ctx context.Context, d *schema.ResourceData, m any) di
 	_ = d.Set("version", category.Version)
 	_ = d.Set("key", category.Key)
 	_ = d.Set("name", category.Name)
+	_ = d.Set("slug", category.Slug)
 	if category.Parent != nil {
 		_ = d.Set("parent", category.Parent.ID)
 	} else {

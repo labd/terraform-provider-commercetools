@@ -1,6 +1,8 @@
 package associate_role_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -44,6 +46,70 @@ func TestAssociateRoleResource_Create(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAssociateRoleResource_ImportPermissions(t *testing.T) {
+	resourceName := "commercetools_associate_role.sales_manager_associate_role"
+
+	identifier := "sales_manager_associate_role"
+	key := "sales_manager_europe_region"
+	name := "Sales Manager - Europe"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.TestAccPreCheck(t) },
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAssociateRoleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAssociateRoleConfig(identifier, name, key),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "permissions.#", "6"),
+				),
+			},
+			{
+				ResourceName:     resourceName,
+				ImportState:      true,
+				ImportStateCheck: testAssociateRolePermissionsImported,
+			},
+		},
+	})
+}
+
+// testAssociateRolePermissionsImported asserts that every permission from the
+// configuration survives the import. The check is order-insensitive to
+// check that the permissions are not being dropped entirely, regardless of their ordering.
+func testAssociateRolePermissionsImported(states []*terraform.InstanceState) error {
+	if len(states) != 1 {
+		return fmt.Errorf("expected exactly one imported state, got %d", len(states))
+	}
+
+	imported := states[0]
+	expectedPermissions := []string{
+		"UpdateBusinessUnitDetails",
+		"UpdateAssociates",
+		"CreateMyCarts",
+		"DeleteMyCarts",
+		"UpdateMyCarts",
+		"ViewMyCarts",
+	}
+
+	if count := imported.Attributes["permissions.#"]; count != "6" {
+		return fmt.Errorf("expected 6 permissions after import, got %q", count)
+	}
+
+	importedPermissions := make(map[string]bool)
+	for attribute, value := range imported.Attributes {
+		if strings.HasPrefix(attribute, "permissions.") && attribute != "permissions.#" {
+			importedPermissions[value] = true
+		}
+	}
+	for _, permission := range expectedPermissions {
+		if !importedPermissions[permission] {
+			return fmt.Errorf("permission %q missing from imported state", permission)
+		}
+	}
+
+	return nil
 }
 
 func testAssociateRoleDestroy(_ *terraform.State) error {
