@@ -393,7 +393,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	result := NewProjectFromNative(res)
-	result.setStateData(plan)
+	result.setStateData(plan, false)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, result)
@@ -422,7 +422,8 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 	current := NewProjectFromNative(res)
-	current.setStateData(state)
+	// Only import has a null version; import must keep remote business units.
+	current.setStateData(state, state.Version.IsNull())
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, current)
@@ -467,7 +468,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 	result := NewProjectFromNative(res)
-	result.setStateData(plan)
+	result.setStateData(plan, false)
 
 	diags = resp.State.Set(ctx, result)
 	resp.Diagnostics.Append(diags...)

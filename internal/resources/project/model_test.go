@@ -412,6 +412,7 @@ func TestSetStateData(t *testing.T) {
 		name     string
 		state    Project
 		plan     Project
+		isImport bool
 		expected Project
 	}{
 		{
@@ -517,7 +518,8 @@ func TestSetStateData(t *testing.T) {
 				},
 			},
 		}, {
-			name: "business unit imported with empty prior state",
+			name:     "business unit imported with empty prior state",
+			isImport: true,
 			state: Project{
 				BusinessUnits: []BusinessUnits{
 					{
@@ -537,11 +539,30 @@ func TestSetStateData(t *testing.T) {
 					},
 				},
 			},
+		}, {
+			// The role can't be unset via the SDK, so the API still reports it;
+			// state must still match the empty plan to avoid an inconsistent apply.
+			name:     "business unit removed on apply matches empty plan",
+			isImport: false,
+			state: Project{
+				BusinessUnits: []BusinessUnits{
+					{
+						MyBusinessUnitStatusOnCreation:           types.StringValue(string(platform.BusinessUnitConfigurationStatusInactive)),
+						MyBusinessUnitAssociateRoleKeyOnCreation: types.StringValue("my-role"),
+					},
+				},
+			},
+			plan: Project{
+				BusinessUnits: []BusinessUnits{},
+			},
+			expected: Project{
+				BusinessUnits: nil,
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.state.setStateData(tt.plan)
+			tt.state.setStateData(tt.plan, tt.isImport)
 			assert.Equal(t, tt.expected, tt.state)
 		})
 	}
