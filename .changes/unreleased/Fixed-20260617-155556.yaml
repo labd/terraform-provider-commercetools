@@ -1,3 +1,0 @@
-kind: Fixed
-body: Fixed commercetools_project_settings dropping business_units configuration on import, causing it to be recreated on the next plan
-time: 2026-06-17T15:55:56.699412+02:00
