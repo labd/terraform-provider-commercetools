@@ -225,29 +225,29 @@ func (r *stateResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	r.mutex.Lock(resourceID)
 	defer r.mutex.Unlock(resourceID)
 
-	// Retrieve the last version. This is needed since the state_transition
+	// Retrieve the current resource. This is needed since the state_transition
 	// resource can also modify the state version in commercetools
-	version, diags := r.GetVersion(ctx, resourceID)
+	res, diags := r.getState(ctx, resourceID)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	state.Version = types.Int64Value(int64(version))
-	state.setDefaults()
+	state.Version = types.Int64Value(int64(res.Version))
 
 	input := state.updateActions(plan)
-	var res *platform.State
-	err := sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
-		var err error
-		res, err = r.client.States().WithId(resourceID).Post(input).Execute(ctx)
-		return utils.ProcessRemoteError(err)
-	})
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error updating state",
-			"Could not update state, unexpected error: "+err.Error(),
-		)
-		return
+	if len(input.Actions) > 0 {
+		err := sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
+			var err error
+			res, err = r.client.States().WithId(resourceID).Post(input).Execute(ctx)
+			return utils.ProcessRemoteError(err)
+		})
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating state",
+				"Could not update state, unexpected error: "+err.Error(),
+			)
+			return
+		}
 	}
 
 	current := NewStateFromNative(res)
@@ -278,14 +278,14 @@ func (r *stateResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	// Retrieve the last version. This is needed since the state_transition
 	// resource can also modify the state version in commercetools
-	version, diags := r.GetVersion(ctx, resourceID)
+	res, diags := r.getState(ctx, resourceID)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	err := sdk_resource.RetryContext(ctx, 5*time.Second, func() *sdk_resource.RetryError {
-		_, err := r.client.States().WithId(resourceID).Delete().Version(version).Execute(ctx)
+		_, err := r.client.States().WithId(resourceID).Delete().Version(res.Version).Execute(ctx)
 		return utils.ProcessRemoteError(err)
 	})
 
@@ -303,7 +303,7 @@ func (r *stateResource) ImportState(ctx context.Context, req resource.ImportStat
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func (r *stateResource) GetVersion(ctx context.Context, resourceID string) (int, diag.Diagnostics) {
+func (r *stateResource) getState(ctx context.Context, resourceID string) (*platform.State, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 
 	res, err := r.client.States().WithId(resourceID).Get().Execute(ctx)
@@ -312,7 +312,7 @@ func (r *stateResource) GetVersion(ctx context.Context, resourceID string) (int,
 			"Error reading state",
 			"Could not retrieve state, unexpected error: "+err.Error(),
 		)
-		return 0, diags
+		return nil, diags
 	}
-	return res.Version, diags
+	return res, diags
 }
