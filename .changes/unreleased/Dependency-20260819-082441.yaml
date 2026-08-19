@@ -1,0 +1,3 @@
+kind: Dependency
+body: 'chore(deps): update Go dependencies, including golang.org/x/crypto, golang.org/x/net and google.golang.org/grpc which fix open security advisories'
+time: 2026-08-19T08:24:41.000000+02:00
