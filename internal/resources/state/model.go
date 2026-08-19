@@ -96,8 +96,10 @@ func (s State) updateActions(plan State) platform.StateUpdate {
 			platform.StateChangeTypeAction{Type: platform.StateTypeEnum(plan.Type.ValueString())})
 	}
 
-	// changeInitial
-	if !s.Initial.Equal(plan.Initial) {
+	// changeInitial. Compare the effective value since a null (unset) value is
+	// equivalent to false. Sending a changeInitial action with the value the
+	// state already has is rejected by the API ('initial' has no changes).
+	if s.Initial.ValueBool() != plan.Initial.ValueBool() {
 		result.Actions = append(
 			result.Actions,
 			platform.StateChangeInitialAction{
@@ -124,11 +126,5 @@ func (s *State) matchDefaults(state State) {
 	// has nil, then set it to false (since it's the default)
 	if !s.Initial.ValueBool() && state.Initial.IsNull() {
 		s.Initial = state.Initial
-	}
-}
-
-func (s *State) setDefaults() {
-	if s.Initial.IsNull() {
-		s.Initial = types.BoolValue(false)
 	}
 }
