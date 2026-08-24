@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/labd/commercetools-go-sdk/insights"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
 
@@ -29,27 +30,47 @@ func ProcessRemoteError(err error) *resource.RetryError {
 			}
 			return resource.NonRetryableError(e)
 		}
+
+	case insights.ErrorResponse:
+		return resource.NonRetryableError(extractDetailedErrorFrom(e.Errors, e))
+
+	case insights.GenericRequestError:
+		{
+			if err := extractRawDetailedError(e.Content); err != nil {
+				return resource.NonRetryableError(err)
+			}
+			return resource.NonRetryableError(e)
+		}
 	}
 
 	return resource.RetryableError(err)
 }
 
 func extractDetailedError(e platform.ErrorResponse) error {
-	for i := range e.Errors {
-		item := e.Errors[i]
+	return extractDetailedErrorFrom(e.Errors, e)
+}
 
-		metaValue := reflect.ValueOf(item)
+// extractDetailedErrorFrom digs the detailedErrorMessage out of a list of error
+// objects. The error objects of the various commercetools APIs are distinct
+// (generated) types that share the same shape, so they are inspected
+// reflectively. Returns fallback when no detailed message is present.
+func extractDetailedErrorFrom[T any](errs []T, fallback error) error {
+	for i := range errs {
+		metaValue := reflect.ValueOf(errs[i])
 		message := metaValue.FieldByName("Message")
 		values := metaValue.FieldByName("ExtraValues")
 
 		if message.IsValid() && values.IsValid() {
-			data := values.Interface().(map[string]any)
+			data, ok := values.Interface().(map[string]any)
+			if !ok {
+				continue
+			}
 			if msg, ok := data["detailedErrorMessage"]; ok {
 				return fmt.Errorf("%s %s", message.String(), msg)
 			}
 		}
 	}
-	return e
+	return fallback
 }
 
 func extractRawDetailedError(content []byte) error {
@@ -91,7 +112,7 @@ func extractRawDetailedError(content []byte) error {
 func IsResourceNotFoundError(err error) bool {
 	//Occasionally the SDK returns a sentinel value instead of the parsed error response for 404.
 	//This is a workaround to handle that case.
-	if errors.Is(err, platform.ErrNotFound) {
+	if errors.Is(err, platform.ErrNotFound) || errors.Is(err, insights.ErrNotFound) {
 		return true
 	}
 
@@ -103,6 +124,12 @@ func IsResourceNotFoundError(err error) bool {
 		return e.StatusCode == 404
 
 	case platform.GenericRequestError:
+		return e.StatusCode == 404
+
+	case insights.ErrorResponse:
+		return e.StatusCode == 404
+
+	case insights.GenericRequestError:
 		return e.StatusCode == 404
 	}
 	return false

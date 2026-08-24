@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/ctutils"
+	"github.com/labd/commercetools-go-sdk/insights"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"golang.org/x/oauth2/clientcredentials"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/labd/terraform-provider-commercetools/internal/resources/attribute_group"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/business_unit_company"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/business_unit_division"
+	"github.com/labd/terraform-provider-commercetools/internal/resources/insights_configuration"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/product_selection"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/project"
 	"github.com/labd/terraform-provider-commercetools/internal/resources/state"
@@ -172,9 +174,26 @@ func (p *ctProvider) Configure(ctx context.Context, req provider.ConfigureReques
 		return
 	}
 
+	// Platform Insights is served by a separate API and therefore needs its own
+	// generated client, sharing the same credentials and HTTP client.
+	insightsClient, err := insights.NewClient(&insights.ClientConfig{
+		URL:         apiURL,
+		Credentials: oauth2Config,
+		UserAgent:   fmt.Sprintf("terraform-provider-commercetools/%s", p.version),
+		HTTPClient:  httpClient,
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to create client",
+			"Unable to create commercetools insights client:\n\n"+err.Error(),
+		)
+		return
+	}
+
 	data := &utils.ProviderData{
-		Client: client.WithProjectKey(projectKey),
-		Mutex:  utils.NewMutexKV(),
+		Client:         client.WithProjectKey(projectKey),
+		InsightsClient: insightsClient.WithProjectKey(projectKey),
+		Mutex:          utils.NewMutexKV(),
 	}
 	resp.DataSourceData = data
 	resp.ResourceData = data
@@ -198,6 +217,7 @@ func (p *ctProvider) Resources(_ context.Context) []func() resource.Resource {
 		attribute_group.NewResource,
 		associate_role.NewResource,
 		product_selection.NewResource,
+		insights_configuration.NewResource,
 		business_unit_company.NewCompanyResource,
 		business_unit_division.NewDivisionResource,
 	}

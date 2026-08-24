@@ -105,6 +105,7 @@ resource "commercetools_business_unit_company" "my-company" {
 - `billing_address_keys` (Set of String) Indexes of entries in addresses to set as billing addresses. The billingAddressIds of the [Customer](https://docs.commercetools.com/api/projects/customers) will be replaced by these addresses.
 - `contact_email` (String) The email address of the company.
 - `custom` (Block, Optional) Custom fields for this resource. (see [below for nested schema](#nestedblock--custom))
+- `customer_groups` (List of String) List of customerGroups assigned to this company.
 - `default_billing_address_key` (String) Index of the entry in addresses to set as the default billing address.
 - `default_shipping_address_key` (String) Index of the entry in addresses to set as the default shipping address.
 - `shipping_address_keys` (Set of String) Indexes of entries in addresses to set as shipping addresses. The shippingAddressIds of the [Customer](https://docs.commercetools.com/api/projects/customers) will be replaced by these addresses.

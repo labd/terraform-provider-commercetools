@@ -119,6 +119,7 @@ resource "commercetools_business_unit_division" "my-division" {
 - `billing_address_keys` (List of String) List of the billing addresses used by the division.
 - `contact_email` (String) The email address of the division.
 - `custom` (Block, Optional) Custom fields for this resource. (see [below for nested schema](#nestedblock--custom))
+- `customer_groups` (List of String) List of customerGroups assigned to this division.
 - `default_billing_address_key` (String) Key of the default billing Address.
 - `default_shipping_address_key` (String) Key of the default shipping Address.
 - `parent_unit` (Block, Optional) Reference to a parent business unit by its key or id. One of either is required. (see [below for nested schema](#nestedblock--parent_unit))
