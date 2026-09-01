@@ -113,6 +113,15 @@ func resourceAPIExtension() *schema.Resource {
 					},
 				},
 			},
+			"expansion_paths": {
+				Description: "[Expansion paths](https://docs.commercetools.com/api/general-concepts#reference-expansion) " +
+					"used for reference expansion of the payload sent to the Extension. Be aware of the " +
+					"[limits](https://docs.commercetools.com/api/limits#api-extensions) of this feature and its " +
+					"[performance impact](https://docs.commercetools.com/api/performance-tips#api-extensions).",
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"timeout_in_ms": {
 				Description: "Maximum time (in milliseconds) that the Extension can respond within. If no timeout is " +
 					"provided, the default value is used for all types of Extensions, including payment Extensions. " +
@@ -169,8 +178,9 @@ func resourceAPIExtensionCreate(ctx context.Context, d *schema.ResourceData, m a
 	}
 
 	draft := platform.ExtensionDraft{
-		Destination: destination,
-		Triggers:    triggers,
+		Destination:    destination,
+		Triggers:       triggers,
+		ExpansionPaths: expandExtensionExpansionPaths(d),
 	}
 
 	timeoutInMs := d.Get("timeout_in_ms")
@@ -224,6 +234,7 @@ func resourceAPIExtensionRead(ctx context.Context, d *schema.ResourceData, m any
 	_ = d.Set("key", extension.Key)
 	_ = d.Set("destination", flattenExtensionDestination(extension.Destination, d))
 	_ = d.Set("trigger", flattenExtensionTriggers(extension.Triggers))
+	_ = d.Set("expansion_paths", extension.ExpansionPaths)
 	_ = d.Set("timeout_in_ms", extension.TimeoutInMs)
 	return nil
 }
@@ -261,6 +272,16 @@ func resourceAPIExtensionUpdate(ctx context.Context, d *schema.ResourceData, m a
 		input.Actions = append(
 			input.Actions,
 			&platform.ExtensionChangeDestinationAction{Destination: destination})
+	}
+
+	if d.HasChange("expansion_paths") {
+		expansionPaths := expandExtensionExpansionPaths(d)
+		if expansionPaths == nil {
+			expansionPaths = []string{}
+		}
+		input.Actions = append(
+			input.Actions,
+			&platform.ExtensionSetExpansionPathsAction{ExpansionPaths: expansionPaths})
 	}
 
 	if d.HasChange("timeout_in_ms") {
@@ -519,6 +540,22 @@ func expandExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger
 			Actions:        actions,
 			Condition:      condition,
 		})
+	}
+	return result
+}
+
+// expandExtensionExpansionPaths reads the expansion_paths from the resource
+// data. It returns nil when no paths are set so that the field is omitted from
+// the request payload.
+func expandExtensionExpansionPaths(d *schema.ResourceData) []string {
+	input := d.Get("expansion_paths").([]any)
+	if len(input) == 0 {
+		return nil
+	}
+
+	result := make([]string, 0, len(input))
+	for _, raw := range input {
+		result = append(result, raw.(string))
 	}
 	return result
 }
