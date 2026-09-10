@@ -358,3 +358,147 @@ func testAccAPIExtensionAzureFunctionsConfig(identifier, key string, timeoutInMs
 		"timeoutInMs": timeoutInMs,
 	})
 }
+
+func TestExpandExtensionDependencies(t *testing.T) {
+	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{})
+	assert.Nil(t, expandExtensionDependencies(d))
+
+	d = schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{
+		"dependencies": []any{
+			"my-extension-key",
+			"2845b936-e407-4f29-957b-f8deb0fcba97",
+		},
+	})
+
+	dependencies := expandExtensionDependencies(d)
+	assert.Len(t, dependencies, 2)
+
+	// Anything that is not a UUID is sent as a key
+	assert.Nil(t, dependencies[0].ID)
+	assert.Equal(t, "my-extension-key", *dependencies[0].Key)
+
+	// A UUID is sent as an id
+	assert.Nil(t, dependencies[1].Key)
+	assert.Equal(t, "2845b936-e407-4f29-957b-f8deb0fcba97", *dependencies[1].ID)
+}
+
+func TestExtensionDependencyIDs(t *testing.T) {
+	assert.Equal(t, []string{}, extensionDependencyIDs(nil))
+	assert.Equal(t,
+		[]string{"2845b936-e407-4f29-957b-f8deb0fcba97", "7ba7f2b4-1f5d-4b9c-9d4a-1c0e6e0f9d21"},
+		extensionDependencyIDs([]platform.ExtensionReference{
+			{ID: "2845b936-e407-4f29-957b-f8deb0fcba97"},
+			{ID: "7ba7f2b4-1f5d-4b9c-9d4a-1c0e6e0f9d21"},
+		}))
+}
+
+func TestIsExtensionID(t *testing.T) {
+	assert.True(t, isExtensionID("2845b936-e407-4f29-957b-f8deb0fcba97"))
+	assert.False(t, isExtensionID("my-extension-key"))
+	assert.False(t, isExtensionID(""))
+	assert.False(t, isExtensionID("2845b936-e407-4f29-957b-f8deb0fcba9"))
+}
+
+func TestFlattenExtensionDependencies(t *testing.T) {
+	const (
+		firstID   = "2845b936-e407-4f29-957b-f8deb0fcba97"
+		secondID  = "7ba7f2b4-1f5d-4b9c-9d4a-1c0e6e0f9d21"
+		keylessID = "9c1f1d18-1b1f-4a1a-bd60-0b3f4b3f9b02"
+	)
+	keys := map[string]string{firstID: "first-extension", secondID: "second-extension"}
+
+	withState := func(dependencies ...string) *schema.ResourceData {
+		raw := make([]any, 0, len(dependencies))
+		for _, dependency := range dependencies {
+			raw = append(raw, dependency)
+		}
+		return schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{
+			"dependencies": raw,
+		})
+	}
+
+	// Configured by key: the key is kept, so no diff is introduced
+	assert.Equal(t,
+		[]string{"first-extension", "second-extension"},
+		flattenExtensionDependencies(
+			[]string{firstID, secondID}, keys, withState("first-extension", "second-extension")))
+
+	// Configured by id: the id is kept
+	assert.Equal(t,
+		[]string{firstID, secondID},
+		flattenExtensionDependencies([]string{firstID, secondID}, keys, withState(firstID, secondID)))
+
+	// Both notations can be mixed
+	assert.Equal(t,
+		[]string{firstID, "second-extension"},
+		flattenExtensionDependencies(
+			[]string{firstID, secondID}, keys, withState(firstID, "second-extension")))
+
+	// Not in the state yet (import or drift): prefer the key
+	assert.Equal(t,
+		[]string{"first-extension"},
+		flattenExtensionDependencies([]string{firstID}, keys, withState()))
+
+	// An extension without a key can only be written as an id
+	assert.Equal(t,
+		[]string{keylessID},
+		flattenExtensionDependencies([]string{keylessID}, keys, withState()))
+
+	assert.Equal(t, []string{}, flattenExtensionDependencies(nil, keys, withState()))
+}
+
+func TestExpandExtensionExpansionPaths(t *testing.T) {
+	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{})
+	assert.Nil(t, expandExtensionExpansionPaths(d))
+
+	d = schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{
+		"expansion_paths": []any{"lineItems[*].variant", "customerGroup"},
+	})
+	assert.Equal(t,
+		[]string{"lineItems[*].variant", "customerGroup"},
+		expandExtensionExpansionPaths(d))
+}
+
+func TestExpandExtensionAdditionalContext(t *testing.T) {
+	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{})
+	assert.Nil(t, expandExtensionAdditionalContext(d))
+
+	d = schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{
+		"additional_context": []any{
+			map[string]any{"include_old_resource": true},
+		},
+	})
+
+	additionalContext := expandExtensionAdditionalContext(d)
+	assert.NotNil(t, additionalContext)
+	assert.Equal(t, true, *additionalContext.IncludeOldResource)
+}
+
+func TestFlattenExtensionAdditionalContext(t *testing.T) {
+	empty := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{})
+	configured := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{
+		"additional_context": []any{
+			map[string]any{"include_old_resource": false},
+		},
+	})
+
+	// Not returned by commercetools at all
+	assert.Empty(t, flattenExtensionAdditionalContext(nil, empty))
+
+	// Returned with the default value while never configured: keep it absent so
+	// we don't introduce a permanent diff.
+	assert.Empty(t, flattenExtensionAdditionalContext(
+		&platform.ExtensionAdditionalContext{IncludeOldResource: false}, empty))
+
+	// Returned with the default value while explicitly configured: keep it.
+	assert.Equal(t,
+		[]map[string]any{{"include_old_resource": false}},
+		flattenExtensionAdditionalContext(
+			&platform.ExtensionAdditionalContext{IncludeOldResource: false}, configured))
+
+	// A non-default value is always written
+	assert.Equal(t,
+		[]map[string]any{{"include_old_resource": true}},
+		flattenExtensionAdditionalContext(
+			&platform.ExtensionAdditionalContext{IncludeOldResource: true}, empty))
+}

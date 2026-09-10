@@ -1,0 +1,3 @@
+kind: Added
+body: Enhance `commercetools_api_extension` to support the `dependencies`, `expansion_paths` and `additional_context` fields. Dependencies can be referenced by key or by id'
+time: 2026-09-09T10:00:00.000000+02:00
