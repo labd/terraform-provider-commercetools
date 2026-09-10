@@ -87,7 +87,7 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
   member = "serviceAccount:extensions@commercetools-platform.iam.gserviceaccount.com"
 }
 
-# An api extension which runs after another extension, expands references in the
+# An API extension which runs after another extension, expands references in the
 # payload and receives the state of the resource before the update
 resource "commercetools_api_extension" "my-dependent-extension" {
   key = "my-dependent-extension-key"
