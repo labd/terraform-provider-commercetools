@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/labd/commercetools-go-sdk/platform"
 
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
@@ -95,9 +96,12 @@ func resourceAPIExtension() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"resource_type_id": {
-							Description: "Currently, cart, order, payment, and customer are supported",
-							Type:        schema.TypeString,
-							Required:    true,
+							Description: "The resource type that triggers the extension, for example `cart`, `order`, `payment` " +
+								"or `recurring-order`. See the [ExtensionResourceTypeId](https://docs.commercetools.com/api/projects/api-extensions#extensionresourcetypeid) " +
+								"documentation for all supported values",
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringIsNotEmpty,
 						},
 						"actions": {
 							Description: "Currently, Create and Update are supported",
@@ -480,28 +484,7 @@ func expandExtensionTriggers(d *schema.ResourceData) []platform.ExtensionTrigger
 
 	for _, raw := range input {
 		i := raw.(map[string]any)
-		var typeId platform.ExtensionResourceTypeId
-
-		switch i["resource_type_id"].(string) {
-		case "cart":
-			typeId = platform.ExtensionResourceTypeIdCart
-		case "order":
-			typeId = platform.ExtensionResourceTypeIdOrder
-		case "payment":
-			typeId = platform.ExtensionResourceTypeIdPayment
-		case "customer":
-			typeId = platform.ExtensionResourceTypeIdCustomer
-		case "quote-request":
-			typeId = platform.ExtensionResourceTypeIdQuoteRequest
-		case "staged-quote":
-			typeId = platform.ExtensionResourceTypeIdStagedQuote
-		case "quote":
-			typeId = platform.ExtensionResourceTypeIdQuote
-		case "business-unit":
-			typeId = platform.ExtensionResourceTypeIdBusinessUnit
-		case "shopping-list":
-			typeId = platform.ExtensionResourceTypeIdShoppingList
-		}
+		typeId := platform.ExtensionResourceTypeId(i["resource_type_id"].(string))
 
 		rawActions := i["actions"].([]any)
 		actions := make([]platform.ExtensionAction, 0, len(rawActions))

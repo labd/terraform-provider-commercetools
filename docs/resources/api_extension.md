@@ -129,7 +129,7 @@ Optional:
 Required:
 
 - `actions` (List of String) Currently, Create and Update are supported
-- `resource_type_id` (String) Currently, cart, order, payment, and customer are supported
+- `resource_type_id` (String) The resource type that triggers the extension, for example `cart`, `order`, `payment` or `recurring-order`. See the [ExtensionResourceTypeId](https://docs.commercetools.com/api/projects/api-extensions#extensionresourcetypeid) documentation for all supported values
 
 Optional:
 

@@ -1,0 +1,3 @@
+kind: Fixed
+body: '`commercetools_api_extension` now passes any `resource_type_id` through to commercetools, adding support for `recurring-order`, `approval-rule`, `payment-method` and `customer-group` triggers. Previously unlisted types were sent as an empty string'
+time: 2026-10-05T12:00:00.000000+02:00
