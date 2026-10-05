@@ -177,7 +177,7 @@ func flattenAddress(c *platform.Address) []map[string]any {
 		"last_name":               c.LastName,
 		"street_name":             c.StreetName,
 		"street_number":           c.StreetNumber,
-		"additional_street_info":  c.AdditionalAddressInfo,
+		"additional_street_info":  c.AdditionalStreetInfo,
 		"postal_code":             c.PostalCode,
 		"city":                    c.City,
 		"region":                  c.Region,
