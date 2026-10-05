@@ -80,6 +80,10 @@ func TestExpandExtensionTriggers(t *testing.T) {
 				"resource_type_id": "cart",
 				"actions":          []any{"Create", "Update"},
 			},
+			map[string]any{
+				"resource_type_id": "recurring-order",
+				"actions":          []any{"Create"},
+			},
 		},
 		"timeout_in_ms": 1,
 		"key":           "create-order",
@@ -88,9 +92,24 @@ func TestExpandExtensionTriggers(t *testing.T) {
 	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
 	triggers := expandExtensionTriggers(d)
 
-	assert.Len(t, triggers, 1)
+	assert.Len(t, triggers, 2)
 	assert.Equal(t, triggers[0].ResourceTypeId, platform.ExtensionResourceTypeIdCart)
 	assert.Len(t, triggers[0].Actions, 2)
+	assert.Equal(t, triggers[1].ResourceTypeId, platform.ExtensionResourceTypeId("recurring-order"))
+}
+
+func TestExpandExtensionTriggersNil(t *testing.T) {
+	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{})
+	assert.Empty(t, expandExtensionTriggers(d))
+}
+
+func TestAPIExtensionTriggerEmptyResourceTypeId(t *testing.T) {
+	cfg := terraform.NewResourceConfigRaw(map[string]any{
+		"destination": []any{map[string]any{"type": "HTTP", "url": "https://example.com"}},
+		"trigger":     []any{map[string]any{"resource_type_id": "", "actions": []any{"Create"}}},
+	})
+
+	assert.True(t, resourceAPIExtension().Validate(cfg).HasError())
 }
 
 func TestAccAPIExtension_basic(t *testing.T) {
