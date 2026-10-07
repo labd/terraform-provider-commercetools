@@ -14,6 +14,27 @@ resource "commercetools_api_extension" "my-http-extension" {
   }
 }
 
+# HTTP api extension that includes the resource state before the update
+resource "commercetools_api_extension" "my-old-resource-extension" {
+  key = "my-old-resource-extension-key"
+
+  destination {
+    type = "HTTP"
+    url  = "https://example.com"
+  }
+
+  trigger {
+    resource_type_id = "cart"
+    actions          = ["Create", "Update"]
+  }
+
+  # Adds an `oldResource` field with the resource state before the update to
+  # the payload sent to the extension. Only applies to Update actions.
+  additional_context {
+    include_old_resource = true
+  }
+}
+
 # AWS Lambda api extension
 resource "commercetools_api_extension" "my-awslambda-extension" {
   key = "my-awslambda-extension-key"

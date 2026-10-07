@@ -32,6 +32,27 @@ resource "commercetools_api_extension" "my-http-extension" {
   }
 }
 
+# HTTP api extension that includes the resource state before the update
+resource "commercetools_api_extension" "my-old-resource-extension" {
+  key = "my-old-resource-extension-key"
+
+  destination {
+    type = "HTTP"
+    url  = "https://example.com"
+  }
+
+  trigger {
+    resource_type_id = "cart"
+    actions          = ["Create", "Update"]
+  }
+
+  # Adds an `oldResource` field with the resource state before the update to
+  # the payload sent to the extension. Only applies to Update actions.
+  additional_context {
+    include_old_resource = true
+  }
+}
+
 # AWS Lambda api extension
 resource "commercetools_api_extension" "my-awslambda-extension" {
   key = "my-awslambda-extension-key"
@@ -98,6 +119,7 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
 
 ### Optional
 
+- `additional_context` (Block List, Max: 1) Configures additional information included in the payload sent to the API Extension. See [Previous state of the updated resource](https://docs.commercetools.com/api/api-extensibility-overview#previous-state-of-the-updated-resource-in-api-extensions) for more information. (see [below for nested schema](#nestedblock--additional_context))
 - `key` (String) User-specific unique identifier for the extension
 - `timeout_in_ms` (Number) Maximum time (in milliseconds) that the Extension can respond within. If no timeout is provided, the default value is used for all types of Extensions, including payment Extensions. The maximum value is 10000 ms (10 seconds) for payment Extensions and 2000 ms (2 seconds) for all other Extensions.
 
@@ -105,6 +127,14 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
 
 - `id` (String) The ID of this resource.
 - `version` (Number)
+
+<a id="nestedblock--additional_context"></a>
+### Nested Schema for `additional_context`
+
+Optional:
+
+- `include_old_resource` (Boolean) Whether the payload sent to the API Extension should include an `oldResource` field with the state of the resource before the update. This only applies to Update actions. For Create actions, `oldResource` is not included.
+
 
 <a id="nestedblock--destination"></a>
 ### Nested Schema for `destination`

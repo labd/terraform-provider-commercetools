@@ -93,6 +93,39 @@ func TestExpandExtensionTriggers(t *testing.T) {
 	assert.Len(t, triggers[0].Actions, 2)
 }
 
+func TestExpandExtensionAdditionalContext(t *testing.T) {
+	resourceDataMap := map[string]any{
+		"trigger": []any{
+			map[string]any{
+				"resource_type_id": "cart",
+				"actions":          []any{"Create"},
+			},
+		},
+		"additional_context": []any{
+			map[string]any{
+				"include_old_resource": true,
+			},
+		},
+	}
+
+	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
+	ac := expandExtensionAdditionalContext(d.Get("additional_context").([]any))
+	assert.NotNil(t, ac)
+	assert.NotNil(t, ac.IncludeOldResource)
+	assert.True(t, *ac.IncludeOldResource)
+
+	assert.Nil(t, expandExtensionAdditionalContext([]any{}))
+}
+
+func TestFlattenExtensionAdditionalContext(t *testing.T) {
+	assert.Nil(t, flattenExtensionAdditionalContext(nil))
+
+	result := flattenExtensionAdditionalContext(&platform.ExtensionAdditionalContext{
+		IncludeOldResource: true,
+	})
+	assert.Equal(t, []map[string]any{{"include_old_resource": true}}, result)
+}
+
 func TestAccAPIExtension_basic(t *testing.T) {
 	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
 	timeoutInMs := acctest.RandIntRange(200, 1800)
@@ -356,5 +389,82 @@ func testAccAPIExtensionAzureFunctionsConfig(identifier, key string, timeoutInMs
 		"identifier":  identifier,
 		"key":         key,
 		"timeoutInMs": timeoutInMs,
+	})
+}
+
+func TestAccAPIExtension_additionalContext(t *testing.T) {
+	// The additional_context attribute is only exercised through update actions
+	// here: the pinned commercetools mock server silently drops
+	// additionalContext when set on create (fixed upstream, not yet released -
+	// see https://github.com/labd/commercetools-node-mock/pull/430), but
+	// setAdditionalContext was already implemented, so updates work correctly.
+	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
+	identifier := "ext"
+	resourceName := "commercetools_api_extension.ext"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckAPIExtensionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAPIExtensionConfigRequiredOnly(identifier, name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAPIExtensionExists(identifier),
+					resource.TestCheckResourceAttr(
+						resourceName, "additional_context.#", "0"),
+				),
+			},
+			{
+				Config: testAccAPIExtensionAdditionalContextConfig(identifier, name, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAPIExtensionExists(identifier),
+					resource.TestCheckResourceAttr(
+						resourceName, "additional_context.#", "1"),
+					resource.TestCheckResourceAttr(
+						resourceName, "additional_context.0.include_old_resource", "true"),
+				),
+			},
+			{
+				Config:   testAccAPIExtensionAdditionalContextConfig(identifier, name, true),
+				PlanOnly: true,
+			},
+			{
+				Config: testAccAPIExtensionAdditionalContextConfig(identifier, name, false),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAPIExtensionExists(identifier),
+					resource.TestCheckResourceAttr(
+						resourceName, "additional_context.#", "1"),
+					resource.TestCheckResourceAttr(
+						resourceName, "additional_context.0.include_old_resource", "false"),
+				),
+			},
+		},
+	})
+}
+
+func testAccAPIExtensionAdditionalContextConfig(identifier, key string, includeOldResource bool) string {
+	return hclTemplate(`
+		resource "commercetools_api_extension" "{{ .identifier }}" {
+			key = "{{ .key }}"
+
+			destination {
+				type = "HTTP"
+				url  = "https://example.com"
+			}
+
+			trigger {
+				resource_type_id = "customer"
+				actions = ["Create", "Update"]
+			}
+
+			additional_context {
+				include_old_resource = {{ .includeOldResource }}
+			}
+		}
+	`, map[string]any{
+		"identifier":         identifier,
+		"key":                key,
+		"includeOldResource": includeOldResource,
 	})
 }

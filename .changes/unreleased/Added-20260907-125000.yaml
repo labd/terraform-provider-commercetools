@@ -1,0 +1,3 @@
+kind: Added
+body: Support for the previous resource state in `commercetools_api_extension` payloads via the new `additional_context` block and its `include_old_resource` attribute
+time: 2026-09-07T12:50:00.000000+00:00
