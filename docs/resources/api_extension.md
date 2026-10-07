@@ -32,6 +32,26 @@ resource "commercetools_api_extension" "my-http-extension" {
   }
 }
 
+# HTTP api extension with reference expansion of the payload
+resource "commercetools_api_extension" "my-expanding-extension" {
+  key = "my-expanding-extension-key"
+
+  destination {
+    type = "HTTP"
+    url  = "https://example.com"
+  }
+
+  trigger {
+    resource_type_id = "cart"
+    actions          = ["Create", "Update"]
+  }
+
+  # Expand references in the payload sent to the extension. Note the limits and
+  # performance impact documented at
+  # https://docs.commercetools.com/api/limits#api-extensions
+  expansion_paths = ["lineItems[*].variant", "shippingInfo.shippingMethod"]
+}
+
 # AWS Lambda api extension
 resource "commercetools_api_extension" "my-awslambda-extension" {
   key = "my-awslambda-extension-key"
@@ -98,6 +118,7 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
 
 ### Optional
 
+- `expansion_paths` (List of String) [Expansion paths](https://docs.commercetools.com/api/general-concepts#reference-expansion) used for reference expansion of the payload sent to the Extension. Be aware of the [limits](https://docs.commercetools.com/api/limits#api-extensions) of this feature and its [performance impact](https://docs.commercetools.com/api/performance-tips#api-extensions).
 - `key` (String) User-specific unique identifier for the extension
 - `timeout_in_ms` (Number) Maximum time (in milliseconds) that the Extension can respond within. If no timeout is provided, the default value is used for all types of Extensions, including payment Extensions. The maximum value is 10000 ms (10 seconds) for payment Extensions and 2000 ms (2 seconds) for all other Extensions.
 

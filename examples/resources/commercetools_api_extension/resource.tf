@@ -14,6 +14,26 @@ resource "commercetools_api_extension" "my-http-extension" {
   }
 }
 
+# HTTP api extension with reference expansion of the payload
+resource "commercetools_api_extension" "my-expanding-extension" {
+  key = "my-expanding-extension-key"
+
+  destination {
+    type = "HTTP"
+    url  = "https://example.com"
+  }
+
+  trigger {
+    resource_type_id = "cart"
+    actions          = ["Create", "Update"]
+  }
+
+  # Expand references in the payload sent to the extension. Note the limits and
+  # performance impact documented at
+  # https://docs.commercetools.com/api/limits#api-extensions
+  expansion_paths = ["lineItems[*].variant", "shippingInfo.shippingMethod"]
+}
+
 # AWS Lambda api extension
 resource "commercetools_api_extension" "my-awslambda-extension" {
   key = "my-awslambda-extension-key"

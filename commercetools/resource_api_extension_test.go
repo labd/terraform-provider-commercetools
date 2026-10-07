@@ -93,6 +93,26 @@ func TestExpandExtensionTriggers(t *testing.T) {
 	assert.Len(t, triggers[0].Actions, 2)
 }
 
+func TestExpandExtensionExpansionPaths(t *testing.T) {
+	resourceDataMap := map[string]any{
+		"trigger": []any{
+			map[string]any{
+				"resource_type_id": "cart",
+				"actions":          []any{"Create"},
+			},
+		},
+		"expansion_paths": []any{"lineItems[*].variant", "shippingInfo.shippingMethod"},
+	}
+
+	d := schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, resourceDataMap)
+	assert.Equal(t,
+		[]string{"lineItems[*].variant", "shippingInfo.shippingMethod"},
+		expandExtensionExpansionPaths(d))
+
+	d = schema.TestResourceDataRaw(t, resourceAPIExtension().Schema, map[string]any{})
+	assert.Nil(t, expandExtensionExpansionPaths(d))
+}
+
 func TestAccAPIExtension_basic(t *testing.T) {
 	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
 	timeoutInMs := acctest.RandIntRange(200, 1800)
@@ -356,5 +376,84 @@ func testAccAPIExtensionAzureFunctionsConfig(identifier, key string, timeoutInMs
 		"identifier":  identifier,
 		"key":         key,
 		"timeoutInMs": timeoutInMs,
+	})
+}
+
+func TestAccAPIExtension_expansionPaths(t *testing.T) {
+	// Requires a commercetools mock server that persists expansionPaths. See
+	// https://github.com/labd/commercetools-node-mock/pull/430 - once released,
+	// bump the image in docker-compose.yaml and drop this skip.
+	t.Skip("The pinned commercetools mock server does not persist expansionPaths yet")
+
+	name := fmt.Sprintf("extension_%s", acctest.RandString(5))
+	identifier := "ext"
+	resourceName := "commercetools_api_extension.ext"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckAPIExtensionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAPIExtensionExpansionPathsConfig(identifier, name, []string{"lineItems[*].variant"}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAPIExtensionExists(identifier),
+					resource.TestCheckResourceAttr(
+						resourceName, "expansion_paths.#", "1"),
+					resource.TestCheckResourceAttr(
+						resourceName, "expansion_paths.0", "lineItems[*].variant"),
+				),
+			},
+			{
+				Config:   testAccAPIExtensionExpansionPathsConfig(identifier, name, []string{"lineItems[*].variant"}),
+				PlanOnly: true,
+			},
+			{
+				Config: testAccAPIExtensionExpansionPathsConfig(identifier, name, []string{"custom.type", "shippingInfo.shippingMethod"}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAPIExtensionExists(identifier),
+					resource.TestCheckResourceAttr(
+						resourceName, "expansion_paths.#", "2"),
+					resource.TestCheckResourceAttr(
+						resourceName, "expansion_paths.0", "custom.type"),
+					resource.TestCheckResourceAttr(
+						resourceName, "expansion_paths.1", "shippingInfo.shippingMethod"),
+				),
+			},
+			{
+				Config: testAccAPIExtensionExpansionPathsConfig(identifier, name, nil),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAPIExtensionExists(identifier),
+					resource.TestCheckResourceAttr(
+						resourceName, "expansion_paths.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func testAccAPIExtensionExpansionPathsConfig(identifier, key string, expansionPaths []string) string {
+	return hclTemplate(`
+		resource "commercetools_api_extension" "{{ .identifier }}" {
+			key = "{{ .key }}"
+
+			destination {
+				type = "HTTP"
+				url  = "https://example.com"
+			}
+
+			trigger {
+				resource_type_id = "cart"
+				actions = ["Create"]
+			}
+
+			{{ if .expansionPaths }}
+			expansion_paths = [{{ range $i, $p := .expansionPaths }}{{ if $i }}, {{ end }}"{{ $p }}"{{ end }}]
+			{{ end }}
+		}
+	`, map[string]any{
+		"identifier":     identifier,
+		"key":            key,
+		"expansionPaths": expansionPaths,
 	})
 }
