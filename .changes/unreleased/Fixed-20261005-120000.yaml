@@ -1,0 +1,3 @@
+kind: Fixed
+body: Fix `commercetools_channel` reading `address.additional_street_info` from the API's `additionalAddressInfo` field instead of `additionalStreetInfo`
+time: 2026-10-05T12:00:00.000000+02:00
