@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -143,6 +145,41 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
+			},
+			"discount_combination_mode": schema.StringAttribute{
+				MarkdownDescription: "How Product Discounts and Cart Discounts combine in every Cart of the Project: " +
+					"`Stacking` applies both, `BestDeal` the one that gives the buyer the lower price. Left out, the " +
+					"Project keeps its mode.",
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf("Stacking", "BestDeal"),
+				},
+			},
+			"inventory_reservation_expiration_in_minutes": schema.Int64Attribute{
+				MarkdownDescription: "Minutes after which an inventory Reservation expires, from 1 to 44640. The " +
+					"`ReserveOnCart` inventory mode needs it. It cannot be unset once set; left out, the Project " +
+					"keeps its value.",
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.Int64{
+					int64validator.Between(1, 44640),
+				},
+			},
+			"inventory_release_expired_reservations": schema.BoolAttribute{
+				MarkdownDescription: "Whether expired Reservations release their inventory. Set to `false`, tracking " +
+					"Line Items with expired reservations is up to you. Left out, the Project keeps its value.",
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"shipping_rate_input_type": schema.StringAttribute{
 				MarkdownDescription: "Three ways to dynamically select a ShippingRatePriceTier exist. The CartValue type uses " +

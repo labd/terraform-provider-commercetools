@@ -61,8 +61,11 @@ provider "commercetools" {
 ### Optional
 
 - `api_url` (String) The API URL of the commercetools platform. https://docs.commercetools.com/api/general-concepts#hosts
+- `checkout_url` (String) The URL of the commercetools Checkout API. Defaults to the `checkout` host of the region in `api_url`. Only the `commercetools_checkout_*` resources use it.
 - `client_id` (String, Sensitive) The OAuth Client ID for a commercetools platform project. https://docs.commercetools.com/api/authorization
 - `client_secret` (String, Sensitive) The OAuth Client Secret for a commercetools platform project. https://docs.commercetools.com/api/authorization
+- `connect_url` (String) The URL of the commercetools Connect API. Defaults to the `connect` host of the region in `api_url`. Only the `commercetools_connect_*` resources use it.
+- `integration_layer_url` (String) The URL of the Commerce Integration Layer management API. Defaults to the `extensions.integration-layer` host of the region in `api_url`. Only the `commercetools_integration_layer_*` resources use it.
 - `project_key` (String, Sensitive) The project key of commercetools platform project. https://docs.commercetools.com/getting-started
 - `scopes` (String) A list as string of OAuth scopes assigned to a project key, to access resources in a commercetools platform project. https://docs.commercetools.com/api/authorization
 - `token_url` (String) The authentication URL of the commercetools platform. https://docs.commercetools.com/api/authorization

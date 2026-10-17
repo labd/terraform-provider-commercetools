@@ -159,16 +159,17 @@ resource "commercetools_cart_discount" "my-cart-discount" {
 
 - `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `predicate` (String) A valid [Cart Predicate](https://docs.commercetools.com/api/projects/predicates#cart-predicates)
-- `sort_order` (String) The string must contain a number between 0 and 1. All matching cart discounts are applied to a cart in the order defined by this field. A discount with greater sort order is prioritized higher than a discount with lower sort order. The sort order is unambiguous among all cart discounts
 - `value` (Block List, Min: 1, Max: 1) Defines the effect the discount will have. [CartDiscountValue](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscountvalue) (see [below for nested schema](#nestedblock--value))
 
 ### Optional
 
 - `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
+- `discount_group_id` (String) ID of the commercetools_discount_group the discount belongs to. Only a discount whose target is line items, custom line items, multi-buy line items, multi-buy custom line items or a pattern can be in a group
 - `is_active` (Boolean) Only active discount can be applied to the cart
 - `key` (String) User-specific unique identifier for a cart discount. Must be unique across a project
 - `requires_discount_code` (Boolean) States whether the discount can only be used in a connection with a [DiscountCode](https://docs.commercetools.com/api/projects/discountCodes#discountcode)
+- `sort_order` (String) The string must contain a number between 0 and 1. All matching cart discounts are applied to a cart in the order defined by this field. A discount with greater sort order is prioritized higher than a discount with lower sort order. The sort order is unambiguous among all cart discounts. Required unless the discount is in a discount group, whose sort order it then takes
 - `stacking_mode` (String) Specifies whether the application of this discount causes the following discounts to be ignored. Can be either Stacking or StopAfterThisDiscount
 - `stores` (Set of String) If a value exists, the Cart Discount applies on Carts having a Store matching any Store defined for this field. If empty, the Cart Discount applies on all Carts, irrespective of a Store. Use store keys as references
 - `target` (Block List, Max: 1) Empty when the value has type giftLineItem, otherwise a [CartDiscountTarget](https://docs.commercetools.com/api/projects/cartDiscounts#cartdiscounttarget) (see [below for nested schema](#nestedblock--target))

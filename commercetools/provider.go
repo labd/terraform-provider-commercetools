@@ -61,6 +61,25 @@ func New(version string) func() *schema.Provider {
 					Optional:    true,
 					Description: "The authentication URL of the commercetools platform. https://docs.commercetools.com/api/authorization",
 				},
+				"connect_url": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Description: "The URL of the commercetools Connect API. Defaults to the `connect` host of " +
+						"the region in `api_url`. Only the `commercetools_connect_*` resources use it.",
+				},
+				"checkout_url": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Description: "The URL of the commercetools Checkout API. Defaults to the `checkout` host of " +
+						"the region in `api_url`. Only the `commercetools_checkout_*` resources use it.",
+				},
+				"integration_layer_url": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Description: "The URL of the Commerce Integration Layer management API. Defaults to the " +
+						"`extensions.integration-layer` host of the region in `api_url`. Only the " +
+						"`commercetools_integration_layer_*` resources use it.",
+				},
 			},
 			ResourcesMap: map[string]*schema.Resource{
 				"commercetools_api_client":         resourceAPIClient(),

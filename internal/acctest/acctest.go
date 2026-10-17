@@ -18,6 +18,16 @@ import (
 )
 
 var ProtoV5ProviderFactories map[string]func() (tfprotov5.ProviderServer, error)
+
+// FrameworkProviderFactories serves the framework provider alone, configured
+// by the test's own provider block, for tests against a fake API of their own.
+// Unlike ProtoV5ProviderFactories it does not need TF_ACC.
+func FrameworkProviderFactories() map[string]func() (tfprotov5.ProviderServer, error) {
+	return map[string]func() (tfprotov5.ProviderServer, error){
+		"commercetools": providerserver.NewProtocol5WithError(provider.New("testing")),
+	}
+}
+
 var Provider tfprotov5.ProviderServer
 
 func init() {

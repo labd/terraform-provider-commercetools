@@ -2,13 +2,14 @@ package associate_role
 
 import (
 	"context"
+	"regexp"
+	"sort"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/labd/terraform-provider-commercetools/commercetools"
 	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
-	"regexp"
-	"sort"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"

@@ -58,7 +58,7 @@ func (r *subscriptionResource) Schema(_ context.Context, _ resource.SchemaReques
 				Computed: true,
 			},
 			"key": schema.StringAttribute{
-				Description: "Timestamp of the last Terraform update of the order.",
+				Description: "User-defined unique identifier of the subscription.",
 				Optional:    true,
 			},
 			"version": schema.Int64Attribute{

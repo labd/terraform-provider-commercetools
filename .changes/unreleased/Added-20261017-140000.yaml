@@ -1,0 +1,3 @@
+kind: Added
+body: New resources `commercetools_discount_group`, `commercetools_recurrence_policy` and `commercetools_mcp_server`; `discount_group_id` on `commercetools_cart_discount`, whose `sort_order` is now optional when the discount is in a group; and `discount_combination_mode`, `inventory_reservation_expiration_in_minutes` and `inventory_release_expired_reservations` on `commercetools_project_settings`
+time: 2026-10-17T14:00:00.000000+02:00

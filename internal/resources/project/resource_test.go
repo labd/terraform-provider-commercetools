@@ -267,3 +267,63 @@ func testAccProjectConfigDeleteOAuthAndCarts(identifier string) string {
 		"identifier": identifier,
 	})
 }
+
+func TestAccProjectDiscountsAndInventory(t *testing.T) {
+	resourceName := "commercetools_project_settings.acctest_project_settings"
+	config := func(extra string) string {
+		return fmt.Sprintf(`
+resource "commercetools_project_settings" "acctest_project_settings" {
+  name       = "Test this thing"
+  countries  = ["NL", "DE", "US"]
+  currencies = ["EUR", "USD"]
+  languages  = ["nl", "de", "en", "fr-FR"]
+  %s
+}
+`, extra)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acctest.TestAccPreCheck(t) },
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckProjectDestroy,
+		Steps: []resource.TestStep{
+			{
+				// Left out, the Project's own values are read.
+				Config: config(""),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "discount_combination_mode", "Stacking"),
+				),
+			},
+			{
+				Config: config(`
+  discount_combination_mode                   = "BestDeal"
+  inventory_reservation_expiration_in_minutes = 30
+  inventory_release_expired_reservations      = true
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "discount_combination_mode", "BestDeal"),
+					resource.TestCheckResourceAttr(resourceName, "inventory_reservation_expiration_in_minutes", "30"),
+					resource.TestCheckResourceAttr(resourceName, "inventory_release_expired_reservations", "true"),
+					func(_ *terraform.State) error {
+						client, err := acctest.GetClient()
+						if err != nil {
+							return err
+						}
+						result, err := client.Get().Execute(context.Background())
+						if err != nil {
+							return err
+						}
+						assert.Equal(t, platform.DiscountCombinationModeBestDeal, result.Discounts.DiscountCombinationMode)
+						assert.Equal(t, 30, *result.Inventory.ReservationExpirationInMinutes)
+						return nil
+					},
+				),
+			},
+			{
+				// Removed from the configuration, they keep their value and plan nothing.
+				Config:   config(""),
+				PlanOnly: true,
+			},
+		},
+	})
+}

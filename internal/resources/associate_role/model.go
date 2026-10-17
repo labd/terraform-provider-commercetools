@@ -1,8 +1,9 @@
 package associate_role
 
 import (
-	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 	"reflect"
+
+	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 
 	"github.com/elliotchance/pie/v2"
 	"github.com/hashicorp/terraform-plugin-framework/types"

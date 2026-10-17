@@ -1,62 +1,87 @@
 ---
 subcategory: ""
 page_title: "Custom Fields"
+description: |-
+    Defining Custom Types and setting Custom Fields on resources
 ---
 
-## Creating a custom type
+# Custom Fields
 
-To extend the commercetools platform with custom fields, you can create custom
-types that can be attached to resources. The following example shows how to
-create a custom type that can be attached to categories.
+[Custom Fields](https://docs.commercetools.com/api/projects/custom-fields) add
+fields of your own to resources such as categories, channels, stores, business
+units, carts and orders. The fields are defined by a Custom Type, a
+`commercetools_type`, and a resource that uses the type sets their values in
+its `custom` block.
 
-For more information see
-the [commercetools documentation](https://docs.commercetools.com/api/projects/types).
+## Defining a Custom Type
+
+A type lists the resources it can be used on in `resource_type_ids`, and a
+`field` for each of its fields. `input_hint` only applies to `String` and
+`LocalizedString` fields.
 
 ```hcl
-resource "commercetools_type" "my-category" {
-  key = "my-category"
-
+resource "commercetools_type" "category" {
+  key               = "category-extra"
   resource_type_ids = ["category"]
 
   name = {
-    en = "myCategory"
-  }
-
-  description = {
-    en = "My Category"
+    en = "Category extras"
   }
 
   field {
-    name  = "myBoolean"
+    name = "featured"
     label = {
-      en = "myBoolean"
+      en = "Featured"
     }
-    required = false
     type {
       name = "Boolean"
     }
-    input_hint = "SingleLine"
   }
 
   field {
-    name  = "myNumber"
+    name = "position"
     label = {
-      en = "myNumber"
+      en = "Position"
     }
-    required = false
     type {
       name = "Number"
     }
-    input_hint = "SingleLine"
   }
 
   field {
-    name = "mySet"
-
+    name = "intro"
     label = {
-      en = "mySet"
+      en = "Introduction"
     }
+    input_hint = "MultiLine"
+    type {
+      name = "LocalizedString"
+    }
+  }
 
+  field {
+    name = "layout"
+    label = {
+      en = "Layout"
+    }
+    type {
+      name = "Enum"
+      value {
+        key   = "grid"
+        label = "Grid"
+      }
+      value {
+        key   = "list"
+        label = "List"
+      }
+    }
+  }
+
+  field {
+    name = "tags"
+    label = {
+      en = "Tags"
+    }
     type {
       name = "Set"
       element_type {
@@ -66,65 +91,83 @@ resource "commercetools_type" "my-category" {
   }
 
   field {
-    name  = "myLocalizedString"
+    name = "supply_channel"
     label = {
-      en = "myLocalizedString"
+      en = "Supply channel"
     }
-    required = false
     type {
-      name = "LocalizedString"
+      name              = "Reference"
+      reference_type_id = "channel"
     }
-    input_hint = "SingleLine"
   }
 
   field {
-    name  = "mySetOfLocalizedStrings"
+    name = "minimum_order"
     label = {
-      en = "mySetOfLocalizedStrings"
+      en = "Minimum order value"
     }
-    required = false
     type {
-      name = "Set"
-      element_type {
-        name = "LocalizedString"
-      }
+      name = "Money"
     }
-    input_hint = "SingleLine"
   }
 }
 ```
 
-## Setting custom fields
+A field's type cannot be changed once it exists: remove the field and add it
+again under a new name.
 
-Due to constrains within the old terraform provider framework, the custom fields
-are set in terraform state as a map of strings. This means that the actual
-values need to be serialized to JSON before they can be set. The following
-example shows how to set the custom fields for a category with the custom type
-given above.
+## Setting Custom Fields
+
+A resource sets its Custom Fields in its `custom` block, with the type's id and
+the values in `fields`. Each value is a string with the value as JSON, so
+encode it with `jsonencode`, whatever the field's type:
 
 ```hcl
-resource "commercetools_category" "my-category" {
+resource "commercetools_category" "chairs" {
+  key = "chairs"
   name = {
-    en = "My category"
+    en = "Chairs"
   }
   slug = {
-    en = "my-category"
+    en = "chairs"
   }
 
   custom {
-    type_id = commercetools_type.my-category.id
-    fields  = {
-      myBoolean         = jsonencode(true)
-      myNumber          = jsonencode(123)
-      mySet             = jsonencode(["a", "b", "c"])
-      myLocalizedString = jsonencode({
-        en = "English"
+    type_id = commercetools_type.category.id
+    fields = {
+      featured = jsonencode(true)
+      position = jsonencode(3)
+      intro = jsonencode({
+        en = "Chairs for every room."
       })
-      mySetOfLocalizedStrings = jsonencode([
-        { en = "English 1" },
-        { en = "English 2" }
-      ])
+      # An enum value is its key.
+      layout = jsonencode("grid")
+      tags   = jsonencode(["indoor", "wood"])
+      supply_channel = jsonencode({
+        typeId = "channel"
+        id     = commercetools_channel.warehouse.id
+      })
+      minimum_order = jsonencode({
+        centAmount   = 5000
+        currencyCode = "EUR"
+      })
     }
+  }
+}
+```
+
+## Hiding Custom Fields from storefronts
+
+On the [Commerce Integration Layer](commerce-integration-layer), Custom Fields
+are part of the storefront's GraphQL schema. Hide the ones a storefront must not
+see with `commercetools_integration_layer_field_visibility`, by the type's key:
+
+```hcl
+resource "commercetools_integration_layer_field_visibility" "visibility" {
+  hidden_field {
+    space      = "customField"
+    type_key   = commercetools_type.category.key
+    field_name = "position"
   }
 }
 ```

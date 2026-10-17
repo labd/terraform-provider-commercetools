@@ -46,6 +46,10 @@ type Project struct {
 	ShippingRateCartClassificationValue []models.CustomFieldLocalizedEnumValue `tfsdk:"shipping_rate_cart_classification_value"`
 
 	BusinessUnits []BusinessUnits `tfsdk:"business_units"`
+
+	DiscountCombinationMode                 types.String `tfsdk:"discount_combination_mode"`
+	InventoryReservationExpirationInMinutes types.Int64  `tfsdk:"inventory_reservation_expiration_in_minutes"`
+	InventoryReleaseExpiredReservations     types.Bool   `tfsdk:"inventory_release_expired_reservations"`
 }
 
 func IsDefaultShoppingListsConfiguration(c *platform.ShoppingListsConfiguration) bool {
@@ -80,6 +84,10 @@ func NewProjectFromNative(n *platform.Project) Project {
 		},
 		ExternalOAuth: []ExternalOAuth{},
 		BusinessUnits: []BusinessUnits{},
+
+		DiscountCombinationMode:                 types.StringValue(string(n.Discounts.DiscountCombinationMode)),
+		InventoryReservationExpirationInMinutes: utils.FromOptionalInt(n.Inventory.ReservationExpirationInMinutes),
+		InventoryReleaseExpiredReservations:     types.BoolValue(n.Inventory.ReleaseExpiredReservations),
 	}
 
 	var cartsDeleteDaysAfterLastModification = DefaultCartsDeleteDaysAfterLastModification
@@ -278,6 +286,8 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 			)
 		}
 	}
+
+	result.Actions = append(result.Actions, p.discountAndInventoryActions(plan)...)
 
 	// changeCountries
 	if !reflect.DeepEqual(p.Countries, plan.Countries) {
@@ -604,4 +614,38 @@ func (r AssociateRoleKeyReference) toNative() *platform.AssociateRoleKeyReferenc
 	return &platform.AssociateRoleKeyReference{
 		Key: r.Key.ValueString(),
 	}
+}
+
+// discountAndInventoryActions sets the discount combination mode and the
+// inventory reservation settings. Each is optional: a value left out of the
+// configuration keeps the Project's, so it plans nothing.
+func (p *Project) discountAndInventoryActions(plan Project) []platform.ProjectUpdateAction {
+	var actions []platform.ProjectUpdateAction
+	if configured(plan.DiscountCombinationMode) && !p.DiscountCombinationMode.Equal(plan.DiscountCombinationMode) {
+		actions = append(actions, platform.ProjectSetDiscountsConfigurationAction{
+			DiscountsConfiguration: platform.DiscountsConfiguration{
+				DiscountCombinationMode: platform.DiscountCombinationMode(plan.DiscountCombinationMode.ValueString()),
+			},
+		})
+	}
+	if configured(plan.InventoryReservationExpirationInMinutes) &&
+		!p.InventoryReservationExpirationInMinutes.Equal(plan.InventoryReservationExpirationInMinutes) {
+		actions = append(actions, platform.ProjectSetReservationExpirationInMinutesAction{
+			ReservationExpirationInMinutes: int(plan.InventoryReservationExpirationInMinutes.ValueInt64()),
+		})
+	}
+	if configured(plan.InventoryReleaseExpiredReservations) &&
+		!p.InventoryReleaseExpiredReservations.Equal(plan.InventoryReleaseExpiredReservations) {
+		actions = append(actions, platform.ProjectSetReleaseExpiredReservationsAction{
+			ReleaseExpiredReservations: plan.InventoryReleaseExpiredReservations.ValueBool(),
+		})
+	}
+	return actions
+}
+
+func configured(value interface {
+	IsNull() bool
+	IsUnknown() bool
+}) bool {
+	return !value.IsNull() && !value.IsUnknown()
 }
