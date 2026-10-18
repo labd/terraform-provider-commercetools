@@ -49,7 +49,7 @@ resource "commercetools_checkout_payment_integration" "card" {
 
 ### Optional
 
-- `automated_reversal` (String) `Active` to reverse a payment automatically when the order cannot be placed, or `Inactive`.
+- `automated_reversal` (String) `Active` to reverse a payment automatically when the order cannot be placed, or `Inactive`. Defaults to `Inactive`, as Checkout sets it.
 - `automated_reversal_predicate` (String) JSONata predicate on the cart deciding when a payment is reversed automatically. Requires `automated_reversal`.
 - `description` (Map of String) Description shown to the customer, by locale.
 - `key` (String) User-defined unique identifier of the payment integration.

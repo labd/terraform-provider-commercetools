@@ -135,8 +135,10 @@ func (r *Resource) Schema(_ context.Context, _ resource.SchemaRequest, resp *res
 			"pay_button_text": localized("Text on the pay button, by locale."),
 			"automated_reversal": schema.StringAttribute{
 				MarkdownDescription: "`Active` to reverse a payment automatically when the order cannot be " +
-					"placed, or `Inactive`.",
+					"placed, or `Inactive`. Defaults to `Inactive`, as Checkout sets it.",
 				Optional:   true,
+				Computed:   true,
+				Default:    stringdefault.StaticString(string(checkout.PaymentIntegrationStatusInactive)),
 				Validators: []validator.String{stringvalidator.OneOf(statuses...)},
 			},
 			"automated_reversal_predicate": schema.StringAttribute{
