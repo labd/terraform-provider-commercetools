@@ -50,6 +50,7 @@ resource "commercetools_shipping_method" "standard" {
 - `localized_description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `localized_name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `predicate` (String) A Cart predicate which can be used to more precisely select a shipping method for a cart
+- `stores` (Set of String) If a value exists, the Shipping Method applies to Carts having a Store matching any Store defined for this field. If empty, the Shipping Method applies to all Carts, irrespective of a Store. Use store keys as references
 
 ### Read-Only
 
