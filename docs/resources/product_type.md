@@ -78,6 +78,8 @@ resource "commercetools_product_type" "my-product-type" {
       name              = "reference"
       reference_type_id = "product"
     }
+    # Not needed in the Cart: keep it off the Line Items
+    saved_to_line_item = false
   }
 
   attribute {
@@ -197,6 +199,7 @@ Optional:
 - `input_tip` (Map of String) Additional information about the attribute that aids content managers when setting product details
 - `level` (String) Specifies whether the Attribute is defined at the Product or Variant level.
 - `required` (Boolean) Whether the attribute is required to have a value
+- `saved_to_line_item` (Boolean) Whether the attribute's value is copied onto a Line Item when the product is added to a Cart. When false, Line Item predicates (for example in Cart Discounts and Shipping Methods) that reference this attribute evaluate as if it is not set
 - `searchable` (Boolean) Whether the attribute's values should generally be activated in product search
 
 <a id="nestedblock--attribute--type"></a>

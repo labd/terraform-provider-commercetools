@@ -148,6 +148,14 @@ func resourceProductType() *schema.Resource {
 							Optional:    true,
 							Default:     false,
 						},
+						"saved_to_line_item": {
+							Description: "Whether the attribute's value is copied onto a Line Item when the product is " +
+								"added to a Cart. When false, Line Item predicates (for example in Cart Discounts " +
+								"and Shipping Methods) that reference this attribute evaluate as if it is not set",
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
 					},
 				},
 			},
@@ -283,14 +291,15 @@ func flattenProductTypeAttributes(t *platform.ProductType) ([]map[string]any, er
 			return nil, err
 		}
 		attrs[i] = map[string]any{
-			"type":       attrType,
-			"name":       attrDef.Name,
-			"level":      attrDef.Level,
-			"label":      attrDef.Label,
-			"required":   attrDef.IsRequired,
-			"input_hint": attrDef.InputHint,
-			"constraint": attrDef.AttributeConstraint,
-			"searchable": attrDef.IsSearchable,
+			"type":               attrType,
+			"name":               attrDef.Name,
+			"level":              attrDef.Level,
+			"label":              attrDef.Label,
+			"required":           attrDef.IsRequired,
+			"input_hint":         attrDef.InputHint,
+			"constraint":         attrDef.AttributeConstraint,
+			"searchable":         attrDef.IsSearchable,
+			"saved_to_line_item": attrDef.SavedToLineItem,
 		}
 		if attrDef.InputTip != nil {
 			attrs[i]["input_tip"] = *attrDef.InputTip
@@ -551,6 +560,7 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 						InputTip:            newAttr.InputTip,
 						InputHint:           &newAttr.InputHint,
 						IsSearchable:        &newAttr.IsSearchable,
+						SavedToLineItem:     &newAttr.SavedToLineItem,
 					},
 				})
 			attrOrder = append(attrOrder, newAttr.Name)
@@ -586,6 +596,15 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 				platform.ProductTypeChangeIsSearchableAction{
 					AttributeName: name,
 					IsSearchable:  newAttr.IsSearchable,
+				})
+		}
+
+		if !reflect.DeepEqual(oldAttr.SavedToLineItem, newAttr.SavedToLineItem) {
+			actions = append(
+				actions,
+				platform.ProductTypeSetSavedToLineItemAction{
+					AttributeName:   name,
+					SavedToLineItem: newAttr.SavedToLineItem,
 				})
 		}
 
@@ -918,6 +937,7 @@ func expandProductTypeAttributeDefinitionItem(input map[string]any, draft bool) 
 			AttributeConstraint: &constraint,
 			IsRequired:          input["required"].(bool),
 			IsSearchable:        boolRef(input["searchable"]),
+			SavedToLineItem:     boolRef(input["saved_to_line_item"]),
 			InputHint:           &inputHint,
 			InputTip:            &inputTip,
 		}, nil
@@ -930,6 +950,7 @@ func expandProductTypeAttributeDefinitionItem(input map[string]any, draft bool) 
 		AttributeConstraint: constraint,
 		IsRequired:          input["required"].(bool),
 		IsSearchable:        input["searchable"].(bool),
+		SavedToLineItem:     input["saved_to_line_item"].(bool),
 		InputHint:           inputHint,
 		InputTip:            &inputTip,
 	}, nil
