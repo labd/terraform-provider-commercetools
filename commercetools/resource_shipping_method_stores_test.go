@@ -18,7 +18,7 @@ func TestAccShippingMethod_storesAndCarrier(t *testing.T) {
 				Config: testAccShippingMethodStoresConfig(false, ""),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "stores.#", "0"),
-					resource.TestCheckNoResourceAttr(resourceName, "carrier"),
+					resource.TestCheckResourceAttr(resourceName, "carrier", ""),
 				),
 			},
 			{
@@ -40,7 +40,7 @@ func TestAccShippingMethod_storesAndCarrier(t *testing.T) {
 				Config: testAccShippingMethodStoresConfig(false, ""),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "stores.#", "0"),
-					resource.TestCheckNoResourceAttr(resourceName, "carrier"),
+					resource.TestCheckResourceAttr(resourceName, "carrier", ""),
 				),
 			},
 		},
