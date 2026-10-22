@@ -22,6 +22,13 @@ resource "commercetools_tax_category" "some-tax-category" {
   description = "test category"
 }
 
+resource "commercetools_store" "some-store" {
+  key = "some-store-key"
+  name = {
+    en = "Some store"
+  }
+}
+
 resource "commercetools_shipping_method" "standard" {
   key             = "standard-key"
   name            = "Standard tax category"
@@ -29,6 +36,8 @@ resource "commercetools_shipping_method" "standard" {
   is_default      = true
   tax_category_id = commercetools_tax_category.some-tax-category.id
   predicate       = "1 = 1"
+  carrier         = "DHL"
+  stores          = [commercetools_store.some-store.key]
 }
 ```
 
@@ -43,6 +52,7 @@ resource "commercetools_shipping_method" "standard" {
 ### Optional
 
 - `active` (Boolean) Activate or deactivate a shipping method. Default is active.
+- `carrier` (String) Name of the carrier that delivers the parcel, for example `DHL`
 - `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `description` (String)
 - `is_default` (Boolean) One shipping method in a project can be default
@@ -50,6 +60,7 @@ resource "commercetools_shipping_method" "standard" {
 - `localized_description` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `localized_name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `predicate` (String) A Cart predicate which can be used to more precisely select a shipping method for a cart
+- `stores` (Set of String) If a value exists, the Shipping Method applies to Carts having a Store matching any Store defined for this field. If empty, the Shipping Method applies to all Carts, irrespective of a Store. Use store keys as references
 
 ### Read-Only
 
