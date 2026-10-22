@@ -76,6 +76,21 @@ func resourceShippingMethod() *schema.Resource {
 				Optional:    true,
 			},
 			"custom": CustomFieldSchema(),
+			"stores": {
+				Description: "If a value exists, the Shipping Method applies to Carts having a Store matching any " +
+					"Store defined for this field. If empty, the Shipping Method applies to all Carts, irrespective of " +
+					"a Store. Use store keys as references",
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional: true,
+			},
+			"carrier": {
+				Description: "Name of the carrier that delivers the parcel, for example `DHL`",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -108,6 +123,8 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		TaxCategory:          taxCategory,
 		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
 		Custom:               custom,
+		Stores:               expandStores(d.Get("stores").(*schema.Set)),
+		Carrier:              nilIfEmpty(stringRef(d.Get("carrier"))),
 		// Set default to empty array, otherwise the API will return an error if no shipping rates are added to the shipping method.
 		// Actual shipping rates are added in the shipping zone resource, see resource_shipping_zone_rate.go
 		ZoneRates: []platform.ZoneRateDraft{},
@@ -160,6 +177,8 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m a
 		_ = d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
 		_ = d.Set("predicate", shippingMethod.Predicate)
 		_ = d.Set("custom", flattenCustomFields(shippingMethod.Custom))
+		_ = d.Set("stores", flattenStores(shippingMethod.Stores))
+		_ = d.Set("carrier", shippingMethod.Carrier)
 	}
 
 	return nil
@@ -244,6 +263,20 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 		input.Actions = append(
 			input.Actions,
 			&platform.ShippingMethodSetPredicateAction{Predicate: newPredicate})
+	}
+
+	if d.HasChange("stores") {
+		stores := expandStores(d.Get("stores").(*schema.Set))
+		input.Actions = append(
+			input.Actions,
+			&platform.ShippingMethodSetStoresAction{Stores: stores})
+	}
+
+	if d.HasChange("carrier") {
+		newCarrier := nilIfEmpty(stringRef(d.Get("carrier").(string)))
+		input.Actions = append(
+			input.Actions,
+			&platform.ShippingMethodSetCarrierAction{Carrier: newCarrier})
 	}
 
 	if d.HasChange("custom") {
