@@ -65,13 +65,16 @@ var ProjectsCartDataV1 = tftypes.Object{
 
 var ProjectResourceDataV1 = tftypes.Object{
 	AttributeTypes: map[string]tftypes.Type{
-		"id":         tftypes.String,
-		"key":        tftypes.String,
-		"version":    tftypes.Number,
-		"name":       tftypes.String,
-		"currencies": tftypes.List{ElementType: tftypes.String},
-		"countries":  tftypes.List{ElementType: tftypes.String},
-		"languages":  tftypes.List{ElementType: tftypes.String},
+		"discount_combination_mode":                   tftypes.String,
+		"inventory_reservation_expiration_in_minutes": tftypes.Number,
+		"inventory_release_expired_reservations":      tftypes.Bool,
+		"id":                                          tftypes.String,
+		"key":                                         tftypes.String,
+		"version":                                     tftypes.Number,
+		"name":                                        tftypes.String,
+		"currencies":                                  tftypes.List{ElementType: tftypes.String},
+		"countries":                                   tftypes.List{ElementType: tftypes.String},
+		"languages":                                   tftypes.List{ElementType: tftypes.String},
 
 		"enable_search_index_products":       tftypes.Bool,
 		"enable_search_index_product_search": tftypes.Bool,
@@ -176,6 +179,11 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 			"enable_search_index_customers":      tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
 			"enable_search_index_business_units": tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue),
 			"business_units":                     valueToList(nil, "business_units"),
+
+			// Computed, so the refresh after the upgrade reads them.
+			"discount_combination_mode":                   tftypes.NewValue(tftypes.String, nil),
+			"inventory_reservation_expiration_in_minutes": tftypes.NewValue(tftypes.Number, nil),
+			"inventory_release_expired_reservations":      tftypes.NewValue(tftypes.Bool, nil),
 		}),
 	)
 	if err != nil {

@@ -65,12 +65,15 @@ resource "commercetools_project_settings" "my-project" {
 - `carts` (Block List) [Carts Configuration](https://docs.commercetools.com/api/projects/project#cartsconfiguration) (see [below for nested schema](#nestedblock--carts))
 - `countries` (List of String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 - `currencies` (List of String) A three-digit currency code as per [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
+- `discount_combination_mode` (String) How Product Discounts and Cart Discounts combine in every Cart of the Project: `Stacking` applies both, `BestDeal` the one that gives the buyer the lower price. Left out, the Project keeps its mode.
 - `enable_search_index_business_units` (Boolean) Enable the Search Indexing of business  units
 - `enable_search_index_customers` (Boolean) Enable the Search Indexing of customers
 - `enable_search_index_orders` (Boolean) Enable the Search Indexing of orders
 - `enable_search_index_product_search` (Boolean) Enable the Search Indexing of products
 - `enable_search_index_products` (Boolean) Enable the Search Indexing of product projections
 - `external_oauth` (Block List) [External OAUTH](https://docs.commercetools.com/api/projects/project#externaloauth) (see [below for nested schema](#nestedblock--external_oauth))
+- `inventory_release_expired_reservations` (Boolean) Whether expired Reservations release their inventory. Set to `false`, tracking Line Items with expired reservations is up to you. Left out, the Project keeps its value.
+- `inventory_reservation_expiration_in_minutes` (Number) Minutes after which an inventory Reservation expires, from 1 to 44640. The `ReserveOnCart` inventory mode needs it. It cannot be unset once set; left out, the Project keeps its value.
 - `languages` (List of String) [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)
 - `messages` (Block List) The change notifications subscribed to (see [below for nested schema](#nestedblock--messages))
 - `name` (String) The name of the project

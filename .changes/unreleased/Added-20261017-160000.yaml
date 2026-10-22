@@ -1,0 +1,3 @@
+kind: Added
+body: New resources `commercetools_checkout_application` and `commercetools_checkout_payment_integration` for commercetools Checkout, and the provider attribute `checkout_url`
+time: 2026-10-17T16:00:00.000000+02:00

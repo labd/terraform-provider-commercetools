@@ -39,6 +39,9 @@ func TestNewProjectFromNative(t *testing.T) {
 				EnableSearchIndexProductSearch: types.BoolValue(false),
 				EnableSearchIndexBusinessUnits: types.BoolValue(false),
 
+				DiscountCombinationMode:             types.StringValue(""),
+				InventoryReleaseExpiredReservations: types.BoolValue(false),
+
 				ExternalOAuth: []ExternalOAuth{},
 				Carts: []Carts{
 					{
@@ -589,4 +592,51 @@ func IsDefaultShoppingListsConfiguration_NonDefaultDeleteDays(t *testing.T) {
 		DeleteDaysAfterLastModification: 30,
 	}
 	assert.False(t, IsDefaultShoppingListsConfiguration(c))
+}
+
+func TestDiscountAndInventoryActions(t *testing.T) {
+	state := Project{
+		DiscountCombinationMode:                 types.StringValue("Stacking"),
+		InventoryReservationExpirationInMinutes: types.Int64Null(),
+		InventoryReleaseExpiredReservations:     types.BoolValue(true),
+	}
+
+	t.Run("a value left out plans nothing", func(t *testing.T) {
+		plan := state
+		plan.DiscountCombinationMode = types.StringUnknown()
+		plan.InventoryReservationExpirationInMinutes = types.Int64Null()
+		plan.InventoryReleaseExpiredReservations = types.BoolUnknown()
+		assert.Empty(t, state.discountAndInventoryActions(plan))
+	})
+
+	t.Run("a changed value is set", func(t *testing.T) {
+		plan := state
+		plan.DiscountCombinationMode = types.StringValue("BestDeal")
+		plan.InventoryReservationExpirationInMinutes = types.Int64Value(30)
+		plan.InventoryReleaseExpiredReservations = types.BoolValue(false)
+		assert.Equal(t, []platform.ProjectUpdateAction{
+			platform.ProjectSetDiscountsConfigurationAction{
+				DiscountsConfiguration: platform.DiscountsConfiguration{
+					DiscountCombinationMode: platform.DiscountCombinationModeBestDeal,
+				},
+			},
+			platform.ProjectSetReservationExpirationInMinutesAction{ReservationExpirationInMinutes: 30},
+			platform.ProjectSetReleaseExpiredReservationsAction{ReleaseExpiredReservations: false},
+		}, state.discountAndInventoryActions(plan))
+	})
+}
+
+func TestNewProjectFromNativeReadsDiscountsAndInventory(t *testing.T) {
+	minutes := 45
+	project := NewProjectFromNative(&platform.Project{
+		Key:       "p",
+		Discounts: platform.DiscountsConfiguration{DiscountCombinationMode: platform.DiscountCombinationModeBestDeal},
+		Inventory: platform.InventoryConfiguration{
+			ReservationExpirationInMinutes: &minutes,
+			ReleaseExpiredReservations:     true,
+		},
+	})
+	assert.Equal(t, types.StringValue("BestDeal"), project.DiscountCombinationMode)
+	assert.Equal(t, types.Int64Value(45), project.InventoryReservationExpirationInMinutes)
+	assert.Equal(t, types.BoolValue(true), project.InventoryReleaseExpiredReservations)
 }

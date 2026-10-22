@@ -1,0 +1,3 @@
+kind: Added
+body: New resource `commercetools_connect_connector` to manage a commercetools Connect connector and publish it privately, and raising `connector_version` on `commercetools_connect_deployment` now redeploys in place
+time: 2026-10-17T15:00:00.000000+02:00

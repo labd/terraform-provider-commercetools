@@ -70,6 +70,10 @@ func Test_upgradeStateV0(t *testing.T) {
 		EnableSearchIndexBusinessUnits: types.BoolUnknown(),
 		BusinessUnits:                  []BusinessUnits{},
 
+		DiscountCombinationMode:                 types.StringNull(),
+		InventoryReservationExpirationInMinutes: types.Int64Null(),
+		InventoryReleaseExpiredReservations:     types.BoolNull(),
+
 		ExternalOAuth: []ExternalOAuth{},
 		Carts: []Carts{
 			{

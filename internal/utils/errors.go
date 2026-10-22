@@ -7,13 +7,20 @@ import (
 	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/labd/commercetools-go-sdk/checkout"
+	"github.com/labd/commercetools-go-sdk/connect"
 	"github.com/labd/commercetools-go-sdk/insights"
+	"github.com/labd/commercetools-go-sdk/integrationlayer"
 	"github.com/labd/commercetools-go-sdk/platform"
 )
 
 func ProcessRemoteError(err error) *resource.RetryError {
 	if err == nil {
 		return nil
+	}
+
+	if retryErr, ok := processRegionalError(err); ok {
+		return retryErr
 	}
 
 	switch e := err.(type) {
@@ -112,7 +119,7 @@ func extractRawDetailedError(content []byte) error {
 func IsResourceNotFoundError(err error) bool {
 	//Occasionally the SDK returns a sentinel value instead of the parsed error response for 404.
 	//This is a workaround to handle that case.
-	if errors.Is(err, platform.ErrNotFound) || errors.Is(err, insights.ErrNotFound) {
+	if errors.Is(err, platform.ErrNotFound) || errors.Is(err, insights.ErrNotFound) || isRegionalNotFound(err) {
 		return true
 	}
 
@@ -130,6 +137,57 @@ func IsResourceNotFoundError(err error) bool {
 		return e.StatusCode == 404
 
 	case insights.GenericRequestError:
+		return e.StatusCode == 404
+	}
+	return false
+}
+
+// processRegionalError classifies an error of the Checkout, the Connect or
+// the integration layer API, reporting whether it was one.
+func processRegionalError(err error) (*resource.RetryError, bool) {
+	switch e := err.(type) {
+	case integrationlayer.ErrorResponse:
+		return resource.NonRetryableError(e), true
+
+	case integrationlayer.GenericRequestError:
+		return resource.NonRetryableError(e), true
+
+	case checkout.ErrorResponse:
+		return resource.NonRetryableError(e), true
+
+	case checkout.GenericRequestError:
+		if err := extractRawDetailedError(e.Content); err != nil {
+			return resource.NonRetryableError(err), true
+		}
+		return resource.NonRetryableError(e), true
+
+	case connect.ErrorResponse:
+		// Connect's error objects are decoded by their code, and one with a
+		// code the SDK does not know is nil, so its message is what is left.
+		return resource.NonRetryableError(e), true
+
+	case connect.GenericRequestError:
+		if err := extractRawDetailedError(e.Content); err != nil {
+			return resource.NonRetryableError(err), true
+		}
+		return resource.NonRetryableError(e), true
+	}
+	return nil, false
+}
+
+// isRegionalNotFound reports a 404 from the Checkout, the Connect or the
+// integration layer API.
+func isRegionalNotFound(err error) bool {
+	if errors.Is(err, connect.ErrNotFound) || errors.Is(err, integrationlayer.ErrNotFound) ||
+		errors.Is(err, checkout.ErrNotFound) {
+		return true
+	}
+	switch e := err.(type) {
+	case checkout.GenericRequestError:
+		return e.StatusCode == 404
+	case connect.GenericRequestError:
+		return e.StatusCode == 404
+	case integrationlayer.GenericRequestError:
 		return e.StatusCode == 404
 	}
 	return false

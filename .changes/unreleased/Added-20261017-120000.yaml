@@ -1,0 +1,3 @@
+kind: Added
+body: New resources `commercetools_integration_layer_session_defaults`, `commercetools_integration_layer_checkout_rules`, `commercetools_integration_layer_field_visibility`, `commercetools_integration_layer_idp_login`, `commercetools_integration_layer_config_entry` and `commercetools_integration_layer_allowlist` to manage a Project on the Commerce Integration Layer, and the provider attribute `integration_layer_url`
+time: 2026-10-17T12:00:00.000000+02:00

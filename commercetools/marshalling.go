@@ -64,9 +64,11 @@ func expandTypedMoneyDraft(d map[string]any) []platform.TypedMoneyDraft {
 		i := raw.(map[string]any)
 		priceCurrencyCode := i["currency_code"].(string)
 
-		result = append(result, platform.Money{
+		// A typed draft, as the spec has it: the type says the amount is in cents.
+		centAmount := i["cent_amount"].(int)
+		result = append(result, platform.CentPrecisionMoneyDraft{
 			CurrencyCode: priceCurrencyCode,
-			CentAmount:   i["cent_amount"].(int),
+			CentAmount:   &centAmount,
 		})
 	}
 

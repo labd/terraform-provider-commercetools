@@ -1,0 +1,3 @@
+kind: Added
+body: New resource `commercetools_connect_deployment` to deploy a commercetools Connect connector to a Project and redeploy it when its configuration changes, and the provider attribute `connect_url`
+time: 2026-10-17T13:00:00.000000+02:00

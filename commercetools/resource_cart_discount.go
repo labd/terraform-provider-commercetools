@@ -181,9 +181,18 @@ func resourceCartDiscount() *schema.Resource {
 			"sort_order": {
 				Description: "The string must contain a number between 0 and 1. All matching cart discounts are " +
 					"applied to a cart in the order defined by this field. A discount with greater sort order is " +
-					"prioritized higher than a discount with lower sort order. The sort order is unambiguous among all cart discounts",
+					"prioritized higher than a discount with lower sort order. The sort order is unambiguous among all cart discounts. " +
+					"Required unless the discount is in a discount group, whose sort order it then takes",
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
+			},
+			"discount_group_id": {
+				Description: "ID of the commercetools_discount_group the discount belongs to. Only a discount whose " +
+					"target is line items, custom line items, multi-buy line items, multi-buy custom line items or a " +
+					"pattern can be in a group",
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"is_active": {
 				Description: "Only active discount can be applied to the cart",
@@ -308,7 +317,8 @@ func resourceCartDiscountCreate(ctx context.Context, d *schema.ResourceData, m a
 		Description:          &description,
 		Value:                &value,
 		CartPredicate:        d.Get("predicate").(string),
-		SortOrder:            stringRef(d.Get("sort_order").(string)),
+		SortOrder:            nilIfEmpty(stringRef(d.Get("sort_order").(string))),
+		DiscountGroup:        expandDiscountGroup(d.Get("discount_group_id").(string)),
 		IsActive:             boolRef(d.Get("is_active")),
 		RequiresDiscountCode: ctutils.BoolRef(d.Get("requires_discount_code").(bool)),
 		Stores:               expandStores(d.Get("stores").(*schema.Set)),
@@ -382,6 +392,11 @@ func resourceCartDiscountRead(ctx context.Context, d *schema.ResourceData, m any
 	_ = d.Set("predicate", cartDiscount.CartPredicate)
 	_ = d.Set("target", flattenCartDiscountTarget(cartDiscount.Target))
 	_ = d.Set("sort_order", cartDiscount.SortOrder)
+	if cartDiscount.DiscountGroup != nil {
+		_ = d.Set("discount_group_id", cartDiscount.DiscountGroup.ID)
+	} else {
+		_ = d.Set("discount_group_id", "")
+	}
 	_ = d.Set("is_active", cartDiscount.IsActive)
 	_ = d.Set("valid_from", flattenTime(cartDiscount.ValidFrom))
 	_ = d.Set("valid_until", flattenTime(cartDiscount.ValidUntil))
@@ -453,7 +468,15 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m a
 
 	}
 
-	if d.HasChange("sort_order") {
+	if d.HasChange("discount_group_id") {
+		input.Actions = append(
+			input.Actions,
+			&platform.CartDiscountSetDiscountGroupAction{
+				DiscountGroup: expandDiscountGroup(d.Get("discount_group_id").(string)),
+			})
+	}
+
+	if d.HasChange("sort_order") && d.Get("sort_order").(string) != "" {
 		newSortOrder := d.Get("sort_order").(string)
 		input.Actions = append(
 			input.Actions,
@@ -798,4 +821,13 @@ func expandStores(storeKeys *schema.Set) []platform.StoreResourceIdentifier {
 		storeResourceIdentifiers = append(storeResourceIdentifiers, platform.StoreResourceIdentifier{Key: &keyVal})
 	}
 	return storeResourceIdentifiers
+}
+
+// expandDiscountGroup references the discount group by id, or none when the id
+// is empty, which removes the discount from its group.
+func expandDiscountGroup(id string) *platform.DiscountGroupResourceIdentifier {
+	if id == "" {
+		return nil
+	}
+	return &platform.DiscountGroupResourceIdentifier{ID: &id}
 }
