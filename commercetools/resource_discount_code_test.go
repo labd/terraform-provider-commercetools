@@ -352,7 +352,6 @@ func testAccDiscountCodeCustomField() string {
 			}
 		}`,
 		map[string]any{})
-
 }
 
 func testAccCheckDiscountCodeDestroy(s *terraform.State) error {

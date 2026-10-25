@@ -1,9 +1,10 @@
 package utils
 
 import (
+	"testing"
+
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestIsResourceNotFoundError(t *testing.T) {

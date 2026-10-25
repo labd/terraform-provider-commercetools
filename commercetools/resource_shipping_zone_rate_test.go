@@ -11,7 +11,6 @@ import (
 )
 
 func TestAccShippingZoneRate_createAndUpdate(t *testing.T) {
-
 	taxCategoryName := acctest.RandomWithPrefix("tf-acc-test")
 	shippingMethodName := acctest.RandomWithPrefix("tf-acc-test")
 	resourceName := "commercetools_shipping_zone_rate.standard-de"
@@ -217,7 +216,6 @@ func testAccCheckShippingZoneRateDestroy(s *terraform.State) error {
 				response, err := client.TaxCategories().WithId(rs.Primary.ID).Get().Execute(context.Background())
 				if err == nil {
 					if response != nil && response.ID == rs.Primary.ID {
-
 						return fmt.Errorf("shipping method (%s) still exists", rs.Primary.ID)
 					}
 					continue

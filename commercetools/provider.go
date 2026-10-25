@@ -111,7 +111,6 @@ func providerConfigure(version string) func(context.Context, *schema.ResourceDat
 		tokenURL, err := url.Parse(getDefault(d, "token_url", "CTP_AUTH_URL"))
 		if err != nil {
 			return nil, diag.FromErr(err)
-
 		}
 		tokenURL = tokenURL.ResolveReference(&url.URL{Path: "oauth/token"})
 

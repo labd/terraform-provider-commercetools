@@ -38,7 +38,6 @@ func (v requireValueValidator) MarkdownDescription(ctx context.Context) string {
 
 // ValidateString performs the validation.
 func (v requireValueValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
-
 	expressions := req.PathExpression.MergeExpressions(v.pathExpressions...)
 
 	for _, expression := range expressions {
@@ -85,5 +84,4 @@ func (v requireValueValidator) ValidateList(ctx context.Context, req validator.L
 			}
 		}
 	}
-
 }

@@ -74,7 +74,6 @@ func init() {
 	}
 
 	Provider = muxServer
-
 }
 
 func acceptanceTestsEnabled() bool {

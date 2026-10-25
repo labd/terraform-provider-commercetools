@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"fmt"
+
 	"github.com/labd/commercetools-go-sdk/platform"
 )
 

@@ -1,8 +1,9 @@
 package product_selection
 
 import (
-	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 	"reflect"
+
+	"github.com/labd/terraform-provider-commercetools/internal/sharedtypes"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"

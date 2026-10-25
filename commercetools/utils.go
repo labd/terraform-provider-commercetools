@@ -2,12 +2,13 @@ package commercetools
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"golang.org/x/text/language"
-	"reflect"
 )
 
 // TypeLocalizedString defined merely for documentation,

@@ -3,8 +3,9 @@ package commercetools
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/labd/commercetools-go-sdk/platform"
 )
@@ -56,7 +57,6 @@ func TestCompareDateString(t *testing.T) {
 			t.Errorf("failures %v, got %v", tt.expected, res)
 		}
 	}
-
 }
 
 func checkApiResult(err error) error {
