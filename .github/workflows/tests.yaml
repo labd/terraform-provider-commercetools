@@ -29,7 +29,7 @@ jobs:
         args: --issues-exit-code=0 --timeout=5m
 
     - name: Run tests
-      run: go test -timeout 30m -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
+      run: go test -timeout 30m -race ./...
       env:
         TF_ACC: 1
         CTP_CLIENT_ID: unittest
@@ -38,11 +38,6 @@ jobs:
         CTP_SCOPES: manage_project:unittest
         CTP_API_URL: http://localhost:8989
         CTP_AUTH_URL: http://localhost:8989
-
-    - name: Upload to codecov
-      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
-      with:
-        verbose: true
 
     - name: build binary
       uses: goreleaser/goreleaser-action@1a80836c5c9d9e5755a25cb59ec6f45a3b5f41a8 # v7.2.1
