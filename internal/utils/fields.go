@@ -32,7 +32,6 @@ func FromOptionalString(value *string) basetypes.StringValue {
 		return types.StringNull()
 	}
 	return types.StringValue(*value)
-
 }
 func FromOptionalLocalizedString(value *platform.LocalizedString) customtypes.LocalizedStringValue {
 	if value == nil {

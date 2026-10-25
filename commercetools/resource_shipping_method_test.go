@@ -10,7 +10,6 @@ import (
 )
 
 func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
-
 	name := "test sh method"
 	key := "test-sh-method"
 	description := "test shipping method description"

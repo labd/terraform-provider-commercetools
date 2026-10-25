@@ -12,7 +12,6 @@ import (
 )
 
 func TestAccStore_createAndUpdateWithID(t *testing.T) {
-
 	name := "test method"
 	resourceName := "commercetools_store.test"
 	key := "test-method"

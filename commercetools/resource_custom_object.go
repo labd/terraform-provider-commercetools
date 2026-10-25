@@ -3,8 +3,9 @@ package commercetools
 import (
 	"context"
 	"encoding/json"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -167,7 +168,6 @@ func resourceCustomObjectUpdate(ctx context.Context, d *schema.ResourceData, m a
 
 		d.SetId(customObject.ID)
 		_ = d.Set("version", customObject.Version)
-
 	}
 	return nil
 }

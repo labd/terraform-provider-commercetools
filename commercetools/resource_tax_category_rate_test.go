@@ -11,7 +11,6 @@ import (
 )
 
 func TestAccTaxCategoryRate_createAndUpdateWithID(t *testing.T) {
-
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	resourceName := "commercetools_tax_category_rate.test_rate"
 	amount := 0.2
@@ -87,7 +86,6 @@ func testAccTaxCategoryRateConfig(name string, amount float64, includedInPrice b
 }
 
 func TestAccTaxCategoryRate_createAndUpdateSubRates(t *testing.T) {
-
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	resourceName := "commercetools_tax_category_rate.test_rate"
 	subRateAmount := 0.3
@@ -163,7 +161,6 @@ func testAccTaxCategoryRateSubRatesConfig(name string, amount float64, includedI
 }
 
 func TestAccTaxCategoryRate_createAndUpdateBothRateAndTaxCategory(t *testing.T) {
-
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	resourceName := "commercetools_tax_category_rate.test_rate"
 	amount := 0.2
@@ -201,7 +198,6 @@ func TestAccTaxCategoryRate_createAndUpdateBothRateAndTaxCategory(t *testing.T) 
 }
 
 func testAccTaxCategoryRateDualUpdateConfig(description string, name string, amount float64, includedInPrice bool, country string) string {
-
 	return hclTemplate(`
 		resource "commercetools_tax_category" "standard" {
 			name        = "test-rate-category"

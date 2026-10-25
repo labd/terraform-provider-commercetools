@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/mitchellh/mapstructure"
 	"reflect"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 func toTimeHookFunc() mapstructure.DecodeHookFunc {

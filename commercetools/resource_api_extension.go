@@ -192,7 +192,6 @@ func validateDestinationType(val any, key string) (warns []string, errs []error)
 }
 
 func validateExtensionDestination(draft platform.ExtensionDraft) error {
-
 	switch t := draft.Destination.(type) {
 	case platform.AWSLambdaDestination:
 		if t.Arn == "" {
@@ -477,7 +476,6 @@ func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceDat
 
 	// A destination is either GoogleCloudFunction, HTTP or AWSLambda
 	switch d := dst.(type) {
-
 	case platform.GoogleCloudFunctionDestination:
 		return []map[string]string{{
 			"type": "GoogleCloudFunction",
@@ -488,7 +486,6 @@ func flattenExtensionDestination(dst platform.Destination, d *schema.ResourceDat
 	// AuthorizationHeader and AzureFunctions.
 	case platform.HttpDestination:
 		switch d.Authentication.(type) {
-
 		case platform.AuthorizationHeaderAuthentication:
 
 			// The headerValue value is masked when retrieved from commercetools,

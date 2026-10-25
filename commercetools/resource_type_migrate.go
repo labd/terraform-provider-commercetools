@@ -193,7 +193,6 @@ func migrateTypeAttributeV0toV1(attr map[string]any) {
 		itemTypeElementType[0].(map[string]any)["value"] = value
 		// remove "values"
 		delete(itemTypeElementType[0].(map[string]any), "values")
-
 	} else if itemTypeName == "Enum" {
 		itemTypeValues, ok := itemType["values"].(map[string]any)
 		if !ok {
