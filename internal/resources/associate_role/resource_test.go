@@ -141,7 +141,7 @@ func testAssociateRoleConfig(identifier, name, key string) string {
 func testAssociateRoleConfigUpdate(identifier, name, key string, buyerAssign bool, permission string, customValue string) string {
 	return utils.HCLTemplate(`
 		resource "commercetools_type" "my-type-{{ .identifier }}" {
-		  key = "my-type"
+		  key = "my-type-associate-role"
 		  name = {
 			en = "My type"
 			nl = "Mijn type"
