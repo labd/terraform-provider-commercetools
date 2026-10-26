@@ -15,7 +15,7 @@ concurrency:
 jobs:
   prepare-release:
     # Skip the merge of the release PR itself
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore: prepare release') }}
+    if: "!startsWith(github.event.head_commit.message, 'chore: prepare release')"
     runs-on: ubuntu-latest
     permissions:
       contents: read
