@@ -1,3 +1,0 @@
-kind: Added
-body: New resource `commercetools_insights_configuration` to manage the Platform Insights configuration of a Project, exporting logs and metrics to NewRelic, Dynatrace, Datadog or an OTLP provider
-time: 2026-08-24T12:00:00.000000+02:00

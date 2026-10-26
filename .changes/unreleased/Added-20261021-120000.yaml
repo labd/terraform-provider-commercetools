@@ -1,3 +1,0 @@
-kind: Added
-body: Add `saved_to_line_item` to the `attribute` block of `commercetools_product_type`, controlling whether the attribute value is copied onto Line Items (defaults to `true`, as in the API)
-time: 2026-10-21T12:00:00.000000+02:00
