@@ -1,3 +1,0 @@
-kind: Security
-body: Update google.golang.org/grpc to v1.83.2 to resolve GHSA-2v4p-qf9q-27wj
-time: 2026-10-25T21:00:55.000000+01:00
