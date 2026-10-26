@@ -186,3 +186,10 @@ Resources receive `*utils.ProviderData` via `Configure()`, providing `Client` (`
 ## Environment Variables (Acceptance Tests)
 
 `TF_ACC=true`, `CTP_CLIENT_ID`, `CTP_CLIENT_SECRET`, `CTP_PROJECT_KEY`, `CTP_SCOPES`, `CTP_API_URL`, `CTP_AUTH_URL`. For the mock server: API/Auth URL = `http://localhost:8989`.
+
+## Changelog
+
+User facing changes need a change file in `.changeset/` (Knope), for example
+`.changeset/short-name.md` with frontmatter `default: patch` (or `minor`, `major`,
+`deprecated`, `security`, `dependency`) followed by a `# One line summary` heading.
+Do not edit `CHANGELOG.md` or the version comment in `go.mod` by hand.
