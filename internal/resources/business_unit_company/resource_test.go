@@ -143,7 +143,7 @@ func businessUnitCompanyTFResourceDef(options ...option) string {
 	tpl := utils.HCLTemplate(`	
 	 {{ if .custom_value }}
 		resource "commercetools_type" "my-type-acme_company" {
-		  key = "my-type"
+		  key = "my-type-business-unit-company"
 		  name = {
 			en = "My type"
 			nl = "Mijn type"

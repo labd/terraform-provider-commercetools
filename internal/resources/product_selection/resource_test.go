@@ -90,7 +90,7 @@ func testProductSelectionConfig(identifier, name, key string, mode string) strin
 func testProductSelectionConfigUpdate(identifier, name, key, mode, customValue string) string {
 	return utils.HCLTemplate(`
 		resource "commercetools_type" "my-type-{{ .identifier }}" {
-		  key = "my-type"
+		  key = "my-type-product-selection"
 		  name = {
 			en = "My type"
 			nl = "Mijn type"
