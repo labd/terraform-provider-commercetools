@@ -83,8 +83,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Create release app token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-actions: write
+
       - name: Prepare release
         uses: labd/changie-release-action@52884337ae69c09e891915014a5621f6080f66ca # v0.6.3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.app-token.outputs.token }}
           release-workflow: 'release.yaml'
