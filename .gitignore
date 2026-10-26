@@ -21,3 +21,4 @@ vendor/
 /.env
 /go.work*
 /.vscode
+/artifacts/

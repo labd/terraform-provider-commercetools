@@ -1,4 +1,4 @@
-module github.com/labd/terraform-provider-commercetools
+module github.com/labd/terraform-provider-commercetools // v1.23.0
 
 go 1.27
 

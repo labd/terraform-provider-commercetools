@@ -1,34 +1,116 @@
 name: release
+
+# Runs when the knope release PR (branch knope/release) is merged. goreleaser
+# builds and signs the provider, then knope creates the vX.Y.Z tag and the
+# GitHub release (draft, upload assets, publish). Use workflow_dispatch on main
+# to retry a failed release.
 on:
+  pull_request:
+    types: [closed]
+    branches: [main]
   workflow_dispatch:
 
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
-  goreleaser:
+  release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.head.ref == 'knope/release' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Determine version
+        id: version
+        run: |
+          version=$(awk '$1 == "module" { sub(/^v/, "", $4); print $4 }' go.mod)
+          if [ -z "$version" ]; then
+            echo "::error::No version comment on the module line in go.mod"
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; then
+            echo "v${version} is already released"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go
+        if: steps.version.outputs.release == 'true'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: false
 
       - name: Import GPG key
+        if: steps.version.outputs.release == 'true'
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
 
-      - name: Run GoReleaser
+      # goreleaser needs the tag on HEAD. Tag locally only (knope creates the
+      # real tag) and remove it again, otherwise knope sees nothing to release.
+      - name: Tag locally
+        if: steps.version.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: git tag "v${VERSION}"
+
+      - name: Build and sign with GoReleaser
+        if: steps.version.outputs.release == 'true'
         uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           version: "~> v2"
-          args: release --clean
+          args: release --clean --skip=publish
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Collect release assets
+        if: steps.version.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git tag -d "v${VERSION}"
+          name="terraform-provider-commercetools_${VERSION}"
+          mkdir artifacts
+          cp dist/*.zip "dist/${name}_SHA256SUMS" "dist/${name}_SHA256SUMS.sig" artifacts/
+          cp terraform-registry-manifest.json "artifacts/${name}_manifest.json"
+          ls -l artifacts
+
+      - name: Create release app token
+        if: steps.version.outputs.release == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Install knope
+        if: steps.version.outputs.release == 'true'
+        uses: knope-dev/action@19617851f9f13ab2f27a05989c55efb18aca3675 # v2.1.2
+        with:
+          version: 0.23.1
+
+      - name: Create tag and GitHub release
+        if: steps.version.outputs.release == 'true'
+        run: knope release --verbose
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

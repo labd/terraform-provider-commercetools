@@ -1,0 +1,68 @@
+[package]
+# go.mod holds the current version as a comment on the module line
+# (`module ... // vX.Y.Z`). Knope updates it on release and tags `vX.Y.Z`.
+versioned_files = ["go.mod"]
+changelog = "CHANGELOG.md"
+# A Terraform provider is a binary, the module path does not need a `/vN` suffix.
+ignore_go_major_versioning = true
+# Built by goreleaser in the release workflow, uploaded by `knope release`.
+assets = "artifacts/*"
+# Override the built-in sections (major/minor/patch) and add the former changie
+# kinds. Custom types (deprecated, security, dependency) are released as patch.
+extra_changelog_sections = [
+    { types = ["major"], name = "Breaking changes" },
+    { types = ["minor"], name = "Added" },
+    { types = ["deprecated"], name = "Deprecated" },
+    { types = ["patch"], name = "Fixed" },
+    { types = ["security"], name = "Security" },
+    { types = ["dependency"], name = "Dependency" },
+    { footers = ["Changelog-Note"], name = "Notes" },
+]
+
+[changes]
+# Only change files in .changeset/ end up in the changelog (like changie did).
+ignore_conventional_commits = true
+
+[[workflows]]
+name = "document-change"
+
+[[workflows.steps]]
+type = "CreateChangeFile"
+
+[[workflows]]
+name = "prepare-release"
+
+[[workflows.steps]]
+type = "Command"
+command = "git switch -c knope/release"
+
+[[workflows.steps]]
+type = "PrepareRelease"
+
+[[workflows.steps]]
+type = "Command"
+command = "git commit -m \"chore: prepare release $version\""
+
+[[workflows.steps]]
+type = "Command"
+command = "git push --force --set-upstream origin knope/release"
+
+[[workflows.steps]]
+type = "CreatePullRequest"
+base = "main"
+
+[workflows.steps.title]
+template = "chore: prepare release $version"
+
+[workflows.steps.body]
+template = "This PR was created by Knope. Merging it creates the `v$version` tag and GitHub release, with the provider binaries built and signed by goreleaser.\n\n$changelog"
+
+[[workflows]]
+name = "release"
+
+[[workflows.steps]]
+type = "Release"
+
+[github]
+owner = "labd"
+repo = "terraform-provider-commercetools"

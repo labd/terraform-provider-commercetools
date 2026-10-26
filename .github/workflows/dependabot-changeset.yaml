@@ -1,0 +1,46 @@
+name: Dependabot add change file
+on:
+  pull_request:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  dependabot-changeset:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
+    permissions:
+      contents: read
+    steps:
+      # Dependabot-triggered runs only receive Dependabot secrets, so the app
+      # id and key are read from the (org) Dependabot secrets here.
+      - name: Create release app token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ steps.app-token.outputs.token }}
+          # git-auto-commit-action pushes with these credentials
+          persist-credentials: true
+
+      - name: Create change file
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          mkdir -p .changeset
+          printf -- '---\ndefault: dependency\n---\n\n# %s\n' "$PR_TITLE" > ".changeset/dependabot-${PR_NUMBER}.md"
+          cat ".changeset/dependabot-${PR_NUMBER}.md"
+
+      - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
+        with:
+          commit_message: "chore(deps): add change file for dependabot updates"
+          commit_user_name: "dependabot[bot]"
+          commit_user_email: "dependabot[bot]@users.noreply.github.com"

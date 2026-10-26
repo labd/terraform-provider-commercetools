@@ -34,13 +34,21 @@ archives:
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
+  extra_files:
+    - glob: 'terraform-registry-manifest.json'
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
 
+# Release notes come from CHANGELOG.md (written by knope).
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
+  disable: true
+
+# The release workflow runs `goreleaser release --skip=publish`; `knope release`
+# then uploads the zips, SHA256SUMS(.sig) and manifest. This section only applies
+# when publishing with goreleaser directly (manual fallback).
+release:
+  extra_files:
+    - glob: 'terraform-registry-manifest.json'
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
 
 signs:
   - artifacts: checksum
