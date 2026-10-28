@@ -16,6 +16,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 	localizedName := "some localized shipping method test name"
 	active := true
 	predicate := "1 = 1"
+	carrier := "DHL"
 	resourceName := "commercetools_shipping_method.standard"
 
 	newName := "new test sh method"
@@ -24,6 +25,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 	newLocalizedName := "some new localized shipping method test name"
 	newActive := false
 	newPredicate := "2 = 2"
+	newCarrier := "UPS"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -31,7 +33,7 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 		CheckDestroy:      testAccCheckShippingMethodDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingMethodConfig(name, key, description, description, localizedName, active, false, true, predicate),
+				Config: testAccShippingMethodConfig(name, key, description, description, localizedName, active, false, true, predicate, carrier),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", name),
 					resource.TestCheckResourceAttr(resourceName, "key", key),
@@ -41,10 +43,11 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "active", "true"),
 					resource.TestCheckResourceAttr(resourceName, "is_default", "false"),
 					resource.TestCheckResourceAttr(resourceName, "predicate", predicate),
+					resource.TestCheckResourceAttr(resourceName, "carrier", carrier),
 				),
 			},
 			{
-				Config: testAccShippingMethodConfig(newName, newKey, newDescription, newDescription, newLocalizedName, newActive, true, true, newPredicate),
+				Config: testAccShippingMethodConfig(newName, newKey, newDescription, newDescription, newLocalizedName, newActive, true, true, newPredicate, newCarrier),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", newName),
 					resource.TestCheckResourceAttr(resourceName, "key", newKey),
@@ -55,13 +58,14 @@ func TestAccShippingMethod_createAndUpdateWithID(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "is_default", "true"),
 					resource.TestCheckResourceAttrSet(resourceName, "tax_category_id"),
 					resource.TestCheckResourceAttr(resourceName, "predicate", newPredicate),
+					resource.TestCheckResourceAttr(resourceName, "carrier", newCarrier),
 				),
 			},
 		},
 	})
 }
 
-func testAccShippingMethodConfig(name string, key string, description string, localizedDescription string, localizedName string, active bool, isDefault bool, setTaxCategory bool, predicate string) string {
+func testAccShippingMethodConfig(name string, key string, description string, localizedDescription string, localizedName string, active bool, isDefault bool, setTaxCategory bool, predicate string, carrier string) string {
 	taxCategoryReference := ""
 	if setTaxCategory {
 		taxCategoryReference = "tax_category_id = commercetools_tax_category.test.id"
@@ -86,6 +90,7 @@ func testAccShippingMethodConfig(name string, key string, description string, lo
 			active = "{{ .active }}"
 			is_default = "{{ .isDefault }}"
 			predicate = "{{ .predicate }}"
+			carrier = "{{ .carrier }}"
 
 			{{ .taxCategoryReference }}
 		}
@@ -99,6 +104,7 @@ func testAccShippingMethodConfig(name string, key string, description string, lo
 			"isDefault":            isDefault,
 			"active":               active,
 			"predicate":            predicate,
+			"carrier":              carrier,
 			"taxCategoryReference": taxCategoryReference,
 		})
 }
