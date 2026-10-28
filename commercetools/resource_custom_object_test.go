@@ -10,7 +10,6 @@ import (
 )
 
 func TestAccCustomObjectCreate_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviders,
@@ -106,7 +105,6 @@ func TestAccCustomObjectCreate_basic(t *testing.T) {
 }
 
 func TestAccCustomObjectCreate_object(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviders,

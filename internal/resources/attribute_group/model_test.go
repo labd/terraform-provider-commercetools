@@ -1,10 +1,11 @@
 package attribute_group
 
 import (
+	"testing"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/labd/terraform-provider-commercetools/internal/customtypes"
 	"github.com/labd/terraform-provider-commercetools/internal/utils"
-	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"

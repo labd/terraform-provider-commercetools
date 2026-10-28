@@ -3,8 +3,9 @@ package commercetools
 import (
 	"context"
 	"errors"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -277,7 +278,6 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 	}
 
 	if d.HasChange("custom") {
-
 		actions, err := CustomFieldUpdateActions[platform.StoreSetCustomTypeAction, platform.StoreSetCustomFieldAction](ctx, client, d)
 		if err != nil {
 			// Workaround invalid state to be written, see

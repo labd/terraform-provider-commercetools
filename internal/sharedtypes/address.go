@@ -1,10 +1,11 @@
 package sharedtypes
 
 import (
+	"slices"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/labd/commercetools-go-sdk/platform"
-	"slices"
 )
 
 var (

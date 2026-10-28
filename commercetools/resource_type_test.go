@@ -159,7 +159,6 @@ func TestResourceTypeValidateField(t *testing.T) {
 }
 
 func TestResourceTypeValidateFieldSet(t *testing.T) {
-
 	o := []any{
 		map[string]any{
 			"name": "field-one",
@@ -786,7 +785,6 @@ func testAccConfigFields(key, identifier string, fields []TestTypeFieldData) str
 		"fields":     fields,
 	},
 	)
-
 }
 
 func testAccCheckTypesDestroy(s *terraform.State) error {

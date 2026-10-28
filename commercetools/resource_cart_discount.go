@@ -3,8 +3,9 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -450,7 +451,6 @@ func resourceCartDiscountUpdate(ctx context.Context, d *schema.ResourceData, m a
 		} else {
 			return diag.FromErr(err)
 		}
-
 	}
 
 	if d.HasChange("sort_order") {
@@ -757,7 +757,6 @@ func expandCartDiscountTarget(d *schema.ResourceData) (platform.CartDiscountTarg
 	default:
 		return nil, fmt.Errorf("target type %s not implemented", input["type"])
 	}
-
 }
 
 func expandCartDiscountStackingMode(d *schema.ResourceData) (platform.StackingMode, error) {

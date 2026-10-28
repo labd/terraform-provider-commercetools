@@ -3,10 +3,11 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/elliotchance/orderedmap/v2"
 	"github.com/elliotchance/pie/v2"
@@ -131,7 +132,6 @@ func resourceTypeCreate(ctx context.Context, d *schema.ResourceData, m any) diag
 	var resourceTypeIds []platform.ResourceTypeId
 	for _, item := range expandStringArray(d.Get("resource_type_ids").([]any)) {
 		resourceTypeIds = append(resourceTypeIds, platform.ResourceTypeId(item))
-
 	}
 	fields, err := expandTypeFieldDefinition(d)
 
@@ -565,7 +565,6 @@ func flattenTypeFieldType(fieldType platform.FieldType, setsAllowed bool) ([]any
 	typeData := make(map[string]any)
 
 	switch val := fieldType.(type) {
-
 	case platform.CustomFieldBooleanType:
 		typeData["name"] = "Boolean"
 
@@ -716,7 +715,6 @@ func resourceTypeFieldChangeActions(oldValues []any, newValues []any) ([]platfor
 
 		// Specific updates for EnumType, LocalizedEnumType and a Set of these
 		switch t := newField.Type.(type) {
-
 		case platform.CustomFieldLocalizedEnumType:
 			ot := oldField.Type.(platform.CustomFieldLocalizedEnumType)
 			subActions, err := updateCustomFieldLocalizedEnumType(name, ot, t)
@@ -742,7 +740,6 @@ func resourceTypeFieldChangeActions(oldValues []any, newValues []any) ([]platfor
 			}
 
 			switch st := t.ElementType.(type) {
-
 			case platform.CustomFieldEnumType:
 				ost := ot.ElementType.(platform.CustomFieldEnumType)
 				subActions, err := updateCustomFieldEnumType(name, ost, st)
@@ -760,7 +757,6 @@ func resourceTypeFieldChangeActions(oldValues []any, newValues []any) ([]platfor
 				actions = append(actions, subActions...)
 			}
 		}
-
 	}
 
 	if !reflect.DeepEqual(fieldOrder, newFields.Keys()) {
@@ -832,7 +828,6 @@ func updateCustomFieldEnumType(fieldName string, old, new platform.CustomFieldEn
 				FieldName: fieldName,
 				Keys:      newValues.Keys(),
 			})
-
 	}
 
 	return actions, nil
@@ -890,7 +885,6 @@ func updateCustomFieldLocalizedEnumType(fieldName string, old, new platform.Cust
 				FieldName: fieldName,
 				Keys:      newValues.Keys(),
 			})
-
 	}
 
 	return actions, nil

@@ -493,7 +493,6 @@ func (p *Project) updateActions(plan Project) (platform.ProjectUpdate, error) {
 				)
 			}
 		}
-
 	}
 
 	return result, nil

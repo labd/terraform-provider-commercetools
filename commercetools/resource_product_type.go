@@ -3,12 +3,13 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"reflect"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/elliotchance/orderedmap/v2"
 	"github.com/elliotchance/pie/v2"
@@ -642,7 +643,6 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 
 		// Specific updates for EnumType, LocalizedEnumType and a Set of these
 		switch t := newAttr.Type.(type) {
-
 		case platform.AttributeLocalizedEnumType:
 			ot := oldAttr.Type.(platform.AttributeLocalizedEnumType)
 			subActions, err := updateAttributeLocalizedEnumType(name, ot, t)
@@ -668,7 +668,6 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 			}
 
 			switch st := t.ElementType.(type) {
-
 			case platform.AttributeEnumType:
 				ost := ot.ElementType.(platform.AttributeEnumType)
 				subActions, err := updateAttributeEnumType(name, ost, st)
@@ -686,7 +685,6 @@ func resourceProductTypeAttributeChangeActions(oldValues []any, newValues []any)
 				actions = append(actions, subActions...)
 			}
 		}
-
 	}
 
 	if !reflect.DeepEqual(attrOrder, newAttrs.Keys()) {

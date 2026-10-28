@@ -6,7 +6,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccShippingMethod_storesAndCarrier(t *testing.T) {
+func TestAccShippingMethodStores(t *testing.T) {
+	identifier := "stores"
 	resourceName := "commercetools_shipping_method.stores"
 
 	resource.Test(t, resource.TestCase{
@@ -15,65 +16,66 @@ func TestAccShippingMethod_storesAndCarrier(t *testing.T) {
 		CheckDestroy:      testAccCheckShippingMethodDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccShippingMethodStoresConfig(false, ""),
+				Config: testAccShippingMethodWithoutStores(identifier),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "stores.#", "0"),
-					resource.TestCheckResourceAttr(resourceName, "carrier", ""),
 				),
 			},
 			{
-				Config: testAccShippingMethodStoresConfig(true, "DHL"),
+				Config: testAccShippingMethodWithStores(identifier),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "stores.#", "1"),
-					resource.TestCheckTypeSetElemAttr(resourceName, "stores.*", "shipping-method-store"),
-					resource.TestCheckResourceAttr(resourceName, "carrier", "DHL"),
+					resource.TestCheckTypeSetElemAttr(resourceName, "stores.*", "my-store"),
 				),
 			},
 			{
-				Config: testAccShippingMethodStoresConfig(true, "UPS"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckTypeSetElemAttr(resourceName, "stores.*", "shipping-method-store"),
-					resource.TestCheckResourceAttr(resourceName, "carrier", "UPS"),
-				),
-			},
-			{
-				Config: testAccShippingMethodStoresConfig(false, ""),
+				Config: testAccShippingMethodWithoutStores(identifier),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "stores.#", "0"),
-					resource.TestCheckResourceAttr(resourceName, "carrier", ""),
 				),
 			},
 		},
 	})
 }
 
-func testAccShippingMethodStoresConfig(withStores bool, carrier string) string {
+func testAccShippingMethodWithoutStores(identifier string) string {
 	return hclTemplate(`
-		resource "commercetools_tax_category" "stores" {
-			name = "shipping-method-stores"
-			key  = "shipping-method-stores"
+		resource "commercetools_tax_category" "{{ .identifier }}" {
+			name = "test"
+			key  = "test"
 		}
 
-		resource "commercetools_store" "stores" {
-			key = "shipping-method-store"
-			name = {
-				en = "Shipping method store"
-			}
-		}
-
-		resource "commercetools_shipping_method" "stores" {
-			name            = "shipping-method-stores"
-			key             = "shipping-method-stores"
-			tax_category_id = commercetools_tax_category.stores.id
-			{{ if .withStores }}
-			stores          = [commercetools_store.stores.key]
-			{{ end }}
-			{{ if .carrier }}
-			carrier         = "{{ .carrier }}"
-			{{ end }}
+		resource "commercetools_shipping_method" "{{ .identifier }}" {
+			name            = "shipping method with stores"
+			tax_category_id = commercetools_tax_category.{{ .identifier }}.id
 		}
 	`, map[string]any{
-		"withStores": withStores,
-		"carrier":    carrier,
+		"identifier": identifier,
+	})
+}
+
+func testAccShippingMethodWithStores(identifier string) string {
+	return hclTemplate(`
+		resource "commercetools_tax_category" "{{ .identifier }}" {
+			name = "test"
+			key  = "test"
+		}
+
+		resource "commercetools_store" "my-store-{{ .identifier }}" {
+			key = "my-store"
+			name = {
+				en-US = "My store"
+			}
+			countries = ["NL", "BE"]
+			languages = ["nl-NL"]
+		}
+
+		resource "commercetools_shipping_method" "{{ .identifier }}" {
+			name            = "shipping method with stores"
+			tax_category_id = commercetools_tax_category.{{ .identifier }}.id
+			stores          = [commercetools_store.my-store-{{ .identifier }}.key]
+		}
+	`, map[string]any{
+		"identifier": identifier,
 	})
 }

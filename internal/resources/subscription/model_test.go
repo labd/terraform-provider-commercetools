@@ -23,7 +23,6 @@ func TestDestination(t *testing.T) {
 		AccessKey:    types.StringNull(),
 		AccessSecret: types.StringNull(),
 	})
-
 }
 
 func TestImport(t *testing.T) {

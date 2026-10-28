@@ -354,5 +354,4 @@ func (b *companyResource) Delete(ctx context.Context, req resource.DeleteRequest
 		)
 		return
 	}
-
 }
