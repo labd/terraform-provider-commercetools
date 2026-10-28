@@ -1,334 +1,81 @@
 package commercetools
 
 import (
-	"context"
-	"time"
+	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/labd/commercetools-go-sdk/platform"
-	"github.com/labd/terraform-provider-commercetools/internal/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func resourceShippingMethod() *schema.Resource {
-	return &schema.Resource{
-		Description: "With Shipping Methods you can specify which shipping services you want to provide to your " +
-			"customers for deliveries to different areas of the world at rates you can define.\n\n" +
-			"See also the [Shipping Methods API Documentation](https://docs.commercetools.com/api/projects/shippingMethods)",
-		CreateContext: resourceShippingMethodCreate,
-		ReadContext:   resourceShippingMethodRead,
-		UpdateContext: resourceShippingMethodUpdate,
-		DeleteContext: resourceShippingMethodDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-		Schema: map[string]*schema.Schema{
-			"key": {
-				Description: "User-specific unique identifier for the shipping method",
-				Type:        schema.TypeString,
-				Optional:    true,
+func TestAccShippingMethodStores(t *testing.T) {
+	identifier := "stores"
+	resourceName := "commercetools_shipping_method.stores"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckShippingMethodDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccShippingMethodWithoutStores(identifier),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "stores.#", "0"),
+				),
 			},
-			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+			{
+				Config: testAccShippingMethodWithStores(identifier),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "stores.#", "1"),
+					resource.TestCheckTypeSetElemAttr(resourceName, "stores.*", "my-store"),
+				),
 			},
-			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"localized_name": {
-				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:             TypeLocalizedString,
-				ValidateDiagFunc: validateLocalizedStringKey,
-				Optional:         true,
-			},
-			"localized_description": {
-				Description:      "[LocalizedString](https://docs.commercetools.com/api/types#localizedstring)",
-				Type:             TypeLocalizedString,
-				ValidateDiagFunc: validateLocalizedStringKey,
-				Optional:         true,
-			},
-			"active": {
-				Description: "Activate or deactivate a shipping method. Default is active.",
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-			},
-			"is_default": {
-				Description: "One shipping method in a project can be default",
-				Type:        schema.TypeBool,
-				Optional:    true,
-			},
-			"version": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"tax_category_id": {
-				Description: "ID of a [Tax Category](https://docs.commercetools.com/api/projects/taxCategories#taxcategory)",
-				Type:        schema.TypeString,
-				Required:    true,
-			},
-			"predicate": {
-				Description: "A Cart predicate which can be used to more precisely select a shipping method for a cart",
-				Type:        schema.TypeString,
-				Optional:    true,
-			},
-			"stores": {
-				Description: "If a value exists, the Shipping Method applies to Carts having a Store matching any " +
-					"Store defined for this field. If empty, the Shipping Method applies to all Carts, irrespective of " +
-					"a Store. Use store keys as references",
-				Type: schema.TypeSet,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Optional: true,
-			},
-			"custom": CustomFieldSchema(),
-			"stores": {
-				Description: "If a value exists, the Shipping Method applies to Carts having a Store matching any " +
-					"Store defined for this field. If empty, the Shipping Method applies to all Carts, irrespective of " +
-					"a Store. Use store keys as references",
-				Type: schema.TypeSet,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Optional: true,
-			},
-			"carrier": {
-				Description: "Name of the carrier that delivers the parcel, for example `DHL`",
-				Type:        schema.TypeString,
-				Optional:    true,
+			{
+				Config: testAccShippingMethodWithoutStores(identifier),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "stores.#", "0"),
+				),
 			},
 		},
-	}
-}
-
-func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	client := getClient(m)
-	taxCategory := platform.TaxCategoryResourceIdentifier{}
-	if taxCategoryID, ok := d.GetOk("tax_category_id"); ok {
-		taxCategory.ID = stringRef(taxCategoryID)
-	}
-
-	localizedDescription := expandLocalizedString(d.Get("localized_description"))
-	localizedName := expandLocalizedString(d.Get("localized_name"))
-
-	custom, err := CreateCustomFieldDraft(ctx, client, d)
-	if err != nil {
-		// Workaround invalid state to be written, see
-		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
-		d.Partial(true)
-		return diag.FromErr(err)
-	}
-
-	draft := platform.ShippingMethodDraft{
-		Name:                 d.Get("name").(string),
-		Description:          stringRef(d.Get("description")),
-		LocalizedDescription: &localizedDescription,
-		LocalizedName:        &localizedName,
-		Active:               boolRef(d.Get("active")),
-		IsDefault:            d.Get("is_default").(bool),
-		TaxCategory:          taxCategory,
-		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
-		Stores:               expandStores(d.Get("stores").(*schema.Set)),
-		Custom:               custom,
-		Stores:               expandStores(d.Get("stores").(*schema.Set)),
-		Carrier:              nilIfEmpty(stringRef(d.Get("carrier"))),
-		// Set default to empty array, otherwise the API will return an error if no shipping rates are added to the shipping method.
-		// Actual shipping rates are added in the shipping zone resource, see resource_shipping_zone_rate.go
-		ZoneRates: []platform.ZoneRateDraft{},
-	}
-
-	key := stringRef(d.Get("key"))
-	if *key != "" {
-		draft.Key = key
-	}
-
-	var shippingMethod *platform.ShippingMethod
-	err = retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
-		var err error
-		shippingMethod, err = client.ShippingMethods().Post(draft).Execute(ctx)
-		return utils.ProcessRemoteError(err)
 	})
-
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(shippingMethod.ID)
-	_ = d.Set("version", shippingMethod.Version)
-
-	return resourceShippingMethodRead(ctx, d, m)
 }
 
-func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	client := getClient(m)
-	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
-	if err != nil {
-		if utils.IsResourceNotFoundError(err) {
-			d.SetId("")
-			return nil
+func testAccShippingMethodWithoutStores(identifier string) string {
+	return hclTemplate(`
+		resource "commercetools_tax_category" "{{ .identifier }}" {
+			name = "test"
+			key  = "test"
 		}
-		return diag.FromErr(err)
-	}
 
-	if shippingMethod == nil {
-		d.SetId("")
-	} else {
-		_ = d.Set("version", shippingMethod.Version)
-		_ = d.Set("key", shippingMethod.Key)
-		_ = d.Set("name", shippingMethod.Name)
-		_ = d.Set("description", shippingMethod.Description)
-		_ = d.Set("localized_description", shippingMethod.LocalizedDescription)
-		_ = d.Set("localized_name", shippingMethod.LocalizedName)
-		_ = d.Set("active", shippingMethod.Active)
-		_ = d.Set("is_default", shippingMethod.IsDefault)
-		_ = d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
-		_ = d.Set("predicate", shippingMethod.Predicate)
-		_ = d.Set("stores", flattenStores(shippingMethod.Stores))
-		_ = d.Set("custom", flattenCustomFields(shippingMethod.Custom))
-		_ = d.Set("stores", flattenStores(shippingMethod.Stores))
-		_ = d.Set("carrier", shippingMethod.Carrier)
-	}
-
-	return nil
-}
-
-func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	ctMutexKV.Lock(d.Id())
-	defer ctMutexKV.Unlock(d.Id())
-
-	client := getClient(m)
-
-	// Fetch the latest version. The version can be changed outside this resource
-	// when a shipping methode rate is added.
-	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	input := platform.ShippingMethodUpdate{
-		Version: shippingMethod.Version,
-		Actions: []platform.ShippingMethodUpdateAction{},
-	}
-
-	if d.HasChange("name") {
-		newName := d.Get("name").(string)
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodChangeNameAction{Name: newName})
-	}
-
-	if d.HasChange("key") {
-		newKey := d.Get("key").(string)
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodSetKeyAction{Key: &newKey})
-	}
-
-	if d.HasChange("description") {
-		newDescription := d.Get("description").(string)
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodSetDescriptionAction{Description: &newDescription})
-	}
-
-	if d.HasChange("localized_description") {
-		newLocalizedDescription := expandLocalizedString(d.Get("localized_description"))
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodSetLocalizedDescriptionAction{LocalizedDescription: &newLocalizedDescription})
-	}
-
-	if d.HasChange("localized_name") {
-		newLocalizedName := expandLocalizedString(d.Get("localized_name"))
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodSetLocalizedNameAction{LocalizedName: &newLocalizedName})
-	}
-
-	if d.HasChange("active") {
-		newActive := d.Get("active").(bool)
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodChangeActiveAction{Active: newActive})
-	}
-
-	if d.HasChange("is_default") {
-		newIsDefault := d.Get("is_default").(bool)
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodChangeIsDefaultAction{IsDefault: newIsDefault})
-	}
-
-	if d.HasChange("tax_category_id") {
-		taxCategoryID := d.Get("tax_category_id").(string)
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodChangeTaxCategoryAction{TaxCategory: platform.TaxCategoryResourceIdentifier{ID: &taxCategoryID}})
-	}
-
-	if d.HasChange("predicate") {
-		newPredicate := nilIfEmpty(stringRef(d.Get("predicate").(string)))
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodSetPredicateAction{Predicate: newPredicate})
-	}
-
-	if d.HasChange("stores") {
-		stores := expandStores(d.Get("stores").(*schema.Set))
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodSetStoresAction{Stores: stores})
-	}
-
-	if d.HasChange("carrier") {
-		newCarrier := nilIfEmpty(stringRef(d.Get("carrier").(string)))
-		input.Actions = append(
-			input.Actions,
-			&platform.ShippingMethodSetCarrierAction{Carrier: newCarrier})
-	}
-
-	if d.HasChange("custom") {
-		actions, err := CustomFieldUpdateActions[platform.ShippingMethodSetCustomTypeAction, platform.ShippingMethodSetCustomFieldAction](ctx, client, d)
-		if err != nil {
-			return diag.FromErr(err)
+		resource "commercetools_shipping_method" "{{ .identifier }}" {
+			name            = "shipping method with stores"
+			tax_category_id = commercetools_tax_category.{{ .identifier }}.id
 		}
-		for i := range actions {
-			input.Actions = append(input.Actions, actions[i].(platform.ShippingMethodUpdateAction))
-		}
-	}
-
-	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
-		_, err := client.ShippingMethods().WithId(shippingMethod.ID).Post(input).Execute(ctx)
-		return utils.ProcessRemoteError(err)
+	`, map[string]any{
+		"identifier": identifier,
 	})
-	if err != nil {
-		// Workaround invalid state to be written, see
-		// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
-		d.Partial(true)
-		return diag.FromErr(err)
-	}
-
-	return resourceShippingMethodRead(ctx, d, m)
 }
 
-func resourceShippingMethodDelete(ctx context.Context, d *schema.ResourceData, m any) diag.Diagnostics {
-	client := getClient(m)
+func testAccShippingMethodWithStores(identifier string) string {
+	return hclTemplate(`
+		resource "commercetools_tax_category" "{{ .identifier }}" {
+			name = "test"
+			key  = "test"
+		}
 
-	ctMutexKV.Lock(d.Id())
-	defer ctMutexKV.Unlock(d.Id())
+		resource "commercetools_store" "my-store-{{ .identifier }}" {
+			key = "my-store"
+			name = {
+				en-US = "My store"
+			}
+			countries = ["NL", "BE"]
+			languages = ["nl-NL"]
+		}
 
-	shippingMethod, err := client.ShippingMethods().WithId(d.Id()).Get().Execute(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
-		_, err := client.ShippingMethods().WithId(d.Id()).Delete().Version(shippingMethod.Version).Execute(ctx)
-		return utils.ProcessRemoteError(err)
+		resource "commercetools_shipping_method" "{{ .identifier }}" {
+			name            = "shipping method with stores"
+			tax_category_id = commercetools_tax_category.{{ .identifier }}.id
+			stores          = [commercetools_store.my-store-{{ .identifier }}.key]
+		}
+	`, map[string]any{
+		"identifier": identifier,
 	})
-	return diag.FromErr(err)
 }
