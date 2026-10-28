@@ -85,6 +85,11 @@ func resourceShippingMethod() *schema.Resource {
 				},
 				Optional: true,
 			},
+			"carrier": {
+				Description: "Name of the carrier that delivers the parcel, for example `DHL`",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
 			"custom": CustomFieldSchema(),
 		},
 	}
@@ -118,6 +123,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		TaxCategory:          taxCategory,
 		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
 		Stores:               expandStores(d.Get("stores").(*schema.Set)),
+		Carrier:              nilIfEmpty(stringRef(d.Get("carrier"))),
 		Custom:               custom,
 		// Set default to empty array, otherwise the API will return an error if no shipping rates are added to the shipping method.
 		// Actual shipping rates are added in the shipping zone resource, see resource_shipping_zone_rate.go
@@ -171,6 +177,7 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m a
 		_ = d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
 		_ = d.Set("predicate", shippingMethod.Predicate)
 		_ = d.Set("stores", flattenStores(shippingMethod.Stores))
+		_ = d.Set("carrier", shippingMethod.Carrier)
 		_ = d.Set("custom", flattenCustomFields(shippingMethod.Custom))
 	}
 
@@ -263,6 +270,13 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 		input.Actions = append(
 			input.Actions,
 			&platform.ShippingMethodSetStoresAction{Stores: stores})
+	}
+
+	if d.HasChange("carrier") {
+		newCarrier := nilIfEmpty(stringRef(d.Get("carrier").(string)))
+		input.Actions = append(
+			input.Actions,
+			&platform.ShippingMethodSetCarrierAction{Carrier: newCarrier})
 	}
 
 	if d.HasChange("custom") {

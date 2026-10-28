@@ -29,6 +29,7 @@ resource "commercetools_shipping_method" "standard" {
   is_default      = true
   tax_category_id = commercetools_tax_category.some-tax-category.id
   predicate       = "1 = 1"
+  carrier         = "DHL"
 }
 ```
 
@@ -43,6 +44,7 @@ resource "commercetools_shipping_method" "standard" {
 ### Optional
 
 - `active` (Boolean) Activate or deactivate a shipping method. Default is active.
+- `carrier` (String) Name of the carrier that delivers the parcel, for example `DHL`
 - `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
 - `description` (String)
 - `is_default` (Boolean) One shipping method in a project can be default
