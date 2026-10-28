@@ -75,6 +75,16 @@ func resourceShippingMethod() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			"stores": {
+				Description: "If a value exists, the Shipping Method applies to Carts having a Store matching any " +
+					"Store defined for this field. If empty, the Shipping Method applies to all Carts, irrespective of " +
+					"a Store. Use store keys as references",
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional: true,
+			},
 			"custom": CustomFieldSchema(),
 		},
 	}
@@ -107,6 +117,7 @@ func resourceShippingMethodCreate(ctx context.Context, d *schema.ResourceData, m
 		IsDefault:            d.Get("is_default").(bool),
 		TaxCategory:          taxCategory,
 		Predicate:            nilIfEmpty(stringRef(d.Get("predicate"))),
+		Stores:               expandStores(d.Get("stores").(*schema.Set)),
 		Custom:               custom,
 		// Set default to empty array, otherwise the API will return an error if no shipping rates are added to the shipping method.
 		// Actual shipping rates are added in the shipping zone resource, see resource_shipping_zone_rate.go
@@ -159,6 +170,7 @@ func resourceShippingMethodRead(ctx context.Context, d *schema.ResourceData, m a
 		_ = d.Set("is_default", shippingMethod.IsDefault)
 		_ = d.Set("tax_category_id", shippingMethod.TaxCategory.ID)
 		_ = d.Set("predicate", shippingMethod.Predicate)
+		_ = d.Set("stores", flattenStores(shippingMethod.Stores))
 		_ = d.Set("custom", flattenCustomFields(shippingMethod.Custom))
 	}
 
@@ -244,6 +256,13 @@ func resourceShippingMethodUpdate(ctx context.Context, d *schema.ResourceData, m
 		input.Actions = append(
 			input.Actions,
 			&platform.ShippingMethodSetPredicateAction{Predicate: newPredicate})
+	}
+
+	if d.HasChange("stores") {
+		stores := expandStores(d.Get("stores").(*schema.Set))
+		input.Actions = append(
+			input.Actions,
+			&platform.ShippingMethodSetStoresAction{Stores: stores})
 	}
 
 	if d.HasChange("custom") {
