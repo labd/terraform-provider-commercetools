@@ -60,6 +60,8 @@ resource "commercetools_product_type" "my-product-type" {
       name              = "reference"
       reference_type_id = "product"
     }
+    # Not needed in the Cart: keep it off the Line Items
+    saved_to_line_item = false
   }
 
   attribute {

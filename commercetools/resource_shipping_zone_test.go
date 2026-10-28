@@ -39,7 +39,6 @@ func TestExpandShippingZoneLocations(t *testing.T) {
 }
 
 func TestAccShippingZone_createAndUpdateWithID(t *testing.T) {
-
 	key := "key"
 	name := "name"
 	description := "description"
@@ -102,7 +101,6 @@ func testAccShippingZoneConfig(name, description, key string) string {
 }
 
 func TestAccShippingZone_createAndAddLocation(t *testing.T) {
-
 	name := "name"
 	description := "description"
 	resourceName := "commercetools_shipping_zone.standard"
@@ -159,7 +157,6 @@ func testAccShippingZoneConfigLocationAdded() string {
 }
 
 func TestAccShippingZone_createAndRemoveLocation(t *testing.T) {
-
 	name := "name"
 	description := "description"
 	resourceName := "commercetools_shipping_zone.standard"

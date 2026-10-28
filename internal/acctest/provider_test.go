@@ -12,5 +12,4 @@ func TestProvider(t *testing.T) {
 	p := provider.New("version")
 
 	assert.NotNil(t, p)
-
 }

@@ -56,7 +56,6 @@ func testAccTaxCategoryConfig(name, key, description string) string {
 		"name":        name,
 		"description": description,
 	})
-
 }
 
 func testAccCheckTaxCategoryDestroy(s *terraform.State) error {

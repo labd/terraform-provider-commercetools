@@ -228,6 +228,21 @@ func TestAccProductTypes_basic(t *testing.T) {
 						resourceName, "attribute.0.type.0.name", "text",
 					),
 					resource.TestCheckResourceAttr(
+						resourceName, "attribute.0.saved_to_line_item", "false",
+					),
+					resource.TestCheckResourceAttr(
+						resourceName, "attribute.1.saved_to_line_item", "true",
+					),
+					func(s *terraform.State) error {
+						r, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+						assert.False(t, r.Attributes[0].SavedToLineItem)
+						assert.True(t, r.Attributes[1].SavedToLineItem)
+						return nil
+					},
+					resource.TestCheckResourceAttr(
 						resourceName, "attribute.1.type.0.localized_value.0.label.en", "Snack",
 					),
 					resource.TestCheckResourceAttr(
@@ -262,6 +277,17 @@ func TestAccProductTypes_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						resourceName, "attribute.0.label.en", "Location change",
 					),
+					resource.TestCheckResourceAttr(
+						resourceName, "attribute.0.saved_to_line_item", "true",
+					),
+					func(s *terraform.State) error {
+						r, err := testGetProductType(s, resourceName)
+						if err != nil {
+							return err
+						}
+						assert.True(t, r.Attributes[0].SavedToLineItem)
+						return nil
+					},
 					resource.TestCheckResourceAttr(
 						resourceName, "attribute.1.type.0.localized_value.0.label.en", "snack",
 					),
@@ -331,6 +357,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 							{
@@ -340,6 +367,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 						}
@@ -374,6 +402,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 							{
@@ -383,6 +412,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 							{
@@ -392,6 +422,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 						}
@@ -426,6 +457,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 							},
 							{
 								Type:                platform.AttributeTextType{},
@@ -434,6 +466,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 							},
 							{
 								Type:                platform.AttributeTextType{},
@@ -442,6 +475,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 							},
 						}
 
@@ -477,6 +511,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 							},
 							{
 								Type:                platform.AttributeTextType{},
@@ -485,6 +520,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 							},
 							{
 								Type:                platform.AttributeTextType{},
@@ -493,6 +529,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 							},
 							{
 								Type:                platform.AttributeTextType{},
@@ -501,6 +538,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 							},
 						}
 
@@ -534,6 +572,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 							},
 							{
 								Type:                platform.AttributeTextType{},
@@ -542,6 +581,7 @@ func TestAccProductTypes_AttributeOrderUpdates(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 							},
 						}
 
@@ -628,6 +668,7 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 							{
@@ -650,6 +691,7 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 						}
@@ -711,6 +753,7 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 							{
@@ -729,6 +772,7 @@ func TestAccProductTypes_EnumValues(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 						}
@@ -862,6 +906,7 @@ func TestAccProductTypes_ProductVariant(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumProduct,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 							{
@@ -884,6 +929,7 @@ func TestAccProductTypes_ProductVariant(t *testing.T) {
 								InputHint:           SingleText,
 								AttributeConstraint: platform.AttributeConstraintEnumNone,
 								Level:               platform.AttributeLevelEnumVariant,
+								SavedToLineItem:     true,
 								InputTip:            nil,
 							},
 						}
@@ -1027,6 +1073,7 @@ func testAccProductTypeConfig(identifier, key string) string {
 				type {
 					name = "text"
 				}
+				saved_to_line_item = false
 			}
 
 			attribute {

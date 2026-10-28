@@ -182,7 +182,7 @@ func businessUnitDivisionTFResourceDef(options ...option) string {
 	return utils.HCLTemplate(`
 	 {{ if .custom_value }}
 		resource "commercetools_type" "my-type-acme_company" {
-		  key = "my-type"
+		  key = "my-type-business-unit-division"
 		  name = {
 			en = "My type"
 			nl = "Mijn type"
@@ -204,7 +204,7 @@ func businessUnitDivisionTFResourceDef(options ...option) string {
 	{{ end }}
 	
 	resource "commercetools_business_unit_company" "acme_company" {
-		key              = "acme-company"
+		key              = "acme-division-parent-company"
 		name             = "Acme Company"
 		status           = "Active"
 	}

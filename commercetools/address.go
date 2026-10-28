@@ -126,7 +126,6 @@ func CreateAddressFieldDraft(d *schema.ResourceData) *platform.BaseAddress {
 		return nil
 	}
 	return CreateAddressFieldDraftRaw(address)
-
 }
 
 func CreateAddressFieldDraftRaw(data map[string]any) *platform.BaseAddress {

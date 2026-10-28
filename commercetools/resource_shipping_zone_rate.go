@@ -3,9 +3,10 @@ package commercetools
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -390,7 +391,6 @@ func createShippingRateDraft(rate *platform.ShippingRate) *platform.ShippingRate
 		FreeAbove: freeAbove,
 		Tiers:     rate.Tiers,
 	}
-
 }
 
 func getShippingIDs(shippingZoneRateID string) (string, string, string) {
@@ -543,7 +543,6 @@ func expandShippingRateDraft(d *schema.ResourceData) (*platform.ShippingRateDraf
 	}
 
 	return draft, nil
-
 }
 
 func expandShippingRatePriceTiers(d *schema.ResourceData) ([]platform.ShippingRatePriceTier, error) {

@@ -234,7 +234,6 @@ func (b *divisionResource) Create(ctx context.Context, req resource.CreateReques
 			"Could not create business unit, unexpected error: "+err.Error(),
 		)
 		return
-
 	}
 
 	var bu *platform.BusinessUnit
@@ -380,7 +379,6 @@ func (b *divisionResource) Update(ctx context.Context, req resource.UpdateReques
 			"Could not update business unit, unexpected error: "+err.Error(),
 		)
 		return
-
 	}
 	var bu *platform.BusinessUnit
 
