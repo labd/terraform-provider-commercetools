@@ -2,13 +2,19 @@ package commercetools
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"regexp"
 	"testing"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/labd/terraform-provider-commercetools/internal/utils"
 )
 
 func TestAccStore_createAndUpdateWithID(t *testing.T) {
@@ -186,6 +192,244 @@ func TestAccStore_CustomField(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testProductSelectionSet(items ...map[string]any) *schema.Set {
+	elem := resourceStore().Schema["product_selection"].Elem.(*schema.Resource)
+	set := schema.NewSet(schema.HashResource(elem), nil)
+	for _, item := range items {
+		set.Add(item)
+	}
+	return set
+}
+
+func TestExpandProductSelections(t *testing.T) {
+	t.Run("by id", func(t *testing.T) {
+		got, err := expandProductSelections(testProductSelectionSet(
+			map[string]any{"active": true, "product_selection_id": "abc", "product_selection_key": ""},
+		))
+		assert.NoError(t, err)
+		assert.Len(t, got, 1)
+		assert.Equal(t, "abc", *got[0].ProductSelection.ID)
+		assert.Nil(t, got[0].ProductSelection.Key)
+		assert.True(t, *got[0].Active)
+	})
+
+	t.Run("by key", func(t *testing.T) {
+		got, err := expandProductSelections(testProductSelectionSet(
+			map[string]any{"active": false, "product_selection_id": "", "product_selection_key": "my-key"},
+		))
+		assert.NoError(t, err)
+		assert.Len(t, got, 1)
+		assert.Nil(t, got[0].ProductSelection.ID)
+		assert.Equal(t, "my-key", *got[0].ProductSelection.Key)
+		assert.False(t, *got[0].Active)
+	})
+
+	t.Run("neither", func(t *testing.T) {
+		_, err := expandProductSelections(testProductSelectionSet(
+			map[string]any{"active": true, "product_selection_id": "", "product_selection_key": ""},
+		))
+		assert.Error(t, err)
+	})
+
+	t.Run("both", func(t *testing.T) {
+		_, err := expandProductSelections(testProductSelectionSet(
+			map[string]any{"active": true, "product_selection_id": "abc", "product_selection_key": "my-key"},
+		))
+		assert.Error(t, err)
+	})
+}
+
+func TestFlattenProductSelections(t *testing.T) {
+	selections := []platform.ProductSelectionSetting{
+		{
+			Active: true,
+			ProductSelection: platform.ProductSelectionReference{
+				ID:  "id-1",
+				Obj: &platform.ProductSelection{ID: "id-1", Key: utils.StringRef("key-1")},
+			},
+		},
+		{
+			Active: false,
+			ProductSelection: platform.ProductSelectionReference{
+				ID:  "id-2",
+				Obj: &platform.ProductSelection{ID: "id-2", Key: utils.StringRef("key-2")},
+			},
+		},
+		{
+			// Not expanded and without a key: resolved via the resolver, falls back to the id.
+			Active:           true,
+			ProductSelection: platform.ProductSelectionReference{ID: "id-3"},
+		},
+	}
+
+	// Prior state referenced key-1 by key, key-2 and id-3 by id.
+	prior := testProductSelectionSet(
+		map[string]any{"active": true, "product_selection_id": "", "product_selection_key": "key-1"},
+		map[string]any{"active": false, "product_selection_id": "id-2", "product_selection_key": ""},
+	)
+
+	got, err := flattenProductSelections(context.Background(), prior, selections, func(_ context.Context, id string) (string, error) {
+		// Only the unexpanded id-3 reaches the resolver; it has no key.
+		assert.Equal(t, "id-3", id)
+		return "", nil
+	})
+	assert.NoError(t, err)
+	assert.Len(t, got, 3)
+
+	assert.Equal(t, "key-1", got[0]["product_selection_key"])
+	assert.NotContains(t, got[0], "product_selection_id")
+
+	assert.Equal(t, "id-2", got[1]["product_selection_id"])
+	assert.NotContains(t, got[1], "product_selection_key")
+
+	assert.Equal(t, "id-3", got[2]["product_selection_id"])
+	assert.NotContains(t, got[2], "product_selection_key")
+}
+
+func TestFlattenProductSelections_UnexpandedIDConfiguredByID(t *testing.T) {
+	// One selection is configured by key and one by id, and the API returns
+	// neither expanded. Only the key-based one may trigger a lookup; a failing
+	// lookup must not be reached for the id-based selection.
+	selections := []platform.ProductSelectionSetting{
+		{Active: true, ProductSelection: platform.ProductSelectionReference{ID: "id-key"}},
+		{Active: true, ProductSelection: platform.ProductSelectionReference{ID: "id-plain"}},
+	}
+	prior := testProductSelectionSet(
+		map[string]any{"active": true, "product_selection_id": "", "product_selection_key": "my-key"},
+		map[string]any{"active": true, "product_selection_id": "id-plain", "product_selection_key": ""},
+	)
+
+	var looked []string
+	got, err := flattenProductSelections(context.Background(), prior, selections, func(_ context.Context, id string) (string, error) {
+		looked = append(looked, id)
+		if id == "id-plain" {
+			return "", errors.New("lookup must not happen for id-configured selections")
+		}
+		return "my-key", nil
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"id-key"}, looked)
+	assert.Equal(t, "my-key", got[0]["product_selection_key"])
+	assert.Equal(t, "id-plain", got[1]["product_selection_id"])
+	assert.NotContains(t, got[1], "product_selection_key")
+}
+
+func TestFlattenProductSelections_UnexpandedKey(t *testing.T) {
+	selections := []platform.ProductSelectionSetting{
+		{Active: true, ProductSelection: platform.ProductSelectionReference{ID: "id-1"}},
+		{Active: true, ProductSelection: platform.ProductSelectionReference{ID: "id-2"}},
+	}
+	prior := testProductSelectionSet(
+		map[string]any{"active": true, "product_selection_id": "", "product_selection_key": "key-1"},
+		map[string]any{"active": true, "product_selection_id": "id-2", "product_selection_key": ""},
+	)
+
+	t.Run("resolves key", func(t *testing.T) {
+		resolve := func(_ context.Context, id string) (string, error) {
+			return map[string]string{"id-1": "key-1", "id-2": "key-2"}[id], nil
+		}
+		got, err := flattenProductSelections(context.Background(), prior, selections, resolve)
+		assert.NoError(t, err)
+		assert.Equal(t, "key-1", got[0]["product_selection_key"])
+		assert.NotContains(t, got[0], "product_selection_id")
+		assert.Equal(t, "id-2", got[1]["product_selection_id"])
+		assert.NotContains(t, got[1], "product_selection_key")
+	})
+
+	t.Run("resolver error is returned", func(t *testing.T) {
+		resolve := func(_ context.Context, id string) (string, error) {
+			return "", fmt.Errorf("boom")
+		}
+		_, err := flattenProductSelections(context.Background(), prior, selections, resolve)
+		assert.Error(t, err)
+	})
+}
+
+func TestValidateProductSelectionsConfig(t *testing.T) {
+	str := cty.StringVal
+	null := cty.NullVal(cty.String)
+	unknown := cty.UnknownVal(cty.String)
+	block := func(id, key cty.Value) cty.Value {
+		return cty.ObjectVal(map[string]cty.Value{
+			"active":                cty.True,
+			"product_selection_id":  id,
+			"product_selection_key": key,
+		})
+	}
+	config := func(blocks ...cty.Value) cty.Value {
+		return cty.ObjectVal(map[string]cty.Value{"product_selection": cty.SetVal(blocks)})
+	}
+
+	tests := []struct {
+		name    string
+		config  cty.Value
+		wantErr bool
+	}{
+		{"id only", config(block(str("a"), null)), false},
+		{"key only", config(block(null, str("k"))), false},
+		{"empty string counts as unset", config(block(str(""), str("k"))), false},
+		{"neither", config(block(null, null)), true},
+		{"neither, empty strings", config(block(str(""), str(""))), true},
+		{"both", config(block(str("a"), str("k"))), true},
+		{"unknown id, key null", config(block(unknown, null)), false},
+		{"unknown key, id null", config(block(null, unknown)), false},
+		{"unknown id, key set", config(block(unknown, str("k"))), false},
+		{"both unknown", config(block(unknown, unknown)), false},
+		{"valid and invalid blocks", config(block(str("a"), null), block(null, null)), true},
+		{"unknown set", cty.ObjectVal(map[string]cty.Value{
+			"product_selection": cty.UnknownVal(cty.Set(cty.Object(map[string]cty.Type{
+				"active":                cty.Bool,
+				"product_selection_id":  cty.String,
+				"product_selection_key": cty.String,
+			}))),
+		}), false},
+		{"null config", cty.NullVal(cty.EmptyObject), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateProductSelectionsConfig(tt.config)
+			if tt.wantErr {
+				assert.ErrorContains(t, err, "exactly one of product_selection_id or product_selection_key")
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestAccStore_ProductSelectionRequiresIDOrKey(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccStoreConfigWithProductSelection("test-ps-invalid", ``, true),
+				ExpectError: regexp.MustCompile(`exactly one of[\s│]+product_selection_id[\s│]+or[\s│]+product_selection_key`),
+			},
+		},
+	})
+}
+
+func testAccStoreConfigWithProductSelection(key, reference string, active bool) string {
+	return hclTemplate(`
+        resource "commercetools_store" "test" {
+            key = "{{ .key }}"
+            name = {
+                en = "test store"
+            }
+            product_selection {
+                {{ .reference }}
+                active = {{ .active }}
+            }
+        }
+    `,
+		map[string]any{
+			"key":       key,
+			"reference": reference,
+			"active":    active,
+		})
 }
 
 func testAccStoreConfig(id, name, key string) string {
