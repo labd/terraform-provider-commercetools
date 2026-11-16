@@ -3,8 +3,11 @@ package commercetools
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 	"time"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -22,6 +25,9 @@ func resourceStore() *schema.Resource {
 		ReadContext:   resourceStoreRead,
 		UpdateContext: resourceStoreUpdate,
 		DeleteContext: resourceStoreDelete,
+		CustomizeDiff: func(_ context.Context, d *schema.ResourceDiff, _ any) error {
+			return validateProductSelectionsConfig(d.GetRawConfig())
+		},
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -80,9 +86,14 @@ func resourceStore() *schema.Resource {
 							Required:    true,
 						},
 						"product_selection_id": {
-							Description: "Resource Identifier of a ProductSelection",
+							Description: "ID of the ProductSelection. Exactly one of `product_selection_id` or `product_selection_key` must be set",
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
+						},
+						"product_selection_key": {
+							Description: "Key of the ProductSelection. Exactly one of `product_selection_id` or `product_selection_key` must be set",
+							Type:        schema.TypeString,
+							Optional:    true,
 						},
 					},
 				},
@@ -98,7 +109,10 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 	name := expandLocalizedString(d.Get("name"))
 	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
 	scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
-	psIdentifiers := expandProductSelections(d.Get("product_selection").(*schema.Set))
+	psIdentifiers, err := expandProductSelections(d.Get("product_selection").(*schema.Set))
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	custom, err := CreateCustomFieldDraft(ctx, client, d)
 	if err != nil {
@@ -187,7 +201,14 @@ func resourceStoreRead(ctx context.Context, d *schema.ResourceData, m any) diag.
 	}
 
 	if store.ProductSelections != nil {
-		selections, err := flattenProductSelections(store.ProductSelections)
+		selections, err := flattenProductSelections(
+			ctx,
+			d.Get("product_selection").(*schema.Set),
+			store.ProductSelections,
+			func(ctx context.Context, id string) (string, error) {
+				return fetchProductSelectionKey(ctx, client, id)
+			},
+		)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -255,8 +276,18 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 	if d.HasChange("product_selection") {
 		o, n := d.GetChange("product_selection")
 
-		oldProductSelections := expandProductSelections(o.(*schema.Set))
-		newProductSelections := expandProductSelections(n.(*schema.Set))
+		oldProductSelections, err := expandProductSelections(o.(*schema.Set))
+		if err != nil {
+			// Keep the prior state, nothing was sent to the API, see
+			// https://github.com/hashicorp/terraform-plugin-sdk/issues/476
+			d.Partial(true)
+			return diag.FromErr(err)
+		}
+		newProductSelections, err := expandProductSelections(n.(*schema.Set))
+		if err != nil {
+			d.Partial(true)
+			return diag.FromErr(err)
+		}
 
 		for i, productSelection := range oldProductSelections {
 			if !productSelectionInSlice(productSelection, newProductSelections) {
@@ -331,7 +362,7 @@ func expandStoreChannels(channelData any) []platform.ChannelResourceIdentifier {
 	return convertChannelKeysToIdentifiers(channelKeys)
 }
 
-func expandProductSelections(input *schema.Set) []platform.ProductSelectionSettingDraft {
+func expandProductSelections(input *schema.Set) ([]platform.ProductSelectionSettingDraft, error) {
 	inputSlice := input.List()
 	result := make([]platform.ProductSelectionSettingDraft, len(inputSlice))
 
@@ -342,20 +373,27 @@ func expandProductSelections(input *schema.Set) []platform.ProductSelectionSetti
 			active = false
 		}
 
-		var productSelectionRef *string
-		if productSelection, ok := raw["product_selection_id"].(string); ok && productSelection != "" {
-			productSelectionRef = &productSelection
+		var productSelectionID, productSelectionKey *string
+		if id, ok := raw["product_selection_id"].(string); ok && id != "" {
+			productSelectionID = &id
+		}
+		if key, ok := raw["product_selection_key"].(string); ok && key != "" {
+			productSelectionKey = &key
+		}
+		if (productSelectionID == nil) == (productSelectionKey == nil) {
+			return nil, errors.New("product_selection: exactly one of product_selection_id or product_selection_key must be set")
 		}
 
 		result[i] = platform.ProductSelectionSettingDraft{
 			Active: utils.BoolRef(active),
 			ProductSelection: platform.ProductSelectionResourceIdentifier{
-				ID: productSelectionRef,
+				ID:  productSelectionID,
+				Key: productSelectionKey,
 			},
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 func convertCountryCodesToStoreCountries(countryCodes []string) []platform.StoreCountry {
@@ -385,17 +423,134 @@ func flattenStoreChannels(channels []platform.ChannelReference) ([]string, error
 	return channelKeys, nil
 }
 
-func flattenProductSelections(selections []platform.ProductSelectionSetting) ([]map[string]any, error) {
-	result := make([]map[string]any, len(selections))
+// productSelectionKeyResolver returns the key of the product selection with
+// the given ID.
+type productSelectionKeyResolver func(ctx context.Context, id string) (string, error)
 
-	for i := range selections {
-		result[i] = map[string]any{
-			"active":               selections[i].Active,
-			"product_selection_id": selections[i].ProductSelection.ID,
+// fetchProductSelectionKey looks up the key of a product selection by ID. It is
+// used when the store response contains a product selection reference that was
+// not expanded (commercetools allows incomplete reference expansion).
+func fetchProductSelectionKey(ctx context.Context, client *platform.ByProjectKeyRequestBuilder, id string) (string, error) {
+	var ps *platform.ProductSelection
+	err := retry.RetryContext(ctx, 20*time.Second, func() *retry.RetryError {
+		var err error
+		ps, err = client.ProductSelections().WithId(id).Get().Execute(ctx)
+		return utils.ProcessRemoteError(err)
+	})
+	if err != nil {
+		return "", err
+	}
+	if ps.Key == nil {
+		return "", nil
+	}
+	return *ps.Key, nil
+}
+
+// flattenProductSelections maps the API response back to state. A selection
+// is written back by key when the prior state/config referenced it by key,
+// otherwise by id, so the practitioner's chosen identifier does not drift.
+// If a reference was not expanded and key-based identifiers are in use, the
+// key is resolved with resolveKey; failures are returned instead of silently
+// switching to the id.
+func flattenProductSelections(
+	ctx context.Context,
+	prior *schema.Set,
+	selections []platform.ProductSelectionSetting,
+	resolveKey productSelectionKeyResolver,
+) ([]map[string]any, error) {
+	usedKeys := map[string]struct{}{}
+	usedIDs := map[string]struct{}{}
+	for _, v := range prior.List() {
+		raw, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
+		if key, ok := raw["product_selection_key"].(string); ok && key != "" {
+			usedKeys[key] = struct{}{}
+		}
+		if id, ok := raw["product_selection_id"].(string); ok && id != "" {
+			usedIDs[id] = struct{}{}
 		}
 	}
 
+	result := make([]map[string]any, len(selections))
+	for i := range selections {
+		item := map[string]any{"active": selections[i].Active}
+		ref := selections[i].ProductSelection
+
+		var key string
+		switch {
+		case ref.Obj != nil:
+			if ref.Obj.Key != nil {
+				key = *ref.Obj.Key
+			}
+		case len(usedKeys) > 0 && !isUsedByID(usedIDs, ref.ID):
+			// Only look the key up for references that were not configured by
+			// id; selections configured by id are preserved as they are.
+			var err error
+			key, err = resolveKey(ctx, ref.ID)
+			if err != nil {
+				return nil, fmt.Errorf("resolving key of product selection %q: %w", ref.ID, err)
+			}
+		}
+
+		if _, useKey := usedKeys[key]; useKey && key != "" {
+			item["product_selection_key"] = key
+		} else {
+			item["product_selection_id"] = ref.ID
+		}
+		result[i] = item
+	}
+
 	return result, nil
+}
+
+func isUsedByID(usedIDs map[string]struct{}, id string) bool {
+	_, ok := usedIDs[id]
+	return ok
+}
+
+// validateProductSelectionsConfig checks at plan time that every
+// product_selection block sets exactly one of product_selection_id and
+// product_selection_key. Unknown values (for example references to other
+// resources) are not treated as unset; those blocks are only rejected when
+// they are certainly invalid, the apply-time check in expandProductSelections
+// remains as a backstop.
+func validateProductSelectionsConfig(config cty.Value) error {
+	if config.IsNull() || !config.IsKnown() || !config.Type().IsObjectType() ||
+		!config.Type().HasAttribute("product_selection") {
+		return nil
+	}
+	blocks := config.GetAttr("product_selection")
+	if blocks.IsNull() || !blocks.IsKnown() || !blocks.CanIterateElements() {
+		return nil
+	}
+
+	for it := blocks.ElementIterator(); it.Next(); {
+		_, block := it.Element()
+		if block.IsNull() || !block.IsKnown() || !block.Type().IsObjectType() {
+			continue
+		}
+
+		set, unknown := 0, 0
+		for _, name := range []string{"product_selection_id", "product_selection_key"} {
+			if !block.Type().HasAttribute(name) {
+				continue
+			}
+			v := block.GetAttr(name)
+			switch {
+			case !v.IsKnown():
+				unknown++
+			case !v.IsNull() && v.Type() == cty.String && v.AsString() != "":
+				set++
+			}
+		}
+
+		if set > 1 || (set == 0 && unknown == 0) {
+			return errors.New("product_selection: exactly one of product_selection_id or product_selection_key must be set")
+		}
+	}
+	return nil
 }
 
 func flattenCountries(countries []platform.StoreCountry) ([]string, error) {
@@ -408,7 +563,7 @@ func flattenCountries(countries []platform.StoreCountry) ([]string, error) {
 
 func productSelectionInSlice(needle platform.ProductSelectionSettingDraft, haystack []platform.ProductSelectionSettingDraft) bool {
 	for _, item := range haystack {
-		if item == needle {
+		if reflect.DeepEqual(item, needle) {
 			return true
 		}
 	}

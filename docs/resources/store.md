@@ -125,4 +125,8 @@ Optional:
 Required:
 
 - `active` (Boolean) If true, all Products assigned to this Product Selection are part of the Store's assortment
-- `product_selection_id` (String) Resource Identifier of a ProductSelection
+
+Optional:
+
+- `product_selection_id` (String) ID of the ProductSelection. Exactly one of `product_selection_id` or `product_selection_key` must be set
+- `product_selection_key` (String) Key of the ProductSelection. Exactly one of `product_selection_id` or `product_selection_key` must be set
