@@ -161,7 +161,7 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 			"countries":  rawState["countries"],
 			"languages":  rawState["languages"],
 
-			"carts":          tftypes.NewValue(ProjectResourceDataV1.AttributeTypes["carts"], []tftypes.Value{transformCarts(rawState["carts"])}),
+			"carts":          transformCarts(rawState["carts"]),
 			"shopping_lists": valueToList(rawState, "shopping_lists"),
 			"messages":       valueToList(rawState, "messages"),
 			"external_oauth": valueToList(rawState, "external_oauth"),
@@ -190,6 +190,10 @@ func upgradeStateV0(ctx context.Context, req resource.UpgradeStateRequest, resp 
 }
 
 func transformCarts(state tftypes.Value) tftypes.Value {
+	if state.IsNull() {
+		return tftypes.NewValue(ProjectResourceDataV1.AttributeTypes["carts"], []tftypes.Value{})
+	}
+
 	countryTaxRateFallbackEnabled, err := state.ApplyTerraform5AttributePathStep(tftypes.AttributeName("country_tax_rate_fallback_enabled"))
 	if err != nil {
 		panic(err)
@@ -224,7 +228,7 @@ func transformCarts(state tftypes.Value) tftypes.Value {
 		"tax_rounding_mode":                   taxRoundingMode.(tftypes.Value),
 	}
 
-	return tftypes.NewValue(ProjectsCartDataV1, nv)
+	return tftypes.NewValue(ProjectResourceDataV1.AttributeTypes["carts"], []tftypes.Value{tftypes.NewValue(ProjectsCartDataV1, nv)})
 }
 
 func valueToList(state map[string]tftypes.Value, key string) tftypes.Value {
