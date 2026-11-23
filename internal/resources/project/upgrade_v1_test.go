@@ -124,6 +124,47 @@ func Test_upgradeStateV0(t *testing.T) {
 	assert.Equal(t, expected, res)
 }
 
+func Test_upgradeStateV0_NoCarts(t *testing.T) {
+	oldState := []byte(`
+	  {
+		"carts":null,
+		"countries":[],
+		"currencies":["EUR"],
+		"external_oauth":null,
+		"id":"my-project",
+		"key":"my-project",
+		"languages":["nl"],
+		"messages":null,
+		"name":"My Project",
+		"version":180
+	  }
+	`)
+
+	ctx := context.Background()
+	req := resource.UpgradeStateRequest{
+		RawState: &tfprotov6.RawState{
+			JSON: oldState,
+		},
+	}
+	resp := resource.UpgradeStateResponse{}
+	upgradeStateV0(ctx, req, &resp)
+	require.False(t, resp.Diagnostics.HasError(), resp.Diagnostics.Errors())
+	require.NotNil(t, resp.DynamicValue)
+
+	s := getCurrentSchema()
+	upgradedStateValue, err := resp.DynamicValue.Unmarshal(s.Type().TerraformType(ctx))
+	require.NoError(t, err)
+	state := tfsdk.State{
+		Raw:    upgradedStateValue,
+		Schema: s,
+	}
+
+	res := Project{}
+	diags := state.Get(ctx, &res)
+	require.False(t, diags.HasError(), diags.Errors())
+	assert.Equal(t, []Carts{}, res.Carts)
+}
+
 func getCurrentSchema() schema.Schema {
 	ctx := context.Background()
 	res := NewResource()
