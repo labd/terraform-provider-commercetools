@@ -96,11 +96,11 @@ resource "commercetools_store" "my-store" {
 
 - `countries` (Set of String) A two-digit country code as per [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
 - `custom` (Block List, Max: 1) (see [below for nested schema](#nestedblock--custom))
-- `distribution_channels` (List of String) Set of ResourceIdentifier to a Channel with ProductDistribution
+- `distribution_channels` (Set of String) Set of ResourceIdentifier to a Channel with ProductDistribution
 - `languages` (List of String) [IETF Language Tag](https://en.wikipedia.org/wiki/IETF_language_tag)
 - `name` (Map of String) [LocalizedString](https://docs.commercetools.com/api/types#localizedstring)
 - `product_selection` (Block Set) Controls availability of Products for this Store via Product Selections (see [below for nested schema](#nestedblock--product_selection))
-- `supply_channels` (List of String) Set of ResourceIdentifier of Channels with InventorySupply
+- `supply_channels` (Set of String) Set of ResourceIdentifier of Channels with InventorySupply
 
 ### Read-Only
 

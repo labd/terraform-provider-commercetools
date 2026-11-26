@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/go-cty/cty/msgpack"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/labd/commercetools-go-sdk/platform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAccStore_createAndUpdateWithID(t *testing.T) {
@@ -140,6 +144,119 @@ func TestAccStore_createAndUpdateDistributionLanguages(t *testing.T) {
 	})
 }
 
+func TestAccStoreChannelsIgnoreOrder(t *testing.T) {
+	resourceName := "commercetools_store.test"
+	name := "test channel order"
+	key := "test-channel-order"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testAccCheckStoreDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStoreConfigWithChannelOrder("test", name, key, []string{"first", "second", "third"}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "distribution_channels.#", "3"),
+					resource.TestCheckTypeSetElemAttr(resourceName, "distribution_channels.*", "CHANNEL-FIRST"),
+					resource.TestCheckTypeSetElemAttr(resourceName, "distribution_channels.*", "CHANNEL-SECOND"),
+					resource.TestCheckTypeSetElemAttr(resourceName, "distribution_channels.*", "CHANNEL-THIRD"),
+					resource.TestCheckResourceAttr(resourceName, "supply_channels.#", "3"),
+					resource.TestCheckTypeSetElemAttr(resourceName, "supply_channels.*", "CHANNEL-FIRST"),
+					resource.TestCheckTypeSetElemAttr(resourceName, "supply_channels.*", "CHANNEL-SECOND"),
+					resource.TestCheckTypeSetElemAttr(resourceName, "supply_channels.*", "CHANNEL-THIRD"),
+				),
+			},
+			{
+				// The store keeps the channel order of the first step, so a reordered configuration must plan no changes.
+				Config:   testAccStoreConfigWithChannelOrder("test", name, key, []string{"third", "first", "second"}),
+				PlanOnly: true,
+			},
+		},
+	})
+}
+
+func TestStoreChannelsDiffIgnoresOrder(t *testing.T) {
+	testCases := map[string]string{
+		"distribution-channels": "distribution_channels",
+		"supply-channels":       "supply_channels",
+	}
+
+	for testName, attribute := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			storeResource := resourceStore()
+
+			data := storeResource.TestResourceData()
+			data.SetId("store-id")
+			require.NoError(t, data.Set("key", "store-key"))
+			require.NoError(t, data.Set(attribute, []string{"variant-53", "variant-30", "webshop", "variant-11"}))
+
+			config := terraform.NewResourceConfigRaw(map[string]any{
+				"key":     "store-key",
+				attribute: []any{"webshop", "variant-11", "variant-30", "variant-53"},
+			})
+
+			sameChannels, err := storeResource.Diff(context.Background(), data.State(), config, nil)
+			require.NoError(t, err)
+			assert.True(t, sameChannels == nil || sameChannels.Empty(), "expected no diff, got %v", sameChannels)
+
+			config = terraform.NewResourceConfigRaw(map[string]any{
+				"key":     "store-key",
+				attribute: []any{"webshop", "variant-11", "variant-30"},
+			})
+
+			removedChannel, err := storeResource.Diff(context.Background(), data.State(), config, nil)
+			require.NoError(t, err)
+			require.NotNil(t, removedChannel)
+			assert.False(t, removedChannel.Empty())
+		})
+	}
+}
+
+// State written while the channel attributes were lists stores them as JSON arrays in API order.
+// The set schema must load that state unchanged, because the resource has no state upgrader.
+func TestStoreChannelsListStateLoadsAsSet(t *testing.T) {
+	listState := []byte(`{
+		"id": "store-id",
+		"key": "store-key",
+		"name": {"en": "Store"},
+		"version": 3,
+		"languages": ["en-US"],
+		"countries": ["NL"],
+		"distribution_channels": ["variant-53", "variant-30", "webshop"],
+		"supply_channels": ["variant-11", "webshop"],
+		"product_selection": [],
+		"custom": []
+	}`)
+
+	server := schema.NewGRPCProviderServer(New("snapshot")())
+	response, err := server.UpgradeResourceState(context.Background(), &tfprotov5.UpgradeResourceStateRequest{
+		TypeName: "commercetools_store",
+		Version:  0,
+		RawState: &tfprotov5.RawState{JSON: listState},
+	})
+	require.NoError(t, err)
+	require.Empty(t, response.Diagnostics)
+
+	upgraded, err := msgpack.Unmarshal(response.UpgradedState.MsgPack, resourceStore().CoreConfigSchema().ImpliedType())
+	require.NoError(t, err)
+
+	expectedChannels := map[string][]string{
+		"distribution_channels": {"variant-30", "variant-53", "webshop"},
+		"supply_channels":       {"variant-11", "webshop"},
+	}
+	for attribute, expectedKeys := range expectedChannels {
+		channels := upgraded.GetAttr(attribute)
+		require.True(t, channels.Type().IsSetType(), "%s is not a set", attribute)
+
+		channelKeys := make([]string, 0, channels.LengthInt())
+		for _, channel := range channels.AsValueSlice() {
+			channelKeys = append(channelKeys, channel.AsString())
+		}
+		assert.ElementsMatch(t, expectedKeys, channelKeys)
+	}
+}
+
 func TestAccStore_CustomField(t *testing.T) {
 	resourceName := "commercetools_store.test"
 	name := "test method"
@@ -261,6 +378,48 @@ func testAccStoreConfigWithChannels(id, name, key string, languages []string) st
 		"name":      name,
 		"key":       key,
 		"languages": languages,
+	})
+}
+
+// The channels are created in a fixed order, order sets the order in which the store references them.
+func testAccStoreConfigWithChannelOrder(id, name, key string, order []string) string {
+	return hclTemplate(`
+        resource "commercetools_channel" "{{ .id }}_first" {
+            key = "CHANNEL-FIRST"
+            roles = ["ProductDistribution", "InventorySupply"]
+        }
+
+        resource "commercetools_channel" "{{ .id }}_second" {
+            key = "CHANNEL-SECOND"
+            roles = ["ProductDistribution", "InventorySupply"]
+        }
+
+        resource "commercetools_channel" "{{ .id }}_third" {
+            key = "CHANNEL-THIRD"
+            roles = ["ProductDistribution", "InventorySupply"]
+        }
+
+        resource "commercetools_store" "{{ .id }}" {
+            key = "{{ .key }}"
+            name = {
+                en = "{{ .name }}"
+            }
+            distribution_channels = [
+                {{- range .order }}
+                commercetools_channel.{{ $.id }}_{{ . }}.key,
+                {{- end }}
+            ]
+            supply_channels = [
+                {{- range .order }}
+                commercetools_channel.{{ $.id }}_{{ . }}.key,
+                {{- end }}
+            ]
+        }
+    `, map[string]any{
+		"id":    id,
+		"name":  name,
+		"key":   key,
+		"order": order,
 	})
 }
 

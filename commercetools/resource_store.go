@@ -58,13 +58,13 @@ func resourceStore() *schema.Resource {
 			},
 			"distribution_channels": {
 				Description: "Set of ResourceIdentifier to a Channel with ProductDistribution",
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"supply_channels": {
 				Description: "Set of ResourceIdentifier of Channels with InventorySupply",
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
@@ -96,8 +96,8 @@ func resourceStoreCreate(ctx context.Context, d *schema.ResourceData, m any) dia
 	client := getClient(m)
 
 	name := expandLocalizedString(d.Get("name"))
-	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
-	scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
+	dcIdentifiers := expandStoreChannels(d.Get("distribution_channels").(*schema.Set))
+	scIdentifiers := expandStoreChannels(d.Get("supply_channels").(*schema.Set))
 	psIdentifiers := expandProductSelections(d.Get("product_selection").(*schema.Set))
 
 	custom, err := CreateCustomFieldDraft(ctx, client, d)
@@ -230,7 +230,7 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 	}
 
 	if d.HasChange("distribution_channels") {
-		dcIdentifiers := expandStoreChannels(d.Get("distribution_channels"))
+		dcIdentifiers := expandStoreChannels(d.Get("distribution_channels").(*schema.Set))
 
 		// set action replaces current values
 		input.Actions = append(
@@ -242,7 +242,7 @@ func resourceStoreUpdate(ctx context.Context, d *schema.ResourceData, m any) dia
 	}
 
 	if d.HasChange("supply_channels") {
-		scIdentifiers := expandStoreChannels(d.Get("supply_channels"))
+		scIdentifiers := expandStoreChannels(d.Get("supply_channels").(*schema.Set))
 		// set action replaces current values
 		input.Actions = append(
 			input.Actions,
@@ -326,8 +326,8 @@ func convertChannelKeysToIdentifiers(channelKeys []string) []platform.ChannelRes
 	return identifiers
 }
 
-func expandStoreChannels(channelData any) []platform.ChannelResourceIdentifier {
-	channelKeys := expandStringArray(channelData.([]any))
+func expandStoreChannels(channelData *schema.Set) []platform.ChannelResourceIdentifier {
+	channelKeys := expandStringArray(channelData.List())
 	return convertChannelKeysToIdentifiers(channelKeys)
 }
 
